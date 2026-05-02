@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyc.*
+
+logs/*
+!logs/.gitkeep
+memory/session_memory.json
+notes/*.txt
+voices/*.onnx
+voices/*.onnx.json
+
+*.wav
+*.tmp
