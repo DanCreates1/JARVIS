@@ -5,6 +5,9 @@ piper-tts>=1.2.0
 requests>=2.31.0
 sounddevice>=0.4.6
 
+# NVIDIA Whisper acceleration is optional because the CUDA DLL wheels are large.
+# For RTX GPU speech-to-text, install: pip install -r requirements-cuda.txt
+
 # Optional system tray support. Install only if you set "enable_tray": true.
 # pillow>=10.0.0
 # pystray>=0.19.5

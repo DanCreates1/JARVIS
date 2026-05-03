@@ -95,6 +95,96 @@ class AudioRecorder:
             return None
         return self._write_wav(frames)
 
+    def record_until_silence(
+        self,
+        stop_event: Event,
+        interrupt_event: Event | None = None,
+        speech_threshold: float = 0.018,
+        silence_seconds: float = 0.65,
+        pre_roll_seconds: float = 0.25,
+        min_record_seconds: float = 1.4,
+        max_record_seconds: float | None = None,
+        start_timeout_seconds: float | None = None,
+    ) -> Path | None:
+        try:
+            import sounddevice as sd
+        except Exception as exc:
+            raise AudioRecorderError("sounddevice is not installed or cannot load.") from exc
+
+        block_size = int(self.sample_rate * 0.03)
+        max_seconds = max_record_seconds or self.max_record_seconds
+        pre_roll_blocks = max(1, int(pre_roll_seconds / 0.03))
+        silence_blocks_needed = max(1, int(silence_seconds / 0.03))
+
+        pre_roll: list[np.ndarray] = []
+        captured: list[np.ndarray] = []
+        recording = False
+        silence_blocks = 0
+        started_waiting = time.monotonic()
+        recording_started = 0.0
+
+        try:
+            with sd.InputStream(
+                samplerate=self.sample_rate,
+                channels=self.channels,
+                dtype="int16",
+                blocksize=block_size,
+            ) as stream:
+                while not stop_event.is_set():
+                    if interrupt_event is not None and interrupt_event.is_set() and not recording:
+                        self.log.info("VAD wait interrupted")
+                        return None
+
+                    if (
+                        not recording
+                        and start_timeout_seconds is not None
+                        and time.monotonic() - started_waiting > start_timeout_seconds
+                    ):
+                        return None
+
+                    block, overflowed = stream.read(block_size)
+                    if overflowed:
+                        self.log.warning("Input stream overflow while recording")
+
+                    mono = self._to_mono(block)
+                    level = self._rms_level(mono)
+
+                    if not recording:
+                        pre_roll.append(mono)
+                        pre_roll = pre_roll[-pre_roll_blocks:]
+                        if level >= speech_threshold:
+                            recording = True
+                            recording_started = time.monotonic()
+                            captured.extend(pre_roll)
+                            silence_blocks = 0
+                            self.log.info("Speech detected; recording started")
+                        continue
+
+                    captured.append(mono)
+                    if level < speech_threshold:
+                        silence_blocks += 1
+                    else:
+                        silence_blocks = 0
+
+                    elapsed = time.monotonic() - recording_started
+                    if silence_blocks >= silence_blocks_needed and elapsed >= min_record_seconds:
+                        break
+                    if elapsed >= max_seconds:
+                        self.log.info("Stopped recording at max duration %.2fs", max_seconds)
+                        break
+        except Exception as exc:
+            raise AudioRecorderError(f"Audio input failed: {exc}") from exc
+
+        if not captured:
+            return None
+        frames = np.concatenate(captured, axis=0).astype(np.int16)
+        duration = len(frames) / self.sample_rate
+        self.log.info("VAD recording duration: %.2fs", duration)
+        if duration < 0.35:
+            self.log.info("Ignored short VAD recording: %.2fs", duration)
+            return None
+        return self._write_wav(frames)
+
     def _capture_until(
         self,
         stop_event: Event,
@@ -136,6 +226,17 @@ class AudioRecorder:
         if self.channels == 1:
             return audio.reshape(-1).astype(np.int16)
         return audio.mean(axis=1).astype(np.int16)
+
+    def _to_mono(self, audio: np.ndarray) -> np.ndarray:
+        if self.channels == 1:
+            return audio.reshape(-1).astype(np.int16)
+        return audio.mean(axis=1).astype(np.int16)
+
+    def _rms_level(self, frames: np.ndarray) -> float:
+        if frames.size == 0:
+            return 0.0
+        audio = frames.astype(np.float32) / 32768.0
+        return float(np.sqrt(np.mean(audio * audio)))
 
     def _write_wav(self, frames: np.ndarray) -> Path:
         path = self.temp_dir / f"input_{int(time.time() * 1000)}.wav"

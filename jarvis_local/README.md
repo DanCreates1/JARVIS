@@ -2,9 +2,11 @@
 
 A small Windows 11 voice assistant that runs locally:
 
-- Push-to-talk microphone input with Right Ctrl
-- `faster-whisper` speech-to-text
-- Ollama chat at `http://localhost:11434/api/chat`
+- Always-on microphone input with VAD endpointing and a "Jarvis" wake phrase
+- Fullscreen status GUI with Space-to-force-listen and typed command input
+- `faster-whisper` speech-to-text with low-latency speech endpointing
+- CUDA-preferred `faster-whisper` on NVIDIA GPUs, with CPU fallback
+- Ollama chat at `http://localhost:11434/api/chat` with keep-alive warmup
 - Piper text-to-speech
 - Short local conversation memory
 - Safe, confirmed tools for Notepad, Chrome, time, notes, and text-file reading
@@ -27,8 +29,10 @@ Use small models. The default is `qwen2.5:3b`; `llama3.2:3b` is also a good opti
 ```text
 jarvis_local/
   main.py
+  status_gui.py
   config.json
   requirements.txt
+  requirements-cuda.txt
   README.md
   logs/
   tools/
@@ -72,6 +76,14 @@ py -3.11 -m venv .venv
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
+
+For NVIDIA Whisper acceleration, also run:
+
+```powershell
+pip install -r requirements-cuda.txt
+```
+
+The app adds the installed CUDA DLL folders automatically at runtime. If CUDA is not usable, Whisper falls back to CPU instead of crashing.
 
 This installs `faster-whisper`, `sounddevice`, `keyboard`, `requests`, and the Piper Python package.
 
@@ -141,7 +153,13 @@ cd "C:\Users\poyan\OneDrive\Documents\New project\jarvis_local"
 python main.py
 ```
 
-Hold Right Ctrl, speak, then release Right Ctrl.
+The current default mode is hands-free:
+
+- Say `Jarvis` before a command.
+- If the fullscreen GUI is focused, press `Space`, then speak. This bypasses the wake phrase for the next command.
+- Type a command in the text box and press `Enter` if you want to test the LLM without using the microphone.
+- Press `Pause / Resume` to stop or restart listening.
+- Press `Stop Jarvis` to turn it off.
 
 ## 6. Run In Background Mode
 
@@ -151,6 +169,8 @@ Background mode has no visible terminal:
 cd "C:\Users\poyan\OneDrive\Documents\New project\jarvis_local"
 .\.venv\Scripts\pythonw.exe main.py
 ```
+
+The fullscreen status GUI still appears if `"enable_status_gui": true`. There is no terminal window.
 
 Logs are written to:
 
@@ -168,7 +188,15 @@ The LLM can request these tools:
 - `create_note`
 - `read_text_file`
 
-Tools that open apps, write files, or read files require voice confirmation. Jarvis will ask for confirmation, then you hold Right Ctrl and say "yes" or "cancel".
+By default on this setup, confirmation is disabled with:
+
+```json
+{
+  "require_tool_confirmation": false
+}
+```
+
+Set it back to `true` if you want Jarvis to ask before opening apps, writing notes, or reading files.
 
 Notes are saved under:
 
@@ -272,7 +300,9 @@ Common issues:
 - Model not found: run `ollama run qwen2.5:3b`.
 - Piper missing voice: confirm the `.onnx` and `.onnx.json` files are in `voices/`.
 - Push-to-talk not detected: run the assistant as administrator, or change `push_to_talk_key`.
-- GPU Whisper load fails: the app falls back to CPU automatically.
+- GPU Whisper load fails: install `requirements-cuda.txt`; the app still falls back to CPU automatically.
+- No response after speaking: check the fullscreen GUI state. It should go `Listening` -> `Transcribing` -> `Thinking` -> `Speaking`.
+- Discord or another app using the mic: Windows can share most microphones, but disable exclusive mode if Jarvis sees silence.
 
 ## 13. Change Models
 
@@ -290,12 +320,41 @@ Update:
 }
 ```
 
-For speech-to-text, keep `base.en` for speed:
+For speech-to-text, `tiny.en` is the lowest-latency default:
 
 ```json
 {
-  "whisper_model": "base.en"
+  "whisper_model": "tiny.en"
 }
 ```
 
-You can try `small.en` for better accuracy, but it will be slower.
+Use `base.en` for better accuracy if `tiny.en` mishears you too often. Use `small.en` only if you can tolerate slower responses.
+
+## 14. Latency Tuning
+
+The fastest mode uses speech endpointing instead of fixed 5-second chunks:
+
+```json
+{
+  "listening_mode": "always_on",
+  "always_on_use_vad": true,
+  "vad_silence_seconds": 0.65,
+  "whisper_model": "tiny.en"
+}
+```
+
+Lower `vad_silence_seconds` for faster cut-off after you stop speaking. Raise it if Jarvis cuts you off too early.
+
+Ollama is kept warm with:
+
+```json
+{
+  "ollama_keep_alive": "30m",
+  "ollama_num_ctx": 2048,
+  "ollama_num_predict": 96
+}
+```
+
+Shorter `ollama_num_predict` values make replies faster. Longer values let the model speak more, but they add latency.
+
+The voice is configured as JARVIS-inspired: concise, composed, and polished. It cannot exactly clone the Iron Man voice, but you can swap Piper voices in `config.json`.

@@ -4,8 +4,8 @@ $ProjectDir = Resolve-Path (Join-Path $PSScriptRoot "..")
 $StartupDir = [Environment]::GetFolderPath("Startup")
 $OldBat = Join-Path $StartupDir "Jarvis Local Assistant.bat"
 $Target = Join-Path $StartupDir "Jarvis Local Assistant.vbs"
-$VenvPython = Join-Path $ProjectDir ".venv\Scripts\python.exe"
-$Python = if (Test-Path $VenvPython) { $VenvPython } else { "python.exe" }
+$VenvPython = Join-Path $ProjectDir ".venv\Scripts\pythonw.exe"
+$Python = if (Test-Path $VenvPython) { $VenvPython } else { "pythonw.exe" }
 
 @"
 " Hidden launcher for Jarvis Local Assistant

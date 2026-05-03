@@ -15,11 +15,15 @@ class TextToSpeech:
         model_path: Path,
         config_path: Path | None = None,
         voice_name: str = "en_US-lessac-medium",
+        length_scale: float = 0.9,
+        sentence_silence: float = 0.12,
     ) -> None:
         self.piper_exe = piper_exe
         self.model_path = model_path
         self.config_path = config_path
         self.voice_name = voice_name
+        self.length_scale = length_scale
+        self.sentence_silence = sentence_silence
         self.log = logging.getLogger("jarvis.audio.tts")
         self.available = self._is_available()
 
@@ -38,6 +42,10 @@ class TextToSpeech:
             str(self.model_path),
             "--output_file",
             str(wav_path),
+            "--length-scale",
+            str(self.length_scale),
+            "--sentence-silence",
+            str(self.sentence_silence),
         ]
         if self.config_path and self.config_path.exists():
             command.extend(["--config", str(self.config_path)])
