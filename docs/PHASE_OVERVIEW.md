@@ -22,12 +22,12 @@ implementation work in that phase.
 | --- | --- | --- | --- | --- |
 | 0 | Repository baseline and reset verification | Complete | Maintain passing CI/secret scans and a clean reproducible `main` | Medium |
 | 1 | JARVIS core and first text vertical slice | Implemented; formal closeout pending | Record statistically useful p50/p95 after Nemotron migration and reproduce bootstrap on a clean Windows environment | High |
-| 2 | Voice | Not started | Push-to-talk, STT/TTS/VAD ports, streaming speech, interruption, wake word, device diagnostics, and noisy-room benchmarks | Extra high |
-| 3 | Controlled computer access | Foundations only | Permission broker/UI, approval expiry and receipts, bounded reversible file/app actions, printing, rollback, postcondition checks, and adversarial safety tests | Ultra |
+| 2 | Voice | Not started | Push-to-talk, STT/TTS/VAD ports, clap-event detection, streaming speech, interruption, wake word, device diagnostics, and noisy-room benchmarks | Extra high |
+| 3 | Controlled computer access | Foundations only | Permission broker/UI, approval expiry and receipts, allowlisted hands-free intents, bounded reversible file/app actions, printing, rollback, postcondition checks, and adversarial safety tests | Ultra |
 | 4 | Durable memory and personalization | Foundations only | Profile/task memory, provenance, retention, correction/export/deletion, retrieval evaluation, conflict handling, and inspectable memory UI | Extra high |
 | 5 | Research and self-education | Not started | Browser/retrieval sandbox, citations, hostile-page defenses, source-quality scoring, conflict reporting, and reproducible research benchmarks | High |
 | 6 | Planning and bounded agents | Foundations only | Durable task graphs, budgets, checkpoints, cancellation, resumability, bounded parallel work, and approval-aware execution | Ultra |
-| 7 | Vision and gestures | Not started | Screen/camera ports, local perception, configurable gestures, multimodal escalation, privacy indicators, and accuracy/latency datasets | Extra high |
+| 7 | Vision and gestures | Not started | Screen/camera ports, finger-roll volume and palm/fist/navigation gestures, local perception, calibration, privacy indicators, and accuracy/latency datasets | Extra high |
 | 8 | Secure phone/PWA access | Foundations only | Authenticated PWA, TLS/private networking, device enrollment/revocation, rate limits, secure streaming, and remote threat tests | Ultra |
 | 9 | Dedicated server migration | Not started | Configurable split deployment, encrypted transport, service identity, backup/restore, offline degradation, migration rehearsal, and rollback | Ultra |
 | 10 | Wearables and Meta glasses | Not started; lower priority | Generic wearable protocol, capability discovery, revocation, camera/mic indicators, and one real-device interaction | Extra high |
@@ -41,6 +41,10 @@ implementation work in that phase.
 4. Develop Phase 4 memory and Phase 5 research on the secured core.
 5. Add Phase 6 bounded agents only after permissions, memory, and research are dependable.
 6. Add vision, phone, server, wearables, and proactive behavior in Phases 7–11.
+
+Hands-free control is a cross-phase track: Phase 2 detects claps, Phase 7 recognizes hand
+gestures, and Phase 3 alone authorizes and executes the mapped computer action. See
+[Hands-Free Control Plan](HANDS_FREE_CONTROL.md).
 
 Routine subtasks inside any phase may use Low or Medium. Do not lower the listed effort for
 security boundary design, permission changes, destructive actions, authentication, privacy

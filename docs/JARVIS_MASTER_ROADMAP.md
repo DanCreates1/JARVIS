@@ -246,6 +246,7 @@ Natural push-to-talk first, then wake-word conversation with streaming speech an
 - Push-to-talk vertical slice using faster-whisper, Silero VAD, and Piper candidates.
 - Partial transcript and sentence/phrase streaming to TTS.
 - Wake word after false-positive testing; visible always-listening state and kill switch.
+- Local clap/event detector for configurable hands-free intents such as double-clap app launch.
 - Duplex session controller: cancel output, echo suppression/AEC strategy, barge-in.
 - Device selection, audio health diagnostics, text fallback, latency harness.
 
@@ -270,6 +271,7 @@ Authorized laptop actions through narrow deterministic tools, never unrestricted
 
 - Permission levels 0–4, approval broker, expiring action grants, audit viewer.
 - Read/search files, app launch, media/volume, clipboard, browser, system status.
+- Allowlisted hands-free intent mappings for app groups, volume, media, navigation, and cancel.
 - Bounded write/move/rename tools with preview, allowlisted roots, idempotency, and rollback where feasible.
 - `PrinterTool` for discovery, status, validated document/page/copy selection.
 - API-first automation; UI automation only through isolated adapters when no stable API exists.
@@ -371,6 +373,7 @@ Low-latency perception and configurable gestures, escalating to multimodal model
 - Camera/screenshot capability adapters with visible capture state and retention policy.
 - MediaPipe Hand Landmarker candidate plus OpenCV capture/preprocessing.
 - Temporal gesture classifier, confidence/debounce, user calibration, configurable mappings.
+- Finger-roll volume control, palm/fist media and cancel gestures, and optional navigation gestures.
 - OCR/object/scene fast paths and separate expensive vision-model path.
 - Mapping store such as `gesture -> intent`, never direct unreviewed privileged action.
 
