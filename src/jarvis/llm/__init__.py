@@ -1,5 +1,19 @@
 """Language-model provider adapters."""
 
+from jarvis.llm.base import (
+    ModelProvider,
+    PrivateRouteUnavailableError,
+    ProviderAuthenticationError,
+    ProviderError,
+    ProviderModelUnavailableError,
+    ProviderProtocolError,
+    ProviderQuotaError,
+    ProviderUnavailableError,
+    ZeroCostPolicyError,
+)
+from jarvis.llm.gemini import GeminiChatProvider
+from jarvis.llm.groq import GroqChatProvider
+from jarvis.llm.nvidia import NvidiaChatProvider
 from jarvis.llm.ollama import (
     OllamaChatProvider,
     OllamaConnectionError,
@@ -9,8 +23,14 @@ from jarvis.llm.ollama import (
     OllamaProtocolError,
     OllamaTimeoutError,
 )
+from jarvis.llm.routing import ModelRouter, PrivacyGate, RoutingPolicy
 
 __all__ = [
+    "GeminiChatProvider",
+    "GroqChatProvider",
+    "ModelProvider",
+    "ModelRouter",
+    "NvidiaChatProvider",
     "OllamaChatProvider",
     "OllamaConnectionError",
     "OllamaError",
@@ -18,4 +38,14 @@ __all__ = [
     "OllamaModelNotFoundError",
     "OllamaProtocolError",
     "OllamaTimeoutError",
+    "PrivacyGate",
+    "PrivateRouteUnavailableError",
+    "ProviderAuthenticationError",
+    "ProviderError",
+    "ProviderModelUnavailableError",
+    "ProviderProtocolError",
+    "ProviderQuotaError",
+    "ProviderUnavailableError",
+    "RoutingPolicy",
+    "ZeroCostPolicyError",
 ]

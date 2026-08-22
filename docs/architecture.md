@@ -2,30 +2,31 @@
 
 ## Status
 
-This document describes the intended Phase 1 architecture. It is deliberately a
-small modular monolith: one installable Python application with internal
-boundaries that can be tested and replaced independently.
+This document describes implemented Phase 1: one modular Python application
+with deterministic local privacy routing, NVIDIA/Groq/Gemini/Ollama adapters, SQLite,
+audited tools, CLI, and loopback browser/API interfaces.
 
 ## Goals
 
 - Run reproducibly on Windows with Python 3.11 and a committed `uv.lock`.
-- Use an interchangeable local language-model provider, initially Ollama.
+- Use interchangeable role-based providers without model IDs in orchestration.
 - Persist conversations without putting private runtime data in the repository.
 - Treat every model-requested action as untrusted until validated by policy.
-- Add voice, vision, an API, and graphical clients without rewriting the core.
+- Add voice and vision clients without rewriting the core.
 - Keep ordinary tests independent of models, microphones, GPUs, and networks.
 
 ## Component model
 
 ```text
-Terminal CLI        Future local API       Future voice / vision adapters
+Terminal CLI        Browser + local API       Future voice / vision adapters
      \                    |                           /
       \                   |                          /
                  AssistantService
                         |
-       context -> ChatProvider -> tool-call loop
-                        |                |
-             ConversationStore      ToolPolicy
+       context -> local privacy gate -> ModelRouter -> tool-call loop
+                           |                 |              |
+                NVIDIA/Groq/Gemini/Ollama   |              |
+                                  ConversationStore      ToolPolicy
                                           |
                                      ToolRegistry
 ```
@@ -44,7 +45,7 @@ A turn follows this bounded flow:
 1. Accept a validated user message and conversation identifier.
 2. Persist the user message.
 3. Load a bounded context window from the conversation store.
-4. Ask the configured chat provider for a response.
+4. Scan full disclosed context locally, select a role, and ask a configured provider.
 5. If the response requests a tool, validate its name and arguments, apply the
    tool policy, execute it, and record an audit result.
 6. Return the tool result to the provider when another model pass is needed.
@@ -55,26 +56,23 @@ bounded. A provider failure must not corrupt a conversation.
 
 ### Provider boundary
 
-`ChatProvider` normalizes provider-specific wire formats. The initial adapter
-calls Ollama over loopback HTTP and maps Ollama messages and tool calls to core
-models. Core code must not import an Ollama client or depend on Ollama JSON.
-
-Provider capability flags can later describe streaming, native tools, embeddings,
-or images. Unsupported capabilities fail explicitly rather than being guessed.
+`ModelProvider` normalizes Groq, Gemini, and Ollama wire formats. `ModelRouter`
+owns sensitivity gating, role selection, bounded transient retry, quota/model
+fallback, and zero-cost enforcement. Sensitive or uncertain routes never use a
+cloud provider. Profiles expose lifecycle, context, and verified capabilities.
 
 ### Memory boundary
 
-Phase 1 uses SQLite for durable transcripts. SQLite should enable foreign keys,
+Phase 1 uses SQLite for durable transcripts. SQLite enables foreign keys,
 WAL mode, a busy timeout, and transactional numbered migrations. The minimal
 records are:
 
 - conversations;
 - ordered user, assistant, system, and tool messages; and
-- model-requested tool calls and sanitized results embedded in those typed assistant and
-  tool messages, providing a durable Phase 1 audit trail.
-
-A separate execution-audit table may be added when side-effecting tools introduce approval,
-duration, and actor metadata. Phase 1 does not create a redundant table for its read-only clock.
+- model-requested tool calls and sanitized results embedded in typed messages;
+- explicit note/profile/task memories with provenance and deletion;
+- approval records for later approval-capable policy; and
+- metadata-only tool audit records.
 
 Short-term context is a projection over recent messages. Long-term semantic
 memory and embeddings are a separate future concern; they must not silently
@@ -91,24 +89,19 @@ Tools are registered explicitly at composition time. Each tool has:
 - a Pydantic argument schema and bounded normalized result; and
 - an asynchronous execution method.
 
-Before any side-effecting tool ships, the definition and policy contracts must also carry an
-explicit risk classification, side-effect declaration, timeout, result limit, and approval rule.
-Those controls are not implied by a model prompt.
+Definitions carry explicit risk and approval metadata. Phase 1 policy permits
+only read-only tools without approval requirements.
 
 The registry is not a dynamic Python-module loader. Unknown tools are rejected.
-The Phase 1 clock tool is read-only; filesystem, process, network, and desktop
-automation tools remain out of scope until approval and containment exist.
+Phase 1 exposes clock, bounded system status, and UTF-8 file reads inside
+configured roots. Process, network, write, and desktop automation remain out of scope.
 
 ### Interfaces
 
-The CLI is the first interface. It supports diagnostics, an interactive chat,
-and one-shot messages. It translates core errors into actionable messages and
-nonzero exit codes without exposing secrets or stack traces by default.
-
-A future FastAPI adapter will wrap the same `AssistantService`. It will use a
-versioned `/v1` surface, loopback binding by default, typed schemas, liveness and
-readiness endpoints, and server-sent events or WebSockets for streaming. Business
-logic must not be duplicated in route handlers.
+CLI supports diagnostics, interactive/one-shot chat, role override, and a
+browser-server command. FastAPI exposes typed health, chat, SSE event streaming,
+memory deletion, conversation deletion, and audit reads. Phase 1 configuration
+rejects non-loopback browser binding.
 
 ### Voice and vision
 
@@ -154,7 +147,9 @@ swallowed. A distributed queue or event bus is not needed for Phase 1.
 
 - Unit tests exercise the runtime with fake providers, stores, clocks, and tools.
 - Integration tests use a temporary SQLite database.
-- Contract tests mock Ollama HTTP responses and malformed payloads.
+- Contract tests mock Ollama, Groq, and Gemini HTTP responses and malformed payloads.
+- Scenario tests cover privacy, role override, fallback, quota, outage, catalog removal,
+  streaming, deletion, and zero-spend enforcement.
 - Policy tests prove unknown and unauthorized tools cannot execute.
 - Live model tests are explicit and opt-in; they are not part of ordinary CI.
 - Windows CI checks the lock file, formatting, linting, types, tests, dependency

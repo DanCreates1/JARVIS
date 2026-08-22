@@ -43,6 +43,80 @@ class MessageRole(StrEnum):
     TOOL = "tool"
 
 
+class ModelRole(StrEnum):
+    FAST = "fast"
+    PRIMARY = "primary"
+    REASONING = "reasoning"
+    LOCAL = "local"
+
+
+class ModelLifecycle(StrEnum):
+    PRODUCTION = "production"
+    STABLE = "stable"
+    PREVIEW = "preview"
+    LOCAL = "local"
+
+
+class ModelCapability(StrEnum):
+    TEXT = "text"
+    VISION = "vision"
+    MULTIMODAL = "multimodal"
+    TOOLS = "tools"
+    PARALLEL_TOOLS = "parallel_tools"
+    STRUCTURED_OUTPUT = "structured_output"
+    REASONING = "reasoning"
+
+
+class SensitivityClass(StrEnum):
+    PUBLIC = "public"
+    PRIVATE = "private"
+    UNKNOWN = "unknown"
+
+
+class ReasoningLevel(StrEnum):
+    NONE = "none"
+    MODERATE = "moderate"
+    DEEP = "deep"
+
+
+class ToolRisk(StrEnum):
+    READ_ONLY = "read_only"
+    REVERSIBLE = "reversible"
+    SENSITIVE = "sensitive"
+    DESTRUCTIVE = "destructive"
+
+
+class ModelProfile(CoreModel):
+    role: ModelRole
+    provider: Identifier
+    model_id: Identifier
+    capabilities: tuple[ModelCapability, ...] = ()
+    lifecycle: ModelLifecycle
+    context_window: Annotated[int, Field(gt=0)]
+    max_output_tokens: Annotated[int, Field(gt=0)] | None = None
+    is_cloud: bool
+
+
+class ProviderUsage(CoreModel):
+    provider: Identifier
+    model_id: Identifier
+    input_tokens: Annotated[int, Field(ge=0)] = 0
+    output_tokens: Annotated[int, Field(ge=0)] = 0
+    latency_ms: Annotated[float, Field(ge=0)] = 0
+    estimated_cost_usd: Annotated[float, Field(ge=0)] = 0
+    rate_limit_remaining: Annotated[int, Field(ge=0)] | None = None
+
+
+class RoutingDecision(CoreModel):
+    chosen_role: ModelRole
+    reason: Annotated[str, Field(min_length=1, max_length=2_000)]
+    sensitivity: SensitivityClass
+    reasoning_level: ReasoningLevel
+    fallback_chain: tuple[ModelRole, ...]
+    requested_role: ModelRole | None = None
+    fallback_used: bool = False
+
+
 class Conversation(CoreModel):
     id: Identifier
     metadata: dict[str, JsonValue] = Field(default_factory=dict)
@@ -94,6 +168,8 @@ class ToolDefinition(CoreModel):
     name: ToolName
     description: Annotated[str, Field(min_length=1, max_length=2_000)]
     input_schema: dict[str, JsonValue]
+    risk: ToolRisk = ToolRisk.READ_ONLY
+    requires_approval: bool = False
 
 
 class ProviderResponse(CoreModel):
@@ -101,6 +177,8 @@ class ProviderResponse(CoreModel):
 
     content: Annotated[str, Field(max_length=100_000)] | None = None
     tool_calls: Annotated[tuple[ToolCall, ...], Field(max_length=64)] = ()
+    usage: ProviderUsage | None = None
+    routing: RoutingDecision | None = None
 
     @model_validator(mode="after")
     def validate_response(self) -> Self:
@@ -140,6 +218,8 @@ class AssistantRequest(CoreModel):
     user_input: Annotated[str, Field(min_length=1, max_length=100_000)]
     conversation_id: Identifier | None = None
     metadata: dict[str, JsonValue] = Field(default_factory=dict)
+    requested_model_role: ModelRole | None = None
+    reasoning_level: ReasoningLevel | None = None
 
     @field_validator("user_input")
     @classmethod
@@ -183,6 +263,8 @@ class RuntimeEventType(StrEnum):
     MESSAGE_PERSISTED = "message_persisted"
     PROVIDER_REQUESTED = "provider_requested"
     PROVIDER_RESPONDED = "provider_responded"
+    ROUTING_DECIDED = "routing_decided"
+    PROVIDER_FALLBACK = "provider_fallback"
     TOOL_REQUESTED = "tool_requested"
     TOOL_VALIDATED = "tool_validated"
     TOOL_AUTHORIZED = "tool_authorized"
@@ -200,6 +282,8 @@ class RuntimeEvent(CoreModel):
     detail: str | None = None
     message: Message | None = None
     tool_call: ToolCall | None = None
+    routing: RoutingDecision | None = None
+    usage: ProviderUsage | None = None
 
 
 class RuntimeResult(CoreModel):
@@ -220,4 +304,17 @@ class RuntimeResult(CoreModel):
                 raise ValueError("completed results cannot contain an error")
         elif self.error is None:
             raise ValueError("non-completed results require an error")
+        return self
+
+
+class RuntimeStreamFrame(CoreModel):
+    """One live runtime event or the terminal result of a streamed turn."""
+
+    event: RuntimeEvent | None = None
+    result: RuntimeResult | None = None
+
+    @model_validator(mode="after")
+    def require_exactly_one_value(self) -> Self:
+        if (self.event is None) == (self.result is None):
+            raise ValueError("stream frames require exactly one event or result")
         return self

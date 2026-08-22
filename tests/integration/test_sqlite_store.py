@@ -6,7 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from jarvis.core.models import Message, MessageRole
+from jarvis.core.models import Message, MessageRole, SensitivityClass, ToolRisk
+from jarvis.memory import AuditOutcome, MemoryKind
 from jarvis.memory.sqlite_store import SQLiteConversationStore
 
 
@@ -107,3 +108,36 @@ def test_rejects_invalid_operational_bounds(tmp_path: Path) -> None:
         SQLiteConversationStore(tmp_path / "jarvis.db", busy_timeout_ms=-1)
     with pytest.raises(ValueError, match="max_recent_messages"):
         SQLiteConversationStore(tmp_path / "jarvis.db", max_recent_messages=0)
+
+
+@pytest.mark.asyncio
+async def test_explicit_memory_audit_and_deletion_apis(tmp_path: Path) -> None:
+    async with SQLiteConversationStore(tmp_path / "jarvis.db") as store:
+        conversation = await store.create_conversation()
+        memory = await store.create_memory(
+            kind=MemoryKind.PROFILE,
+            content="Prefers terse replies.",
+            provenance="explicit test",
+            sensitivity=SensitivityClass.PRIVATE,
+            metadata={"confirmed": True},
+        )
+        assert await store.list_memories() == [memory]
+        assert await store.delete_memory(memory.id) is True
+        assert await store.delete_memory(memory.id) is False
+
+        audit = await store.append_audit_record(
+            conversation_id=conversation.id,
+            action="get_current_time",
+            outcome=AuditOutcome.COMPLETED,
+            risk=ToolRisk.READ_ONLY,
+            detail={"tool_call_id": "call-1"},
+        )
+        assert (await store.list_audit_records())[0] == audit
+        assert await store.delete_conversation(conversation.id) is True
+        assert await store.delete_conversation(conversation.id) is False
+        assert await store.get_conversation(conversation.id) is None
+
+        with pytest.raises(ValueError, match="memory limit"):
+            await store.list_memories(limit=0)
+        with pytest.raises(ValueError, match="audit limit"):
+            await store.list_audit_records(limit=501)

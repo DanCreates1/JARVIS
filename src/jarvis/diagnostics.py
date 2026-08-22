@@ -9,8 +9,15 @@ from pathlib import Path
 from typing import Protocol
 from uuid import uuid4
 
+from jarvis.bootstrap import _fast_profile, _primary_profile, _reasoning_profile
 from jarvis.config import Settings
-from jarvis.llm import OllamaChatProvider
+from jarvis.llm import (
+    GeminiChatProvider,
+    GroqChatProvider,
+    ModelProvider,
+    NvidiaChatProvider,
+    OllamaChatProvider,
+)
 from jarvis.memory import SQLiteConversationStore
 
 
@@ -70,7 +77,7 @@ def _default_store_factory(path: Path) -> DiagnosticStore:
 def _default_provider_factory(settings: Settings) -> DiagnosticProvider:
     return OllamaChatProvider(
         base_url=str(settings.ollama_base_url),
-        model=settings.ollama_model,
+        model=settings.effective_local_model,
         timeout_seconds=settings.request_timeout_seconds,
     )
 
@@ -178,5 +185,91 @@ async def run_diagnostics(
     finally:
         if provider is not None:
             await provider.close()
+
+    cloud_providers: list[ModelProvider] = []
+    if settings.cloud_policy == "privacy_aware" and settings.groq_api_key is not None:
+        key = settings.groq_api_key.get_secret_value()
+        cloud_providers.extend(
+            (
+                GroqChatProvider(
+                    api_key=key,
+                    profile=_fast_profile(settings),
+                    base_url=str(settings.groq_base_url),
+                    timeout_seconds=settings.request_timeout_seconds,
+                    max_response_bytes=settings.max_provider_response_bytes,
+                ),
+                GroqChatProvider(
+                    api_key=key,
+                    profile=_primary_profile(settings),
+                    base_url=str(settings.groq_base_url),
+                    timeout_seconds=settings.request_timeout_seconds,
+                    max_response_bytes=settings.max_provider_response_bytes,
+                ),
+            )
+        )
+    if (
+        settings.cloud_policy == "privacy_aware"
+        and settings.reasoning_provider == "gemini"
+        and settings.gemini_api_key is not None
+    ):
+        cloud_providers.append(
+            GeminiChatProvider(
+                api_key=settings.gemini_api_key.get_secret_value(),
+                profile=_reasoning_profile(settings),
+                base_url=str(settings.gemini_base_url),
+                timeout_seconds=settings.request_timeout_seconds,
+                max_response_bytes=settings.max_provider_response_bytes,
+            )
+        )
+    if (
+        settings.cloud_policy == "privacy_aware"
+        and settings.reasoning_provider == "nvidia"
+        and settings.nvidia_api_key is not None
+    ):
+        cloud_providers.append(
+            NvidiaChatProvider(
+                api_key=settings.nvidia_api_key.get_secret_value(),
+                profile=_reasoning_profile(settings),
+                base_url=str(settings.nvidia_base_url),
+                timeout_seconds=settings.request_timeout_seconds,
+                max_response_bytes=settings.max_provider_response_bytes,
+                max_output_tokens=settings.nvidia_max_output_tokens,
+                max_requests_per_minute=settings.nvidia_max_requests_per_minute,
+                max_concurrency=settings.nvidia_max_concurrency,
+            )
+        )
+    for cloud_provider in cloud_providers:
+        profile = cloud_provider.profile
+        try:
+            available = await cloud_provider.validate_model()
+            checks.append(
+                DiagnosticCheck(
+                    name=f"{profile.role.value.upper()} model catalog",
+                    status=DiagnosticStatus.PASS if available else DiagnosticStatus.FAIL,
+                    detail=(
+                        f"Configured model is available: {profile.provider}/{profile.model_id}"
+                        if available
+                        else f"Configured model is absent: {profile.provider}/{profile.model_id}"
+                    ),
+                    remediation=(
+                        None
+                        if available
+                        else "Replace the role model ID in configuration; fallback remains active."
+                    ),
+                )
+            )
+        except Exception:
+            checks.append(
+                DiagnosticCheck(
+                    name=f"{profile.role.value.upper()} model catalog",
+                    status=DiagnosticStatus.FAIL,
+                    detail=f"Could not validate {profile.provider}/{profile.model_id}.",
+                    remediation=(
+                        "Check free-tier credentials, quota, network, and live model catalog."
+                    ),
+                )
+            )
+        finally:
+            await cloud_provider.close()
 
     return DiagnosticReport(checks=tuple(checks))

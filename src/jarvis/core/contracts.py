@@ -10,8 +10,10 @@ from pydantic import BaseModel, JsonValue
 from .models import (
     Conversation,
     Message,
+    ModelRole,
     PolicyDecision,
     ProviderResponse,
+    ReasoningLevel,
     ToolCall,
     ToolDefinition,
     ToolResult,
@@ -31,6 +33,18 @@ class ChatProvider(Protocol):
         Provider output remains untrusted: ``AssistantService`` validates it again.
         """
         ...
+
+
+@runtime_checkable
+class RoutedChatProvider(Protocol):
+    async def chat_routed(
+        self,
+        *,
+        messages: Sequence[Message],
+        tools: Sequence[ToolDefinition],
+        requested_role: ModelRole | None = None,
+        reasoning_level: ReasoningLevel | None = None,
+    ) -> ProviderResponse: ...
 
 
 @runtime_checkable
@@ -55,6 +69,19 @@ class ConversationStore(Protocol):
     ) -> Sequence[Message]:
         """Return at most ``limit`` messages in chronological order."""
         ...
+
+
+@runtime_checkable
+class AuditStore(Protocol):
+    async def append_audit_record(
+        self,
+        *,
+        conversation_id: str | None,
+        action: str,
+        outcome: str,
+        risk: str,
+        detail: Mapping[str, JsonValue] | None = None,
+    ) -> object: ...
 
 
 @runtime_checkable

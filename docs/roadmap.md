@@ -1,81 +1,89 @@
 # Roadmap
 
-The roadmap is capability-driven. A phase advances only after its acceptance
-checks pass on Windows and the repository contains reproducible setup and tests.
+Status: concise view of `JARVIS_MASTER_ROADMAP.md`
+Updated: 2026-08-20
 
-## Phase 1 — text runtime
+The roadmap is capability-driven. A phase advances only after its Windows acceptance checks pass with reproducible setup and tests. Current implementation status and target behavior are stated separately.
 
-Deliver a complete local vertical slice:
+## Implemented through Phase 1
+
+The secure text foundation currently provides:
 
 - locked Python 3.11 project and Windows bootstrap;
-- validated settings and local data directories;
-- `jarvis doctor` diagnostics;
-- interactive and one-shot terminal chat;
-- Ollama chat-provider adapter using `qwen2.5:3b` by default;
-- SQLite conversations and transactional migrations;
-- schema-validated tool registry with one read-only clock tool;
-- deny-by-default policy and durable typed tool-call/result messages;
-- fake-provider, SQLite integration, and Ollama contract tests; and
-- Windows CI for format, lint, types, tests, vulnerabilities, and secrets.
+- validated settings and private local data directories;
+- `jarvis doctor`, interactive/one-shot terminal chat, and loopback browser chat;
+- configuration-driven NVIDIA/Groq/Gemini/Ollama roles and live catalog diagnostics;
+- deterministic local sensitivity gate, direct clock path, and zero-cost fallback;
+- SQLite conversations, explicit basic memories, deletion, audit, and migrations;
+- schema-validated clock, system-status, and allowlisted text-file tools;
+- streaming runtime/SSE events and provider usage/latency/quota metadata; and
+- offline tests plus Windows format, lint, type, vulnerability, and secret gates.
 
-Acceptance: a new compatible Windows machine can clone, run the documented setup,
-pass the quality gate, chat locally, restart, and resume durable conversation
-history without placing runtime data or model weights in Git.
+Cloud roles activate only when mandatory free-tier/data-term confirmations and
+keys are configured. Otherwise runtime remains local and offline-capable.
 
-## Phase 2 — local service API
+## Phase 1 — privacy-aware text core (implemented 2026-08-20)
 
-- Add a FastAPI adapter around the existing application service.
-- Bind to loopback by default and provide liveness/readiness endpoints.
-- Version request and response schemas under `/v1`.
-- Stream runtime events using SSE or WebSockets.
-- Add authentication before any non-loopback deployment.
-- Add API contract, request-limit, cancellation, and concurrency tests.
+- Added provider-neutral `FAST`, `PRIMARY`, `REASONING`, and `LOCAL` roles.
+- Added NVIDIA, Groq, and Gemini adapters while retaining Ollama for private/offline fallback.
+- Current active defaults map `REASONING` to NVIDIA `nvidia/nemotron-3-ultra-550b-a55b` and `LOCAL` to Ollama `nemotron-3-nano:4b`; optional `FAST`/`PRIMARY` mappings remain configurable.
+- Runs deterministic local sensitivity and command classification before any cloud request.
+- Send sensitive or uncertain content only to `LOCAL`; never silently weaken privacy during fallback.
+- Keep initial cloud cost exactly `$0`; quota exhaustion, `429`, outage, or model retirement falls back free/local or returns a capacity error.
+- Validate configured model IDs/capabilities against provider catalogs at startup.
+- Added streaming events, structured usage/quota/cost metrics, personality regression checks,
+  memory deletion, tool risk metadata, audit records, and local browser chat.
 
-## Phase 3 — voice
+Acceptance suite covers safe simple, normal, reasoning, sensitive-local,
+explicit override, catalog removal, quota exhaustion, outage, transient retry,
+and zero-spend scenarios without live credentials. Live provider latency and
+quota observations require user-owned free-tier keys and remain release checks.
 
-- Add push-to-talk before always-listening behavior.
-- Introduce speech-to-text and text-to-speech provider ports.
-- Package voice dependencies as an optional installation extra.
-- Move blocking inference to cancellable workers.
-- Benchmark latency, accuracy, CPU/GPU memory, and CPU fallback.
-- Add wake-word detection only after false-activation and privacy tests exist.
+## Phase 2 — voice
 
-Legacy VAD thresholds and CUDA fallback behavior may inform benchmarks but should
-not be copied as architecture.
+- Add push-to-talk before wake-word operation.
+- Introduce STT/TTS/VAD/wake-word ports and cancellable streaming workers.
+- Keep wake word, VAD, and initial TTS local; apply the same privacy gate to cloud speech.
+- Benchmark latency, WER, CPU/GPU memory, interruption, and fallback.
 
-## Phase 4 — controlled tools and desktop client
+## Phase 3 — controlled computer access
 
-- Add a user-visible approval broker and pending-action interface.
-- Introduce narrowly scoped filesystem and application-launch tools.
-- Enforce canonical path allowlists and exact executable arguments.
-- Add idempotency, timeouts, output caps, and a durable audit viewer.
-- Build a small desktop client against the local API.
+- Add trusted approvals, expiring grants, and a narrow privilege broker.
+- Add bounded file, application, media, clipboard, browser, system, and printing tools.
+- Enforce path/argument allowlists, idempotency, timeouts, output caps, postcondition checks, and durable audit.
+- Never provide arbitrary shell execution or implicit administrator elevation.
 
-Arbitrary shell execution, implicit administrator elevation, and unattended
-privileged automation remain prohibited.
+## Phase 4 — durable memory and personalization
 
-## Phase 5 — vision and richer memory
+- Add source-aware working, episodic, profile, semantic, and task memory.
+- Separate extraction candidates from committed memory.
+- Provide inspect, correct, export, retention, and transitive deletion controls.
+- Evaluate retrieval quality before adding vector infrastructure.
 
-- Add bounded screenshot/camera capture adapters with explicit activation state.
-- Support provider capability negotiation for image input.
-- Define retention and deletion controls before persisting media.
-- Add opt-in semantic memory behind a separate interface.
-- Benchmark retrieval quality and provide source attribution and deletion.
+## Phase 5 — research and learning
 
-## Phase 6 — remote and mobile access
+- Add bounded search/browser adapters, a source ledger, claim status, citations, freshness, and conflict reporting.
+- Treat all external content as untrusted data and preserve source-level provenance.
 
-- Define a threat model and authenticated device enrollment.
-- Require TLS, revocable credentials, rate limiting, and scoped permissions.
-- Build mobile/web clients only against a stable versioned API.
-- Provide a prominent remote-access kill switch and security audit trail.
+## Later phases
+
+6. Persisted planning and bounded specialized agents.
+7. Vision and configurable gestures.
+8. Authenticated phone/PWA access over a private network.
+9. Optional dedicated-server migration.
+10. Generic wearable clients after capability validation.
+11. Explicitly opt-in proactive and advanced multimodal assistance.
 
 ## Continuous requirements
 
 Every phase must retain:
 
-- a clean `main` branch and reviewed Git diff;
-- reproducible dependencies and model setup metadata;
-- no committed secrets, private runtime data, or model weights;
+- configuration-driven, replaceable providers and model IDs;
+- local privacy classification before cloud disclosure;
+- a hard `$0` cloud budget until a later explicit policy decision;
+- deny-by-default tools and independent action authorization;
 - tests that run without live hardware or model services by default;
-- Windows validation and documented recovery steps; and
-- ordinary commits without rewriting published history.
+- no committed secrets, private runtime data, or model weights;
+- Windows validation, recovery steps, and ordinary non-rewritten Git history.
+
+Current provider facts and privacy terms are dated observations. Reverify official NVIDIA, Groq, and Gemini catalogs, free/trial limits, lifecycle status, and data terms before release.

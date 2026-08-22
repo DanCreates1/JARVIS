@@ -58,6 +58,82 @@ def test_safe_summary_contains_only_declared_diagnostics(tmp_path: Path) -> None
         "ollama_model",
         "allow_remote_ollama",
         "request_timeout_seconds",
+        "max_provider_response_bytes",
         "context_message_limit",
         "max_tool_iterations",
+        "local_model",
+        "cloud_policy",
+        "max_cloud_cost_usd",
+        "groq_configured",
+        "gemini_configured",
+        "nvidia_configured",
+        "fast_model",
+        "primary_model",
+        "reasoning_model",
+        "nvidia_max_output_tokens",
+        "nvidia_max_requests_per_minute",
+        "nvidia_max_concurrency",
+        "web_host",
+        "web_port",
     }
+
+
+def test_cloud_credentials_require_free_tier_and_data_terms_confirmation(tmp_path: Path) -> None:
+    with pytest.raises(ValidationError, match="GROQ_FREE_TIER_CONFIRMED"):
+        Settings(data_dir=tmp_path, groq_api_key="secret", _env_file=None)
+    with pytest.raises(ValidationError, match="data-terms"):
+        Settings(
+            data_dir=tmp_path,
+            gemini_api_key="secret",
+            gemini_free_tier_confirmed=True,
+            _env_file=None,
+        )
+    settings = Settings(
+        data_dir=tmp_path,
+        groq_api_key="secret",
+        groq_free_tier_confirmed=True,
+        gemini_api_key="secret",
+        gemini_free_tier_confirmed=True,
+        gemini_unpaid_data_terms_acknowledged=True,
+        local_model="custom:latest",
+        _env_file=None,
+    )
+    assert settings.cloud_enabled is True
+    assert settings.effective_local_model == "custom:latest"
+    assert "secret" not in str(settings.safe_summary())
+
+
+def test_nvidia_key_alias_requires_terms_and_enables_cloud(tmp_path: Path) -> None:
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "NVIDIA_API_KEY=test-key\n"
+        "JARVIS_NVIDIA_FREE_TIER_CONFIRMED=true\n"
+        "JARVIS_NVIDIA_TRIAL_TERMS_ACKNOWLEDGED=true\n",
+        encoding="utf-8",
+    )
+
+    settings = Settings(data_dir=tmp_path, _env_file=env_file)
+
+    assert settings.nvidia_api_key is not None
+    assert settings.nvidia_api_key.get_secret_value() == "test-key"
+    assert settings.cloud_enabled is True
+    assert settings.reasoning_provider == "nvidia"
+
+
+def test_nvidia_key_fails_closed_without_trial_terms(tmp_path: Path) -> None:
+    with pytest.raises(ValidationError, match="trial-terms"):
+        Settings(
+            data_dir=tmp_path,
+            nvidia_api_key="secret",
+            nvidia_free_tier_confirmed=True,
+            _env_file=None,
+        )
+
+
+def test_zero_cost_https_and_loopback_settings_fail_closed(tmp_path: Path) -> None:
+    with pytest.raises(ValidationError, match=r"exactly \$0"):
+        Settings(data_dir=tmp_path, max_cloud_cost_usd=0.01, _env_file=None)
+    with pytest.raises(ValidationError, match="loopback"):
+        Settings(data_dir=tmp_path, web_host="0.0.0.0", _env_file=None)
+    with pytest.raises(ValidationError, match="HTTPS"):
+        Settings(data_dir=tmp_path, groq_base_url="http://example.test", _env_file=None)

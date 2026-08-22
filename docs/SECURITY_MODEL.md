@@ -1,7 +1,7 @@
 # JARVIS Security Model
 
 Status: required controls and security architecture  
-Planning date: 2026-08-19
+Planning date: 2026-08-20
 
 ## 1. Security objective
 
@@ -34,6 +34,8 @@ Threat sources:
 - local process/user with insufficient authorization;
 - accidental host approval, configuration mistake, or overbroad tool;
 - autonomous loop or denial of wallet/resources.
+- privacy misclassification that sends sensitive context to a cloud provider;
+- free-tier exhaustion, preview-model retirement, or fallback that silently enters paid service.
 
 Out of scope as a guarantee: defending a fully compromised OS administrator/kernel. JARVIS still minimizes stored secrets, exposes kill switches, and keeps recoverable audit/backup evidence.
 
@@ -55,6 +57,18 @@ flowchart LR
 ```
 
 The core, model, content processors, policy engine, approval UI, and broker are distinct logical trust zones even while some initially share a process. Privileged execution becomes a separate process/service before administrative tools ship.
+
+Every cloud provider is a separate external disclosure boundary. A deterministic local gate assigns sensitivity before any cloud router or model sees the request. Uncertain content is sensitive by default. No provider fallback may weaken this label.
+
+Initial cloud policy:
+
+- non-sensitive requests may use configured Groq or Gemini free-tier roles;
+- sensitive, personal, credential, file, memory, communication, and device context remains local;
+- unavailable local inference causes a private failure, never automatic cloud disclosure;
+- cloud credentials belong to billing-disabled/free-tier projects and maximum cloud cost is exactly `$0`;
+- provider `429`, outage, model removal, or catalog mismatch triggers a bounded free/local fallback or clear capacity error;
+- Groq Zero Data Retention should be enabled, but cloud transport remains disclosure;
+- unpaid Gemini must not receive confidential or personal information because Google may use unpaid-service inputs/outputs for product improvement and human review.
 
 ## 4. Host identity and authentication
 
@@ -273,7 +287,10 @@ Data minimization:
 - camera/screen capture requires explicit active state and visible indicator;
 - no raw camera/audio persistence without purpose, retention, and approval;
 - memories are candidates until policy/host confirmation commits them;
-- cloud routing receives only fields required for task and is blocked for local-only sensitivity;
+- a deterministic local gate labels sensitivity before any cloud request;
+- cloud routing receives only the minimum fields required and is blocked for sensitive or uncertain content;
+- role/model overrides may strengthen privacy but cannot weaken sensitivity, cost, or provider-data policy;
+- free-tier quota exhaustion never authorizes paid service or broader disclosure;
 - source-backed research stores provenance and bounded extracted text, respecting licensing/terms.
 
 Host controls:
@@ -283,6 +300,7 @@ Host controls:
 - configure retention by data class;
 - purge derived FTS/embedding/cache data transitively;
 - disable cloud, audio retention, camera, remote access, individual devices/tools.
+- inspect the selected model role/provider, routing reason, privacy label, fallback, quota state, and estimated cost for each cloud-routed turn.
 
 Backups are encrypted, access-controlled, and tested for restore. Deletion policy states whether and when backup copies expire.
 
@@ -356,6 +374,7 @@ Required automated suites:
 - secret redaction and diagnostic leakage;
 - partial side effects, restart reconciliation, duplicate messages;
 - cloud privacy-routing enforcement;
+- zero-spend enforcement, free-tier exhaustion, provider outage, and preview-model removal;
 - transitive memory deletion and retention;
 - wake-word/camera kill switch state.
 

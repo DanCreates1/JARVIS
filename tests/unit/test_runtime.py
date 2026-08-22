@@ -105,6 +105,28 @@ async def test_creates_conversation_and_persists_completed_turn() -> None:
 
 
 @pytest.mark.asyncio
+async def test_stream_yields_live_events_then_terminal_result() -> None:
+    service, _provider, _store, _tool, _policy = make_service(
+        [ProviderResponse(content="Stream complete.")]
+    )
+    frames = [frame async for frame in service.stream(AssistantRequest(user_input="Hello"))]
+    assert frames[0].event is not None
+    assert frames[-1].result is not None
+    assert frames[-1].result.reply == "Stream complete."
+
+
+@pytest.mark.asyncio
+async def test_read_only_tool_continues_when_optional_audit_write_fails() -> None:
+    store = InMemoryConversationStore(fail_operations={"append_audit_record"})
+    service, _provider, _store, _tool, _policy = make_service(
+        [tool_response("call-1"), ProviderResponse(content="Done.")], store=store
+    )
+    result = await service.respond("Echo hello")
+    assert result.status is RuntimeStatus.COMPLETED
+    assert result.reply == "Done."
+
+
+@pytest.mark.asyncio
 async def test_resumes_conversation_with_bounded_recent_context() -> None:
     store = InMemoryConversationStore()
     store.add_conversation("existing")

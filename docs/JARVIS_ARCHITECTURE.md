@@ -1,7 +1,7 @@
 # JARVIS Architecture
 
 Status: target architecture; implementation remains incremental  
-Planning date: 2026-08-19
+Planning date: 2026-08-20
 
 ## 1. Architectural style
 
@@ -62,25 +62,63 @@ The following conceptual interfaces form the replaceable seams:
 ```python
 class ModelProvider(Protocol):
     capabilities: ModelCapabilities
+
     async def generate(self, request: ModelRequest) -> AsyncIterator[ModelEvent]: ...
+
+
+class ModelRole(StrEnum):
+    FAST = "fast"
+    PRIMARY = "primary"
+    REASONING = "reasoning"
+    LOCAL = "local"
+
+
+class ModelProfile(BaseModel):
+    provider: str
+    model_id: str
+    capabilities: ModelCapabilities
+    lifecycle: str
+    max_context_tokens: int
+    max_output_tokens: int
+
+
+class RoutingDecision(BaseModel):
+    role: ModelRole
+    reason: str
+    sensitivity: str
+    reasoning_level: str
+    fallback_roles: tuple[ModelRole, ...]
+
+
+class ProviderUsage(BaseModel):
+    input_tokens: int | None
+    output_tokens: int | None
+    latency_ms: int
+    rate_limit: dict[str, int | str]
+    estimated_cost_usd: Decimal
+
 
 class MemoryStore(Protocol):
     async def append_message(self, message: Message) -> None: ...
     async def search(self, query: MemoryQuery) -> list[MemoryHit]: ...
     async def delete(self, selector: MemorySelector) -> DeletionReceipt: ...
 
+
 class Tool(Protocol):
     definition: ToolDefinition
+
     async def execute(self, args: BaseModel, context: ExecutionContext) -> ToolResult: ...
+
 
 class PermissionEngine(Protocol):
     async def decide(self, request: ActionRequest, actor: Actor) -> PolicyDecision: ...
+
 
 class PrivilegeBroker(Protocol):
     async def execute(self, grant: ActionGrant) -> ExecutionReceipt: ...
 ```
 
-Provider capability flags include streaming, tool calls, JSON schema, vision, embeddings, audio, maximum accepted context, and privacy class. Capability negotiation fails explicitly; the core does not guess.
+Provider capability flags include streaming, tool calls, parallel tool calls, JSON schema, vision, embeddings, audio, reasoning modes, maximum accepted context, and privacy class. Capability negotiation and startup catalog validation fail explicitly; the core does not guess. Provider/model IDs live in configuration and `ModelProfile`, never routing branches.
 
 ## 5. Complete interaction pipeline
 
@@ -101,7 +139,7 @@ sequenceDiagram
     A->>C: normalized UserTurn
     C->>M: load bounded context and relevant memory
     M-->>C: provenance-bearing hits
-    C->>R: intent + context + privacy + latency budget
+    C->>R: locally classified intent + sensitivity + capability/latency/cost budget
     alt deterministic safe intent
         R-->>C: deterministic handler
     else model needed
@@ -124,7 +162,8 @@ Latency rules:
 
 - run wake word and VAD continuously on CPU; do not invoke an LLM for silence;
 - start STT from buffered pre-roll and emit partial transcripts;
-- retrieve memory concurrently with lightweight intent classification where safe;
+- classify sensitivity locally before any cloud request;
+- retrieve memory concurrently with cloud intent classification only after the turn is classified non-sensitive;
 - stream model events immediately, but buffer enough text for stable TTS phrasing;
 - bypass LLM for deterministic commands with validated unambiguous intent;
 - load only a bounded context and retrieval set;
@@ -163,12 +202,14 @@ Barge-in is a session-state transition, not another model prompt. New host speec
 
 ## 7. Model routing
 
+Routing begins with a deterministic local privacy and command gate. A cloud model never receives an unclassified turn. Uncertainty is treated as sensitive and stays local.
+
 Routing input:
 
 - intent class and deterministic-handler confidence;
 - requested capabilities (tools, vision, structured output);
 - complexity estimate and prior failed attempt;
-- sensitivity/privacy label;
+- locally assigned sensitivity/privacy label;
 - latency, energy, and cost budget;
 - provider health, rate limit, context size, and device resources.
 
@@ -176,17 +217,43 @@ Routing output is a logical role and policy, not just a model name:
 
 ```json
 {
-  "role": "main",
-  "provider": "local",
-  "max_context_tokens": 8192,
+  "role": "primary",
+  "provider": "groq",
+  "model_id": "qwen/qwen3.6-27b",
+  "sensitivity": "non_sensitive",
+  "reasoning_level": "none",
+  "max_context_tokens": 131072,
   "max_output_tokens": 1024,
-  "deadline_ms": 12000,
-  "fallback_roles": ["heavy"],
-  "cloud_allowed": false
+  "deadline_ms": 5000,
+  "fallback_roles": ["fast", "local"],
+  "cloud_allowed": true,
+  "max_cloud_cost_usd": 0
 }
 ```
 
-The router never authorizes actions. A Tier 3 answer faces the same permission checks as Tier 1.
+Default role mapping:
+
+| Role | Default mapping | Policy |
+| --- | --- | --- |
+| `FAST` | Groq `openai/gpt-oss-20b` | Safe simple requests and safe ambiguous routing; low reasoning where needed |
+| `PRIMARY` | Groq `qwen/qwen3.6-27b` | Safe normal conversation/tool planning; non-thinking by default, thinking for moderate reasoning |
+| `REASONING` | NVIDIA `nvidia/nemotron-3-ultra-550b-a55b` | Safe difficult public reasoning, coding, research, long context, and tools |
+| `LOCAL` | Ollama `nemotron-3-nano:4b` | Normal, sensitive/private, offline, and cloud-fallback work |
+
+Routing order:
+
+1. Run the local sensitivity and deterministic-command gate.
+2. Execute recognized deterministic intents through typed tool/policy paths without an LLM when possible.
+3. Route sensitive or uncertain content to `LOCAL`.
+4. Route safe simple or ambiguous intent to `FAST`.
+5. Route safe normal work to non-thinking `PRIMARY`; enable thinking only for moderate reasoning.
+6. Route safe complex or large/multimodal work to `REASONING`.
+
+Fallback respects both capabilities and privacy. NVIDIA catalog removal, quota exhaustion, or outage falls back to Ollama. Optional Groq/Gemini roles retain bounded fallback. Sensitive work never falls through to cloud. Provider `429` and catalog mismatch are availability signals, never permission to enter paid service.
+
+Initial cloud credentials belong to free/trial service and the cloud budget is exactly `$0`. All cloud transfer remains external disclosure. NVIDIA trial service is prohibited for sensitive, personal, confidential, credential, file, memory, communication, or device content.
+
+The router never authorizes actions. Every role faces the same deterministic permission checks. User overrides may select a stricter local route or a configured model within policy, but cannot bypass sensitivity, capability, or zero-spend rules.
 
 ## 8. Tool and planning architecture
 

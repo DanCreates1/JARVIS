@@ -1,7 +1,7 @@
 import pytest
 from pydantic import BaseModel
 
-from jarvis.core import Conversation, ToolCall, ToolDefinition
+from jarvis.core import Conversation, ToolCall, ToolDefinition, ToolRisk
 from jarvis.security import DenyByDefaultPolicy, phase_one_policy
 
 
@@ -27,7 +27,7 @@ async def test_policy_denies_everything_by_default() -> None:
 
 
 @pytest.mark.asyncio
-async def test_phase_one_policy_allows_only_clock() -> None:
+async def test_phase_one_policy_allows_only_audited_read_only_tools() -> None:
     policy = phase_one_policy()
     clock_decision = await policy.authorize(
         conversation=Conversation(id="conversation"),
@@ -44,7 +44,9 @@ async def test_phase_one_policy_allows_only_clock() -> None:
 
     assert clock_decision.allowed is True
     assert other_decision.allowed is False
-    assert policy.allowed_tool_names == frozenset({"get_current_time"})
+    assert policy.allowed_tool_names == frozenset(
+        {"get_current_time", "get_system_status", "read_text_file"}
+    )
 
 
 @pytest.mark.asyncio
@@ -58,3 +60,30 @@ async def test_policy_denies_mismatched_registry_definition() -> None:
 
     assert decision.allowed is False
     assert "do not match" in (decision.reason or "")
+
+
+@pytest.mark.asyncio
+async def test_allowlist_cannot_bypass_risk_or_approval_policy() -> None:
+    policy = DenyByDefaultPolicy({"danger"})
+    for tool in (
+        ToolDefinition(
+            name="danger",
+            description="danger",
+            input_schema={"type": "object"},
+            risk=ToolRisk.DESTRUCTIVE,
+        ),
+        ToolDefinition(
+            name="danger",
+            description="danger",
+            input_schema={"type": "object"},
+            requires_approval=True,
+        ),
+    ):
+        decision = await policy.authorize(
+            conversation=Conversation(id="conversation"),
+            call=ToolCall(id="call", name="danger"),
+            tool=tool,
+            arguments=EmptyArguments(),
+        )
+        assert decision.allowed is False
+        assert "approval-capable" in (decision.reason or "")

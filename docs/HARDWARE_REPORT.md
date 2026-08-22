@@ -1,11 +1,34 @@
 # JARVIS Hardware Report
 
 Audit date: 2026-08-19  
-Method: lightweight Windows CIM/PnP queries and installed-command checks; no stress test, model download, or benchmark
+Hosted-model strategy verified: 2026-08-20
+Method: lightweight Windows CIM/PnP queries, installed-command checks, and Phase 1 local smoke benchmark
+
+## Phase 1 Nemotron acceptance update — 2026-08-22
+
+- Installed Ollama `nemotron-3-nano:4b`: about 2.8 GB, Q4_K_M, tools and thinking.
+- NVIDIA hosted `nvidia/nemotron-3-ultra-550b-a55b` catalog and live response passed.
+- Three end-to-end simple local runs: 11.84, 3.49, and 2.93 seconds; warm average 3.21 seconds.
+- Three forced hosted simple runs: 11.02, 3.17, and 2.20 seconds; warm average 2.69 seconds.
+- These are smoke timings, not the 20+ sample p50/p95 closeout benchmark.
+
+## Phase 1 local acceptance update — 2026-08-20
+
+- Installed and SHA-256-verified Ollama `qwen2.5:3b` artifact: about 1.9 GB.
+- `jarvis doctor`: configuration, data directory, SQLite migrations, Ollama service,
+  and configured local model all passed.
+- Deterministic clock turn: about 1.1 seconds wall time, including CLI startup.
+- First private local-model turn after load/install: about 50 seconds wall time; cold-load
+  exception exceeds target and must remain visible.
+- Five immediately warm private local turns, including CLI startup: 1.455, 1.181, 0.885,
+  0.878, and 0.936 seconds. Observed p50 was 0.936 seconds and nearest-rank p95 was
+  1.455 seconds.
+- These five warm samples validate basic interactivity, not production statistical confidence.
+  Re-run longer benchmarks after model, prompt, driver, or hardware changes.
 
 ## Summary
 
-This laptop is suitable for JARVIS development, small local models, local speech, and light vision. It is not suitable for a high-quality large local reasoning model. The recommended production strategy on this machine is hybrid: deterministic tools and small models locally, with an optional cloud provider for difficult reasoning.
+This laptop is suitable for JARVIS development, private/offline small-model fallback, local speech, and light vision. It is not suitable for a high-quality large local reasoning model. The target strategy is privacy-aware hybrid: deterministic privacy/command handling locally, free-tier hosted inference for non-sensitive work, and Ollama for sensitive content or cloud failure. Initial cloud spend is hard-capped at `$0`.
 
 ## Hardware discovered
 
@@ -70,15 +93,31 @@ VRAM is the primary constraint. Model file size is not total runtime memory: con
 | 14B, 4-bit | RAM pressure and poor laptop latency | Not recommended for daily local use |
 | 30B+ | Impractical on this laptop | Dedicated server or cloud only |
 
-Initial candidates, without downloading during planning:
+Local fallback candidates, without downloading during planning:
 
-- Fast: `qwen3:1.7b` Q4 through Ollama; official Ollama artifact is about 1.4 GB.
-- Main: `qwen3.5:4b` Q4_K_M; official Ollama artifact is about 3.4 GB. Limit context initially and measure VRAM headroom.
+- Current local default: `nemotron-3-nano:4b`; start with bounded 4K/8K working context.
+- Fast local candidate: `qwen3:1.7b` Q4 through Ollama; official Ollama artifact is about 1.4 GB.
+- Main local candidate: `qwen3.5:4b` Q4_K_M; official Ollama artifact is about 3.4 GB. Limit context initially and measure VRAM headroom.
 - Alternative main: `gemma3:4b`, about 3.3 GB, for an independent quality/license/tool-use comparison.
 - Embeddings later: a sub-1B embedding model such as `qwen3-embedding:0.6b`, loaded on demand or CPU-resident.
-- Heavy reasoning: explicit remote provider now; later server-hosted 14B–32B class.
+- Heavy local reasoning: defer to a future server-hosted 14B–32B class.
 
 Do not run advertised 128K/256K context merely because a model supports it. On this hardware, start at 4K and 8K; retrieval and summarization are cheaper and more predictable.
+
+## Hosted model roles
+
+Hosted catalog facts were verified from official provider documentation on 2026-08-20. They are dated observations, not local benchmark results or availability guarantees.
+
+| Role | Provider/model | Verified catalog capability | Lifecycle risk |
+| --- | --- | --- | --- |
+| `FAST` | Groq `openai/gpt-oss-20b` | About 1,000 tokens/s; 131,072-token context; tools, reasoning, JSON object/schema modes | Production model; free tier remains quota-limited |
+| `PRIMARY` | Groq `qwen/qwen3.6-27b` | About 500 tokens/s; 131,072-token context; text/images, tools, parallel calls, vision, thinking/non-thinking | Preview; startup catalog checks and fallback required |
+| `REASONING` | NVIDIA `nvidia/nemotron-3-ultra-550b-a55b` | 1,000,000-token context; 32,768-token maximum output; text, tools, and thinking | Trial capacity uses model/account-specific unpublished limits |
+| `LOCAL` | Ollama `nemotron-3-nano:4b` | 256K advertised model context; use bounded 4K/8K working context on this laptop | Hardware-limited but private/offline |
+
+NVIDIA trial capacity is model/account-specific and visible in the API Catalog UI rather than a fixed published RPM. Free service is not an SLA. Quota exhaustion falls back locally or returns a capacity error. NVIDIA trial APIs receive public content only.
+
+Sources: [NVIDIA Nemotron 3 Ultra](https://build.nvidia.com/nvidia/nemotron-3-ultra-550b-a55b/modelcard), [NVIDIA API reference](https://docs.api.nvidia.com/nim/reference/nvidia-nemotron-3-ultra-550b-a55b), and [NVIDIA trial terms](https://assets.ngc.nvidia.com/products/api-catalog/legal/NVIDIA%20API%20Trial%20Terms%20of%20Service.pdf).
 
 ## Voice and multimodal implications
 
@@ -121,11 +160,12 @@ Record p50/p95, model digest, quantization, runtime version, context/output sett
 Recommended laptop profile:
 
 ```text
-local deterministic tools
-  + qwen3:1.7b fast role
-  + qwen3.5:4b main candidate at modest context
+local deterministic sensitivity and command gate
+  + Ollama Nemotron 3 Nano 4B LOCAL for normal/private/offline work
+  + NVIDIA Nemotron 3 Ultra REASONING for safe difficult public work
+  + optional Groq/Gemini adapters remain configuration-driven
+  + hard zero-dollar cloud budget
   + CPU-first speech components
-  + explicit cloud heavy role
 ```
 
 This profile should produce a responsive MVP while preserving a clean migration path to a 16–24+ GB VRAM server.
