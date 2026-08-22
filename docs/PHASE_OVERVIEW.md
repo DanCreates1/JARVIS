@@ -6,6 +6,10 @@ This is the concise execution view of the master roadmap. Status describes imple
 not just design work. "Sol thinking" is the recommended reasoning effort for the main
 implementation work in that phase.
 
+To execute a phase with Codex, use `Initiate Phase X and finish it.` Root `AGENTS.md` then loads
+the full [Codex Sol phase execution playbook](CODEX_PHASE_PLAYBOOK.md), including prerequisites,
+implementation protocol, acceptance gates, safety boundaries, and completion reporting.
+
 ## Thinking-level guide
 
 | Level | Use |

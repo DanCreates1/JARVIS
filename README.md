@@ -168,6 +168,7 @@ always performs secret scanning.
 ## Documentation
 
 - [Phase overview and status](docs/PHASE_OVERVIEW.md)
+- [Codex Sol phase execution playbook](docs/CODEX_PHASE_PLAYBOOK.md)
 - [Hands-free control plan](docs/HANDS_FREE_CONTROL.md)
 - [Architecture](docs/architecture.md)
 - [Security model](docs/security.md)
