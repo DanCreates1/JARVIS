@@ -11,10 +11,10 @@ runtime databases, logs, generated media, and secrets do not belong in Git.
 
 ## Current verification status
 
-As of 2026-08-31, Phase 4 is current-complete. Phases 1–3 are implemented but not currently
-closeout-complete: Phase 1 misses fixed local latency targets, its configured zero-cost NVIDIA
-endpoint times out, and an independent clean Windows host is unavailable; Phase 2 and Phase 3
-safe local gates pass, but current real-device/application smokes require separate authorization.
+As of 2026-08-31, Phase 4 is current-complete. Phase 1 remains blocked by fixed local and hosted
+latency targets plus intermittent NVIDIA fallback; its clean-Windows bootstrap and repository
+quality gates now pass on an independent fresh GitHub Windows runner. Phases 2 and 3 pass current
+safe local gates but still require separately authorized current real-device/application smokes.
 See [Phase Overview](docs/PHASE_OVERVIEW.md) and the phase reports for exact evidence. No threshold
 or privacy/authority gate is waived by implementation status.
 

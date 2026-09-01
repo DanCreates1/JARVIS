@@ -25,7 +25,7 @@ implementation protocol, acceptance gates, safety boundaries, and completion rep
 | Phase | Scope | Status | Remaining completion work | Sol thinking |
 | --- | --- | --- | --- | --- |
 | 0 | Repository baseline and reset verification | Complete | Maintain passing CI/secret scans and a clean reproducible `main` | Medium |
-| 1 | JARVIS core and first text vertical slice | Blocked external | Deterministic gate passes, but local cold/warm p50/p95 miss targets; hosted NVIDIA requests time out; clean independent Windows reproduction is unavailable | High |
+| 1 | JARVIS core and first text vertical slice | Blocked external | Clean Windows/bootstrap/release CI passes; local cold/warm and hosted simple/complex latency miss fixed targets, and NVIDIA falls back intermittently before every required state reaches 20 successes | High |
 | 2 | Voice | Implemented; closeout pending | Current synthetic/STT/soak gates pass; repeat live microphone/render/kill smokes only with separate device-control authorization; always-listening stays hard-disabled | Extra high |
 | 3 | Controlled computer access | Implemented; closeout pending | Current broker/adversarial/rollback gates pass; repeat live app/volume/media smokes only with separate real-application/device authorization | Ultra |
 | 4 | Durable memory and personalization | Complete | Current host isolation, lifecycle, retrieval/deletion, migration, concurrency, backup/restore, and benchmark gates pass | Extra high |
@@ -39,8 +39,8 @@ implementation protocol, acceptance gates, safety boundaries, and completion rep
 
 ## Recommended order
 
-1. Resolve Phase 1 local latency, hosted endpoint availability, and independent clean-Windows
-   reproduction without weakening thresholds.
+1. Resolve Phase 1 local/hosted latency and NVIDIA capacity without weakening thresholds; retain
+   the now-passing independent clean-Windows bootstrap/release gate.
 2. With separate authority, repeat Phase 2 live device and Phase 3 live application/device smokes.
 3. Maintain completed Phase 4 memory and the safe local Phase 2/3 baselines.
 4. Start Phase 5 only after deciding whether the blocked Phase 1–3 closeout gates are release

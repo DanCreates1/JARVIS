@@ -4,9 +4,10 @@ Status: required controls and security architecture
 Planning date: 2026-08-20
 Last reconciled with Phase 1–4 implementation: 2026-08-31
 
-Current implementation retains these fail-closed controls. Phase 1–3 closeout blockers recorded in
-`docs/PHASE_OVERVIEW.md` remain blockers; no latency, provider, device-control, approval, privacy,
-or live-hardware gate is weakened by this document.
+Current implementation retains these fail-closed controls. The clean-Windows bootstrap and exact
+repository CI gate now pass independently; remaining Phase 1–3 blockers are latency/provider
+capacity and separately authorized live-device/effect checks. No device-control, approval,
+privacy, performance, or live-hardware gate is weakened by this document.
 
 ## 1. Security objective
 

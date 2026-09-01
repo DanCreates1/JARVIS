@@ -32,8 +32,8 @@ and historical live evidence remain valid.
   hour of music, TV, typing, and room noise; always-listening remained false.
 - Fresh synthetic soak: 1,800.05 seconds, 19,501 frames, 1,800 state turns, zero failures,
   no deadlock, final idle, 152,723,456-byte peak RSS growth, and no retained raw audio.
-- RTK remains blocked by Windows Smart App Control, so these commands used direct locked
-  invocation as explicitly allowed by the program.
+- RTK 0.45.0 now runs. Generated console shims remain blocked by Windows Smart App Control, so
+  allowed locked module entry points are retained alongside independent exact-command CI evidence.
 - Fresh ignored evidence: `runtime/phase2-revalidation-20260831-01/`.
 
 ## Baseline
@@ -186,11 +186,12 @@ and historical live evidence remain valid.
 
 ## Verification evidence
 
-Current integrated release evidence (2026-08-31): substantive locked gate passes with 530 tests
-passed, 1 skipped, 85.20% coverage; 66 source files type-check; 147 files are formatted; lint,
-dependency audit (base and restored voice extra), Gitleaks, diff check, and doctor pass. Exact
-`mypy`, `pytest`, `pip-audit`, and `jarvis` console shims are blocked by Windows Application Control
-OS error 4551; Python-module equivalents pass. Full command evidence is in the Phase 1 report.
+Current integrated release evidence (2026-08-31): local locked gate passes with 535 tests passed,
+1 skipped, 85.24% coverage; 66 source files type-check; 148 files are formatted; lint, dependency
+audit (base and restored voice extra), Gitleaks, diff check, and doctor pass. Independent fresh
+Windows run `33467300560` passes the repository bootstrap plus exact lock, sync, Ruff, mypy,
+pytest (535 passed, 1 skipped, 85.09%), pip-audit, and complete-history Gitleaks commands.
+Current-host generated shims remain blocked by OS error 4551; module equivalents pass.
 
 Historical 2026-08-22 closeout evidence follows:
 
@@ -252,8 +253,8 @@ uv run pip-audit (voice extra installed)             PASS: no known vulnerabilit
 - Current live microphone capture, silent render, interruption, and kill-switch smoke require
   separate real-device authorization. Historical 2026-08-22 live evidence remains recorded, but
   it cannot substitute for a current playbook-required live check.
-- Phase 1 formal prerequisite closeout remains externally blocked by local latency, hosted endpoint,
-  independent clean-Windows, and exact-launcher gates.
+- Phase 1 formal prerequisite closeout remains externally blocked by local/hosted latency and
+  intermittent NVIDIA capacity. Independent clean-Windows/bootstrap/repository gates now pass.
 
 ## Known limits and deferred scope
 
@@ -284,4 +285,5 @@ uv run pip-audit (voice extra installed)             PASS: no known vulnerabilit
   harness, 52 additional tests over baseline, and setup/architecture/security/hardware/roadmap docs.
 - Next recommended action: with separate authorization, repeat the bounded live device smokes after
   Phase 1 external blockers are resolved or explicitly accepted as release limitations.
-- Commit/push status: uncommitted and not pushed; authorization was not provided.
+- Commit/push status: Phase 1–4 implementation, CI hardening, and final evidence reconciliation are
+  committed and pushed to `origin/main`; remote SHA verification is recorded in the final handoff.

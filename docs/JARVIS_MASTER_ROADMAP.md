@@ -209,10 +209,12 @@ The checks in `PHASE_0_REBUILD_PLAN.md` pass. For current repository, existing c
 
 **Status (2026-08-31)**
 
-Blocked external for formal closeout. Current deterministic routing passes 20/20, privacy and
-failure suites pass, and the locked bootstrap reproduces on this host. The installed local model
-misses the fixed interactive latency targets, the configured zero-cost NVIDIA endpoint times out,
-and no independent clean Windows VM/host is available. Gates remain unchanged.
+Blocked external for formal closeout. Deterministic routing passes 20/20, privacy and failure
+suites pass, and a fresh GitHub Windows runner passes the locked bootstrap plus exact repository
+quality commands. The installed local model still misses fixed latency targets. NVIDIA now
+completes some production requests, including 20/20 complex cold-client samples, but latency misses
+target and intermittent fallback prevents all four hosted states from reaching 20 successes.
+Gates remain unchanged.
 
 **Goal**  
 A useful text JARVIS with swappable providers, deterministic local privacy routing, zero-cost cloud roles, local fallback, personality, persistence, safe tools, and measurable behavior.

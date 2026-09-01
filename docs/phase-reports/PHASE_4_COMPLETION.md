@@ -29,8 +29,8 @@ behavior were reinspected. No implementation gap was found; current evidence sup
   and 100 concurrent operations with zero failures all passed.
 - Storage: 5,394,432 checkpointed bytes, 2,157.7728 bytes per record. FTS5 still meets every
   target; embeddings remain unjustified and unadopted.
-- RTK remains blocked by Windows Smart App Control; direct locked commands were used as explicitly
-  allowed by this program.
+- RTK 0.45.0 now runs. Generated console shims remain blocked by Windows Smart App Control; allowed
+  locked module entry points and independent exact-command CI evidence are both retained.
 - Fresh ignored evidence: `runtime/phase4-revalidation-20260831-01/results.json`.
 
 ## Baseline and preserved state
@@ -161,11 +161,12 @@ behavior were reinspected. No implementation gap was found; current evidence sup
 
 ## Verification evidence
 
-Current integrated release evidence (2026-08-31): substantive locked gate passes with 530 tests
-passed, 1 skipped, 85.20% coverage; 66 source files type-check; 147 files are formatted; lint,
-dependency audit (including restored voice extra), Gitleaks, diff check, and doctor pass. Exact
-`mypy`, `pytest`, `pip-audit`, and `jarvis` console shims are blocked by Windows Application Control
-OS error 4551; Python-module equivalents pass. Full command evidence is in the Phase 1 report.
+Current integrated release evidence (2026-08-31): local locked gate passes with 535 tests passed,
+1 skipped, 85.24% coverage; 66 source files type-check; 148 files are formatted; lint, dependency
+audit (including restored voice extra), Gitleaks, diff check, and doctor pass. Independent fresh
+Windows run `33467300560` passes bootstrap and exact lock, sync, Ruff, mypy, pytest (535 passed,
+1 skipped, 85.09%), pip-audit, and complete-history Gitleaks commands. Current-host generated shims
+remain blocked by OS error 4551; module equivalents pass.
 
 Historical 2026-08-29 closeout evidence follows:
 
@@ -274,4 +275,5 @@ behavior or test results.
 - Blockers: none for Phase 4. Windows console-shim policy and symlink privilege are documented
   environment limitations with complete allowed-path verification.
 - Next recommended phase: Phase 5 research/self-education on the source-aware Phase 4 memory model.
-- Commit/push status: not authorized; none performed.
+- Commit/push status: Phase 1–4 implementation, CI hardening, and final evidence reconciliation are
+  committed and pushed to `origin/main`; remote SHA verification is recorded in the final handoff.

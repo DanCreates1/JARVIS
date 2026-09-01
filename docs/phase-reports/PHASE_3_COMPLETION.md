@@ -34,8 +34,8 @@ playbook therefore prevents a current `complete` claim.
 - The 2026-08-26 authorized live artifact was reinspected: three exact-approval broker actions
   passed then. It is historical evidence, not a claim that current real applications were
   controlled during this revalidation.
-- RTK remains blocked by Windows Smart App Control; direct locked commands were used as explicitly
-  allowed by this program.
+- RTK 0.45.0 now runs. Generated console shims remain blocked by Windows Smart App Control; allowed
+  locked module entry points and independent exact-command CI evidence are both retained.
 - Fresh ignored evidence: `runtime/phase3-revalidation-20260831-01/phase3-benchmark.json`.
 
 ## Baseline
@@ -223,11 +223,12 @@ playbook therefore prevents a current `complete` claim.
 
 ## Verification evidence
 
-Current integrated release evidence (2026-08-31): substantive locked gate passes with 530 tests
-passed, 1 skipped, 85.20% coverage; 66 source files type-check; 147 files are formatted; lint,
-dependency audit, Gitleaks, diff check, and doctor pass. Exact `mypy`, `pytest`, `pip-audit`, and
-`jarvis` console shims are blocked by Windows Application Control OS error 4551; Python-module
-equivalents pass. Full command evidence is in the Phase 1 report.
+Current integrated release evidence (2026-08-31): local locked gate passes with 535 tests passed,
+1 skipped, 85.24% coverage; 66 source files type-check; 148 files are formatted; lint, dependency
+audit, Gitleaks, diff check, and doctor pass. Independent fresh Windows run `33467300560` passes
+bootstrap and exact lock, sync, Ruff, mypy, pytest (535 passed, 1 skipped, 85.09%), pip-audit, and
+complete-history Gitleaks commands. Current-host generated shims remain blocked by OS error 4551;
+module equivalents pass.
 
 Historical 2026-08-26 closeout evidence follows:
 
@@ -324,4 +325,5 @@ Pytest emitted one third-party Starlette `TestClient` deprecation warning; no pr
   uncommitted Phase 2 work remains preserved.
 - Next recommended action: repeat the bounded live smoke only with separate authorization; keep
   authority default-off. Phase 4 is independently current-complete.
-- Commit/push status: not authorized; none will be performed.
+- Commit/push status: Phase 1–4 implementation, CI hardening, and final evidence reconciliation are
+  committed and pushed to `origin/main`; remote SHA verification is recorded in the final handoff.

@@ -12,20 +12,21 @@
 A GPU is not required for the Phase 1 text runtime. Model speed and memory use
 depend on the selected Ollama model and hardware.
 
-## Current reproduction limits
+## Current reproduction evidence and host limits
 
-The 2026-08-31 Phase 1 closeout created a fresh ignored environment through
-`scripts/bootstrap.ps1` on the current Windows host: CPython 3.11.16, 115 packages resolved, and
-62 locked packages installed in copy mode in 4.02 seconds; core imports passed. This is a clean
-environment test, not an independent clean-Windows-machine reproduction. Windows 11 Home on this
-host has no Windows Sandbox/Hyper-V fixture, and no VMware, VirtualBox, or WSL target is installed.
-The independent-machine gate remains externally blocked.
+On 2026-08-31, fresh GitHub `windows-latest` run
+[`33467300560`](https://github.com/DanCreates1/JARVIS/actions/runs/33467300560) installed uv 0.12.5
+and CPython 3.11.16, resolved 115 locked packages, created the 62-package environment, and ran
+`scripts/bootstrap.ps1` successfully. Exact lock, sync, format, lint, mypy, pytest, and pip-audit
+commands passed; pytest reported 535 passed, 1 capability skip, and 85.09% coverage. The separate
+complete-history Gitleaks job also passed. This supplies independent clean-Windows bootstrap and
+repository-gate evidence without relying on this laptop's caches or policy.
 
-Windows Smart App Control currently rejects RTK and some generated virtual-environment console
-shims with OS error 4551. Do not change or bypass that policy for JARVIS. Record the restriction and
-run the same locked packages through the allowed uv-managed Python module entry points. An exact
-launcher command blocked by policy remains blocked in release evidence even when its substantive
-module equivalent passes.
+The current host rehearsal also passed in a fresh ignored environment. Windows Smart App Control
+still rejects generated `mypy`, `pytest`, `pip-audit`, and `jarvis` console shims with OS error
+4551, while RTK 0.45.0 and uv run normally. Do not change or bypass that policy. Use the same locked
+modules through allowed uv-managed Python entry points and retain both local module results and the
+independent exact-command CI evidence.
 
 ## 1. Clone the repository
 

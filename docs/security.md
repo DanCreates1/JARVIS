@@ -6,7 +6,8 @@ Security therefore belongs in the runtime architecture, not only in prompts.
 This document describes implemented Phases 1–4 controls, including local sensitivity
 classification, zero-cost NVIDIA/Groq/Gemini/Ollama routing, local push-to-talk speech, and
 default-off controlled computer access, plus candidate-only host-isolated memory, provenance,
-conflict visibility, and transitive deletion. Current Phase 1–3 closeout limitations remain
+conflict visibility, and transitive deletion. Independent clean-Windows bootstrap/repository CI
+passes; current latency/provider-capacity and separately authorized live-effect limitations remain
 explicit in `docs/PHASE_OVERVIEW.md` and are not security-gate waivers.
 
 ## Trust boundaries

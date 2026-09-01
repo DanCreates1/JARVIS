@@ -21,9 +21,9 @@ Phase 1–4 work. Do not weaken privacy, cost, latency, clean-machine, or releas
 - Windows 11 Home build 26200; Intel i5-11400H, 6 cores/12 threads; 16,888,967,168 bytes RAM;
   RTX 2050 Laptop GPU, 4,096 MiB VRAM; NVIDIA driver 610.62.
 - Project runtime: Python 3.11.16, uv 0.12.5, Ollama 0.33.2, Gitleaks 8.30.1.
-- RTK remains blocked by Windows Smart App Control at
-  `C:\Users\poyan\.local\bin\rtk.exe`. Required commands therefore use the explicitly allowed
-  direct-command fallback. No policy change or execution bypass was attempted.
+- RTK 0.45.0 now runs normally. Windows Smart App Control still blocks generated `mypy`, `pytest`,
+  `pip-audit`, and `jarvis` console shims with OS error 4551. Allowed Python-module equivalents
+  and independent exact-command CI evidence are both retained; no policy bypass was attempted.
 
 ## Acceptance checklist
 
@@ -37,11 +37,11 @@ Phase 1–4 work. Do not weaken privacy, cost, latency, clean-machine, or releas
 - [ ] Local cold/warm latency meets the fixed 1,500/3,000 ms p50/p95 target.
 - [ ] Current hosted NVIDIA run yields 20 cold-client and 20 warm-client successful samples per
   simple/complex profile. Production requests timed out and failed closed before sampling.
-- [ ] Bootstrap is reproduced on a genuinely fresh Windows 10/11 OS image. Current-host fresh
-  environment rehearsal passes, but it is not clean-OS evidence.
-- [ ] Integrated exact-command release gate passes. Current substantive locked checks pass, but
-  WinGet `uv.exe` and generated `mypy`, `pytest`, `pip-audit`, and `jarvis` shims are blocked by
-  Windows Application Control; exact commands remain externally blocked.
+- [x] Bootstrap is reproduced on a fresh independent GitHub `windows-latest` runner through the
+  repository script, with uv 0.12.5, Python 3.11.16, and the locked environment.
+- [x] Independent exact-command repository gate passes in CI: lock, sync, format, lint, mypy,
+  pytest, pip-audit, and complete-history Gitleaks. Current-host module equivalents and doctor also
+  pass; current-host generated console shims remain an environment limitation.
 
 ## Implemented closeout fixes
 
@@ -89,33 +89,54 @@ PASS: 66 source files
 ```
 
 Smart App Control blocks the unsigned `pytest.exe` launcher used by exact `uv run pytest` with OS
-error 4551. The same locked Python 3.11 environment executes `python -m pytest` successfully. This
-does not make the exact-command release gate pass; both results remain visible.
+error 4551. The same locked Python 3.11 environment executes `python -m pytest` successfully. Both
+results remain visible; the independent fresh Windows runner now supplies passing exact-command
+evidence.
 
 ### Integrated repository gate — 2026-08-31
 
+Independent fresh Windows evidence:
+
 ```text
-uv lock --check                              BLOCKED: WinGet uv.exe access denied
-.bootstrap-venv uv lock --check              PASS: 115 packages
-uv sync --locked                             BLOCKED: WinGet uv.exe access denied
-.bootstrap-venv uv sync --locked             PASS: base environment synchronized
-uv run ruff format --check .                 PASS via allowed uv: 147 files
-uv run ruff check .                          PASS via allowed uv
-uv run mypy src                              BLOCKED: OS error 4551
-uv run --locked python -m mypy src           PASS: 66 source files
-uv run pytest                                BLOCKED: OS error 4551
-uv run --locked python -m pytest --basetemp  PASS: 530 passed, 1 skipped, 85.20% coverage
-uv run pip-audit                             BLOCKED: OS error 4551
-uv run --locked python -m pip_audit          PASS: no known vulnerabilities
-gitleaks detect --source . --redact ...      PASS: 8 commits, 716.89 KB, no leaks
-git diff --check                             PASS: line-ending notices only
-uv run jarvis doctor                         BLOCKED: OS error 4551
-uv run --locked python -m jarvis doctor      PASS: every diagnostic; JARVIS ready
+GitHub Actions run 33467300560, commit 1f75017531a8e31d9119d10dfb088a9c19effc67
+scripts/bootstrap.ps1                         PASS: Python 3.11.16; 115 resolved; 62 checked
+uv lock --check / uv sync --locked            PASS
+uv run ruff format --check .                  PASS: 148 files
+uv run ruff check .                           PASS
+uv run mypy src                               PASS: 66 source files
+uv run pytest                                 PASS: 535 passed, 1 skipped, 85.09% coverage
+uv run pip-audit                              PASS: no known vulnerabilities
+complete-history Gitleaks job                 PASS
 ```
 
-The optional locked voice environment was restored after the base sync and also reports no known
-vulnerabilities. The sole skip remains the non-elevated Windows directory-symlink case
-(`WinError 1314`); the sole warning is upstream Starlette `TestClient` deprecation.
+The capability skip is the directory-symlink negative on a runner without that host capability;
+all other tests pass. The sole warning is the upstream Starlette `TestClient` deprecation.
+
+Final current-host evidence after documentation reconciliation:
+
+```text
+rtk uv lock --check                          PASS: 115 packages
+rtk uv sync --locked                         PASS: base environment synchronized
+rtk uv run ruff format --check .             PASS: 148 files
+rtk uv run ruff check .                      PASS
+rtk uv run mypy src                          BLOCKED: OS error 4551
+rtk uv run python -m mypy src                PASS: 66 source files
+rtk uv run pytest                            BLOCKED: OS error 4551
+rtk uv run python -m pytest                  PASS: 535 passed, 1 skipped, 85.24% coverage
+rtk uv run pip-audit                         BLOCKED: OS error 4551
+rtk uv run python -m pip_audit               PASS: no known vulnerabilities
+rtk gitleaks detect --source . --redact ...  PASS: 11 commits, 2.30 MB, no leaks
+rtk git diff --check                         PASS
+rtk uv run jarvis doctor                     BLOCKED: OS error 4551
+rtk uv run python -m jarvis doctor           PASS: every diagnostic; JARVIS ready
+rtk uv sync --locked --extra voice           PASS: optional voice environment restored
+voice dependency audit and voice doctor      PASS: no vulnerabilities; every diagnostic healthy
+```
+
+The voice doctor found 26 capture and 30 render endpoints, verified the persisted microphone and
+speaker, and passed local VAD/STT/TTS/openWakeWord health checks. The sole skip remains the
+non-elevated Windows directory-symlink case (`WinError 1314`); the sole warning is upstream
+Starlette `TestClient` deprecation.
 
 ### Privacy/security regressions added
 
@@ -172,24 +193,37 @@ gate on this hardware. Targets were not moved.
 
 ### Hosted NVIDIA evidence
 
-Evidence: `runtime/phase1-benchmark-20260831-05/phase1-benchmark.json`
+Evidence: `runtime/phase1-benchmark-20260831-06/phase1-benchmark.json`
 
 - Existing private configuration was verified without printing the secret: key configured,
-  free-tier confirmation true, prior trial-terms acknowledgement true, cost cap exactly `$0`,
-  model `nvidia/nemotron-3-ultra-550b-a55b`.
-- Exact model catalog validation passed before each profile.
-- No current inference completed on NVIDIA. The first simple observation exhausted bounded
-  production timeouts and fell back local; total observation time 121,557.453 ms. Harness stopped
-  the profile immediately.
-- One complex observation was correctly rejected local after the new conservative gate exposed an
-  ambiguous fixture; that fixture is now removed and guarded by tests. The next valid public
-  complex observation also timed out/fell back; total 157,586.284 ms. Harness stopped immediately.
-- Current successful hosted samples: 0 simple cold, 0 simple warm, 0 complex cold, 0 complex warm.
-  No quota ceiling was probed, no paid path exists, and no sensitive content was sent.
-- Historical August 22 three-run hosted smoke timings remain historical only; they do not replace
-  current 20-sample acceptance.
+  free-tier confirmation true, prior trial-terms acknowledgement true, cost cap exactly `$0`, and
+  model `nvidia/nemotron-3-ultra-550b-a55b`. Exact catalog validation passed before each profile.
+- Simple cold-client: 10 observations, 9 NVIDIA successes and one local fallback; successful p50
+  `1,584.476 ms`, p95 `5,790.438 ms`, versus fixed `1,000/2,500 ms`. The harness stopped on the
+  first capacity/fallback signal, so no simple warm state was started.
+- Complex cold-client: 20/20 NVIDIA successes; p50 `22,227.169 ms`, p95 `43,157.135 ms`, versus
+  fixed `3,000/7,000 ms`.
+- Complex warm-client: 7 observations, 6 NVIDIA successes and one local fallback; successful p50
+  `11,025.118 ms`, p95 `46,278.779 ms`. The harness stopped on the first fallback.
+- Three of four required states were observed, but only complex cold reached 20 successes. None met
+  its latency target. No quota ceiling was probed, no paid path exists, and no sensitive content
+  was sent. The endpoint is usable intermittently but does not satisfy current capacity/latency
+  acceptance.
 
 ## Bootstrap and clean Windows
+
+Independent fresh Windows evidence:
+
+```text
+GitHub Actions run 33467300560 on windows-latest
+setup-uv 0.12.5 + uv-managed CPython 3.11.16
+uv lock --check; uv sync --locked; ./scripts/bootstrap.ps1
+PASS: 115 locked packages resolved; 62 packages checked; bootstrap ready message emitted
+```
+
+The same clean checkout then passed exact format, lint, mypy, pytest, and dependency audit
+commands; a separate complete-history Gitleaks job passed. This resolves the independent Windows
+bootstrap/repository-gate requirement.
 
 Current-host fresh environment rehearsal:
 
@@ -204,24 +238,21 @@ fresh Python import jarvis, fastapi, httpx, pydantic
 PASS: imports-ok
 ```
 
-This is useful bootstrap regression evidence, not a clean Windows result: it reused the laptop OS,
-user profile, uv/Python cache, source checkout, and network/tool installation. Windows 11 Home has
-no Windows Sandbox feature; Hyper-V/VMware/VirtualBox/WSL guests are unavailable. No VM, account,
-license, download, remote machine, or security-policy change was authorized or created.
+This remains useful host-specific regression evidence. The independent CI run supplies the clean
+Windows result without creating a VM, account, license, remote deployment, or policy bypass.
 
 ## External blockers
 
-1. **Clean Windows target unavailable.** Provide an approved genuinely fresh Windows 10/11 VM or
-   disposable machine with documented image/reset provenance and policy-permitted Python/uv.
-2. **NVIDIA trial endpoint did not complete production requests.** Retry only after provider
-   capacity is available; keep public fixtures, existing zero-dollar policy, 2.1-second pacing,
-   60-second production timeout, and fail-closed stop. Do not probe quota ceilings.
-3. **Local latency misses on target hardware.** Completing this gate requires a measured adapter
+1. **NVIDIA capacity and latency remain insufficient.** The endpoint completed 35 current public
+   fixture requests but fell back twice before every state reached 20 successes, and all measured
+   hosted p50/p95 values missed their fixed targets. Retry with the same zero-dollar policy,
+   2.1-second pacing, bounded timeouts, and fail-closed stop. Do not probe quota ceilings.
+2. **Local latency misses on target hardware.** Completing this gate requires a measured adapter
    streaming/preload improvement or stronger approved hardware. Buffered completion cannot be
    relabelled TTFT, and cold model load cannot be called passing.
-4. **RTK/exact launcher policy.** RTK and some generated console launchers are blocked by Smart App
-   Control. Direct commands are the authorized fallback for substantive testing, but exact release
-   command results must remain documented.
+3. **Current-host launcher policy.** RTK and uv run, but generated console launchers remain blocked
+   by Smart App Control. Allowed module entry points pass locally and exact commands pass on the
+   independent Windows runner; no host policy was changed.
 
 ## Known limits and deferred scope
 
@@ -230,8 +261,8 @@ license, download, remote machine, or security-policy change was authorized or c
 - Benchmark corpus has four fixed prompts per profile repeated to 20 observations; it measures
   latency/routing success, not broad answer quality. Hosted digest is not published; record exact
   model ID/version/catalog date instead.
-- Current-host bootstrap does not prove a clean OS, empty caches, installer prerequisites, or PATH
-  behavior on another Windows machine.
+- Hosted-runner bootstrap proves a fresh Windows checkout and toolchain, not this laptop's exact
+  OEM drivers, Ollama/GPU stack, or Smart App Control policy.
 - Phase 2–4 revalidation and integrated release evidence are recorded in their own reports.
 
 ## Recovery and rollback
@@ -248,6 +279,7 @@ license, download, remote machine, or security-policy change was authorized or c
 - Final status: `blocked-external`; no `PHASE_1_COMPLETION.md` exists.
 - Safe local work completed: correctness/privacy fixes, 115-test suite, deterministic/local
   benchmarks, bounded hosted attempt, and fresh current-host bootstrap rehearsal.
-- Next action: supply a clean approved Windows target and retry hosted inference when NVIDIA
-  capacity is healthy; separately improve local streaming/preload latency without relaxing targets.
-- Worktree remains uncommitted and unstaged.
+- Next action: improve local streaming/preload latency and retry NVIDIA only when capacity is
+  healthy, without relaxing targets. Clean-Windows/bootstrap evidence is now complete.
+- Phase 1–4 implementation, CI hardening, and final evidence reconciliation are committed and
+  pushed to `origin/main`; remote SHA verification is recorded in the final handoff.

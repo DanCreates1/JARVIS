@@ -36,9 +36,10 @@ keys are configured. Otherwise runtime remains local and offline-capable.
 
 Acceptance suite covers safe simple, normal, reasoning, sensitive-local,
 explicit override, catalog removal, quota exhaustion, outage, transient retry,
-and zero-spend scenarios. Current deterministic evidence passes, but local cold/warm latency misses
-the fixed targets, the configured zero-cost NVIDIA endpoint times out, and an independent clean
-Windows reproduction host is unavailable. Thresholds were not weakened.
+and zero-spend scenarios. Current deterministic evidence and independent clean-Windows
+bootstrap/repository CI pass. Local cold/warm latency still misses fixed targets; NVIDIA completes
+some requests but hosted latency misses and intermittent fallback prevents complete 20-sample
+coverage. Thresholds were not weakened.
 
 ## Phase 2 — voice
 

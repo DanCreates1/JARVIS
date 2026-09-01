@@ -4,9 +4,11 @@ Status: target architecture; implementation remains incremental
 Planning date: 2026-08-20
 Last reconciled with Phase 1–4 implementation: 2026-08-31
 
-Phase 4 currently satisfies its completion gates. Phase 1 has external performance/provider/clean
-host blockers; Phase 2 and Phase 3 await separately authorized current live-device checks. See
-`docs/PHASE_OVERVIEW.md`; these status limits do not alter the architecture boundaries below.
+Phase 4 currently satisfies its completion gates. Phase 1 clean-host/bootstrap/repository gates
+pass on an independent Windows runner, while local/hosted latency and intermittent provider
+capacity remain external blockers. Phase 2 and Phase 3 await separately authorized current live
+device/effect checks. See `docs/PHASE_OVERVIEW.md`; these status limits do not alter the
+architecture boundaries below.
 
 ## 1. Architectural style
 
