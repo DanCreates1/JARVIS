@@ -10,6 +10,7 @@ import jarvis.computer.audio as audio
 from jarvis.computer.audio import (
     AudioPostconditionError,
     CoreAudioError,
+    CoreAudioHResultError,
     CoreAudioProtocolError,
     MasterVolumeOperation,
     MasterVolumeState,
@@ -367,7 +368,12 @@ def test_non_windows_default_adapter_fails_closed(monkeypatch: pytest.MonkeyPatc
 
 @WINDOWS_ONLY
 def test_real_default_endpoint_read_is_bounded_and_read_only() -> None:
-    state = get_master_volume_state()
+    try:
+        state = get_master_volume_state()
+    except CoreAudioHResultError as exc:
+        if exc.hresult == 0x80070490:
+            pytest.skip("Windows host has no default audio endpoint")
+        raise
 
     assert 0.0 <= state.scalar <= 1.0
     assert type(state.muted) is bool

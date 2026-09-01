@@ -41,6 +41,10 @@ jobs:
       - name: Synchronize locked environment
         run: uv sync --locked
 
+      - name: Verify Windows bootstrap script
+        shell: pwsh
+        run: ./scripts/bootstrap.ps1
+
       - name: Check formatting
         run: uv run ruff format --check .
 
