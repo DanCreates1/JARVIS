@@ -9,13 +9,21 @@ from dataclasses import dataclass
 from pydantic import BaseModel, JsonValue
 
 from jarvis.core import (
+    ApprovalRule,
     Conversation,
     Message,
+    PermissionLevel,
     PolicyDecision,
     ProviderResponse,
+    SensitivityClass,
     ToolCall,
+    ToolConcurrency,
     ToolDefinition,
+    ToolIdempotency,
     ToolResult,
+    ToolRetryPolicy,
+    ToolRisk,
+    ToolSideEffect,
 )
 
 
@@ -184,12 +192,37 @@ class FakeTool:
         input_model: type[BaseModel],
         description: str = "A deterministic fake tool.",
         outcomes: Iterable[ToolOutcome] = (),
+        permission_level: PermissionLevel = PermissionLevel.LEVEL_0,
+        approval_rule: ApprovalRule = ApprovalRule.NONE,
+        risk: ToolRisk = ToolRisk.READ_ONLY,
+        side_effect: ToolSideEffect = ToolSideEffect.NONE,
+        sensitivity: SensitivityClass = SensitivityClass.PUBLIC,
+        idempotency: ToolIdempotency = ToolIdempotency.SIDE_EFFECT_FREE,
+        retry_policy: ToolRetryPolicy = ToolRetryPolicy.TRANSIENT_ONLY,
+        timeout_seconds: float = 1,
+        max_result_bytes: int = 4_096,
+        max_result_items: int = 1,
     ) -> None:
         self._input_model = input_model
         self._definition = ToolDefinition(
             name=name,
+            version="1",
             description=description,
             input_schema=input_model.model_json_schema(),
+            permission_level=permission_level,
+            approval_rule=approval_rule,
+            risk=risk,
+            side_effect=side_effect,
+            sensitivity=sensitivity,
+            required_capabilities=("test.tool.invoke",),
+            timeout_seconds=timeout_seconds,
+            max_result_bytes=max_result_bytes,
+            max_result_items=max_result_items,
+            idempotency=idempotency,
+            retry_policy=retry_policy,
+            concurrency=ToolConcurrency.PARALLEL,
+            postcondition="The scripted fake outcome is returned.",
+            recovery="Reset the fake and retry the test.",
         )
         self.outcomes = deque(outcomes)
         self.calls: list[BaseModel] = []

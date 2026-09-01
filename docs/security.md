@@ -3,8 +3,11 @@
 JARVIS processes private conversations and will eventually control local devices.
 Security therefore belongs in the runtime architecture, not only in prompts.
 
-This document describes implemented Phase 1 controls, including local
-sensitivity classification and zero-cost NVIDIA/Groq/Gemini/Ollama routing.
+This document describes implemented Phases 1–4 controls, including local sensitivity
+classification, zero-cost NVIDIA/Groq/Gemini/Ollama routing, local push-to-talk speech, and
+default-off controlled computer access, plus candidate-only host-isolated memory, provenance,
+conflict visibility, and transitive deletion. Current Phase 1–3 closeout limitations remain
+explicit in `docs/PHASE_OVERVIEW.md` and are not security-gate waivers.
 
 ## Trust boundaries
 
@@ -26,15 +29,17 @@ registered name, validates arguments, applies policy independently of model text
 sanitized tool result and metadata audit. Automatically allowed tools are the
 read-only clock, bounded system status, and allowlisted UTF-8 file reader.
 
-Before any future side-effecting tool can execute, the runtime must additionally:
+Before any side-effecting tool can execute, the Phase 3 runtime additionally:
 
 1. classify the requested side effect;
 2. apply the policy rule for that risk class;
 3. request human approval when the class requires it; and
 4. record the decision and sanitized outcome.
 
-Implemented risk classes are read-only, reversible, sensitive, and destructive.
-Phase 1 policy denies every non-read-only or approval-requiring definition.
+Implemented risk classes are read-only, reversible, sensitive, and destructive. The ordinary Phase
+1 policy still denies every non-read-only definition. When both Phase 3 gates are enabled, the
+computer proposal policy can create durable exact requests, but direct runtime execution remains
+prohibited; only the fixed broker can consume an independently approved one-use grant.
 
 There is no arbitrary shell tool. Process tools must use fixed executables and
 argument arrays, never `shell=True`, command strings, PowerShell evaluation, or
@@ -56,6 +61,73 @@ tokens, environment values, and private tool results.
 Conversation databases, logs, screenshots, audio, and models belong outside the
 repository under user's local application-data directory. Conversation and
 explicit-memory deletion are implemented; richer-media retention remains deferred.
+
+## Durable memory
+
+- Working, episodic, profile, semantic, and task records are partitioned by a pseudonymous local
+  user/device host ID. Request content cannot choose that ID; it is not a remote credential.
+- Deterministic extraction writes candidate records only. Promotion requires the exact host,
+  trusted local interface, candidate version, and content SHA-256. Confidence is never authority.
+- Conversation/message/tool/import/explicit/derived provenance, trust, sensitivity, confidence,
+  correction lineage, derivation edges, and conflicts remain inspectable.
+- Retrieval admits committed, unexpired records only. Relevance, recency, confidence, and trust
+  contribute to a visible reason. Conflicts and untrusted sources are warned, not silently merged.
+- Private or unknown projected context forces local routing before provider disclosure. Projection
+  has hard record and character caps; retrieval failure adds no invented context.
+- Forget physically removes canonical content, FTS rows, provenance, conflicts, and sole-source
+  derivations. Content-free tombstones/events retain no deleted plaintext or hash.
+- Export is explicit, local, and exclusive-create. Retention is configurable per category. Backup
+  copies remain separate artifacts and must follow the operator's access and expiry policy.
+
+## Controlled computer access
+
+- The environment master switch and host policy switch both default false. The model receives no
+  action authority unless both are true and the entire bounded policy validates.
+- Approval is a local CLI surface outside model/chat content. It binds an exact fingerprint and
+  accepts only a generated `APPROVE <suffix>` phrase. Conversational agreement is not approval.
+- Grants are short-lived, single-use, and bound to actor, Windows session/device, trusted
+  interface, capabilities, action/version/arguments/preconditions, policy epoch, nonce,
+  idempotency key, approval identity, and expiry.
+- The broker is non-elevated and contains a fixed handler registry. It accepts no shell string,
+  arbitrary executable path, inherited secret environment, dynamic tool registration, overwrite,
+  delete, recursive mutation, or admin operation.
+- Executables are enrolled by absolute path, file identity, and SHA-256; child argv is fixed in the
+  host policy. File actions stay inside one dedicated root and reject traversal, alternate streams,
+  reparse points, hard links, target expansion, cross-volume moves, and TOCTOU identity changes.
+- Every action has fixed time/result/item limits, concurrency and retry semantics, a postcondition,
+  and explicit recovery limits. Required audit failure before dispatch prevents the effect.
+- Private/unknown tool schemas are filtered before every cloud-provider request, and private
+  computer tools are denied before invocation on cloud-routed turns. Operator audit views
+  omit arguments, private content, actors, fingerprints, and raw adapter results.
+- The live policy fingerprint is checked again immediately before claim/dispatch. Disable rotates
+  the authority epoch so old grants cannot revive after re-enable.
+- Levels 3 and 4 have typed semantics but no enabled Phase 3 handlers. Level 4 is always denied.
+
+Clipboard exact authority is stored only in the private action database for its short lifecycle;
+prior clipboard plaintext is captured only after approved dispatch and remains volatile. Printing
+accepts only bounded controlled `.txt` content through the Windows `TEXT` datatype; RAW printer
+languages and physical-output claims are prohibited.
+
+See [Controlled Computer Access](CONTROLLED_COMPUTER_ACCESS.md) for setup, audit, recovery, action
+limits, and Windows-specific uncertainty after cancellation of an in-flight native call.
+
+## Voice privacy and safety
+
+- Voice is software-disabled by default; explicit push-to-talk is the only supported capture mode.
+- Always-listening wake-word and acoustic settings are typed as literal `false`; configuration
+  rejects attempts to enable them.
+- A visible `MIC ON` event accompanies capture. A separate control file is polled during active
+  turns so `jarvis voice disable` cancels capture/output without disabling text chat.
+- Raw microphone PCM and synthesized PCM are bounded in size/duration and remain ephemeral. Voice
+  settings store only stable device IDs and kill state; transcripts follow normal conversation
+  retention only after successful core submission.
+- VAD, STT, wake inference, and TTS are local CPU paths. No cloud STT/TTS adapter is configured.
+- TTS sends untrusted text over subprocess stdin to a fixed encoded PowerShell/SAPI program; model
+  text is never interpolated into shell source.
+- Wake/clap outputs are typed untrusted intents, not authority. They cannot execute computer actions
+  without the later permission broker.
+- Render-reference suppression and explicit output cancellation limit self-trigger and barge-in;
+  endpoint/model failures return a typed error and preserve text fallback.
 
 ## Secrets
 

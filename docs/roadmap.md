@@ -1,11 +1,11 @@
 # Roadmap
 
 Status: concise view of `JARVIS_MASTER_ROADMAP.md`
-Updated: 2026-08-20
+Updated: 2026-08-31
 
 The roadmap is capability-driven. A phase advances only after its Windows acceptance checks pass with reproducible setup and tests. Current implementation status and target behavior are stated separately.
 
-## Implemented through Phase 1
+## Implemented through Phase 4
 
 The secure text foundation currently provides:
 
@@ -22,7 +22,7 @@ The secure text foundation currently provides:
 Cloud roles activate only when mandatory free-tier/data-term confirmations and
 keys are configured. Otherwise runtime remains local and offline-capable.
 
-## Phase 1 — privacy-aware text core (implemented 2026-08-20)
+## Phase 1 — privacy-aware text core (implemented; closeout blocked 2026-08-31)
 
 - Added provider-neutral `FAST`, `PRIMARY`, `REASONING`, and `LOCAL` roles.
 - Added NVIDIA, Groq, and Gemini adapters while retaining Ollama for private/offline fallback.
@@ -36,10 +36,16 @@ keys are configured. Otherwise runtime remains local and offline-capable.
 
 Acceptance suite covers safe simple, normal, reasoning, sensitive-local,
 explicit override, catalog removal, quota exhaustion, outage, transient retry,
-and zero-spend scenarios without live credentials. Live provider latency and
-quota observations require user-owned free-tier keys and remain release checks.
+and zero-spend scenarios. Current deterministic evidence passes, but local cold/warm latency misses
+the fixed targets, the configured zero-cost NVIDIA endpoint times out, and an independent clean
+Windows reproduction host is unavailable. Thresholds were not weakened.
 
 ## Phase 2 — voice
+
+Status: implemented; current closeout pending (2026-08-31). Fresh STT, trigger, failure, and
+30-minute synthetic soak evidence passes. Historical live device evidence remains, but current
+microphone/render/kill checks require separate device-control authorization. Always-listening
+remains hard-disabled.
 
 - Add push-to-talk before wake-word operation.
 - Introduce STT/TTS/VAD/wake-word ports and cancellable streaming workers.
@@ -48,6 +54,11 @@ quota observations require user-owned free-tier keys and remain release checks.
 
 ## Phase 3 — controlled computer access
 
+Status: implemented; current closeout pending (2026-08-31). Fresh permission/grant benchmarks,
+adversarial and restart/recovery tests, and disposable file acceptance pass. Historical authorized
+live Windows app/media/volume evidence remains, but current effects require separate authorization.
+Authority and hands-free mappings remain disabled by default.
+
 - Add trusted approvals, expiring grants, and a narrow privilege broker.
 - Add bounded file, application, media, clipboard, browser, system, and printing tools.
 - Enforce path/argument allowlists, idempotency, timeouts, output caps, postcondition checks, and durable audit.
@@ -55,10 +66,12 @@ quota observations require user-owned free-tier keys and remain release checks.
 
 ## Phase 4 — durable memory and personalization
 
-- Add source-aware working, episodic, profile, semantic, and task memory.
-- Separate extraction candidates from committed memory.
-- Provide inspect, correct, export, retention, and transitive deletion controls.
-- Evaluate retrieval quality before adding vector infrastructure.
+Complete; revalidated on 2026-08-31:
+
+- Source-aware working, episodic, profile, semantic, and task memory is host-isolated and durable.
+- Extraction candidates remain outside retrieval until exact trusted confirmation.
+- Inspect, correct, conflict, export, retention, expiry, and transitive deletion controls ship.
+- FTS5 passed fixed retrieval and latency targets; vector infrastructure remains unadopted.
 
 ## Phase 5 — research and learning
 

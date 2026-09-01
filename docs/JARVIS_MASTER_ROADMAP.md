@@ -207,6 +207,13 @@ The checks in `PHASE_0_REBUILD_PLAN.md` pass. For current repository, existing c
 
 ### Phase 1 — JARVIS core and first text vertical slice (Medium; implemented 2026-08-20)
 
+**Status (2026-08-31)**
+
+Blocked external for formal closeout. Current deterministic routing passes 20/20, privacy and
+failure suites pass, and the locked bootstrap reproduces on this host. The installed local model
+misses the fixed interactive latency targets, the configured zero-cost NVIDIA endpoint times out,
+and no independent clean Windows VM/host is available. Gates remain unchanged.
+
 **Goal**  
 A useful text JARVIS with swappable providers, deterministic local privacy routing, zero-cost cloud roles, local fallback, personality, persistence, safe tools, and measurable behavior.
 
@@ -237,6 +244,11 @@ Representative scenarios cover safe simple, normal, reasoning, sensitive-local, 
 
 ### Phase 2 — Voice (Large)
 
+**Status (2026-08-31): Implemented; current closeout pending.** Current local STT, trigger,
+failure, and 30-minute synthetic soak gates pass. The 2026-08-22 live device evidence remains
+valid historical evidence, but live microphone/render/kill checks were not repeated without
+separate real-device authorization. Continuous wake/clap listening remains hard-disabled.
+
 **Goal**  
 Natural push-to-talk first, then wake-word conversation with streaming speech and barge-in.
 
@@ -264,6 +276,13 @@ Voice targets are met or exceptions documented; 30-minute soak has no deadlock o
 
 ### Phase 3 — Controlled computer access (Large)
 
+**Status (2026-08-31)**
+
+Implemented; current closeout pending. Current policy/broker/adversarial/restart/recovery tests and
+disposable move/rollback benchmark pass. The separately authorized 2026-08-26 live Windows app,
+near-no-op volume, and media STOP evidence remains historical; those effects were not repeated
+without separate authority. Computer authority stays disabled by default.
+
 **Goal**  
 Authorized laptop actions through narrow deterministic tools, never unrestricted model-to-shell access.
 
@@ -289,6 +308,14 @@ Hallucinated actions, privilege escalation, Windows UI brittleness, irreversible
 Every shipped tool has a threat classification, schema, timeout, result cap, tests, approval rule, and recovery behavior. No arbitrary shell tool exists.
 
 ### Phase 4 — Durable memory and personalization (Large)
+
+**Status (2026-08-31)**
+
+Complete after current revalidation. Host-isolated typed memory, candidate confirmation,
+provenance, correction/conflicts,
+retention/export/transitive deletion, FTS5 retrieval explanations, prompt privacy routing, restart
+and migration coverage, adversarial tests, and measured quality/performance gates pass. FTS5 met
+the fixed targets; embeddings remain unadopted because no measured gap justified them.
 
 **Goal**  
 Useful recall without dumping history into prompts or silently treating guesses as facts.
@@ -445,6 +472,11 @@ Add supported glasses as one generic device client, without making JARVIS Meta-d
 **Deliverables**
 
 - `WearableClient` capability contract for microphone, audio, camera, notification, and controls.
+- Deferred Garmin Connect adapter for personal health/activity data: local and read-only by
+  default, encrypted token storage, conservative synchronization, sanitized logs, disconnect/data
+  deletion controls, and no credentials or raw health data exposed to model providers. Prefer an
+  approved official API when available; permit an explicitly enabled unofficial connector only
+  with documented reliability and vendor-policy risk, plus manual FIT/TCX/GPX/CSV import fallback.
 - Meta Wearables Device Access Toolkit feasibility spike against current program/API availability.
 - Consent, capture indication, bandwidth, battery, disconnection, and privacy behavior.
 - Phone-bridge fallback when direct device integration is unavailable.
@@ -499,8 +531,9 @@ Qualifies only when all are true:
 - local CLI or web chat, failure messages, and measured latency;
 - reproducible setup and passing CI/security checks.
 
-Phase 1 core is implemented but full MVP still requires basic cited browser research,
-an approval-gated reversible tool, and richer inspectable task/profile memory behavior.
+Phase 3 supplies an approval-gated reversible tool and Phase 4 supplies inspectable memory.
+Full MVP still requires basic cited browser research and resolution or explicit release acceptance
+of the Phase 1–3 external/current-live closeout blockers.
 
 ### JARVIS V1 — dependable daily assistant (Very Large cumulative)
 
@@ -568,10 +601,10 @@ Local sensitivity/command gate → Ollama Nemotron 3 Nano 4B `LOCAL` for normal/
 
 ### Next implementation milestone
 
-**M2: voice vertical slice.** Build push-to-talk using Phase 1 streaming and cancellation
-contracts, benchmark STT/TTS/VAD candidates, preserve text fallback, and keep the local privacy
-gate ahead of every optional cloud disclosure. Basic cited research and the first reversible
-approval-gated tool remain separate MVP closure work before V1.
+**M4: durable memory and personalization.** Phase 3 controlled access is complete. Phase 2 acoustic
+intents remain data only, and mapped proposals stay disabled by default. Add source-aware memory,
+retention, correction/export/deletion, and measured retrieval without weakening Phase 3 authority.
+Basic cited research remains separate MVP closure work.
 
 ### Exact build order
 
@@ -579,8 +612,8 @@ approval-gated tool remain separate MVP closure work before V1.
 2. Stabilize model role/profile/usage, routing, event, tool-risk, approval, audit, host, and memory contracts.
 3. Implement local privacy classification, provider catalog checks, Groq/Gemini adapters, zero-cost fallback, and routing benchmarks.
 4. Add loopback local API and minimal control panel.
-5. Build push-to-talk voice; then wake word and barge-in.
-6. Add permission broker and controlled laptop/printing tools.
+5. Maintain completed push-to-talk/barge-in voice; keep continuous wake/clap listening disabled.
+6. Maintain the default-disabled permission broker and controlled laptop/printing tools.
 7. Add durable memory controls and retrieval evaluation.
 8. Add research/learning engine.
 9. Add persisted planning and bounded specialized agents.
@@ -599,7 +632,9 @@ Privacy-routing correctness, free-tier availability, preview-model churn, laptop
 
 ### Features intentionally deferred
 
-Native mobile app, Meta glasses, smart home, custom voice, fine-tuning, proactive agents, large local models, PostgreSQL, Redis, microservices, and multi-GPU serving.
+Native mobile app, Garmin Connect synchronization, Meta glasses, smart home, custom voice,
+fine-tuning, proactive agents, large local models, PostgreSQL, Redis, microservices, and multi-GPU
+serving.
 
 ### JARVIS MVP definition
 

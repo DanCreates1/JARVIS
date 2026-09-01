@@ -1,8 +1,12 @@
-"""Terminal interface for JARVIS Phase 1."""
+"""Terminal interfaces for text and explicit local push-to-talk JARVIS."""
 
 from __future__ import annotations
 
 import asyncio
+import json
+import secrets
+from contextlib import suppress
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -17,6 +21,18 @@ from jarvis.config import Settings
 from jarvis.core import ModelRole, RuntimeResult, RuntimeStatus
 from jarvis.diagnostics import DiagnosticReport, DiagnosticStatus, run_diagnostics
 from jarvis.logging_config import configure_logging
+from jarvis.memory import (
+    ConfirmationInterface,
+    MemoryCategory,
+    MemoryConfirmation,
+    MemoryNotFoundError,
+    MemoryQuery,
+    MemoryState,
+    MemoryStateError,
+    SQLiteMemoryStore,
+    explicit_provenance,
+    local_memory_host_id,
+)
 
 app = typer.Typer(
     name="jarvis",
@@ -24,7 +40,30 @@ app = typer.Typer(
     no_args_is_help=True,
     add_completion=False,
 )
-console = Console(highlight=False)
+voice_app = typer.Typer(
+    name="voice",
+    help="Local push-to-talk, devices, kill switch, and diagnostics.",
+    no_args_is_help=True,
+)
+app.add_typer(voice_app, name="voice")
+computer_app = typer.Typer(
+    name="computer",
+    help="Controlled access policy, proposals, trusted approvals, receipts, and audit.",
+    no_args_is_help=True,
+)
+app.add_typer(computer_app, name="computer")
+memory_app = typer.Typer(
+    name="memory",
+    help="Inspect, confirm, correct, retrieve, export, retain, and forget durable memory.",
+    no_args_is_help=True,
+)
+app.add_typer(memory_app, name="memory")
+console = Console(highlight=False, legacy_windows=False)
+
+
+def _fresh_computer_policy_version() -> str:
+    """Rotate the authority epoch so disabled grants never revive after re-enable."""
+    return f"phase3-{secrets.token_hex(16)}"
 
 
 def _load_settings() -> Settings:
@@ -127,7 +166,7 @@ async def _chat(
             _render_result(result)
             return 0 if result.status is RuntimeStatus.COMPLETED else 1
 
-        console.print("[bold cyan]JARVIS Phase 1[/] — type /exit to stop.")
+        console.print("[bold cyan]JARVIS[/] — type /exit to stop.")
         active_conversation = conversation_id
         while True:
             try:
@@ -170,6 +209,956 @@ def _render_result(result: RuntimeResult) -> None:
     line.append(f"JARVIS {result.status.value}", style="bold red")
     line.append(f" [{result.error.code.value}] {result.error.message}")
     console.print(line)
+    if result.error.approval_id is not None:
+        console.print(
+            f"[bold yellow]Approval:[/] {result.error.approval_id}\n"
+            "[dim]Review only in `uv run jarvis computer approve <approval-id>`.[/]"
+        )
+
+
+@memory_app.command("remember")
+def memory_remember(
+    category: Annotated[MemoryCategory, typer.Argument(help="Memory category.")],
+    content: Annotated[str, typer.Argument(help="Exact content to commit explicitly.")],
+    key: Annotated[
+        str | None,
+        typer.Option(help="Stable key used for contradiction detection, such as profile.name."),
+    ] = None,
+) -> None:
+    """Commit exact host-supplied memory; extraction candidates use separate confirmation."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_memory_remember(settings, category=category, content=content, key=key))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _memory_remember(
+    settings: Settings,
+    *,
+    category: MemoryCategory,
+    content: str,
+    key: str | None,
+) -> int:
+    store = SQLiteMemoryStore(settings.database_path)
+    try:
+        await store.initialize()
+        item = await store.remember(
+            host_id=local_memory_host_id(),
+            category=category,
+            content=content,
+            key=key,
+            provenance=explicit_provenance(
+                source_id=f"cli-remember-{secrets.token_hex(16)}",
+                source_label="explicit local CLI memory",
+            ),
+        )
+    except Exception:
+        console.print("[bold red]Memory commit failed.[/] No partial memory was committed.")
+        return 1
+    finally:
+        await store.close()
+    console.print(
+        f"[bold green]Committed[/] {item.id} · {item.category.value} · "
+        f"version {item.version} · confidence {item.confidence:.2f}"
+    )
+    if item.conflict_ids:
+        console.print("[bold yellow]Contradiction open:[/] " + ", ".join(item.conflict_ids))
+    return 0
+
+
+@memory_app.command("list")
+def memory_list(
+    state: Annotated[MemoryState | None, typer.Option(help="Optional lifecycle state.")] = None,
+    category: Annotated[MemoryCategory | None, typer.Option(help="Optional category.")] = None,
+    limit: Annotated[int, typer.Option(min=1, max=500)] = 100,
+) -> None:
+    """Inspect memory content, state, confidence, source, lineage, and contradictions."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_memory_list(settings, state=state, category=category, limit=limit))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _memory_list(
+    settings: Settings,
+    *,
+    state: MemoryState | None,
+    category: MemoryCategory | None,
+    limit: int,
+) -> int:
+    if state is MemoryState.DELETED:
+        console.print(
+            "[bold yellow]Deleted memory retains no content; inspect export tombstones.[/]"
+        )
+        return 0
+    store = SQLiteMemoryStore(settings.database_path)
+    try:
+        await store.initialize()
+        items = await store.list(
+            host_id=local_memory_host_id(),
+            states=(() if state is None else (state,)),
+            categories=(() if category is None else (category,)),
+            limit=limit,
+        )
+    except Exception:
+        console.print("[bold red]Memory state is unavailable.[/]")
+        return 1
+    finally:
+        await store.close()
+    table = Table(title="Host-isolated durable memory", show_lines=True)
+    table.add_column("ID / version", no_wrap=True)
+    table.add_column("Category / state")
+    table.add_column("Key / confidence")
+    table.add_column("Content")
+    table.add_column("Source / lineage / conflict")
+    for item in items:
+        table.add_row(
+            f"{item.id}\nv{item.version}",
+            f"{item.category.value}\n{item.state.value}",
+            f"{item.key or '-'}\n{item.confidence:.2f}\nsha256={item.content_sha256}",
+            item.content,
+            (
+                ", ".join(
+                    f"{source.source_type.value}:{source.trust.value}" for source in item.provenance
+                )
+                + f"\nsupersedes={item.supersedes_id or '-'}"
+                + f"\nconflicts={','.join(item.conflict_ids) or '-'}"
+            ),
+        )
+    console.print(table)
+    return 0
+
+
+@memory_app.command("search")
+def memory_search(
+    query: Annotated[str, typer.Argument(help="Local FTS5 retrieval query.")],
+    limit: Annotated[int, typer.Option(min=1, max=50)] = 8,
+) -> None:
+    """Search committed memory and show exact retrieval reasons."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_memory_search(settings, query=query, limit=limit))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _memory_search(settings: Settings, *, query: str, limit: int) -> int:
+    store = SQLiteMemoryStore(settings.database_path)
+    try:
+        await store.initialize()
+        hits = await store.search(
+            MemoryQuery(host_id=local_memory_host_id(), text=query, limit=limit)
+        )
+    except Exception:
+        console.print("[bold red]Memory retrieval failed.[/] No memory context was projected.")
+        return 1
+    finally:
+        await store.close()
+    table = Table(title="Memory retrieval explanation", show_lines=True)
+    table.add_column("Score", no_wrap=True)
+    table.add_column("Memory")
+    table.add_column("Content")
+    table.add_column("Why retrieved")
+    for hit in hits:
+        table.add_row(
+            f"{hit.score:.3f}",
+            f"{hit.item.id}\n{hit.item.category.value}\n{hit.item.key or '-'}",
+            hit.item.content,
+            hit.reason,
+        )
+    console.print(table)
+    return 0
+
+
+@memory_app.command("promote")
+def memory_promote(
+    candidate_id: Annotated[str, typer.Argument(help="Exact candidate ID from memory list.")],
+    expected_version: Annotated[
+        int, typer.Option(min=1, help="Exact displayed candidate version.")
+    ],
+    expected_digest: Annotated[
+        str,
+        typer.Option(help="Exact displayed candidate SHA-256 content digest."),
+    ],
+) -> None:
+    """Promote one unchanged candidate through trusted local confirmation."""
+    settings = _load_settings()
+    exit_code = asyncio.run(
+        _memory_promote(
+            settings,
+            candidate_id=candidate_id,
+            expected_version=expected_version,
+            expected_digest=expected_digest,
+        )
+    )
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _memory_promote(
+    settings: Settings,
+    *,
+    candidate_id: str,
+    expected_version: int,
+    expected_digest: str,
+) -> int:
+    from datetime import UTC, datetime
+
+    store = SQLiteMemoryStore(settings.database_path)
+    try:
+        await store.initialize()
+        item = await store.promote(
+            MemoryConfirmation(
+                host_id=local_memory_host_id(),
+                interface=ConfirmationInterface.LOCAL_CLI,
+                candidate_id=candidate_id,
+                expected_version=expected_version,
+                expected_content_sha256=expected_digest,
+                confirmed_at=datetime.now(UTC),
+            )
+        )
+    except (MemoryNotFoundError, MemoryStateError, ValueError):
+        console.print(
+            "[bold red]Candidate confirmation denied.[/] ID, version, or digest is stale."
+        )
+        return 1
+    finally:
+        await store.close()
+    console.print(f"[bold green]Candidate committed:[/] {item.id} version {item.version}")
+    return 0
+
+
+@memory_app.command("reject")
+def memory_reject(
+    candidate_id: Annotated[str, typer.Argument(help="Exact candidate ID.")],
+    expected_version: Annotated[int, typer.Option(min=1)],
+) -> None:
+    """Reject one unchanged extraction candidate; it never enters retrieval."""
+    settings = _load_settings()
+    exit_code = asyncio.run(
+        _memory_reject(settings, candidate_id=candidate_id, expected_version=expected_version)
+    )
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _memory_reject(settings: Settings, *, candidate_id: str, expected_version: int) -> int:
+    store = SQLiteMemoryStore(settings.database_path)
+    try:
+        await store.initialize()
+        item = await store.reject(
+            host_id=local_memory_host_id(),
+            memory_id=candidate_id,
+            expected_version=expected_version,
+        )
+    except (MemoryNotFoundError, MemoryStateError):
+        console.print("[bold red]Candidate rejection denied.[/] ID or version is stale.")
+        return 1
+    finally:
+        await store.close()
+    console.print(f"[bold yellow]Candidate rejected:[/] {item.id} version {item.version}")
+    return 0
+
+
+@memory_app.command("correct")
+def memory_correct(
+    memory_id: Annotated[str, typer.Argument(help="Exact committed memory ID.")],
+    expected_version: Annotated[int, typer.Option(min=1)],
+    content: Annotated[str, typer.Option(help="Exact corrected content.")],
+    key: Annotated[str | None, typer.Option(help="Optional replacement conflict key.")] = None,
+) -> None:
+    """Supersede an exact committed memory while retaining provenance lineage."""
+    settings = _load_settings()
+    exit_code = asyncio.run(
+        _memory_correct(
+            settings,
+            memory_id=memory_id,
+            expected_version=expected_version,
+            content=content,
+            key=key,
+        )
+    )
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _memory_correct(
+    settings: Settings,
+    *,
+    memory_id: str,
+    expected_version: int,
+    content: str,
+    key: str | None,
+) -> int:
+    store = SQLiteMemoryStore(settings.database_path)
+    try:
+        await store.initialize()
+        item = await store.correct(
+            host_id=local_memory_host_id(),
+            memory_id=memory_id,
+            expected_version=expected_version,
+            content=content,
+            key=key,
+            provenance=explicit_provenance(
+                source_id=f"cli-correction-{secrets.token_hex(16)}",
+                source_label="explicit local CLI correction",
+            ),
+        )
+    except (MemoryNotFoundError, MemoryStateError, ValueError):
+        console.print(
+            "[bold red]Memory correction denied.[/] ID/version/state is stale or invalid."
+        )
+        return 1
+    finally:
+        await store.close()
+    console.print(f"[bold green]Correction committed:[/] {item.id} supersedes {item.supersedes_id}")
+    return 0
+
+
+@memory_app.command("forget")
+def memory_forget(
+    memory_id: Annotated[str, typer.Argument(help="Exact memory ID to delete transitively.")],
+) -> None:
+    """Delete content, FTS rows, provenance, conflicts, and sole-source derivations."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_memory_forget(settings, memory_id=memory_id))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _memory_forget(settings: Settings, *, memory_id: str) -> int:
+    store = SQLiteMemoryStore(settings.database_path)
+    try:
+        await store.initialize()
+        receipt = await store.delete(host_id=local_memory_host_id(), memory_id=memory_id)
+    except MemoryNotFoundError:
+        console.print("[bold red]Memory not found.[/]")
+        return 1
+    finally:
+        await store.close()
+    console.print(
+        f"[bold green]Deleted transitively:[/] {receipt.canonical_rows} canonical, "
+        f"{receipt.fts_rows} FTS, {receipt.provenance_rows} provenance, "
+        f"{receipt.derivation_rows} derivation, {receipt.conflict_rows} conflict rows; "
+        f"{receipt.tombstones_written} content-free tombstones."
+    )
+    return 0
+
+
+@memory_app.command("export")
+def memory_export(
+    destination: Annotated[
+        str,
+        typer.Argument(help="New local JSON path; existing files are never overwritten."),
+    ],
+) -> None:
+    """Export all host memory states and content-free tombstones locally."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_memory_export(settings, destination=Path(destination)))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _memory_export(settings: Settings, *, destination: Path) -> int:
+    store = SQLiteMemoryStore(settings.database_path)
+    try:
+        await store.initialize()
+        receipt = await store.export_json(host_id=local_memory_host_id(), destination=destination)
+    except (FileExistsError, OSError, ValueError):
+        console.print("[bold red]Memory export failed.[/] Destination must be a new local file.")
+        return 1
+    finally:
+        await store.close()
+    console.print(
+        f"[bold green]Exported[/] {receipt.record_count} records, {receipt.byte_count} bytes "
+        f"to {receipt.path}"
+    )
+    return 0
+
+
+@memory_app.command("conflicts")
+def memory_conflicts(
+    limit: Annotated[int, typer.Option(min=1, max=500)] = 100,
+) -> None:
+    """List open contradictions without silently selecting a winner."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_memory_conflicts(settings, limit=limit))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _memory_conflicts(settings: Settings, *, limit: int) -> int:
+    store = SQLiteMemoryStore(settings.database_path)
+    try:
+        await store.initialize()
+        conflicts = await store.list_conflicts(host_id=local_memory_host_id(), limit=limit)
+    except Exception:
+        console.print("[bold red]Memory conflicts are unavailable.[/]")
+        return 1
+    finally:
+        await store.close()
+    table = Table(title="Memory contradictions")
+    table.add_column("Conflict ID")
+    table.add_column("State")
+    table.add_column("Left / right")
+    table.add_column("Winner")
+    table.add_column("Reason")
+    for conflict in conflicts:
+        table.add_row(
+            conflict.id,
+            conflict.status.value,
+            f"{conflict.left_memory_id} / {conflict.right_memory_id}",
+            conflict.winner_memory_id or "-",
+            conflict.reason_code,
+        )
+    console.print(table)
+    return 0
+
+
+@memory_app.command("resolve-conflict")
+def memory_resolve_conflict(
+    conflict_id: Annotated[str, typer.Argument(help="Exact open conflict ID.")],
+    winner_memory_id: Annotated[str, typer.Argument(help="Exact left or right memory ID.")],
+) -> None:
+    """Select one exact contradiction winner; loser becomes corrected, never erased."""
+    settings = _load_settings()
+    exit_code = asyncio.run(
+        _memory_resolve_conflict(
+            settings,
+            conflict_id=conflict_id,
+            winner_memory_id=winner_memory_id,
+        )
+    )
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _memory_resolve_conflict(
+    settings: Settings,
+    *,
+    conflict_id: str,
+    winner_memory_id: str,
+) -> int:
+    store = SQLiteMemoryStore(settings.database_path)
+    try:
+        await store.initialize()
+        conflict = await store.resolve_conflict(
+            host_id=local_memory_host_id(),
+            conflict_id=conflict_id,
+            winner_memory_id=winner_memory_id,
+        )
+    except (MemoryNotFoundError, MemoryStateError):
+        console.print("[bold red]Conflict resolution denied.[/] Conflict or winner is invalid.")
+        return 1
+    finally:
+        await store.close()
+    console.print(
+        f"[bold green]Conflict resolved:[/] {conflict.id} winner={conflict.winner_memory_id}"
+    )
+    return 0
+
+
+@memory_app.command("retention")
+def memory_retention() -> None:
+    """Show effective per-category retention rules for this host."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_memory_retention(settings))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _memory_retention(settings: Settings) -> int:
+    store = SQLiteMemoryStore(settings.database_path)
+    try:
+        await store.initialize()
+        rules = await store.get_retention_rules(host_id=local_memory_host_id())
+    except Exception:
+        console.print("[bold red]Memory retention state is unavailable.[/]")
+        return 1
+    finally:
+        await store.close()
+    table = Table(title="Memory retention")
+    table.add_column("Category")
+    table.add_column("Days")
+    for rule in rules:
+        table.add_row(rule.category.value, str(rule.retention_days or "indefinite"))
+    console.print(table)
+    return 0
+
+
+@memory_app.command("set-retention")
+def memory_set_retention(
+    category: Annotated[MemoryCategory, typer.Argument()],
+    days: Annotated[int, typer.Argument(min=1, max=36_500)],
+) -> None:
+    """Set bounded retention days and recompute committed record expiries."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_memory_set_retention(settings, category=category, days=days))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _memory_set_retention(settings: Settings, *, category: MemoryCategory, days: int) -> int:
+    store = SQLiteMemoryStore(settings.database_path)
+    try:
+        await store.initialize()
+        rule = await store.set_retention_rule(
+            host_id=local_memory_host_id(), category=category, retention_days=days
+        )
+    except ValueError:
+        console.print("[bold red]Invalid retention rule.[/]")
+        return 1
+    finally:
+        await store.close()
+    console.print(
+        f"[bold green]Retention updated:[/] {rule.category.value}={rule.retention_days} days"
+    )
+    return 0
+
+
+@memory_app.command("expire")
+def memory_expire() -> None:
+    """Apply current retention and remove expired records from FTS/prompt projection."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_memory_expire(settings))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _memory_expire(settings: Settings) -> int:
+    store = SQLiteMemoryStore(settings.database_path)
+    try:
+        await store.initialize()
+        result = await store.expire_due(host_id=local_memory_host_id())
+    except Exception:
+        console.print("[bold red]Retention evaluation failed.[/] No partial expiry committed.")
+        return 1
+    finally:
+        await store.close()
+    console.print(f"[bold green]Expired[/] {len(result.expired_memory_ids)} memory records.")
+    return 0
+
+
+@computer_app.command("status")
+def computer_status() -> None:
+    """Show both enablement gates and bounded host policy without creating authority."""
+    from jarvis.computer.config import ComputerAccessConfigStore
+
+    settings = _load_settings()
+    store = ComputerAccessConfigStore(settings.data_dir)
+    try:
+        policy = store.load()
+    except ValueError:
+        console.print("[bold red]Computer access policy is invalid.[/]")
+        raise typer.Exit(code=1) from None
+    table = Table(title="JARVIS controlled computer access")
+    table.add_column("Setting")
+    table.add_column("Value")
+    table.add_row("Master switch", "enabled" if settings.computer_access_enabled else "disabled")
+    table.add_row("Policy file", str(store.path))
+    table.add_row("Policy switch", "enabled" if policy.enabled else "disabled")
+    table.add_row("Policy version", policy.policy_version)
+    table.add_row("Maximum permission level", str(int(policy.maximum_permission_level)))
+    table.add_row("Controlled root", str(policy.controlled_root))
+    table.add_row("Applications / groups", f"{len(policy.applications)} / {len(policy.app_groups)}")
+    table.add_row(
+        "Browser targets / printers",
+        f"{len(policy.browser_targets)} / {len(policy.printers)}",
+    )
+    console.print(table)
+    if settings.computer_access_enabled and policy.enabled:
+        console.print("[bold green]Dual enablement active.[/]")
+    else:
+        console.print("[bold yellow]No computer action authority is exposed.[/]")
+
+
+@computer_app.command("init")
+def computer_init() -> None:
+    """Create a disabled policy and dedicated controlled root; never enable actions."""
+    from jarvis.computer.config import ComputerAccessConfigStore
+
+    settings = _load_settings()
+    store = ComputerAccessConfigStore(settings.data_dir)
+    if store.path.exists():
+        console.print("[bold red]Computer access policy already exists; refusing overwrite.[/]")
+        raise typer.Exit(code=1)
+    store.controlled_root.mkdir(parents=True, exist_ok=True)
+    store.save(store.default_policy())
+    console.print(f"[bold green]Disabled policy created:[/] {store.path}")
+    console.print(f"Controlled root: {store.controlled_root}")
+    console.print("[dim]Review policy, then use `jarvis computer enable` and master switch.[/]")
+
+
+@computer_app.command("enable")
+def computer_enable() -> None:
+    """Enable the reviewed policy file; environment master switch remains separate."""
+    from jarvis.computer.config import ComputerAccessConfigStore
+
+    settings = _load_settings()
+    store = ComputerAccessConfigStore(settings.data_dir)
+    if not store.path.exists():
+        console.print(
+            "[bold red]Computer access policy is not initialized.[/] "
+            "Run `jarvis computer init`, review it, then enable."
+        )
+        raise typer.Exit(code=1)
+    try:
+        policy = store.load()
+        store.controlled_root.mkdir(parents=True, exist_ok=True)
+        store.save(
+            policy.model_copy(
+                update={
+                    "enabled": True,
+                    "policy_version": _fresh_computer_policy_version(),
+                }
+            )
+        )
+    except (OSError, ValueError):
+        console.print("[bold red]Policy could not be enabled safely.[/]")
+        raise typer.Exit(code=1) from None
+    console.print("[bold green]Policy-file switch enabled.[/]")
+    if not settings.computer_access_enabled:
+        console.print(
+            "[bold yellow]Master switch remains disabled.[/] "
+            "Set JARVIS_COMPUTER_ACCESS_ENABLED=true only after review."
+        )
+
+
+@computer_app.command("disable")
+def computer_disable() -> None:
+    """Disable policy immediately; running brokers recheck this kill switch."""
+    from jarvis.computer.config import ComputerAccessConfigStore
+
+    settings = _load_settings()
+    store = ComputerAccessConfigStore(settings.data_dir)
+    if not store.path.exists():
+        console.print("[bold yellow]Computer action policy is already absent and disabled.[/]")
+        return
+    try:
+        policy = store.load()
+        store.save(
+            policy.model_copy(
+                update={
+                    "enabled": False,
+                    "policy_version": _fresh_computer_policy_version(),
+                }
+            )
+        )
+    except (OSError, ValueError):
+        console.print("[bold red]Policy could not be disabled safely.[/]")
+        raise typer.Exit(code=1) from None
+    console.print(
+        "[bold yellow]Computer action policy disabled.[/] "
+        "Policy epoch rotated; prior grants cannot revive."
+    )
+
+
+@computer_app.command("propose")
+def computer_propose(
+    action: Annotated[str, typer.Argument(help="Exact registered action ID.")],
+    arguments_json: Annotated[
+        str,
+        typer.Option("--arguments", help="Bounded JSON object matching the action schema."),
+    ],
+) -> None:
+    """Create one exact proposal; this command never approves or executes it."""
+    if len(arguments_json.encode("utf-8")) > 100 * 1_024:
+        console.print("[bold red]Action arguments exceed the 100 KiB input limit.[/]")
+        raise typer.Exit(code=2)
+    try:
+        raw = json.loads(arguments_json)
+    except json.JSONDecodeError:
+        console.print("[bold red]Action arguments must be valid JSON.[/]")
+        raise typer.Exit(code=2) from None
+    if not isinstance(raw, dict):
+        console.print("[bold red]Action arguments must be a JSON object.[/]")
+        raise typer.Exit(code=2)
+    settings = _load_settings()
+    exit_code = asyncio.run(_computer_propose(settings, action=action, raw=raw))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _computer_propose(settings: Settings, *, action: str, raw: dict[str, object]) -> int:
+    from pydantic import ValidationError
+
+    from jarvis.computer.runtime import build_computer_runtime
+    from jarvis.permissions import ActionCoordinatorStatus, ApprovalSource, render_approval_summary
+
+    try:
+        components = await build_computer_runtime(settings)
+    except Exception:
+        console.print(
+            "[bold red]Controlled computer runtime is unavailable.[/] Run computer status."
+        )
+        return 1
+    async with components:
+        handler = components.registry.action(action)
+        if handler is None:
+            console.print("[bold red]Unknown registered action ID.[/]")
+            return 2
+        try:
+            arguments = handler.input_model.model_validate(raw)
+        except ValidationError:
+            console.print("[bold red]Arguments do not match the fixed action schema.[/]")
+            return 2
+        result = await components.coordinator.propose(
+            handler,
+            arguments,
+            actor=components.actor,
+            source=ApprovalSource.LOCAL_CLI,
+        )
+        if result.status is not ActionCoordinatorStatus.PENDING or result.request is None:
+            console.print(f"[bold red]Proposal denied:[/] {result.code or 'denied'}")
+            return 1
+        console.print(render_approval_summary(result.request))
+        console.print(
+            f"[bold yellow]Pending only.[/] Review: `uv run jarvis computer approve "
+            f"{result.request.approval_id}`"
+        )
+        return 0
+
+
+@computer_app.command("pending")
+def computer_pending() -> None:
+    """List unexpired approval requests; never approve from this viewer."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_computer_pending(settings))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _computer_pending(settings: Settings) -> int:
+    from jarvis.permissions import SQLiteActionStore
+
+    store = SQLiteActionStore(settings.database_path)
+    try:
+        await store.initialize()
+        records = await store.list_pending_approval_requests(limit=100)
+    except Exception:
+        console.print("[bold red]Approval state is unavailable.[/]")
+        return 1
+    finally:
+        await store.close()
+    table = Table(title="Pending exact computer approvals")
+    table.add_column("Approval ID")
+    table.add_column("Level")
+    table.add_column("Action")
+    table.add_column("Effect")
+    table.add_column("Expires")
+    for record in records:
+        action = record.request.action
+        table.add_row(
+            record.request.approval_id,
+            str(int(action.permission_level)),
+            f"{action.action_id}@{action.action_version}",
+            action.human_effect,
+            record.request.expires_at.isoformat(),
+        )
+    console.print(table)
+    return 0
+
+
+@computer_app.command("approve")
+def computer_approve(
+    approval_id: Annotated[str, typer.Argument(help="Exact pending approval ID.")],
+) -> None:
+    """Review exact authority in trusted terminal and issue one short one-use grant."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_computer_approve(settings, approval_id=approval_id))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _computer_approve(settings: Settings, *, approval_id: str) -> int:
+    from jarvis.computer.runtime import build_computer_runtime
+    from jarvis.permissions import (
+        ActionCoordinatorStatus,
+        LocalCliApprovalSurface,
+        render_approval_summary,
+    )
+
+    try:
+        components = await build_computer_runtime(settings)
+    except Exception:
+        console.print(
+            "[bold red]Controlled computer runtime is unavailable.[/] Run computer status."
+        )
+        return 1
+
+    def prompt(request: object, phrase: str) -> bool:
+        from jarvis.permissions import ApprovalRequest
+
+        exact = ApprovalRequest.model_validate(request)
+        console.print(render_approval_summary(exact))
+        console.print("[bold red]This approval can cause the exact effect above.[/]")
+        entered = console.input(f"Type [bold]{phrase}[/] to approve, anything else to deny: ")
+        return entered == phrase
+
+    async with components:
+        surface = LocalCliApprovalSurface(approver=components.actor, prompt=prompt)
+        result = await components.coordinator.review(approval_id, surface)
+        if result.status is not ActionCoordinatorStatus.APPROVED or result.grant_id is None:
+            console.print(f"[bold yellow]Not approved:[/] {result.code or 'denied'}")
+            return 1
+        console.print(f"[bold green]One-use grant issued:[/] {result.grant_id}")
+        console.print(f"Execute before expiry: `uv run jarvis computer execute {result.grant_id}`")
+        return 0
+
+
+@computer_app.command("execute")
+def computer_execute(
+    grant_id: Annotated[str, typer.Argument(help="Exact active one-use grant ID.")],
+) -> None:
+    """Execute one approved grant through fixed broker and print verified receipt."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_computer_execute(settings, grant_id=grant_id))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _computer_execute(settings: Settings, *, grant_id: str) -> int:
+    from jarvis.computer.runtime import build_computer_runtime
+    from jarvis.permissions import ActionCoordinatorStatus
+
+    try:
+        components = await build_computer_runtime(settings)
+    except Exception:
+        console.print(
+            "[bold red]Controlled computer runtime is unavailable.[/] Run computer status."
+        )
+        return 1
+    async with components:
+        result = await components.coordinator.execute(grant_id, actor=components.actor)
+        if result.status is not ActionCoordinatorStatus.EXECUTED or result.receipt is None:
+            console.print(f"[bold red]Execution denied:[/] {result.code or 'denied'}")
+            return 1
+        receipt = result.receipt
+        console.print(
+            f"[bold {'green' if receipt.outcome.value == 'succeeded' else 'red'}]"
+            f"{receipt.outcome.value}[/] receipt={receipt.receipt_id} "
+            f"postcondition={receipt.postcondition.status.value} "
+            f"rollback={receipt.rollback.status.value}"
+        )
+        return 0 if receipt.outcome.value == "succeeded" else 1
+
+
+@computer_app.command("audit")
+def computer_audit(
+    limit: Annotated[int, typer.Option(min=1, max=500, help="Maximum recent receipts.")] = 50,
+    kind: Annotated[
+        str,
+        typer.Option(help="Bounded view: all, lifecycle, receipts, or events."),
+    ] = "all",
+) -> None:
+    """View sanitized authority history; private arguments and results are never shown."""
+    normalized_kind = kind.strip().casefold()
+    if normalized_kind not in {"all", "lifecycle", "receipts", "events"}:
+        console.print("[bold red]Audit kind must be all, lifecycle, receipts, or events.[/]")
+        raise typer.Exit(code=2)
+    settings = _load_settings()
+    exit_code = asyncio.run(_computer_audit(settings, limit=limit, kind=normalized_kind))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _computer_audit(settings: Settings, *, limit: int, kind: str = "all") -> int:
+    from jarvis.permissions import SQLiteActionStore
+
+    store = SQLiteActionStore(settings.database_path)
+    try:
+        await store.initialize()
+        lifecycle = (
+            await store.list_lifecycle_events(limit=limit) if kind in {"all", "lifecycle"} else ()
+        )
+        receipts = (
+            await store.list_receipt_summaries(limit=limit) if kind in {"all", "receipts"} else ()
+        )
+        events = (
+            await store.list_action_event_summaries(limit=limit)
+            if kind in {"all", "events"}
+            else ()
+        )
+    except Exception:
+        console.print("[bold red]Action audit state is unavailable.[/]")
+        return 1
+    finally:
+        await store.close()
+    if kind in {"all", "lifecycle"}:
+        table = Table(title="Sanitized computer authority lifecycle")
+        table.add_column("Time")
+        table.add_column("Event")
+        table.add_column("Action")
+        table.add_column("Level / source / risk")
+        table.add_column("Outcome / reason")
+        table.add_column("Request / approval / grant")
+        for lifecycle_event in lifecycle:
+            table.add_row(
+                lifecycle_event.occurred_at.isoformat(),
+                lifecycle_event.type.value,
+                f"{lifecycle_event.action_id}@{lifecycle_event.action_version}",
+                f"{int(lifecycle_event.permission_level)} / {lifecycle_event.source.value} / "
+                f"{lifecycle_event.risk.value}",
+                " / ".join(
+                    part
+                    for part in (
+                        (
+                            lifecycle_event.outcome.value
+                            if lifecycle_event.outcome is not None
+                            else None
+                        ),
+                        lifecycle_event.reason_code,
+                    )
+                    if part is not None
+                )
+                or "-",
+                f"{lifecycle_event.request_id} / {lifecycle_event.approval_id} / "
+                f"{lifecycle_event.grant_id or '-'}",
+            )
+        console.print(table)
+    if kind in {"all", "receipts"}:
+        table = Table(title="Sanitized computer action receipts")
+        table.add_column("Finished")
+        table.add_column("Action")
+        table.add_column("Outcome / reason")
+        table.add_column("Postcondition")
+        table.add_column("Rollback")
+        table.add_column("Receipt / request / grant")
+        for receipt in receipts:
+            table.add_row(
+                receipt.finished_at.isoformat(),
+                f"{receipt.action_id}@{receipt.action_version}",
+                receipt.outcome.value
+                + (f" / {receipt.reason_code}" if receipt.reason_code is not None else ""),
+                receipt.postcondition_status,
+                receipt.rollback_status,
+                f"{receipt.receipt_id} / {receipt.request_id} / {receipt.grant_id}",
+            )
+        console.print(table)
+    if kind in {"all", "events"}:
+        table = Table(title="Sanitized computer broker events")
+        table.add_column("Time")
+        table.add_column("Event")
+        table.add_column("Action")
+        table.add_column("Outcome / reason")
+        table.add_column("Request / grant")
+        for broker_event in events:
+            table.add_row(
+                broker_event.occurred_at.isoformat(),
+                broker_event.type.value,
+                f"{broker_event.action_id}@{broker_event.action_version}",
+                " / ".join(
+                    part
+                    for part in (
+                        (broker_event.outcome.value if broker_event.outcome is not None else None),
+                        broker_event.reason_code,
+                    )
+                    if part is not None
+                )
+                or "-",
+                f"{broker_event.request_id} / {broker_event.grant_id}",
+            )
+        console.print(table)
+    return 0
 
 
 def _render_diagnostics(report: DiagnosticReport) -> None:
@@ -210,3 +1199,242 @@ def serve() -> None:
         port=settings.web_port,
         log_level=settings.log_level.casefold(),
     )
+
+
+@voice_app.command("enable")
+def voice_enable() -> None:
+    """Enable explicit push-to-talk capture; continuous listening stays disabled."""
+    from datetime import UTC, datetime
+
+    from jarvis.voice.models import VoiceControl
+    from jarvis.voice.settings_store import VoiceSettingsFile
+
+    settings = _load_settings()
+    store = VoiceSettingsFile(settings.voice_settings_path)
+    store.save_control(VoiceControl(enabled=True, updated_at=datetime.now(UTC)))
+    console.print(
+        "[bold green]Explicit push-to-talk enabled.[/] "
+        "Wake-word and clap always-listening remain disabled."
+    )
+
+
+@voice_app.command("disable")
+def voice_disable() -> None:
+    """Enforce the software microphone kill switch for current/new voice turns."""
+    from datetime import UTC, datetime
+
+    from jarvis.voice.models import VoiceControl
+    from jarvis.voice.settings_store import VoiceSettingsFile
+
+    settings = _load_settings()
+    store = VoiceSettingsFile(settings.voice_settings_path)
+    store.save_control(VoiceControl(enabled=False, updated_at=datetime.now(UTC)))
+    console.print("[bold yellow]Voice microphone kill switch enabled.[/] Text chat still works.")
+
+
+@voice_app.command("devices")
+def voice_devices() -> None:
+    """List stable local capture and render endpoint IDs."""
+    from jarvis.voice.audio_io import AudioDependencyError, AudioDeviceError, SoundDeviceAudio
+
+    _load_settings()
+    try:
+        devices = asyncio.run(SoundDeviceAudio().list_devices())
+    except (AudioDependencyError, AudioDeviceError):
+        console.print(
+            "[bold red]Audio endpoints unavailable.[/] "
+            "Run `uv sync --locked --extra voice`, then check Windows microphone permissions."
+        )
+        raise typer.Exit(code=1) from None
+    table = Table(title="JARVIS local audio endpoints")
+    table.add_column("Direction", no_wrap=True)
+    table.add_column("Default", no_wrap=True)
+    table.add_column("Stable ID", no_wrap=True)
+    table.add_column("Name")
+    table.add_column("Host API")
+    table.add_column("Channels", justify="right")
+    table.add_column("Rate", justify="right")
+    for device in devices:
+        table.add_row(
+            device.direction.value,
+            "yes" if device.is_default else "",
+            device.id,
+            device.name,
+            device.host_api,
+            str(device.max_channels),
+            str(device.default_sample_rate_hz),
+        )
+    console.print(table)
+
+
+@voice_app.command("select")
+def voice_select(
+    input_device_id: Annotated[
+        str | None,
+        typer.Option("--input-device-id", help="Stable ID from `jarvis voice devices`."),
+    ] = None,
+    output_device_id: Annotated[
+        str | None,
+        typer.Option("--output-device-id", help="Stable ID from `jarvis voice devices`."),
+    ] = None,
+) -> None:
+    """Persist selected endpoints; omitted direction keeps its current selection."""
+    from jarvis.voice.audio_io import AudioDependencyError, AudioDeviceError, SoundDeviceAudio
+    from jarvis.voice.models import AudioDeviceDirection
+    from jarvis.voice.settings_store import VoiceSettingsFile
+
+    if input_device_id is None and output_device_id is None:
+        console.print("[bold red]Provide at least one stable device ID.[/]")
+        raise typer.Exit(code=2)
+    settings = _load_settings()
+    store = VoiceSettingsFile(settings.voice_settings_path)
+    current = store.load_devices()
+    try:
+        devices = asyncio.run(SoundDeviceAudio().list_devices())
+    except (AudioDependencyError, AudioDeviceError):
+        console.print("[bold red]Audio endpoints unavailable.[/]")
+        raise typer.Exit(code=1) from None
+    requested = (
+        (input_device_id, AudioDeviceDirection.INPUT),
+        (output_device_id, AudioDeviceDirection.OUTPUT),
+    )
+    for device_id, direction in requested:
+        if device_id is None:
+            continue
+        if not any(item.id == device_id and item.direction is direction for item in devices):
+            console.print(f"[bold red]Unknown {direction.value} stable device ID.[/]")
+            raise typer.Exit(code=2)
+    store.save_devices(
+        current.model_copy(
+            update={
+                "input_device_id": input_device_id or current.input_device_id,
+                "output_device_id": output_device_id or current.output_device_id,
+            }
+        )
+    )
+    console.print("[bold green]Voice endpoint selection saved.[/]")
+
+
+@voice_app.command("setup")
+def voice_setup() -> None:
+    """Download configured public local speech models into private runtime storage."""
+    from jarvis.voice.diagnostics import download_stt_model
+
+    settings = _load_settings()
+    console.print(
+        f"Downloading local voice models (STT [bold]{settings.voice_stt_model}[/]) "
+        "to private runtime storage..."
+    )
+    try:
+        path = asyncio.run(download_stt_model(settings))
+    except Exception:
+        console.print(
+            "[bold red]Local voice setup failed.[/] Check network, disk space, and voice extra."
+        )
+        raise typer.Exit(code=1) from None
+    console.print(f"[bold green]Local voice models ready.[/] Model cache: {path}")
+
+
+@voice_app.command("doctor")
+def voice_doctor() -> None:
+    """Validate local speech dependencies, devices, models, and privacy defaults."""
+    from jarvis.voice.diagnostics import run_voice_diagnostics
+
+    settings = _load_settings()
+    report = asyncio.run(run_voice_diagnostics(settings))
+    _render_diagnostics(report)
+    if not report.ok:
+        raise typer.Exit(code=1)
+
+
+@voice_app.command("push-to-talk")
+def voice_push_to_talk(
+    conversation_id: Annotated[
+        str | None,
+        typer.Option("--conversation-id", "-c", help="Resume a saved conversation."),
+    ] = None,
+) -> None:
+    """Capture one local speech turn; press Enter again to stop capture."""
+    settings = _load_settings()
+    console.input("[bold cyan]Press Enter to start local push-to-talk.[/]")
+    try:
+        exit_code = asyncio.run(_voice_push_to_talk(settings, conversation_id=conversation_id))
+    except KeyboardInterrupt:
+        console.print("\n[dim]Voice turn cancelled; text chat remains available.[/]")
+        exit_code = 130
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _voice_push_to_talk(settings: Settings, *, conversation_id: str | None) -> int:
+    import msvcrt
+
+    from jarvis.voice.bootstrap import build_voice_runtime
+    from jarvis.voice.models import TranscriptKind, VoiceEvent, VoiceEventType
+
+    def show_event(event: VoiceEvent) -> None:
+        if event.type is VoiceEventType.LISTENING_VISIBLE:
+            console.print(f"[bold red]MIC ON[/] — {event.detail}")
+        elif (
+            event.type is VoiceEventType.TRANSCRIPT
+            and event.transcript is not None
+            and event.transcript.kind is TranscriptKind.FINAL
+        ):
+            console.print(f"[bold cyan]You>[/] {event.transcript.text}")
+        elif event.type is VoiceEventType.KILL_SWITCH:
+            console.print("[bold yellow]Voice kill switch enforced.[/]")
+
+    try:
+        components = await build_voice_runtime(settings, event_sink=show_event)
+    except Exception:
+        console.print(
+            "[bold red]Voice runtime could not initialize.[/] "
+            "Run `uv run jarvis voice doctor`; text chat remains available."
+        )
+        return 1
+    async with components:
+        stop = asyncio.Event()
+
+        console.print("[dim]Warming local VAD and STT models...[/]")
+        try:
+            await asyncio.gather(components.vad.health_check(), components.stt.health_check())
+        except Exception:
+            console.print(
+                "[bold red]Local speech model warm-up failed.[/] "
+                "Run `uv run jarvis voice setup`; text chat remains available."
+            )
+            return 1
+
+        async def stop_on_enter() -> None:
+            while not stop.is_set():
+                if msvcrt.kbhit() and msvcrt.getwch() in {"\r", "\n"}:
+                    stop.set()
+                    return
+                await asyncio.sleep(0.02)
+
+        console.print(
+            f"[bold red]MIC ON[/] — speak now; press Enter to stop "
+            f"(maximum {settings.voice_max_capture_seconds}s)."
+        )
+        key_task = asyncio.create_task(stop_on_enter())
+        try:
+            result = await components.controller.run_push_to_talk(
+                stop_capture=stop,
+                conversation_id=conversation_id,
+            )
+        finally:
+            stop.set()
+            key_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await key_task
+        if result.assistant_result is not None:
+            _render_result(result.assistant_result)
+        if result.failure is not None:
+            console.print(
+                f"[bold red]Voice {result.failure.code.value}:[/] {result.failure.message}\n"
+                "[dim]Text fallback: `uv run jarvis chat`.[/]"
+            )
+            return 1
+        if result.interrupted:
+            console.print("[dim]Speech output interrupted; conversation state preserved.[/]")
+        return 0

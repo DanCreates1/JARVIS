@@ -2,6 +2,11 @@
 
 Status: required controls and security architecture  
 Planning date: 2026-08-20
+Last reconciled with Phase 1–4 implementation: 2026-08-31
+
+Current implementation retains these fail-closed controls. Phase 1–3 closeout blockers recorded in
+`docs/PHASE_OVERVIEW.md` remain blockers; no latency, provider, device-control, approval, privacy,
+or live-hardware gate is weakened by this document.
 
 ## 1. Security objective
 
@@ -119,6 +124,10 @@ Risk is based on effect, target, scope, reversibility, sensitivity, destination,
 | 3 | Sensitive/high impact | Send communication, bulk delete, expose private file, install software | Exact explicit approval plus recent authentication |
 | 4 | Administrative/critical | Change security setting/service, admin command, financial action | Disabled by default; step-up approval and dedicated narrow broker action |
 
+Phase 3 implements all five semantics but exposes handlers only at Levels 0–2. Its shipped engine
+requires exact trusted-terminal approval for every Level 1 and Level 2 effect. Level 3 is rejected
+by the host policy schema; Level 4 is always denied.
+
 Risk escalation examples:
 
 - one reversible file move may be Level 2; recursive/bulk move is Level 3;
@@ -168,7 +177,15 @@ Changing any bound value requires a new decision/approval. “Yes” to a vague 
 
 ## 8. Privilege broker
 
-The main JARVIS process runs as the normal user. The broker is minimal, separately authenticated, deny-by-default, and does not accept natural language, model messages, shell strings, or arbitrary executable paths.
+The main JARVIS process runs as the normal user. Phase 3 uses a minimal in-process local broker with
+fixed handlers; the model-facing adapters are inert, trusted approval runs as a separate local CLI
+command, and durable one-use authority crosses normal process restarts. The broker accepts no
+natural language, model messages, shell strings, arbitrary executable paths, dynamic actions, or
+elevation. It revalidates the authenticated actor/session/interface/capabilities and complete live
+policy fingerprint before dispatch.
+
+This is not a Windows privilege boundary or administrator service. A separately authenticated
+process/service remains mandatory before any Level 4 operation ships.
 
 Broker requirements before Level 4 ships:
 
@@ -282,11 +299,20 @@ Tailscale membership does not equal JARVIS approval. A tailnet device still need
 
 Data minimization:
 
-- raw audio is buffered in memory and discarded by default after transcription;
-- wake-word/VAD run locally; visible indicator and kill switch for listening;
+- Phase 2 raw audio is bounded, buffered in memory, and discarded after the turn;
+- Phase 2 VAD/STT/TTS run locally; wake/clap foundations are local but continuous listening is
+  hard-disabled;
+- explicit push-to-talk shows `MIC ON`; a separately persisted software kill state is polled during
+  capture and output, while physical mute remains independent host control;
 - camera/screen capture requires explicit active state and visible indicator;
 - no raw camera/audio persistence without purpose, retention, and approval;
 - memories are candidates until policy/host confirmation commits them;
+- extraction, tool, import, and derived content is untrusted provenance; confidence never grants
+  authority or bypasses confirmation;
+- candidate promotion binds host scope, trusted interface, exact version, and content digest;
+- only committed, unexpired, non-corrected records enter FTS or prompt projection;
+- open contradictions and untrusted-source warnings are visible retrieval reasons, never silently
+  merged facts;
 - a deterministic local gate labels sensitivity before any cloud request;
 - cloud routing receives only the minimum fields required and is blocked for sensitive or uncertain content;
 - role/model overrides may strengthen privacy but cannot weaken sensitivity, cost, or provider-data policy;
@@ -301,6 +327,14 @@ Host controls:
 - purge derived FTS/embedding/cache data transitively;
 - disable cloud, audio retention, camera, remote access, individual devices/tools.
 - inspect the selected model role/provider, routing reason, privacy label, fallback, quota state, and estimated cost for each cloud-routed turn.
+
+Phase 4 partitions every memory operation by a pseudonymous local user/device host ID. A request
+cannot select another host scope, and not-found behavior avoids cross-host existence oracles.
+Corrections supersede old facts while retaining lineage and append-only event evidence. Deletion
+physically removes canonical content, FTS rows, provenance, conflicts, and sole-source derivations;
+minimal tombstones retain no deleted content or content hash. Exports are explicit local files,
+created exclusively without overwrite. The host ID is an isolation key, not remote authentication;
+authenticated multi-device identity remains Phase 8 scope.
 
 Backups are encrypted, access-controlled, and tested for restore. Deletion policy states whether and when backup copies expire.
 
@@ -328,6 +362,12 @@ Important action record:
 }
 ```
 
+That object is a design envelope, not the Phase 3 operator projection. Phase 3 stores exact private
+authority in the protected local database only for enforcement/restart, while `computer audit`
+shows a separate bounded lifecycle projection without parameters, private content, actor/device
+identifiers, fingerprints, or raw results. It includes proposal, decision/expiry, grant transitions,
+broker rejection, execution, cancellation, postcondition outcome, and recovery status.
+
 Audit requirements:
 
 - append-only logical semantics and monotonic sequence/correlation IDs;
@@ -337,6 +377,9 @@ Audit requirements:
 - log policy decisions and denials, not hidden chain-of-thought;
 - never log secrets or unnecessary private content;
 - audit failure causes sensitive actions to fail closed when accountability would otherwise be lost.
+
+Implemented setup, retention boundary, kill path, recovery, and Windows limits are documented in
+[Controlled Computer Access](CONTROLLED_COMPUTER_ACCESS.md).
 
 ## 16. Supply chain and model security
 

@@ -91,3 +91,33 @@ async def test_diagnostics_report_missing_model_with_pull_command(tmp_path: Path
     model_check = next(check for check in report.checks if check.name == "Ollama model")
     assert model_check.status is DiagnosticStatus.FAIL
     assert model_check.remediation == "Run: ollama pull missing:1"
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_fail_closed_when_computer_master_switch_lacks_policy(
+    tmp_path: Path,
+) -> None:
+    report = await run_diagnostics(
+        Settings(data_dir=tmp_path, computer_access_enabled=True, _env_file=None),
+        store_factory=lambda _path: FakeStore(),
+        provider_factory=lambda _settings: FakeProvider(FakeModelInfo("model:1", ("model:1",))),
+    )
+
+    computer = next(check for check in report.checks if check.name == "controlled computer access")
+    assert computer.status is DiagnosticStatus.FAIL
+    assert computer.remediation is not None and "computer status" in computer.remediation
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_reports_default_computer_access_as_safely_disabled(
+    tmp_path: Path,
+) -> None:
+    report = await run_diagnostics(
+        Settings(data_dir=tmp_path, _env_file=None),
+        store_factory=lambda _path: FakeStore(),
+        provider_factory=lambda _settings: FakeProvider(FakeModelInfo("model:1", ("model:1",))),
+    )
+
+    computer = next(check for check in report.checks if check.name == "controlled computer access")
+    assert computer.status is DiagnosticStatus.PASS
+    assert "disabled" in computer.detail

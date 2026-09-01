@@ -6,7 +6,19 @@ import httpx
 import pytest
 import respx
 
-from jarvis.core.models import Message, MessageRole, ToolDefinition
+from jarvis.core.models import (
+    ApprovalRule,
+    Message,
+    MessageRole,
+    PermissionLevel,
+    SensitivityClass,
+    ToolConcurrency,
+    ToolDefinition,
+    ToolIdempotency,
+    ToolRetryPolicy,
+    ToolRisk,
+    ToolSideEffect,
+)
 from jarvis.llm.ollama import (
     OllamaChatProvider,
     OllamaConnectionError,
@@ -43,17 +55,34 @@ async def test_chat_normalizes_messages_tools_and_tool_calls() -> None:
                 conversation_id="conversation-1",
                 role=MessageRole.USER,
                 content="Weather?",
+                disclosure_sensitivity=SensitivityClass.PUBLIC,
+                disclosure_source="test-classifier",
             )
         ],
         tools=[
             ToolDefinition(
                 name="weather",
+                version="1",
                 description="Read the weather",
                 input_schema={
                     "type": "object",
                     "properties": {"city": {"type": "string"}},
                     "required": ["city"],
                 },
+                permission_level=PermissionLevel.LEVEL_0,
+                approval_rule=ApprovalRule.NONE,
+                risk=ToolRisk.READ_ONLY,
+                side_effect=ToolSideEffect.NONE,
+                sensitivity=SensitivityClass.PUBLIC,
+                required_capabilities=("weather.read",),
+                timeout_seconds=5,
+                max_result_bytes=8_192,
+                max_result_items=1,
+                idempotency=ToolIdempotency.SIDE_EFFECT_FREE,
+                retry_policy=ToolRetryPolicy.TRANSIENT_ONLY,
+                concurrency=ToolConcurrency.PARALLEL,
+                postcondition="A bounded public weather result is returned.",
+                recovery="No side effect occurs; retry a transient provider failure.",
             )
         ],
     )
@@ -68,6 +97,7 @@ async def test_chat_normalizes_messages_tools_and_tool_calls() -> None:
     assert request_payload == {
         "model": "test-model",
         "stream": False,
+        "think": False,
         "messages": [{"role": "user", "content": "Weather?"}],
         "tools": [
             {
@@ -128,6 +158,23 @@ async def test_chat_normalizes_assistant_tool_calls_and_tool_results() -> None:
         {"role": "tool", "content": '{"temperature":20}', "tool_name": "weather"},
     ]
     assert "tools" not in payload
+    await provider.close()
+
+
+@respx.mock
+async def test_chat_maps_reasoning_level_to_ollama_thinking() -> None:
+    route = respx.post(f"{BASE_URL}/api/chat").mock(
+        return_value=httpx.Response(
+            200,
+            json={"message": {"role": "assistant", "content": "complete"}},
+        )
+    )
+    provider = OllamaChatProvider(model="test-model")
+
+    await provider.chat(messages=[], tools=[], reasoning_level="deep")
+
+    payload = json.loads(route.calls.last.request.content)
+    assert payload["think"] is True
     await provider.close()
 
 

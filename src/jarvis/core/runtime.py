@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator, Iterable, Mapping, Sequence
+from contextlib import suppress
 
 from pydantic import JsonValue, ValidationError
 
@@ -11,7 +12,9 @@ from .contracts import (
     AuditStore,
     ChatProvider,
     ConversationStore,
+    MemoryContextPort,
     RoutedChatProvider,
+    SensitivityClassifier,
     Tool,
     ToolPolicy,
 )
@@ -21,6 +24,7 @@ from .models import (
     Message,
     MessageRole,
     ModelRole,
+    PermissionLevel,
     PolicyDecision,
     ProviderResponse,
     ProviderUsage,
@@ -33,9 +37,11 @@ from .models import (
     RuntimeResult,
     RuntimeStatus,
     RuntimeStreamFrame,
+    SensitivityClass,
     ToolCall,
     ToolDefinition,
     ToolResult,
+    count_json_leaf_items,
 )
 
 
@@ -87,6 +93,8 @@ class AssistantService:
         system_prompt: str = "",
         context_message_limit: int = 20,
         max_tool_iterations: int = 4,
+        memory: MemoryContextPort | None = None,
+        sensitivity_classifier: SensitivityClassifier | None = None,
     ) -> None:
         if context_message_limit < 1:
             raise ValueError("context_message_limit must be at least 1")
@@ -107,9 +115,19 @@ class AssistantService:
         self.policy = policy
         self.tools = tool_map
         self.tool_definitions = tuple(definitions)
+        self.public_tool_definitions = tuple(
+            definition
+            for definition in self.tool_definitions
+            if definition.sensitivity is SensitivityClass.PUBLIC
+        )
+        self._tool_definitions_by_name = {
+            definition.name: definition for definition in self.tool_definitions
+        }
         self.system_prompt = system_prompt.strip()
         self.context_message_limit = context_message_limit
         self.max_tool_iterations = max_tool_iterations
+        self.memory = memory
+        self.sensitivity_classifier = sensitivity_classifier
 
     async def respond(
         self,
@@ -139,12 +157,18 @@ class AssistantService:
         queue: asyncio.Queue[RuntimeEvent | None] = asyncio.Queue()
         task = asyncio.create_task(self._execute(request, event_queue=queue))
         task.add_done_callback(lambda _task: queue.put_nowait(None))
-        while True:
-            event = await queue.get()
-            if event is None:
-                break
-            yield RuntimeStreamFrame(event=event)
-        yield RuntimeStreamFrame(result=await task)
+        try:
+            while True:
+                event = await queue.get()
+                if event is None:
+                    break
+                yield RuntimeStreamFrame(event=event)
+            yield RuntimeStreamFrame(result=await task)
+        finally:
+            if not task.done():
+                task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await task
 
     async def _execute(
         self,
@@ -189,6 +213,8 @@ class AssistantService:
             conversation_id=conversation.id,
             role=MessageRole.USER,
             content=request.user_input,
+            disclosure_sensitivity=self._classify(request.user_input),
+            disclosure_source="local-privacy-gate",
         )
         persisted, store_failure = await self._persist(
             user_message, conversation.id, turn_messages, events
@@ -203,6 +229,9 @@ class AssistantService:
                 tool_iterations=tool_iterations,
             )
         assert persisted is not None
+        if self.memory is not None:
+            with suppress(Exception):
+                await self.memory.capture_candidates(persisted)
 
         while True:
             try:
@@ -237,7 +266,7 @@ class AssistantService:
                 else:
                     raw_response = await self.provider.chat(
                         messages=context,
-                        tools=self.tool_definitions,
+                        tools=self.public_tool_definitions,
                     )
                 response = ProviderResponse.model_validate(raw_response)
             except ValidationError:
@@ -293,6 +322,8 @@ class AssistantService:
                 role=MessageRole.ASSISTANT,
                 content=(response.content or "").strip(),
                 tool_calls=response.tool_calls,
+                disclosure_sensitivity=self._assistant_sensitivity(context, response),
+                disclosure_source="assistant-turn",
             )
             _, store_failure = await self._persist(
                 assistant_message, conversation.id, turn_messages, events
@@ -377,6 +408,7 @@ class AssistantService:
                         events=events,
                         tool_iterations=tool_iterations,
                     )
+                definition = self._tool_definitions_by_name[call.name]
 
                 try:
                     arguments = tool.input_model.model_validate(call.arguments)
@@ -405,11 +437,49 @@ class AssistantService:
                     detail=f"Validated arguments for '{call.name}'.",
                     tool_call=call,
                 )
+                if (
+                    response.routing is not None
+                    and response.routing.chosen_role is not ModelRole.LOCAL
+                    and definition.sensitivity is not SensitivityClass.PUBLIC
+                ):
+                    reason = (
+                        f"Private tool '{call.name}' is local-only and cannot return data to a "
+                        "cloud model."
+                    )
+                    events.add(
+                        RuntimeEventType.TOOL_DENIED,
+                        conversation_id=conversation.id,
+                        detail=reason,
+                        tool_call=call,
+                    )
+                    await self._audit_tool(
+                        conversation.id,
+                        call,
+                        definition,
+                        outcome="denied",
+                    )
+                    error = RuntimeErrorDetail(
+                        code=RuntimeErrorCode.TOOL_DENIED,
+                        message=reason,
+                        tool_call_id=call.id,
+                        tool_name=call.name,
+                    )
+                    store_failure = await self._persist_tool_error(
+                        conversation.id, call, error, turn_messages, events
+                    )
+                    return self._failure(
+                        conversation_id=conversation.id,
+                        status=RuntimeStatus.FAILED if store_failure else RuntimeStatus.DENIED,
+                        error=store_failure or error,
+                        messages=turn_messages,
+                        events=events,
+                        tool_iterations=tool_iterations,
+                    )
                 try:
                     raw_decision = await self.policy.authorize(
                         conversation=conversation,
                         call=call,
-                        tool=tool.definition,
+                        tool=definition,
                         arguments=arguments,
                     )
                     decision = PolicyDecision.model_validate(raw_decision)
@@ -435,7 +505,11 @@ class AssistantService:
                 if not decision.allowed:
                     reason = (decision.reason or "Tool execution was denied.").strip()
                     events.add(
-                        RuntimeEventType.TOOL_DENIED,
+                        (
+                            RuntimeEventType.TOOL_APPROVAL_REQUIRED
+                            if decision.approval_required
+                            else RuntimeEventType.TOOL_DENIED
+                        ),
                         conversation_id=conversation.id,
                         detail=reason,
                         tool_call=call,
@@ -443,21 +517,34 @@ class AssistantService:
                     await self._audit_tool(
                         conversation.id,
                         call,
-                        tool.definition,
-                        outcome="denied",
+                        definition,
+                        outcome=("requested" if decision.approval_required else "denied"),
                     )
                     error = RuntimeErrorDetail(
-                        code=RuntimeErrorCode.TOOL_DENIED,
+                        code=(
+                            RuntimeErrorCode.APPROVAL_REQUIRED
+                            if decision.approval_required
+                            else RuntimeErrorCode.TOOL_DENIED
+                        ),
                         message=reason,
                         tool_call_id=call.id,
                         tool_name=call.name,
+                        approval_id=decision.approval_id,
                     )
                     store_failure = await self._persist_tool_error(
                         conversation.id, call, error, turn_messages, events
                     )
                     return self._failure(
                         conversation_id=conversation.id,
-                        status=(RuntimeStatus.FAILED if store_failure else RuntimeStatus.DENIED),
+                        status=(
+                            RuntimeStatus.FAILED
+                            if store_failure
+                            else (
+                                RuntimeStatus.APPROVAL_REQUIRED
+                                if decision.approval_required
+                                else RuntimeStatus.DENIED
+                            )
+                        ),
                         error=store_failure or error,
                         messages=turn_messages,
                         events=events,
@@ -473,9 +560,30 @@ class AssistantService:
                 await self._audit_tool(
                     conversation.id,
                     call,
-                    tool.definition,
+                    definition,
                     outcome="allowed",
                 )
+                if definition.permission_level is not PermissionLevel.LEVEL_0:
+                    error = RuntimeErrorDetail(
+                        code=RuntimeErrorCode.BROKER_REQUIRED,
+                        message=(
+                            f"Tool '{call.name}' requires the Phase 3 action broker; "
+                            "direct runtime execution is prohibited."
+                        ),
+                        tool_call_id=call.id,
+                        tool_name=call.name,
+                    )
+                    store_failure = await self._persist_tool_error(
+                        conversation.id, call, error, turn_messages, events
+                    )
+                    return self._failure(
+                        conversation_id=conversation.id,
+                        status=RuntimeStatus.DENIED,
+                        error=store_failure or error,
+                        messages=turn_messages,
+                        events=events,
+                        tool_iterations=tool_iterations,
+                    )
                 events.add(
                     RuntimeEventType.TOOL_STARTED,
                     conversation_id=conversation.id,
@@ -484,8 +592,46 @@ class AssistantService:
                 )
                 tool_iterations += 1
                 try:
-                    raw_result = await tool.invoke(arguments)
+                    async with asyncio.timeout(definition.timeout_seconds):
+                        raw_result = await tool.invoke(arguments)
                     tool_result = ToolResult.model_validate(raw_result)
+                    _validate_tool_result_limits(tool_result, definition)
+                except TimeoutError:
+                    error = RuntimeErrorDetail(
+                        code=RuntimeErrorCode.TOOL_TIMEOUT,
+                        message=f"Tool '{call.name}' exceeded its fixed timeout.",
+                        tool_call_id=call.id,
+                        tool_name=call.name,
+                    )
+                    store_failure = await self._persist_tool_error(
+                        conversation.id, call, error, turn_messages, events
+                    )
+                    return self._failure(
+                        conversation_id=conversation.id,
+                        status=RuntimeStatus.FAILED,
+                        error=store_failure or error,
+                        messages=turn_messages,
+                        events=events,
+                        tool_iterations=tool_iterations,
+                    )
+                except _ToolResultLimitError:
+                    error = RuntimeErrorDetail(
+                        code=RuntimeErrorCode.TOOL_RESULT_LIMIT,
+                        message=f"Tool '{call.name}' exceeded its fixed result limit.",
+                        tool_call_id=call.id,
+                        tool_name=call.name,
+                    )
+                    store_failure = await self._persist_tool_error(
+                        conversation.id, call, error, turn_messages, events
+                    )
+                    return self._failure(
+                        conversation_id=conversation.id,
+                        status=RuntimeStatus.FAILED,
+                        error=store_failure or error,
+                        messages=turn_messages,
+                        events=events,
+                        tool_iterations=tool_iterations,
+                    )
                 except Exception:
                     error = RuntimeErrorDetail(
                         code=RuntimeErrorCode.TOOL_ERROR,
@@ -505,7 +651,13 @@ class AssistantService:
                         tool_iterations=tool_iterations,
                     )
 
-                tool_message = self._tool_message(conversation.id, call, tool_result)
+                tool_message = self._tool_message(
+                    conversation.id,
+                    call,
+                    tool_result,
+                    definition=definition,
+                    inherited_sensitivity=assistant_message.disclosure_sensitivity,
+                )
                 _, store_failure = await self._persist(
                     tool_message, conversation.id, turn_messages, events
                 )
@@ -527,7 +679,7 @@ class AssistantService:
                 await self._audit_tool(
                     conversation.id,
                     call,
-                    tool.definition,
+                    definition,
                     outcome="completed",
                 )
 
@@ -589,14 +741,41 @@ class AssistantService:
             raise ValueError("conversation store exceeded the context message limit")
         if any(message.conversation_id != conversation.id for message in recent):
             raise ValueError("conversation store returned a message from another conversation")
+        memory_message: Message | None = None
+        if self.memory is not None:
+            latest_user = next(
+                (
+                    message.content
+                    for message in reversed(recent)
+                    if message.role is MessageRole.USER
+                ),
+                "",
+            )
+            if latest_user:
+                try:
+                    projection = await self.memory.project(latest_user)
+                except Exception:
+                    projection = None
+                if projection is not None:
+                    memory_message = Message(
+                        conversation_id=conversation.id,
+                        role=MessageRole.SYSTEM,
+                        content=projection.content,
+                        context_sensitivity=projection.sensitivity,
+                        context_source=projection.source,
+                        disclosure_sensitivity=projection.sensitivity,
+                        disclosure_source=projection.source,
+                    )
         if not self.system_prompt:
-            return recent
+            return ((memory_message,) if memory_message is not None else ()) + recent
         system = Message(
             conversation_id=conversation.id,
             role=MessageRole.SYSTEM,
             content=self.system_prompt,
+            disclosure_sensitivity=SensitivityClass.PUBLIC,
+            disclosure_source="static-system-prompt",
         )
-        return (system, *recent)
+        return (system, *((memory_message,) if memory_message is not None else ()), *recent)
 
     async def _persist(
         self,
@@ -636,23 +815,75 @@ class AssistantService:
             is_error=True,
             data={"code": error.code.value},
         )
-        message = self._tool_message(conversation_id, call, result)
+        message = self._tool_message(
+            conversation_id,
+            call,
+            result,
+            definition=self._tool_definitions_by_name.get(call.name),
+        )
         _, store_failure = await self._persist(message, conversation_id, turn_messages, events)
         return store_failure
 
-    @staticmethod
     def _tool_message(
+        self,
         conversation_id: str,
         call: ToolCall,
         result: ToolResult,
+        *,
+        definition: ToolDefinition | None = None,
+        inherited_sensitivity: SensitivityClass | None = None,
     ) -> Message:
+        sensitivity: SensitivityClass | None = inherited_sensitivity
+        if definition is not None:
+            sensitivity = (
+                definition.sensitivity
+                if sensitivity is None
+                else _more_restrictive(sensitivity, definition.sensitivity)
+            )
+        scanned = self._classify(call.model_dump_json() + "\n" + result.model_dump_json())
+        if sensitivity is None or scanned is SensitivityClass.PRIVATE:
+            sensitivity = (
+                scanned if sensitivity is None else _more_restrictive(sensitivity, scanned)
+            )
         return Message(
             conversation_id=conversation_id,
             role=MessageRole.TOOL,
             content=result.model_dump_json(),
             tool_call_id=call.id,
             tool_name=call.name,
+            disclosure_sensitivity=sensitivity,
+            disclosure_source="tool-result",
         )
+
+    def _classify(self, text: str) -> SensitivityClass:
+        if self.sensitivity_classifier is None:
+            return SensitivityClass.UNKNOWN
+        return self.sensitivity_classifier.classify(text)
+
+    def _assistant_sensitivity(
+        self,
+        context: Sequence[Message],
+        response: ProviderResponse,
+    ) -> SensitivityClass:
+        sensitivity = response.routing.sensitivity if response.routing else SensitivityClass.PUBLIC
+        for message in context:
+            explicit = message.disclosure_sensitivity or message.context_sensitivity
+            if explicit is None and message.role is not MessageRole.USER:
+                explicit = SensitivityClass.UNKNOWN
+            if explicit is not None:
+                sensitivity = _more_restrictive(sensitivity, explicit)
+            scanned = self._classify(message.content)
+            if explicit is None or scanned is SensitivityClass.PRIVATE:
+                sensitivity = _more_restrictive(sensitivity, scanned)
+        response_text = (
+            (response.content or "")
+            + "\n"
+            + "\n".join(call.model_dump_json() for call in response.tool_calls)
+        )
+        scanned_response = self._classify(response_text)
+        if scanned_response is SensitivityClass.PRIVATE:
+            return _more_restrictive(sensitivity, scanned_response)
+        return sensitivity
 
     @staticmethod
     def _failure(
@@ -677,3 +908,30 @@ class AssistantService:
             error=error,
             tool_iterations=tool_iterations,
         )
+
+
+class _ToolResultLimitError(ValueError):
+    """Internal sentinel for deterministic serialized-result bounds."""
+
+
+def _more_restrictive(
+    left: SensitivityClass,
+    right: SensitivityClass,
+) -> SensitivityClass:
+    order = {
+        SensitivityClass.PUBLIC: 0,
+        SensitivityClass.UNKNOWN: 1,
+        SensitivityClass.PRIVATE: 2,
+    }
+    return left if order[left] >= order[right] else right
+
+
+def _validate_tool_result_limits(result: ToolResult, definition: ToolDefinition) -> None:
+    serialized = result.model_dump_json().encode("utf-8")
+    if len(serialized) > definition.max_result_bytes:
+        raise _ToolResultLimitError("serialized result exceeds byte limit")
+    if (
+        count_json_leaf_items(result.data, stop_after=definition.max_result_items)
+        > definition.max_result_items
+    ):
+        raise _ToolResultLimitError("structured result exceeds item limit")

@@ -1,12 +1,22 @@
 # JARVIS
 
-JARVIS is a privacy-aware hybrid assistant for Windows. Phase 1 implements a
+JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–4 implement a
 local deterministic privacy gate, configurable NVIDIA/Groq/Gemini/Ollama roles,
 zero-cost fallback routing, durable SQLite state, audited read-only tools, CLI,
-and loopback browser chat. Sensitive and uncertain work remains local.
+loopback browser chat, local push-to-talk speech, and opt-in controlled Windows actions. Sensitive
+and uncertain work remains local.
 
 This repository is the source of truth for the project. Local model weights,
 runtime databases, logs, generated media, and secrets do not belong in Git.
+
+## Current verification status
+
+As of 2026-08-31, Phase 4 is current-complete. Phases 1–3 are implemented but not currently
+closeout-complete: Phase 1 misses fixed local latency targets, its configured zero-cost NVIDIA
+endpoint times out, and an independent clean Windows host is unavailable; Phase 2 and Phase 3
+safe local gates pass, but current real-device/application smokes require separate authorization.
+See [Phase Overview](docs/PHASE_OVERVIEW.md) and the phase reports for exact evidence. No threshold
+or privacy/authority gate is waived by implementation status.
 
 ## Implemented Phase 1
 
@@ -23,9 +33,57 @@ The supported text vertical slice can:
 - expose only schema-validated, policy-approved read-only clock, system-status, and allowlisted
   text-file tools with audit records.
 
-Voice, vision, desktop control, a network API, and graphical clients are later
-milestones. The core runtime is kept independent of those interfaces so they can
-be added without replacing the text assistant.
+## Implemented Phase 2
+
+The optional local voice slice adds:
+
+- explicit push-to-talk with visible capture state and a persistent software kill switch;
+- provider-neutral audio, VAD, STT, TTS, wake-word, and output contracts;
+- CPU/int8 faster-whisper, Silero VAD, Windows SAPI speech, and optional openWakeWord ONNX;
+- persisted stable input/output endpoint selection and voice diagnostics;
+- phrase-streamed output, speech interruption, render-reference suppression, cancellation,
+  bounded audio/events, and text fallback; and
+- a local WER/latency/trigger/barge-in/device/soak benchmark harness.
+
+Wake-word and clap always-listening are hard-disabled in configuration. Detection foundations emit
+untrusted typed intents; they cannot approve or execute a computer action. Vision, remote network
+access, general desktop automation, and graphical clients remain later milestones.
+
+## Implemented Phase 3
+
+Controlled computer access adds:
+
+- dual default-off host gates and a dedicated controlled-file root;
+- deterministic permission Levels 0–4, with Levels 3–4 unavailable in shipped policy;
+- exact trusted-terminal approval, expiring one-use grants, restart-safe SQLite authority state,
+  append-only sanitized lifecycle audit, and live policy kill checks;
+- fixed enrolled app/app-group launch, Core Audio volume, global media keys, bounded clipboard,
+  configured browser targets, filename search, printer status, controlled text printing, and one
+  reversible same-volume file move;
+- file/executable identity and SHA-256 revalidation, no shell/elevation, output/time limits,
+  postcondition evidence, guarded recovery, cancellation receipts, and hostile-input tests; and
+- an allowlisted acoustic-intent proposal gate that never grants authority.
+
+Computer actions are disabled by default. See
+[Controlled Computer Access](docs/CONTROLLED_COMPUTER_ACCESS.md) before enabling either gate.
+
+## Implemented Phase 4
+
+Durable memory adds:
+
+- host-isolated working, episodic, profile, semantic, and task records in SQLite;
+- extraction candidates that cannot enter retrieval until exact trusted confirmation;
+- typed provenance, trust, confidence, sensitivity, retention, correction lineage, conflicts,
+  derivation links, append-only events, and content-free deletion tombstones;
+- SQLite FTS5 retrieval with relevance, recency, confidence, and trust scoring plus bounded prompt
+  projection and visible retrieval reasons;
+- explicit remember, promote, reject, correct, conflict-resolution, retention, export, expiry, and
+  transitive-forget workflows in the CLI and loopback API; and
+- golden, poisoning, contradiction, host-isolation, migration, backup/restore, corrupt-record,
+  concurrency, performance, storage-growth, and deletion-completeness tests.
+
+Private or unknown retrieved context forces local routing. FTS5 met the declared quality and
+latency targets, so no embedding model, vector extension, or external memory service was added.
 
 ## Model strategy
 
@@ -92,6 +150,35 @@ Or send a single message:
 uv run jarvis chat --message "Summarize what you can do."
 ```
 
+Inspect and manage durable memory locally:
+
+```powershell
+uv run jarvis memory list
+uv run jarvis memory search "printer preference"
+uv run jarvis memory remember profile "Prefer concise responses" --key profile.response-style
+uv run jarvis memory export .\jarvis-memory-export.json
+```
+
+Use `uv run jarvis memory --help` for confirmation, correction, conflict, retention, expiry, and
+forget commands. Exports use exclusive creation and never overwrite an existing file.
+
+Install and set up optional local voice support:
+
+```powershell
+uv sync --locked --extra voice
+uv run jarvis voice setup
+uv run jarvis voice devices
+uv run jarvis voice select --input-device-id <stable-input-id> --output-device-id <stable-output-id>
+uv run jarvis voice doctor
+uv run jarvis voice enable
+uv run jarvis voice push-to-talk
+uv run jarvis voice disable
+```
+
+`voice setup` explicitly downloads public STT/wake assets to private application-data storage.
+Raw microphone PCM stays in memory for the bounded turn and is discarded. `voice disable` is the
+software kill command; text chat keeps working.
+
 If `uv` is not installed and Windows Package Manager is available, installation
 can be requested explicitly:
 
@@ -127,7 +214,14 @@ The main settings are:
 | `JARVIS_MAX_CLOUD_COST_USD` | `0` | Hard Phase 1 budget; any other value is rejected |
 | `JARVIS_WEB_HOST` | `127.0.0.1` | Browser/API bind; Phase 1 rejects non-loopback hosts |
 | `JARVIS_DATA_DIR` | platform default | Override the private runtime data directory |
+| `JARVIS_MEMORY_RETRIEVAL_ENABLED` | `true` | Project committed host memory into bounded local context; `false` preserves data but disables retrieval |
 | `JARVIS_LOG_LEVEL` | `INFO` | Application log verbosity |
+| `JARVIS_VOICE_STT_MODEL` | `base.en` | Local faster-whisper model downloaded by explicit voice setup |
+| `JARVIS_VOICE_STT_CPU_THREADS` | `4` | CPU threads reserved for local transcription |
+| `JARVIS_VOICE_MAX_CAPTURE_SECONDS` | `30` | Hard duration limit for one push-to-talk clip |
+| `JARVIS_VOICE_BARGE_IN_ENABLED` | `true` | Stop speech output when new host speech is detected |
+| `JARVIS_VOICE_ALWAYS_LISTENING_ENABLED` | `false` | Hard-disabled; `true` is rejected by configuration |
+| `JARVIS_VOICE_ACOUSTIC_ALWAYS_LISTENING_ENABLED` | `false` | Hard-disabled; `true` is rejected by configuration |
 
 To enable NVIDIA, set `JARVIS_NVIDIA_API_KEY` (or NVIDIA's sample-code alias
 `NVIDIA_API_KEY`), `JARVIS_NVIDIA_FREE_TIER_CONFIRMED=true`, and
@@ -155,6 +249,9 @@ uv sync --locked
 ./scripts/quality.ps1
 ```
 
+For voice development, use `uv sync --locked --extra voice` after the base quality script; a plain
+sync intentionally restores the lightweight text-only environment.
+
 Formatting changes are opt-in:
 
 ```powershell
@@ -168,6 +265,7 @@ always performs secret scanning.
 ## Documentation
 
 - [Phase overview and status](docs/PHASE_OVERVIEW.md)
+- [Phase 2 voice completion evidence](docs/phase-reports/PHASE_2_COMPLETION.md)
 - [Codex Sol phase execution playbook](docs/CODEX_PHASE_PLAYBOOK.md)
 - [Hands-free control plan](docs/HANDS_FREE_CONTROL.md)
 - [Architecture](docs/architecture.md)

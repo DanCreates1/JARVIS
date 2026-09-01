@@ -6,8 +6,10 @@ from typing import Any, ClassVar
 import pytest
 
 import jarvis.bootstrap as bootstrap
+from jarvis.computer.config import ComputerAccessConfigStore, ComputerAccessPolicy
 from jarvis.config import Settings
-from jarvis.core import ModelRole
+from jarvis.core import ModelRole, PermissionLevel
+from jarvis.security.computer_policy import ComputerProposalPolicy
 
 
 class FakeStore:
@@ -130,3 +132,36 @@ async def test_build_runtime_adds_nvidia_only_as_reasoning_provider(
     assert nvidia.kwargs["profile"].max_output_tokens == 32_768
     assert nvidia.kwargs["max_output_tokens"] == 4_096
     await components.close()
+
+
+@pytest.mark.asyncio
+async def test_build_runtime_exposes_actions_only_after_dual_enablement(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "controlled-files"
+    root.mkdir()
+    ComputerAccessConfigStore(tmp_path).save(
+        ComputerAccessPolicy(
+            enabled=True,
+            maximum_permission_level=PermissionLevel.LEVEL_1,
+            controlled_root=root,
+        )
+    )
+    monkeypatch.setattr(bootstrap, "SQLiteConversationStore", FakeStore)
+    monkeypatch.setattr(bootstrap, "OllamaChatProvider", FakeProvider)
+    monkeypatch.setattr(bootstrap, "ModelRouter", FakeRouter)
+    monkeypatch.setattr(bootstrap, "AssistantService", FakeService)
+    settings = Settings(
+        data_dir=tmp_path,
+        computer_access_enabled=True,
+        _env_file=None,
+    )
+
+    components = await bootstrap.build_runtime(settings)
+    try:
+        assert components.computer is not None
+        names = {tool.definition.name for tool in components.service.kwargs["tools"]}
+        assert {"control_media", "set_master_volume", "search_controlled_files"} <= names
+        assert isinstance(components.service.kwargs["policy"], ComputerProposalPolicy)
+    finally:
+        await components.close()

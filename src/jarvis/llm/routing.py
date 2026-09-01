@@ -54,8 +54,26 @@ _MODERATE_PATTERN = re.compile(
     r"\b(analyze|compare|debug|design|plan|reason|trade-?offs?|explain why)\b",
     re.IGNORECASE,
 )
+_AMBIGUOUS_PATTERN = re.compile(
+    r"\b(this|that|above|attached|attachment|continue|previous|prior|same one|the document|"
+    r"the file|confidential|internal|client|customer|patient|employee)\b",
+    re.IGNORECASE,
+)
+_PUBLIC_PATTERN = re.compile(
+    r"^(?:"
+    r"hello|hi|hey|"
+    r"public\b|"
+    r"what\s+(?:is|are|was|were|does|do|did|can|could|would|should)\b|"
+    r"why\b|how\b|when\b|where\b|who\b|which\b|"
+    r"explain\b|name\b|state\b|give\b|reply\b|provide\b|prove\b|"
+    r"compare\b|research\b|analy[sz]e\b|do\s+complex\b|"
+    r"write\b|draft\b|create\b|summarize\b|tell\s+me\b"
+    r")",
+    re.IGNORECASE,
+)
 _TIME_COMMAND = re.compile(
-    r"^(?:please\s+)?(?:what(?:'s| is)\s+)?(?:the\s+)?(?:current\s+)?time(?:\s+now)?[?.!]*$",
+    r"^(?:please\s+)?(?:(?:what(?:'s| is)\s+)?(?:the\s+)?(?:current\s+)?time"
+    r"(?:\s+now)?|tell\s+me\s+(?:the\s+)?time)[?.!]*$",
     re.IGNORECASE,
 )
 
@@ -69,7 +87,11 @@ class PrivacyGate:
             return SensitivityClass.UNKNOWN
         if any(pattern.search(normalized) for pattern in _PRIVATE_PATTERNS):
             return SensitivityClass.PRIVATE
-        return SensitivityClass.PUBLIC
+        if "\n" in normalized or _AMBIGUOUS_PATTERN.search(normalized):
+            return SensitivityClass.UNKNOWN
+        if _PUBLIC_PATTERN.search(normalized):
+            return SensitivityClass.PUBLIC
+        return SensitivityClass.UNKNOWN
 
     def direct_tool_call(self, text: str) -> ToolCall | None:
         if _TIME_COMMAND.fullmatch(text.strip()):
@@ -87,8 +109,9 @@ class RoutingPolicy:
         *,
         requested_role: ModelRole | None = None,
         requested_reasoning: ReasoningLevel | None = None,
+        forced_sensitivity: SensitivityClass | None = None,
     ) -> RoutingDecision:
-        sensitivity = self.gate.classify(text)
+        sensitivity = forced_sensitivity or self.gate.classify(text)
         if sensitivity is not SensitivityClass.PUBLIC:
             role = ModelRole.LOCAL
             level = ReasoningLevel.NONE
@@ -175,15 +198,13 @@ class ModelRouter:
         ):
             return ProviderResponse(content=None, tool_calls=(direct_call,))
 
-        disclosure_text = "\n".join(
-            message.content
-            for message in messages
-            if message.role in {MessageRole.USER, MessageRole.TOOL}
-        )
+        disclosure_text = "\n".join(_message_disclosure_text(message) for message in messages)
+        forced_sensitivity = _messages_sensitivity(messages, self.policy.gate)
         decision = self.policy.decide(
             disclosure_text,
             requested_role=requested_role,
             requested_reasoning=reasoning_level,
+            forced_sensitivity=forced_sensitivity,
         )
         roles = (decision.chosen_role, *decision.fallback_chain)
         failures: list[str] = []
@@ -200,7 +221,10 @@ class ModelRouter:
                 try:
                     response = await provider.chat(
                         messages=messages,
-                        tools=tools,
+                        tools=_tools_for_provider(
+                            tools,
+                            is_cloud=provider.profile.is_cloud,
+                        ),
                         reasoning_level=decision.reasoning_level.value,
                     )
                     break
@@ -268,6 +292,55 @@ def _reasoning_for_role(role: ModelRole) -> ReasoningLevel:
     if role is ModelRole.PRIMARY:
         return ReasoningLevel.NONE
     return ReasoningLevel.NONE
+
+
+def _message_disclosure_text(message: Message) -> str:
+    parts = [message.content]
+    parts.extend(
+        json.dumps(call.arguments, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        for call in message.tool_calls
+    )
+    return "\n".join(part for part in parts if part)
+
+
+def _messages_sensitivity(
+    messages: Sequence[Message],
+    gate: PrivacyGate,
+) -> SensitivityClass:
+    sensitivity = SensitivityClass.PUBLIC
+    for message in messages:
+        explicit = message.disclosure_sensitivity or message.context_sensitivity
+        if explicit is not None:
+            sensitivity = _more_restrictive(sensitivity, explicit)
+        elif message.role is not MessageRole.USER:
+            sensitivity = _more_restrictive(sensitivity, SensitivityClass.UNKNOWN)
+        scanned = gate.classify(_message_disclosure_text(message))
+        if explicit is None or scanned is SensitivityClass.PRIVATE:
+            sensitivity = _more_restrictive(sensitivity, scanned)
+    return sensitivity
+
+
+def _more_restrictive(
+    left: SensitivityClass,
+    right: SensitivityClass,
+) -> SensitivityClass:
+    order = {
+        SensitivityClass.PUBLIC: 0,
+        SensitivityClass.UNKNOWN: 1,
+        SensitivityClass.PRIVATE: 2,
+    }
+    return left if order[left] >= order[right] else right
+
+
+def _tools_for_provider(
+    tools: Sequence[ToolDefinition],
+    *,
+    is_cloud: bool,
+) -> tuple[ToolDefinition, ...]:
+    """Keep private/unknown tool schemas and host-owned enum values local."""
+    if not is_cloud:
+        return tuple(tools)
+    return tuple(tool for tool in tools if tool.sensitivity is SensitivityClass.PUBLIC)
 
 
 def _fallback_chain(role: ModelRole) -> tuple[ModelRole, ...]:

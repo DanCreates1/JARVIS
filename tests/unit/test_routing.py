@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import deque
 from collections.abc import AsyncIterator, Iterable, Sequence
+from pathlib import Path
 
 import pytest
 
@@ -16,6 +17,7 @@ from jarvis.core import (
     ProviderUsage,
     ReasoningLevel,
     SensitivityClass,
+    ToolCall,
     ToolDefinition,
 )
 from jarvis.llm import (
@@ -27,6 +29,8 @@ from jarvis.llm import (
     RoutingPolicy,
     ZeroCostPolicyError,
 )
+from jarvis.tools.clock import CurrentTimeTool
+from jarvis.tools.system_status import SystemStatusTool
 
 
 class FakeModelProvider:
@@ -50,6 +54,8 @@ class FakeModelProvider:
         self.outcomes = deque(outcomes)
         self.available = available
         self.requests: list[str] = []
+        self.message_requests: list[tuple[Message, ...]] = []
+        self.tool_requests: list[tuple[ToolDefinition, ...]] = []
         self.closed = False
 
     @property
@@ -63,8 +69,9 @@ class FakeModelProvider:
         tools: Sequence[ToolDefinition],
         reasoning_level: str = "none",
     ) -> ProviderResponse:
-        del messages, tools
+        self.message_requests.append(tuple(messages))
         self.requests.append(reasoning_level)
+        self.tool_requests.append(tuple(tools))
         outcome = self.outcomes.popleft()
         if isinstance(outcome, BaseException):
             raise outcome
@@ -95,8 +102,11 @@ def test_privacy_gate_and_routing_policy_cover_all_roles() -> None:
     assert gate.classify("My password is hunter2") is SensitivityClass.PRIVATE
     assert gate.classify("Read C:\\Users\\me\\private.txt") is SensitivityClass.PRIVATE
     assert gate.classify("Explain photosynthesis") is SensitivityClass.PUBLIC
+    assert gate.classify("Use that one") is SensitivityClass.UNKNOWN
+    assert gate.classify("opaque payload") is SensitivityClass.UNKNOWN
     assert gate.classify("  ") is SensitivityClass.UNKNOWN
     assert gate.direct_tool_call("What's the current time?") is not None
+    assert gate.direct_tool_call("Please tell me the time.") is not None
     assert gate.direct_tool_call("Explain time zones") is None
 
     policy = RoutingPolicy(gate)
@@ -143,6 +153,122 @@ async def test_router_direct_command_and_tool_result_do_not_call_any_model() -> 
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("legacy_role", [MessageRole.ASSISTANT, MessageRole.TOOL])
+async def test_legacy_unlabelled_non_user_history_fails_local(
+    legacy_role: MessageRole,
+) -> None:
+    cloud = FakeModelProvider(
+        ModelRole.FAST,
+        cloud=True,
+        outcomes=[ProviderResponse(content="must not run")],
+    )
+    local = FakeModelProvider(
+        ModelRole.LOCAL,
+        cloud=False,
+        outcomes=[ProviderResponse(content="local answer")],
+    )
+    legacy = Message(
+        conversation_id="conversation",
+        role=legacy_role,
+        content="legacy context",
+        **(
+            {"tool_call_id": "call", "tool_name": "get_current_time"}
+            if legacy_role is MessageRole.TOOL
+            else {}
+        ),
+    )
+    router = ModelRouter({ModelRole.FAST: cloud, ModelRole.LOCAL: local})
+
+    response = await router.chat(
+        messages=[legacy, user_message("What is the largest planet?")],
+        tools=[],
+    )
+
+    assert response.content == "local answer"
+    assert not cloud.requests
+    assert len(local.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_labelled_public_history_can_use_cloud_but_private_scan_overrides_label() -> None:
+    cloud = FakeModelProvider(
+        ModelRole.FAST,
+        cloud=True,
+        outcomes=[ProviderResponse(content="cloud answer")],
+    )
+    local = FakeModelProvider(
+        ModelRole.LOCAL,
+        cloud=False,
+        outcomes=[ProviderResponse(content="local answer")],
+    )
+    router = ModelRouter({ModelRole.FAST: cloud, ModelRole.LOCAL: local})
+    public_assistant = Message(
+        conversation_id="conversation",
+        role=MessageRole.ASSISTANT,
+        content="Jupiter is the largest planet.",
+        disclosure_sensitivity=SensitivityClass.PUBLIC,
+        disclosure_source="assistant-turn",
+    )
+
+    response = await router.chat(
+        messages=[public_assistant, user_message("What is the largest planet?")],
+        tools=[],
+    )
+    assert response.content == "cloud answer"
+    assert len(cloud.requests) == 1
+
+    private_assistant = public_assistant.model_copy(
+        update={"content": "My password is synthetic-secret."}
+    )
+    response = await router.chat(
+        messages=[private_assistant, user_message("What is the largest planet?")],
+        tools=[],
+    )
+    assert response.content == "local answer"
+    assert len(cloud.requests) == 1
+    assert len(local.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_private_tool_call_arguments_force_local_even_when_message_is_labelled_public() -> (
+    None
+):
+    cloud = FakeModelProvider(
+        ModelRole.FAST,
+        cloud=True,
+        outcomes=[ProviderResponse(content="must not run")],
+    )
+    local = FakeModelProvider(
+        ModelRole.LOCAL,
+        cloud=False,
+        outcomes=[ProviderResponse(content="local answer")],
+    )
+    assistant = Message(
+        conversation_id="conversation",
+        role=MessageRole.ASSISTANT,
+        tool_calls=(
+            ToolCall(
+                id="call-private",
+                name="get_current_time",
+                arguments={"note": "API key secret"},
+            ),
+        ),
+        disclosure_sensitivity=SensitivityClass.PUBLIC,
+        disclosure_source="assistant-turn",
+    )
+    router = ModelRouter({ModelRole.FAST: cloud, ModelRole.LOCAL: local})
+
+    response = await router.chat(
+        messages=[assistant, user_message("What is the largest planet?")],
+        tools=[],
+    )
+
+    assert response.content == "local answer"
+    assert not cloud.requests
+    assert len(local.requests) == 1
+
+
+@pytest.mark.asyncio
 async def test_safe_primary_falls_back_to_fast_then_records_actual_route() -> None:
     primary = FakeModelProvider(
         ModelRole.PRIMARY,
@@ -173,6 +299,65 @@ async def test_safe_primary_falls_back_to_fast_then_records_actual_route() -> No
     assert "ProviderQuotaError" in response.routing.reason
     assert primary.requests == ["none"]
     assert fast.requests == ["none"]
+
+
+@pytest.mark.asyncio
+async def test_cloud_provider_never_receives_private_tool_schemas_or_host_enums(
+    tmp_path: Path,
+) -> None:
+    public_tool = CurrentTimeTool().definition
+    private_tool = SystemStatusTool(probe_path=tmp_path).definition.model_copy(
+        update={
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string",
+                        "enum": ["private-host-application"],
+                    }
+                },
+                "additionalProperties": False,
+            }
+        }
+    )
+    cloud = FakeModelProvider(
+        ModelRole.PRIMARY,
+        cloud=True,
+        outcomes=[ProviderResponse(content="public answer")],
+    )
+    local = FakeModelProvider(ModelRole.LOCAL, cloud=False, outcomes=[])
+    router = ModelRouter({ModelRole.PRIMARY: cloud, ModelRole.LOCAL: local})
+
+    response = await router.chat_routed(
+        messages=[user_message("Public information " * 20)],
+        tools=(public_tool, private_tool),
+        requested_role=ModelRole.PRIMARY,
+    )
+
+    assert response.content == "public answer"
+    assert cloud.tool_requests == [(public_tool,)]
+    assert "private-host-application" not in repr(cloud.tool_requests)
+    assert not local.tool_requests
+
+
+@pytest.mark.asyncio
+async def test_local_provider_receives_private_tool_schemas(tmp_path: Path) -> None:
+    public_tool = CurrentTimeTool().definition
+    private_tool = SystemStatusTool(probe_path=tmp_path).definition
+    local = FakeModelProvider(
+        ModelRole.LOCAL,
+        cloud=False,
+        outcomes=[ProviderResponse(content="private answer")],
+    )
+    router = ModelRouter({ModelRole.LOCAL: local})
+
+    response = await router.chat_routed(
+        messages=[user_message("Analyze my medical records")],
+        tools=(public_tool, private_tool),
+    )
+
+    assert response.content == "private answer"
+    assert local.tool_requests == [(public_tool, private_tool)]
 
 
 @pytest.mark.asyncio

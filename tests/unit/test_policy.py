@@ -1,7 +1,19 @@
 import pytest
 from pydantic import BaseModel
 
-from jarvis.core import Conversation, ToolCall, ToolDefinition, ToolRisk
+from jarvis.core import (
+    ApprovalRule,
+    Conversation,
+    PermissionLevel,
+    SensitivityClass,
+    ToolCall,
+    ToolConcurrency,
+    ToolDefinition,
+    ToolIdempotency,
+    ToolRetryPolicy,
+    ToolRisk,
+    ToolSideEffect,
+)
 from jarvis.security import DenyByDefaultPolicy, phase_one_policy
 
 
@@ -9,8 +21,36 @@ class EmptyArguments(BaseModel):
     pass
 
 
-def definition(name: str) -> ToolDefinition:
-    return ToolDefinition(name=name, description="test tool", input_schema={"type": "object"})
+def definition(
+    name: str,
+    *,
+    permission_level: PermissionLevel = PermissionLevel.LEVEL_0,
+    approval_rule: ApprovalRule = ApprovalRule.NONE,
+    risk: ToolRisk = ToolRisk.READ_ONLY,
+    side_effect: ToolSideEffect = ToolSideEffect.NONE,
+    idempotency: ToolIdempotency = ToolIdempotency.SIDE_EFFECT_FREE,
+    retry_policy: ToolRetryPolicy = ToolRetryPolicy.TRANSIENT_ONLY,
+) -> ToolDefinition:
+    return ToolDefinition(
+        name=name,
+        version="1",
+        description="test tool",
+        input_schema={"type": "object"},
+        permission_level=permission_level,
+        approval_rule=approval_rule,
+        risk=risk,
+        side_effect=side_effect,
+        sensitivity=SensitivityClass.PUBLIC,
+        required_capabilities=("test.tool.invoke",),
+        timeout_seconds=1,
+        max_result_bytes=1_024,
+        max_result_items=1,
+        idempotency=idempotency,
+        retry_policy=retry_policy,
+        concurrency=ToolConcurrency.PARALLEL,
+        postcondition="Test result returned.",
+        recovery="No recovery needed for this test.",
+    )
 
 
 @pytest.mark.asyncio
@@ -66,17 +106,20 @@ async def test_policy_denies_mismatched_registry_definition() -> None:
 async def test_allowlist_cannot_bypass_risk_or_approval_policy() -> None:
     policy = DenyByDefaultPolicy({"danger"})
     for tool in (
-        ToolDefinition(
-            name="danger",
-            description="danger",
-            input_schema={"type": "object"},
+        definition(
+            "danger",
+            permission_level=PermissionLevel.LEVEL_4,
+            approval_rule=ApprovalRule.DISABLED,
             risk=ToolRisk.DESTRUCTIVE,
+            side_effect=ToolSideEffect.ADMINISTRATIVE,
+            idempotency=ToolIdempotency.NON_IDEMPOTENT,
+            retry_policy=ToolRetryPolicy.RECONCILE_FIRST,
         ),
-        ToolDefinition(
-            name="danger",
-            description="danger",
-            input_schema={"type": "object"},
-            requires_approval=True,
+        definition(
+            "danger",
+            permission_level=PermissionLevel.LEVEL_3,
+            approval_rule=ApprovalRule.EXACT_RECENT_AUTH,
+            risk=ToolRisk.SENSITIVE,
         ),
     ):
         decision = await policy.authorize(

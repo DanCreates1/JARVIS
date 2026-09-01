@@ -10,6 +10,8 @@ from typing import Protocol
 from uuid import uuid4
 
 from jarvis.bootstrap import _fast_profile, _primary_profile, _reasoning_profile
+from jarvis.computer.config import ComputerAccessConfigStore
+from jarvis.computer.windows import ExecutableEnrollment
 from jarvis.config import Settings
 from jarvis.llm import (
     GeminiChatProvider,
@@ -145,6 +147,8 @@ async def run_diagnostics(
         if store is not None:
             await store.close()
 
+    checks.append(_computer_access_check(settings))
+
     provider: DiagnosticProvider | None = None
     try:
         provider = provider_factory(settings)
@@ -273,3 +277,41 @@ async def run_diagnostics(
             await cloud_provider.close()
 
     return DiagnosticReport(checks=tuple(checks))
+
+
+def _computer_access_check(settings: Settings) -> DiagnosticCheck:
+    if not settings.computer_access_enabled:
+        return DiagnosticCheck(
+            name="controlled computer access",
+            status=DiagnosticStatus.PASS,
+            detail="Computer access master switch is disabled; no action authority is exposed.",
+        )
+    try:
+        policy = ComputerAccessConfigStore(settings.data_dir).load()
+        if not policy.enabled:
+            raise ValueError("host policy is disabled")
+        if not policy.controlled_root.is_dir() or policy.controlled_root.is_symlink():
+            raise ValueError("controlled root is unavailable")
+        for application_id, application in policy.applications.items():
+            enrollment = ExecutableEnrollment.capture(application.executable)
+            if enrollment.sha256 != application.sha256:
+                raise ValueError(f"application enrollment changed: {application_id}")
+    except (OSError, ValueError):
+        return DiagnosticCheck(
+            name="controlled computer access",
+            status=DiagnosticStatus.FAIL,
+            detail="Computer access policy, controlled root, or application enrollment is invalid.",
+            remediation=(
+                "Run `uv run jarvis computer status`; disable the master switch or repair the "
+                "trusted local policy before requesting actions."
+            ),
+        )
+    return DiagnosticCheck(
+        name="controlled computer access",
+        status=DiagnosticStatus.PASS,
+        detail=(
+            f"Dual enablement is valid at maximum permission Level "
+            f"{int(policy.maximum_permission_level)} with {len(policy.applications)} enrolled "
+            "application(s)."
+        ),
+    )

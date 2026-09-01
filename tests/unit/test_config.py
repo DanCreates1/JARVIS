@@ -17,6 +17,9 @@ def test_settings_derive_database_and_ollama_urls(tmp_path: Path) -> None:
     settings = Settings(data_dir=tmp_path, _env_file=None)
 
     assert settings.database_path == tmp_path / "jarvis.db"
+    assert settings.voice_settings_path == tmp_path / "voice-settings.json"
+    assert settings.voice_model_dir == tmp_path / "models" / "speech-to-text"
+    assert settings.voice_wake_model_dir == tmp_path / "models" / "wake-word"
     assert settings.ollama_chat_url == "http://127.0.0.1:11434/api/chat"
     assert settings.ollama_tags_url == "http://127.0.0.1:11434/api/tags"
 
@@ -75,7 +78,29 @@ def test_safe_summary_contains_only_declared_diagnostics(tmp_path: Path) -> None
         "nvidia_max_concurrency",
         "web_host",
         "web_port",
+        "computer_access_enabled",
+        "computer_access_policy_path",
+        "memory_retrieval_enabled",
+        "voice_always_listening_enabled",
+        "voice_acoustic_always_listening_enabled",
+        "voice_sample_rate_hz",
+        "voice_max_capture_seconds",
+        "voice_stt_model",
+        "voice_stt_language",
+        "voice_stt_cpu_threads",
+        "voice_stt_timeout_seconds",
+        "voice_assistant_timeout_seconds",
+        "voice_tts_timeout_seconds",
+        "voice_barge_in_enabled",
     }
+
+
+def test_phase_three_computer_access_is_disabled_by_default(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path, _env_file=None)
+
+    assert settings.computer_access_enabled is False
+    assert settings.computer_access_policy_path == tmp_path / "computer-access.json"
+    assert settings.computer_controlled_root == tmp_path / "controlled-files"
 
 
 def test_cloud_credentials_require_free_tier_and_data_terms_confirmation(tmp_path: Path) -> None:
@@ -137,3 +162,10 @@ def test_zero_cost_https_and_loopback_settings_fail_closed(tmp_path: Path) -> No
         Settings(data_dir=tmp_path, web_host="0.0.0.0", _env_file=None)
     with pytest.raises(ValidationError, match="HTTPS"):
         Settings(data_dir=tmp_path, groq_base_url="http://example.test", _env_file=None)
+
+
+def test_phase_two_always_listening_is_hard_disabled(tmp_path: Path) -> None:
+    with pytest.raises(ValidationError):
+        Settings(data_dir=tmp_path, voice_always_listening_enabled=True, _env_file=None)
+    with pytest.raises(ValidationError):
+        Settings(data_dir=tmp_path, voice_acoustic_always_listening_enabled=True, _env_file=None)

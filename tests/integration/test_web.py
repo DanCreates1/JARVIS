@@ -19,7 +19,14 @@ from jarvis.core import (
     RuntimeStreamFrame,
     SensitivityClass,
 )
-from jarvis.memory import SQLiteConversationStore
+from jarvis.memory import (
+    MemoryCategory,
+    MemoryManager,
+    ProvenanceSource,
+    SQLiteConversationStore,
+    SQLiteMemoryStore,
+    untrusted_provenance,
+)
 from jarvis.web import create_app
 
 
@@ -137,3 +144,101 @@ def test_loopback_web_chat_stream_memory_deletion_and_security_headers(tmp_path:
     service = created["service"]
     assert isinstance(service, FakeService)
     assert service.requests[0].requested_model_role is ModelRole.FAST
+
+
+def test_phase4_web_memory_inspection_confirmation_correction_and_deletion(
+    tmp_path: Path,
+) -> None:
+    settings = Settings(data_dir=tmp_path, _env_file=None)
+    created: dict[str, object] = {}
+    host_id = "host-web-memory"
+
+    async def runtime_factory(_settings: Settings) -> RuntimeComponents:
+        store = SQLiteConversationStore(tmp_path / "phase4-web.db")
+        memory_store = SQLiteMemoryStore(tmp_path / "phase4-web.db")
+        await store.initialize()
+        await memory_store.initialize()
+        conversation = await store.create_conversation()
+        candidate = await memory_store.propose(
+            host_id=host_id,
+            category=MemoryCategory.PROFILE,
+            key="profile.web-candidate",
+            content="Synthetic browser candidate",
+            confidence=0.9,
+            provenance=untrusted_provenance(
+                source_type=ProvenanceSource.MESSAGE,
+                source_id="web-message",
+                source_label="synthetic browser message",
+                conversation_id=conversation.id,
+                message_id="web-message",
+                source_content="Synthetic browser candidate",
+            ),
+        )
+        components = RuntimeComponents(
+            settings=settings,
+            store=store,
+            provider=FakeRouter(),  # type: ignore[arg-type]
+            service=FakeService(),  # type: ignore[arg-type]
+            memory_store=memory_store,
+            memory=MemoryManager(memory_store, host_id=host_id),
+            memory_host_id=host_id,
+        )
+        created.update(candidate=candidate, conversation=conversation)
+        return components
+
+    app = create_app(settings, runtime_factory=runtime_factory)
+    with TestClient(app) as client:
+        committed = client.post(
+            "/api/memories",
+            json={
+                "category": "profile",
+                "content": "Synthetic browser profile",
+                "key": "profile.browser",
+                "provenance": "explicit browser fixture",
+            },
+        )
+        assert committed.status_code == 201
+        committed_item = committed.json()
+        assert committed_item["state"] == "committed"
+        assert client.get("/api/memories").json()[0]["host_id"] == host_id
+        search = client.get("/api/memory/search", params={"query": "browser profile"})
+        assert search.status_code == 200
+        assert search.json()[0]["item"]["id"] == committed_item["id"]
+
+        correction = client.post(
+            f"/api/memory/{committed_item['id']}/correct",
+            json={
+                "expected_version": committed_item["version"],
+                "content": "Corrected synthetic browser profile",
+            },
+        )
+        assert correction.status_code == 200
+        assert correction.json()["supersedes_id"] == committed_item["id"]
+        assert (
+            client.post(
+                f"/api/memory/{committed_item['id']}/correct",
+                json={"expected_version": 1, "content": "stale"},
+            ).status_code
+            == 409
+        )
+
+        candidate = created["candidate"]
+        promoted = client.post(
+            f"/api/memory/candidates/{candidate.id}/promote",  # type: ignore[union-attr]
+            json={
+                "expected_version": candidate.version,  # type: ignore[union-attr]
+                "expected_content_sha256": candidate.content_sha256,  # type: ignore[union-attr]
+            },
+        )
+        assert promoted.status_code == 200
+        assert promoted.json()["state"] == "committed"
+
+        corrected_id = correction.json()["id"]
+        assert client.delete(f"/api/memories/{corrected_id}").json() == {"deleted": True}
+        assert client.delete(f"/api/memories/{corrected_id}").status_code == 404
+        conversation = created["conversation"]
+        assert client.delete(f"/api/conversations/{conversation.id}").json() == {  # type: ignore[union-attr]
+            "deleted": True
+        }
+
+    assert client.app.state.runtime.memory_store._connection is None

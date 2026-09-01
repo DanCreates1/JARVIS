@@ -10,7 +10,18 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
-from jarvis.core import ToolDefinition, ToolResult, ToolRisk
+from jarvis.core import (
+    ApprovalRule,
+    PermissionLevel,
+    SensitivityClass,
+    ToolConcurrency,
+    ToolDefinition,
+    ToolIdempotency,
+    ToolResult,
+    ToolRetryPolicy,
+    ToolRisk,
+    ToolSideEffect,
+)
 
 
 class SystemStatusArguments(BaseModel):
@@ -22,9 +33,25 @@ class SystemStatusTool:
         self._probe_path = probe_path.resolve()
         self._definition = ToolDefinition(
             name="get_system_status",
+            version="1",
             description="Read bounded operating-system, Python, and storage capacity information.",
             input_schema=SystemStatusArguments.model_json_schema(),
+            permission_level=PermissionLevel.LEVEL_0,
+            approval_rule=ApprovalRule.NONE,
             risk=ToolRisk.READ_ONLY,
+            side_effect=ToolSideEffect.NONE,
+            sensitivity=SensitivityClass.PRIVATE,
+            required_capabilities=("system.status.read",),
+            timeout_seconds=2,
+            max_result_bytes=8_192,
+            max_result_items=8,
+            idempotency=ToolIdempotency.SIDE_EFFECT_FREE,
+            retry_policy=ToolRetryPolicy.TRANSIENT_ONLY,
+            concurrency=ToolConcurrency.PARALLEL,
+            postcondition="Result contains bounded OS, Python, CPU, and storage metadata.",
+            recovery=(
+                "No side effect occurs; restore access to the configured probe path and retry."
+            ),
         )
 
     @property

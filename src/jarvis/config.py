@@ -74,10 +74,34 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     web_host: str = "127.0.0.1"
     web_port: int = Field(default=8765, ge=1, le=65535)
+    computer_access_enabled: bool = False
+    memory_retrieval_enabled: bool = True
+    voice_always_listening_enabled: Literal[False] = False
+    voice_acoustic_always_listening_enabled: Literal[False] = False
+    voice_sample_rate_hz: Literal[16_000] = 16_000
+    voice_frame_samples: Literal[512] = 512
+    voice_max_capture_seconds: int = Field(default=30, ge=1, le=120)
+    voice_stt_model: str = "base.en"
+    voice_stt_language: str = "en"
+    voice_stt_cpu_threads: int = Field(default=4, ge=1, le=12)
+    voice_stt_timeout_seconds: float = Field(default=90, gt=0, le=300)
+    voice_assistant_timeout_seconds: float = Field(default=120, gt=0, le=600)
+    voice_tts_timeout_seconds: float = Field(default=30, gt=0, le=120)
+    voice_barge_in_enabled: bool = True
+    voice_wake_model_path: Path | None = None
+    voice_wake_word: str = "hey_jarvis"
+    voice_wake_threshold: float = Field(default=0.5, gt=0, le=1)
 
     @field_validator("data_dir", mode="before")
     @classmethod
     def expand_data_dir(cls, value: object) -> object:
+        if isinstance(value, (str, Path)):
+            return Path(value).expanduser()
+        return value
+
+    @field_validator("voice_wake_model_path", mode="before")
+    @classmethod
+    def expand_voice_wake_model_path(cls, value: object) -> object:
         if isinstance(value, (str, Path)):
             return Path(value).expanduser()
         return value
@@ -147,6 +171,26 @@ class Settings(BaseSettings):
         return self.data_dir / self.database_filename
 
     @property
+    def voice_settings_path(self) -> Path:
+        return self.data_dir / "voice-settings.json"
+
+    @property
+    def computer_access_policy_path(self) -> Path:
+        return self.data_dir / "computer-access.json"
+
+    @property
+    def computer_controlled_root(self) -> Path:
+        return self.data_dir / "controlled-files"
+
+    @property
+    def voice_model_dir(self) -> Path:
+        return self.data_dir / "models" / "speech-to-text"
+
+    @property
+    def voice_wake_model_dir(self) -> Path:
+        return self.data_dir / "models" / "wake-word"
+
+    @property
     def ollama_chat_url(self) -> str:
         return f"{str(self.ollama_base_url).rstrip('/')}/api/chat"
 
@@ -192,4 +236,20 @@ class Settings(BaseSettings):
             "max_tool_iterations": self.max_tool_iterations,
             "web_host": self.web_host,
             "web_port": self.web_port,
+            "computer_access_enabled": self.computer_access_enabled,
+            "memory_retrieval_enabled": self.memory_retrieval_enabled,
+            "computer_access_policy_path": str(self.computer_access_policy_path),
+            "voice_always_listening_enabled": self.voice_always_listening_enabled,
+            "voice_acoustic_always_listening_enabled": (
+                self.voice_acoustic_always_listening_enabled
+            ),
+            "voice_sample_rate_hz": self.voice_sample_rate_hz,
+            "voice_max_capture_seconds": self.voice_max_capture_seconds,
+            "voice_stt_model": self.voice_stt_model,
+            "voice_stt_language": self.voice_stt_language,
+            "voice_stt_cpu_threads": self.voice_stt_cpu_threads,
+            "voice_stt_timeout_seconds": self.voice_stt_timeout_seconds,
+            "voice_assistant_timeout_seconds": self.voice_assistant_timeout_seconds,
+            "voice_tts_timeout_seconds": self.voice_tts_timeout_seconds,
+            "voice_barge_in_enabled": self.voice_barge_in_enabled,
         }

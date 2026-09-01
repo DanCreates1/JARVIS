@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from typing import Annotated, Any
 
 from fastapi import FastAPI, HTTPException, Path, Request
@@ -13,7 +14,16 @@ from pydantic import BaseModel, ConfigDict, Field
 from jarvis.bootstrap import RuntimeComponents, build_runtime
 from jarvis.config import Settings
 from jarvis.core import AssistantRequest, ModelRole, ReasoningLevel
-from jarvis.memory import MemoryKind
+from jarvis.memory import (
+    ConfirmationInterface,
+    MemoryCategory,
+    MemoryConfirmation,
+    MemoryKind,
+    MemoryNotFoundError,
+    MemoryQuery,
+    MemoryStateError,
+    explicit_provenance,
+)
 
 RuntimeFactory = Callable[[Settings], Awaitable[RuntimeComponents]]
 
@@ -33,6 +43,23 @@ class MemoryInput(BaseModel):
     kind: MemoryKind = MemoryKind.NOTE
     content: str = Field(min_length=1, max_length=100_000)
     provenance: str = Field(default="explicit browser entry", min_length=1, max_length=2_000)
+    category: MemoryCategory | None = None
+    key: str | None = Field(default=None, min_length=1, max_length=500)
+
+
+class MemoryConfirmationInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int = Field(ge=1)
+    expected_content_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class MemoryCorrectionInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int = Field(ge=1)
+    content: str = Field(min_length=1, max_length=100_000)
+    key: str | None = Field(default=None, min_length=1, max_length=500)
 
 
 def create_app(
@@ -100,33 +127,143 @@ def create_app(
         request: Request,
         conversation_id: Annotated[str, Path(min_length=1, max_length=200)],
     ) -> dict[str, bool]:
-        deleted = await _runtime(request).store.delete_conversation(conversation_id)
+        runtime = _runtime(request)
+        if runtime.memory_store is not None and runtime.memory_host_id is not None:
+            await runtime.memory_store.delete_by_conversation(
+                host_id=runtime.memory_host_id,
+                conversation_id=conversation_id,
+            )
+        deleted = await runtime.store.delete_conversation(conversation_id)
         if not deleted:
             raise HTTPException(status_code=404, detail="Conversation not found")
         return {"deleted": True}
 
     @app.get("/api/memories")
     async def list_memories(request: Request, limit: int = 100) -> list[dict[str, object]]:
-        records = await _runtime(request).store.list_memories(limit=limit)
-        return [record.model_dump(mode="json") for record in records]
+        runtime = _runtime(request)
+        if runtime.memory_store is None or runtime.memory_host_id is None:
+            legacy_records = await runtime.store.list_memories(limit=limit)
+            return [record.model_dump(mode="json") for record in legacy_records]
+        phase4_records = await runtime.memory_store.list(
+            host_id=runtime.memory_host_id,
+            limit=limit,
+        )
+        return [record.model_dump(mode="json") for record in phase4_records]
 
     @app.post("/api/memories", status_code=201)
     async def create_memory(payload: MemoryInput, request: Request) -> dict[str, object]:
-        record = await _runtime(request).store.create_memory(
-            kind=payload.kind,
-            content=payload.content,
-            provenance=payload.provenance,
+        runtime = _runtime(request)
+        if runtime.memory_store is None or runtime.memory_host_id is None:
+            legacy_record = await runtime.store.create_memory(
+                kind=payload.kind,
+                content=payload.content,
+                provenance=payload.provenance,
+            )
+            return legacy_record.model_dump(mode="json")
+        category = (
+            payload.category
+            or {
+                MemoryKind.NOTE: MemoryCategory.SEMANTIC,
+                MemoryKind.PROFILE: MemoryCategory.PROFILE,
+                MemoryKind.TASK: MemoryCategory.TASK,
+            }[payload.kind]
         )
-        return record.model_dump(mode="json")
+        phase4_record = await runtime.memory_store.remember(
+            host_id=runtime.memory_host_id,
+            category=category,
+            content=payload.content,
+            key=payload.key,
+            provenance=explicit_provenance(
+                source_id=f"local-web:{datetime.now(UTC).isoformat(timespec='microseconds')}",
+                source_label=payload.provenance,
+            ),
+        )
+        return phase4_record.model_dump(mode="json")
+
+    @app.get("/api/memory/search")
+    async def search_memory(
+        request: Request,
+        query: str,
+        limit: int = 8,
+    ) -> list[dict[str, object]]:
+        runtime = _runtime(request)
+        if runtime.memory_store is None or runtime.memory_host_id is None:
+            raise HTTPException(status_code=503, detail="Phase 4 memory is unavailable")
+        hits = await runtime.memory_store.search(
+            MemoryQuery(host_id=runtime.memory_host_id, text=query, limit=limit)
+        )
+        return [hit.model_dump(mode="json") for hit in hits]
+
+    @app.post("/api/memory/candidates/{memory_id}/promote")
+    async def promote_memory_candidate(
+        payload: MemoryConfirmationInput,
+        request: Request,
+        memory_id: Annotated[str, Path(min_length=1, max_length=200)],
+    ) -> dict[str, object]:
+        runtime = _runtime(request)
+        if runtime.memory_store is None or runtime.memory_host_id is None:
+            raise HTTPException(status_code=503, detail="Phase 4 memory is unavailable")
+        try:
+            item = await runtime.memory_store.promote(
+                MemoryConfirmation(
+                    host_id=runtime.memory_host_id,
+                    interface=ConfirmationInterface.LOCAL_WEB,
+                    candidate_id=memory_id,
+                    expected_version=payload.expected_version,
+                    expected_content_sha256=payload.expected_content_sha256,
+                    confirmed_at=datetime.now(UTC),
+                )
+            )
+        except (MemoryNotFoundError, MemoryStateError):
+            raise HTTPException(status_code=409, detail="Candidate is missing or stale") from None
+        return item.model_dump(mode="json")
+
+    @app.post("/api/memory/{memory_id}/correct")
+    async def correct_memory(
+        payload: MemoryCorrectionInput,
+        request: Request,
+        memory_id: Annotated[str, Path(min_length=1, max_length=200)],
+    ) -> dict[str, object]:
+        runtime = _runtime(request)
+        if runtime.memory_store is None or runtime.memory_host_id is None:
+            raise HTTPException(status_code=503, detail="Phase 4 memory is unavailable")
+        try:
+            item = await runtime.memory_store.correct(
+                host_id=runtime.memory_host_id,
+                memory_id=memory_id,
+                expected_version=payload.expected_version,
+                content=payload.content,
+                key=payload.key,
+                provenance=explicit_provenance(
+                    source_id=(
+                        "local-web-correction:"
+                        + datetime.now(UTC).isoformat(timespec="microseconds")
+                    ),
+                    source_label="explicit local browser correction",
+                ),
+            )
+        except (MemoryNotFoundError, MemoryStateError):
+            raise HTTPException(status_code=409, detail="Memory is missing or stale") from None
+        return item.model_dump(mode="json")
 
     @app.delete("/api/memories/{memory_id}")
     async def delete_memory(
         request: Request,
         memory_id: Annotated[str, Path(min_length=1, max_length=200)],
     ) -> dict[str, bool]:
-        deleted = await _runtime(request).store.delete_memory(memory_id)
-        if not deleted:
-            raise HTTPException(status_code=404, detail="Memory not found")
+        runtime = _runtime(request)
+        if runtime.memory_store is None or runtime.memory_host_id is None:
+            deleted = await runtime.store.delete_memory(memory_id)
+            if not deleted:
+                raise HTTPException(status_code=404, detail="Memory not found")
+            return {"deleted": True}
+        try:
+            await runtime.memory_store.delete(
+                host_id=runtime.memory_host_id,
+                memory_id=memory_id,
+            )
+        except MemoryNotFoundError:
+            raise HTTPException(status_code=404, detail="Memory not found") from None
         return {"deleted": True}
 
     @app.get("/api/audit")

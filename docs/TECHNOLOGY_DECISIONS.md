@@ -24,10 +24,10 @@ These are architectural defaults, not permanent vendor commitments. Revisit a de
 | Primary data store | SQLite WAL + migrations | PostgreSQL, document DB | One host/user and simple backups; already adopted |
 | Text retrieval | SQLite FTS5 | Elasticsearch, hosted search | Built in, sufficient for early corpus |
 | Vector retrieval | Defer; small in-process scoring then optional extension | Dedicated vector DB, pgvector | Require measured retrieval benefit first |
-| STT | faster-whisper candidate | whisper.cpp, cloud STT | Python/CTranslate2 integration, quantization and VAD support |
-| VAD | Silero VAD ONNX/CPU | WebRTC VAD | Strong lightweight streaming candidate; benchmark noise/latency |
-| Wake word | openWakeWord ONNX | Porcupine, microWakeWord | Local Windows support and custom-model path; licensing review required |
-| TTS | Piper local CPU behind provider port | Cloud neural TTS, OS voices | Fast/offline; voice quality and GPL boundary require review |
+| STT | faster-whisper `base.en` CPU/int8 | whisper.cpp, cloud STT | Adopted in Phase 2; accurate and avoids 4 GB GPU contention |
+| VAD | Silero VAD on CPU | WebRTC VAD | Adopted in Phase 2 behind a provider port |
+| Wake word | openWakeWord ONNX foundation; always-listening disabled | Porcupine, microWakeWord | Local Windows support; pretrained model is non-commercially licensed |
+| TTS | Windows SAPI behind provider port | Piper, cloud neural TTS | Local, built-in, cancellable baseline without bundling GPL runtime |
 | Vision/gesture | MediaPipe Hand Landmarker + OpenCV capture | YOLO/custom classifier | Fast landmarks; temporal classifier remains project-owned |
 | Remote access | Tailscale/private network + TLS + app authentication | Public reverse proxy, custom VPN | Default-deny device connectivity; avoids direct public exposure |
 | Web/control panel | Responsive web UI/PWA after local API | Native desktop/mobile first | One client across laptop and phone |
@@ -180,10 +180,19 @@ Long contexts increase KV memory, latency, distraction, and privacy exposure. Re
 **Replaceable later?**  
 Yes. Hybrid scoring/index adapters can evolve under a golden test set.
 
+**Phase 4 measured decision (2026-08-29)**
+Keep FTS5 only. On the target Windows host, 25 golden queries produced 0.9091 precision, 1.0 recall,
+1.0 accepted-hit rate, and 0 false recall. Five hundred warm queries over 2,500 records measured
+1.152 ms p50 and 35.023 ms p95; checkpointed growth was 2,154.496 bytes/record. All fixed targets
+passed, leaving no recall gap that could justify an embedding dependency. Adoption still requires
+at least five absolute recall points without precision, false-recall, latency, storage, privacy,
+backup, or deletion regression.
+
 ## TD-009 — faster-whisper STT, Silero VAD
 
 **Decision**  
-Use faster-whisper as first STT candidate and Silero VAD ONNX on CPU. Begin push-to-talk, then streaming endpointing.
+Use faster-whisper `base.en` with CTranslate2 CPU/int8 and Silero VAD on CPU for the Phase 2
+push-to-talk implementation.
 
 **Reason**  
 faster-whisper supports quantized CTranslate2 inference and established Whisper accuracy; Silero is a small streaming VAD with sub-frame CPU cost. CPU-first speech avoids fighting the 4B LLM for 4 GB VRAM.
@@ -200,10 +209,14 @@ Yes. Separate STT and VAD ports with recorded-audio contract tests.
 ## TD-010 — openWakeWord after push-to-talk
 
 **Decision**  
-Evaluate openWakeWord ONNX on Windows only after push-to-talk is stable.
+Use openWakeWord ONNX as an evaluated detector foundation after push-to-talk is stable, but keep
+continuous wake-word capture hard-disabled.
 
 **Reason**  
-It is local, designed for streaming frames, and supports custom wake-word models. Always-listening introduces privacy and false-activation risk that must not block first voice value.
+It is local, designed for streaming frames, and supports custom wake-word models. Its bundled
+pretrained model is CC BY-NC-SA 4.0, so it is downloaded explicitly and not redistributed here.
+Always-listening adds privacy/indicator risk even when the fixed false-trigger corpus passes.
+See the [openWakeWord model licensing note](https://github.com/dscripka/openWakeWord#license).
 
 **Alternatives considered / why rejected**
 
@@ -214,22 +227,28 @@ It is local, designed for streaming frames, and supports custom wake-word models
 **Replaceable later?**  
 Yes. Wake-word provider owns scores/events. Review pretrained model licenses before distribution.
 
-## TD-011 — Piper as first local TTS candidate
+## TD-011 — Windows SAPI as Phase 2 local TTS
 
 **Decision**  
-Evaluate current Open Home Foundation Piper package on CPU behind `TTSProvider`, with phrase streaming and cancel support.
+Use Windows SAPI on CPU behind `TTSProvider`, with phrase streaming, bounded in-memory WAV output,
+and subprocess cancellation. Do not bundle Piper in Phase 2.
 
 **Reason**  
-Fast, local, and suitable for low-resource synthesis. It keeps GPU free.
+SAPI is present on the target Windows host, stays local, keeps GPU free, and avoids distributing the
+current GPL-3.0-or-later Piper runtime before packaging/compliance requirements exist. Untrusted TTS
+text is passed through stdin to a fixed encoded script, never interpolated into shell source.
+See the maintained [Piper license](https://github.com/OHF-Voice/piper1-gpl/blob/main/LICENSE.md).
 
 **Alternatives considered / why rejected**
 
-- Windows system voices: easy baseline but usually lower personality/quality.
+- Piper: potentially better voice quality, but current runtime licensing and voice-model licensing
+  need a deliberate distribution design.
 - Cloud neural TTS/realtime audio: higher quality, but privacy, network, cost, and vendor dependence.
 - Large neural voice cloning: too heavy and raises consent/licensing concerns for V1.
 
 **Replaceable later?**  
-Yes. Review Piper GPL integration and each voice model license before packaging; process separation may simplify compliance and failure isolation.
+Yes. `TTSProvider` isolates the choice. Revisit Piper or another engine only after measuring quality,
+latency, packaging, and each voice model's license.
 
 ## TD-012 — Deterministic typed tools, no arbitrary shell
 
@@ -251,7 +270,9 @@ Tool implementations can change. The security invariant cannot.
 ## TD-013 — Separate permission engine and privilege broker
 
 **Decision**  
-Core runs unprivileged. Policy creates exact, expiring grants; a minimal broker performs only allowlisted privileged actions using OS controls.
+Core runs unprivileged. Policy creates exact, expiring grants; a minimal fixed broker performs only
+allowlisted normal-user actions using OS controls. A separate authenticated service is required
+before any administrative/Level 4 action.
 
 **Reason**  
 Limits blast radius and prevents a prompt/model compromise from inheriting administrator authority.
@@ -264,6 +285,11 @@ Limits blast radius and prevents a prompt/model compromise from inheriting admin
 
 **Replaceable later?**  
 Broker transport/OS implementation may change; grant semantics and fail-closed behavior remain.
+
+Phase 3 implements the normal-user broker in process because it has no extra OS privilege. Model
+adapters remain inert, approval is a separate authenticated local CLI command, and durable one-use
+authority is revalidated at dispatch. This is an authorization boundary, not a Windows security
+principal boundary.
 
 ## TD-014 — Durable state-machine planning, few agents
 
@@ -364,6 +390,32 @@ Meta’s Wearables Device Access Toolkit now enables third-party work, but acces
 
 **Replaceable later?**  
 Yes. Wearable adapters are optional device clients.
+
+## TD-020 — Native bounded Windows adapters with exact host enrollment
+
+**Decision**
+
+Use narrow Win32/Core Audio adapters for enrolled applications, endpoint volume, media input,
+clipboard, controlled-root file identity/move, printer discovery, and `TEXT` spooling. Bind exact
+paths/file IDs/SHA-256/arguments/aliases in host policy; use no general UI automation or shell.
+
+**Reason**
+
+Native APIs provide smaller input surfaces and stronger postcondition evidence than generated
+commands or screen-coordinate automation. Exact enrollment prevents the model from choosing an
+executable, URL, printer command language, or filesystem root.
+
+**Alternatives considered / why rejected**
+
+- Model-generated PowerShell or command lines: injection and arbitrary authority.
+- RAW printer passthrough: printer-language injection and device-specific behavior.
+- Generic desktop automation: brittle targets, unclear recipients, and weak verification.
+- Always-elevated helper: unnecessary for the shipped normal-user actions.
+
+**Replaceable later?**
+
+Yes. Each adapter sits behind the same typed action definition, exact grant, receipt, and
+postcondition contracts. Security semantics remain.
 
 ## Review triggers
 

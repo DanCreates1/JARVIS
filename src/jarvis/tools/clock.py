@@ -8,7 +8,18 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from jarvis.core import ToolDefinition, ToolResult
+from jarvis.core import (
+    ApprovalRule,
+    PermissionLevel,
+    SensitivityClass,
+    ToolConcurrency,
+    ToolDefinition,
+    ToolIdempotency,
+    ToolResult,
+    ToolRetryPolicy,
+    ToolRisk,
+    ToolSideEffect,
+)
 
 Now = Callable[[tzinfo | None], datetime]
 
@@ -44,11 +55,26 @@ class CurrentTimeTool:
         self._now = now
         self._definition = ToolDefinition(
             name="get_current_time",
+            version="1",
             description=(
                 "Return the current date and time for the local system, UTC, or a named "
                 "IANA timezone. This tool is read-only."
             ),
             input_schema=CurrentTimeArguments.model_json_schema(),
+            permission_level=PermissionLevel.LEVEL_0,
+            approval_rule=ApprovalRule.NONE,
+            risk=ToolRisk.READ_ONLY,
+            side_effect=ToolSideEffect.NONE,
+            sensitivity=SensitivityClass.PUBLIC,
+            required_capabilities=("clock.read",),
+            timeout_seconds=1,
+            max_result_bytes=4_096,
+            max_result_items=3,
+            idempotency=ToolIdempotency.SIDE_EFFECT_FREE,
+            retry_policy=ToolRetryPolicy.TRANSIENT_ONLY,
+            concurrency=ToolConcurrency.PARALLEL,
+            postcondition="Result contains a timezone-aware ISO-8601 timestamp.",
+            recovery="No side effect occurs; correct the timezone and retry.",
         )
 
     @property

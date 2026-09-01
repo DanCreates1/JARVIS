@@ -1,7 +1,8 @@
 # Hands-Free Control Plan
 
 Updated: 2026-08-22  
-Status: planned; not implemented
+Status: Phase 2 double-clap detector and Phase 3 closed typed proposal mappings implemented;
+continuous audio/camera listeners and gesture recognition remain disabled/unimplemented
 
 ## Goal
 
@@ -11,17 +12,17 @@ Phase 3 permission policy remains the only path from intent to action.
 
 ## Initial controls
 
-| Input | Default action | Risk class | Notes |
+| Input contract | Phase 3 typed result | Current state | Default |
 | --- | --- | --- | --- |
-| Double clap | Open configured main-app group: ChatGPT, Opera, and user-selected apps | Reversible | Local clap detector, cooldown, configurable time window |
-| Clockwise finger roll | Raise volume in 5% steps | Reversible | Continuous gesture with rate limit and on-screen level |
-| Counter-clockwise finger roll | Lower volume in 5% steps | Reversible | Stops immediately when hand confidence drops |
-| Pinch and hold | Mute/unmute | Reversible | Require minimum hold duration to prevent accidental toggles |
-| Open palm | Play/pause media | Reversible | Optional per-app profile |
-| Closed fist | Cancel current JARVIS output or pending low-risk action | Read-only/reversible | Universal emergency gesture |
-| Swipe left/right | Previous/next track or browser tab | Reversible | User chooses mapping; never both simultaneously |
-| Two-finger point left/right | Switch virtual desktop or app | Reversible | Disabled by default until calibrated |
-| Thumbs up/down | Confirm/reject a displayed low-risk proposal | Approval signal | Never authorizes sensitive or destructive work |
+| Double clap | `launch_app_group` for only `hands_free_app_group` | Phase 2 detector and synthetic gate tests exist; continuous listening remains off | Existing configured app-group compatibility |
+| Clockwise/counter-clockwise gesture | `set_master_volume` at current rounded percentage plus/minus exactly 5, clamped to 0-100 | Mapping verified with injected read-only volume state; no gesture detector | Off |
+| Open-palm gesture | `control_media` with exact `play_pause` operation | Mapping verified synthetically; no gesture detector | Off |
+| Swipe-left/right gesture | `control_media` with exact `previous_track`/`next_track` operation | Mapping verified synthetically; browser-tab navigation is deferred | Off |
+| Cancel gesture | Session-scoped no-authority cancel directive | Mapping and cross-session denial verified synthetically; no gesture detector | Off |
+
+Mute, browser-tab navigation, desktop/app switching, and gesture approval are not Phase 3
+mappings. Detector input has no action-ID, path, operation, or numeric-delta field. Every emitted
+action proposal remains Level 1 and represents neither approval nor execution authority.
 
 ## More ideas
 
@@ -39,12 +40,22 @@ Phase 3 permission policy remains the only path from intent to action.
 1. Phase 2 adds local clap/event detection through the audio pipeline.
 2. Phase 7 adds local hand landmarks, temporal gesture recognition, calibration, confidence,
    debounce, and camera-state enforcement.
-3. Both emit a provider-neutral `HandsFreeIntent` such as `launch_app_group`, `volume_delta`,
-   `media_toggle`, or `cancel`.
+3. Detector adapters may emit only the closed typed values `launch_app_group`, `volume_up`,
+   `volume_down`, `media_play_pause`, `media_previous_track`, `media_next_track`, or `cancel`.
 4. Phase 3 resolves that intent through an allowlisted action mapping and permission broker.
 5. Execution emits an audit record and verifies the postcondition when possible.
 
 No gesture becomes shell text, executable arguments, a file path, or model-generated code.
+
+Phase 2 now provides a local adaptive double-clap detector and emits only typed
+`launch_app_group` intent data. The fixed corpus achieved 20/20 positive detections and zero false
+accepts in one simulated hour split across music, TV-like audio, typing, and room noise. This does
+not grant action authority: continuous acoustic listening remains hard-disabled. Phase 3 applies
+the same actor/source-session, freshness, confidence, replay, rate, and Level 1 checks to its closed
+proposal mappings. The dormant gesture mappings are covered with synthetic intent tests only and
+are absent unless individually enabled in host policy. A production consumer calls only
+`ActionCoordinator.propose` with `ApprovalSource.HANDS_FREE`; trusted review and one-use broker
+execution remain separate.
 
 ## Safety requirements
 
@@ -53,15 +64,16 @@ No gesture becomes shell text, executable arguments, a file path, or model-gener
 - Per-gesture confidence threshold, debounce window, cooldown, and rate limit.
 - Calibration for the user, camera position, lighting, clap volume, and background noise.
 - Configurable allowlist for launchable apps and app groups.
-- Destructive, financial, communication, credential, privacy, and system-power actions require
-  trusted UI/voice confirmation; gestures alone cannot approve them.
+- Every side effect requires the Phase 3 policy. Acoustic/gesture input cannot approve any action;
+  destructive, financial, communication, credential, privacy, admin, and system-power mappings are
+  absent.
 - Unknown, ambiguous, or conflicting signals do nothing.
 - Camera-off and microphone-off states are enforced technically, not just shown in UI.
 - Thirty-minute false-trigger soak test before enabling always-on detection.
 
 ## Suggested implementation order
 
-1. Double-clap detector controlling one allowlisted app group.
+1. Double-clap detector proposing one allowlisted app group through the Phase 3 gate.
 2. Universal closed-fist cancel gesture.
 3. Open-palm media play/pause.
 4. Finger-roll volume control with 5% bounded steps.

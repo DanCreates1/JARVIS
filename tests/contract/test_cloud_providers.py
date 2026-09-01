@@ -6,14 +6,22 @@ import httpx
 import pytest
 
 from jarvis.core import (
+    ApprovalRule,
     Message,
     MessageRole,
     ModelCapability,
     ModelLifecycle,
     ModelProfile,
     ModelRole,
+    PermissionLevel,
     ReasoningLevel,
+    SensitivityClass,
+    ToolConcurrency,
     ToolDefinition,
+    ToolIdempotency,
+    ToolRetryPolicy,
+    ToolRisk,
+    ToolSideEffect,
 )
 from jarvis.llm import (
     GeminiChatProvider,
@@ -48,8 +56,23 @@ def tools() -> list[ToolDefinition]:
     return [
         ToolDefinition(
             name="weather",
+            version="1",
             description="Get public weather.",
             input_schema={"type": "object", "properties": {"city": {"type": "string"}}},
+            permission_level=PermissionLevel.LEVEL_0,
+            approval_rule=ApprovalRule.NONE,
+            risk=ToolRisk.READ_ONLY,
+            side_effect=ToolSideEffect.NONE,
+            sensitivity=SensitivityClass.PUBLIC,
+            required_capabilities=("weather.read",),
+            timeout_seconds=5,
+            max_result_bytes=8_192,
+            max_result_items=1,
+            idempotency=ToolIdempotency.SIDE_EFFECT_FREE,
+            retry_policy=ToolRetryPolicy.TRANSIENT_ONLY,
+            concurrency=ToolConcurrency.PARALLEL,
+            postcondition="A bounded public weather result is returned.",
+            recovery="No side effect occurs; retry a transient provider failure.",
         )
     ]
 

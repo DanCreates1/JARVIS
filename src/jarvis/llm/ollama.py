@@ -116,10 +116,10 @@ class OllamaChatProvider:
         reasoning_level: str = "none",
     ) -> ProviderResponse:
         """Return one complete assistant response from Ollama's ``/api/chat`` endpoint."""
-        del reasoning_level
         payload: dict[str, object] = {
             "model": self._model,
             "stream": False,
+            "think": reasoning_level != "none",
             "messages": [_message_payload(message) for message in messages],
         }
         if tools:

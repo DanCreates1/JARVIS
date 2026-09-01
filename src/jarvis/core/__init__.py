@@ -1,8 +1,18 @@
 """Public Phase 1 core API."""
 
-from .contracts import ChatProvider, ConversationStore, RoutedChatProvider, Tool, ToolPolicy
+from .contracts import (
+    ChatProvider,
+    ConversationStore,
+    MemoryContextPort,
+    RoutedChatProvider,
+    SensitivityClassifier,
+    Tool,
+    ToolPolicy,
+)
 from .models import (
+    ApprovalRule,
     AssistantRequest,
+    ContextProjection,
     Conversation,
     Message,
     MessageRole,
@@ -10,6 +20,7 @@ from .models import (
     ModelLifecycle,
     ModelProfile,
     ModelRole,
+    PermissionLevel,
     PolicyDecision,
     ProviderResponse,
     ProviderUsage,
@@ -24,24 +35,33 @@ from .models import (
     RuntimeStreamFrame,
     SensitivityClass,
     ToolCall,
+    ToolConcurrency,
     ToolDefinition,
+    ToolIdempotency,
     ToolResult,
+    ToolRetryPolicy,
     ToolRisk,
+    ToolSideEffect,
+    count_json_leaf_items,
 )
 from .runtime import AssistantService
 
 __all__ = [
+    "ApprovalRule",
     "AssistantRequest",
     "AssistantService",
     "ChatProvider",
+    "ContextProjection",
     "Conversation",
     "ConversationStore",
+    "MemoryContextPort",
     "Message",
     "MessageRole",
     "ModelCapability",
     "ModelLifecycle",
     "ModelProfile",
     "ModelRole",
+    "PermissionLevel",
     "PolicyDecision",
     "ProviderResponse",
     "ProviderUsage",
@@ -56,10 +76,16 @@ __all__ = [
     "RuntimeStatus",
     "RuntimeStreamFrame",
     "SensitivityClass",
+    "SensitivityClassifier",
     "Tool",
     "ToolCall",
+    "ToolConcurrency",
     "ToolDefinition",
+    "ToolIdempotency",
     "ToolPolicy",
     "ToolResult",
+    "ToolRetryPolicy",
     "ToolRisk",
+    "ToolSideEffect",
+    "count_json_leaf_items",
 ]

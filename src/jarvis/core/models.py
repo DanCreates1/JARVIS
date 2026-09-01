@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
+from enum import IntEnum, StrEnum
 from typing import Annotated, Self
 
 from pydantic import (
@@ -28,6 +28,47 @@ ToolName = Annotated[
         pattern=r"^[A-Za-z][A-Za-z0-9_.-]*$",
     ),
 ]
+ToolVersion = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True,
+        min_length=1,
+        max_length=32,
+        pattern=r"^[1-9][0-9]*(?:\.[0-9]+){0,2}$",
+    ),
+]
+CapabilityName = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True,
+        min_length=1,
+        max_length=100,
+        pattern=r"^[a-z][a-z0-9_.-]*$",
+    ),
+]
+
+
+def count_json_leaf_items(value: JsonValue | None, *, stop_after: int | None = None) -> int:
+    """Count recursive scalar leaves; containers/keys and null consume no item quota."""
+    if stop_after is not None and stop_after < 0:
+        raise ValueError("stop_after must be non-negative")
+    if value is None:
+        return 0
+    if isinstance(value, dict):
+        count = 0
+        for nested in value.values():
+            count += count_json_leaf_items(nested, stop_after=stop_after)
+            if stop_after is not None and count > stop_after:
+                return count
+        return count
+    if isinstance(value, list):
+        count = 0
+        for nested in value:
+            count += count_json_leaf_items(nested, stop_after=stop_after)
+            if stop_after is not None and count > stop_after:
+                return count
+        return count
+    return 1
 
 
 class CoreModel(BaseModel):
@@ -86,6 +127,54 @@ class ToolRisk(StrEnum):
     DESTRUCTIVE = "destructive"
 
 
+class PermissionLevel(IntEnum):
+    """Deterministic host-action risk levels; model confidence never changes these values."""
+
+    LEVEL_0 = 0
+    LEVEL_1 = 1
+    LEVEL_2 = 2
+    LEVEL_3 = 3
+    LEVEL_4 = 4
+
+
+class ApprovalRule(StrEnum):
+    """Trusted approval behavior required by a tool definition."""
+
+    NONE = "none"
+    EXPLICIT_ENABLEMENT = "explicit_enablement"
+    POLICY_OR_EXPLICIT = "policy_or_explicit"
+    EXACT_RECENT_AUTH = "exact_recent_auth"
+    STEP_UP = "step_up"
+    DISABLED = "disabled"
+
+
+class ToolSideEffect(StrEnum):
+    NONE = "none"
+    REVERSIBLE = "reversible"
+    EXTERNAL = "external"
+    IRREVERSIBLE = "irreversible"
+    ADMINISTRATIVE = "administrative"
+
+
+class ToolIdempotency(StrEnum):
+    SIDE_EFFECT_FREE = "side_effect_free"
+    IDEMPOTENT = "idempotent"
+    IDEMPOTENCY_KEY = "idempotency_key"
+    NON_IDEMPOTENT = "non_idempotent"
+
+
+class ToolRetryPolicy(StrEnum):
+    NEVER = "never"
+    TRANSIENT_ONLY = "transient_only"
+    RECONCILE_FIRST = "reconcile_first"
+
+
+class ToolConcurrency(StrEnum):
+    PARALLEL = "parallel"
+    SERIAL_PER_SESSION = "serial_per_session"
+    SERIAL_GLOBAL = "serial_global"
+
+
 class ModelProfile(CoreModel):
     role: ModelRole
     provider: Identifier
@@ -140,6 +229,10 @@ class Message(CoreModel):
     tool_calls: tuple[ToolCall, ...] = ()
     tool_call_id: Identifier | None = None
     tool_name: ToolName | None = None
+    context_sensitivity: SensitivityClass | None = None
+    context_source: Annotated[str, Field(min_length=1, max_length=100)] | None = None
+    disclosure_sensitivity: SensitivityClass | None = None
+    disclosure_source: Annotated[str, Field(min_length=1, max_length=100)] | None = None
 
     @model_validator(mode="after")
     def validate_role_shape(self) -> Self:
@@ -161,15 +254,139 @@ class Message(CoreModel):
                 raise ValueError("tool messages require tool_call_id and tool_name")
             if self.tool_calls:
                 raise ValueError("tool messages cannot request more tools")
+        if self.context_source is not None and self.role is not MessageRole.SYSTEM:
+            raise ValueError("only system context messages may carry a context source")
+        if self.context_sensitivity is not None and self.context_source is None:
+            raise ValueError("context sensitivity requires a named context source")
+        if (self.disclosure_sensitivity is None) != (self.disclosure_source is None):
+            raise ValueError("disclosure sensitivity and source must be set together")
         return self
+
+
+class ContextProjection(CoreModel):
+    """Bounded untrusted context supplied by a local retrieval adapter."""
+
+    content: Annotated[str, Field(min_length=1, max_length=20_000)]
+    sensitivity: SensitivityClass
+    source_ids: Annotated[tuple[Identifier, ...], Field(min_length=1, max_length=20)]
+    source: Annotated[str, Field(min_length=1, max_length=100)]
 
 
 class ToolDefinition(CoreModel):
     name: ToolName
+    version: ToolVersion
     description: Annotated[str, Field(min_length=1, max_length=2_000)]
     input_schema: dict[str, JsonValue]
-    risk: ToolRisk = ToolRisk.READ_ONLY
-    requires_approval: bool = False
+    permission_level: PermissionLevel
+    approval_rule: ApprovalRule
+    risk: ToolRisk
+    side_effect: ToolSideEffect
+    sensitivity: SensitivityClass
+    required_capabilities: Annotated[tuple[CapabilityName, ...], Field(min_length=1, max_length=32)]
+    timeout_seconds: Annotated[float, Field(gt=0, le=30)]
+    max_result_bytes: Annotated[int, Field(ge=1, le=100 * 1_024)]
+    max_result_items: Annotated[int, Field(ge=1, le=1_000)]
+    idempotency: ToolIdempotency
+    retry_policy: ToolRetryPolicy
+    concurrency: ToolConcurrency
+    postcondition: Annotated[str, Field(min_length=1, max_length=2_000)]
+    recovery: Annotated[str, Field(min_length=1, max_length=2_000)]
+
+    @field_validator("input_schema")
+    @classmethod
+    def require_object_input_schema(cls, value: dict[str, JsonValue]) -> dict[str, JsonValue]:
+        if value.get("type") != "object":
+            raise ValueError("tool input schema must describe an object")
+        return value
+
+    @field_validator("required_capabilities")
+    @classmethod
+    def require_distinct_capabilities(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        if len(value) != len(set(value)):
+            raise ValueError("required capabilities must be distinct")
+        return value
+
+    @model_validator(mode="after")
+    def validate_security_semantics(self) -> Self:
+        valid_shapes: dict[
+            PermissionLevel,
+            tuple[frozenset[ToolRisk], frozenset[ToolSideEffect], frozenset[ApprovalRule]],
+        ] = {
+            PermissionLevel.LEVEL_0: (
+                frozenset({ToolRisk.READ_ONLY}),
+                frozenset({ToolSideEffect.NONE}),
+                frozenset({ApprovalRule.NONE}),
+            ),
+            PermissionLevel.LEVEL_1: (
+                frozenset({ToolRisk.REVERSIBLE}),
+                frozenset({ToolSideEffect.REVERSIBLE}),
+                frozenset({ApprovalRule.EXPLICIT_ENABLEMENT}),
+            ),
+            PermissionLevel.LEVEL_2: (
+                frozenset({ToolRisk.REVERSIBLE}),
+                frozenset({ToolSideEffect.REVERSIBLE, ToolSideEffect.EXTERNAL}),
+                frozenset({ApprovalRule.POLICY_OR_EXPLICIT}),
+            ),
+            PermissionLevel.LEVEL_3: (
+                frozenset({ToolRisk.SENSITIVE, ToolRisk.DESTRUCTIVE}),
+                frozenset(
+                    {
+                        ToolSideEffect.NONE,
+                        ToolSideEffect.REVERSIBLE,
+                        ToolSideEffect.EXTERNAL,
+                        ToolSideEffect.IRREVERSIBLE,
+                    }
+                ),
+                frozenset({ApprovalRule.EXACT_RECENT_AUTH, ApprovalRule.DISABLED}),
+            ),
+            PermissionLevel.LEVEL_4: (
+                frozenset({ToolRisk.DESTRUCTIVE}),
+                frozenset({ToolSideEffect.IRREVERSIBLE, ToolSideEffect.ADMINISTRATIVE}),
+                frozenset({ApprovalRule.STEP_UP, ApprovalRule.DISABLED}),
+            ),
+        }
+        risks, side_effects, approval_rules = valid_shapes[self.permission_level]
+        if self.risk not in risks:
+            raise ValueError(
+                f"risk {self.risk.value!r} is invalid for permission level "
+                f"{int(self.permission_level)}"
+            )
+        if self.side_effect not in side_effects:
+            raise ValueError(
+                f"side effect {self.side_effect.value!r} is invalid for permission level "
+                f"{int(self.permission_level)}"
+            )
+        if self.approval_rule not in approval_rules:
+            raise ValueError(
+                f"approval rule {self.approval_rule.value!r} is invalid for permission level "
+                f"{int(self.permission_level)}"
+            )
+        if (
+            self.side_effect is ToolSideEffect.NONE
+            and self.idempotency is not ToolIdempotency.SIDE_EFFECT_FREE
+        ):
+            raise ValueError("tools without side effects must declare side-effect-free idempotency")
+        if (
+            self.side_effect is not ToolSideEffect.NONE
+            and self.idempotency is ToolIdempotency.SIDE_EFFECT_FREE
+        ):
+            raise ValueError("tools with side effects cannot declare side-effect-free idempotency")
+        if (
+            self.idempotency is ToolIdempotency.NON_IDEMPOTENT
+            and self.retry_policy is ToolRetryPolicy.TRANSIENT_ONLY
+        ):
+            raise ValueError("non-idempotent tools cannot retry without reconciliation")
+        if (
+            self.side_effect in {ToolSideEffect.IRREVERSIBLE, ToolSideEffect.ADMINISTRATIVE}
+            and self.retry_policy is ToolRetryPolicy.TRANSIENT_ONLY
+        ):
+            raise ValueError("irreversible or administrative tools cannot retry automatically")
+        return self
+
+    @property
+    def requires_approval(self) -> bool:
+        """Compatibility view for Phase 1 policy; richer policy uses ``approval_rule``."""
+        return self.approval_rule is not ApprovalRule.NONE
 
 
 class ProviderResponse(CoreModel):
@@ -206,11 +423,19 @@ class ToolResult(CoreModel):
 class PolicyDecision(CoreModel):
     allowed: bool
     reason: Annotated[str, Field(max_length=4_000)] | None = None
+    approval_required: bool = False
+    approval_id: Identifier | None = None
 
     @model_validator(mode="after")
-    def require_denial_reason(self) -> Self:
+    def validate_decision_shape(self) -> Self:
         if not self.allowed and not (self.reason and self.reason.strip()):
             raise ValueError("denied policy decisions require a reason")
+        if self.allowed and (self.approval_required or self.approval_id is not None):
+            raise ValueError("allowed policy decisions cannot require approval")
+        if self.approval_required and self.approval_id is None:
+            raise ValueError("approval-required decisions require an approval ID")
+        if not self.approval_required and self.approval_id is not None:
+            raise ValueError("approval IDs are valid only for approval-required decisions")
         return self
 
 
@@ -233,6 +458,7 @@ class AssistantRequest(CoreModel):
 class RuntimeStatus(StrEnum):
     COMPLETED = "completed"
     DENIED = "denied"
+    APPROVAL_REQUIRED = "approval_required"
     FAILED = "failed"
     LIMIT_REACHED = "limit_reached"
 
@@ -246,6 +472,10 @@ class RuntimeErrorCode(StrEnum):
     INVALID_TOOL_ARGUMENTS = "invalid_tool_arguments"
     POLICY_ERROR = "policy_error"
     TOOL_DENIED = "tool_denied"
+    APPROVAL_REQUIRED = "approval_required"
+    BROKER_REQUIRED = "broker_required"
+    TOOL_TIMEOUT = "tool_timeout"
+    TOOL_RESULT_LIMIT = "tool_result_limit"
     TOOL_ERROR = "tool_error"
     TOOL_ITERATION_LIMIT = "tool_iteration_limit"
 
@@ -255,6 +485,7 @@ class RuntimeErrorDetail(CoreModel):
     message: Annotated[str, Field(min_length=1, max_length=4_000)]
     tool_call_id: Identifier | None = None
     tool_name: ToolName | None = None
+    approval_id: Identifier | None = None
 
 
 class RuntimeEventType(StrEnum):
@@ -269,6 +500,7 @@ class RuntimeEventType(StrEnum):
     TOOL_VALIDATED = "tool_validated"
     TOOL_AUTHORIZED = "tool_authorized"
     TOOL_DENIED = "tool_denied"
+    TOOL_APPROVAL_REQUIRED = "tool_approval_required"
     TOOL_STARTED = "tool_started"
     TOOL_COMPLETED = "tool_completed"
     RUNTIME_COMPLETED = "runtime_completed"

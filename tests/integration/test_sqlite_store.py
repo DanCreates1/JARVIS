@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 import pytest
@@ -31,6 +32,8 @@ async def test_persists_conversation_and_bounded_recent_messages(tmp_path: Path)
             conversation_id=conversation.id,
             role=MessageRole.ASSISTANT,
             content="second",
+            disclosure_sensitivity=SensitivityClass.PRIVATE,
+            disclosure_source="assistant-turn",
         )
     )
     await store.append_message(
@@ -62,9 +65,11 @@ async def test_persists_conversation_and_bounded_recent_messages(tmp_path: Path)
     async with SQLiteConversationStore(database_path) as reopened:
         messages = await reopened.recent_messages(conversation.id, limit=10)
         assert [message.content for message in messages] == ["first", "second", "third"]
+        assert messages[1].disclosure_sensitivity is SensitivityClass.PRIVATE
+        assert messages[1].disclosure_source == "assistant-turn"
         assert await reopened.get_conversation(conversation.id) == conversation
 
-    with sqlite3.connect(database_path) as connection:
+    with closing(sqlite3.connect(database_path)) as connection:
         assert connection.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
         migrations = connection.execute(
             "SELECT version, name, applied_at FROM schema_migrations"

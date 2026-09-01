@@ -2,7 +2,32 @@
 
 Audit date: 2026-08-19  
 Hosted-model strategy verified: 2026-08-20
-Method: lightweight Windows CIM/PnP queries, installed-command checks, and Phase 1 local smoke benchmark
+Method: lightweight Windows CIM/PnP queries, installed-command checks, Phase 1/2 benchmarks, and
+Phase 3 read-only capability probes plus disposable controlled-root benchmark
+
+## Phase 1–4 revalidation update — 2026-08-31
+
+- Phase 1 deterministic: 20/20, p50/p95 6.204/6.691 ms.
+- Local `nemotron-3-nano:4b`: 20 verified-cold and 20 warm successes. Cold p50/p95
+  9,477.214/10,927.172 ms; warm p50/p95 2,344.215/4,078.548 ms. Both miss the fixed
+  1,500/3,000 ms targets. Installed artifact: 2,837,597,147 bytes, 3,973,556,832 parameters,
+  Q4_K_M, SHA-256 digest `6cc467f054393a55e98a74098abde0c762ffb6d1d8cd64becf30458f38886197`;
+  active context 4,096.
+- The configured zero-cost NVIDIA model still passes catalog validation, but current public-fixture
+  production requests timed out and fell back locally. No successful hosted sample or quota-ceiling
+  probe was recorded; the 2026-08-22 live response is historical, not current availability proof.
+- Fresh Phase 2 CPU STT with the local LLM resident: 30/30, short p50/p95 474.71/501.76 ms,
+  RTF p95 0.2812, quiet/noisy WER 0%, accented WER 17.25%, and zero errors. Fresh trigger suite:
+  wake/clap 20/20 each and zero false accepts in one simulated hour. Fresh 1,800.05-second soak:
+  19,501 frames, 1,800 turns, zero failures, 152,723,456-byte peak RSS growth, final idle.
+- Fresh Phase 3 safe benchmark: 700 authority checks p50/p95 0.130/0.215 ms; 250 fake dispatches
+  0.220/0.244 ms; 24 real disposable move/rollback rounds 51.140/58.676 ms; zero false accepts,
+  duplicates, unauthorized effects, failures, or remnants. No current app/audio/media effect ran.
+- Fresh Phase 4 memory benchmark: warm 500-query p50/p95 1.2383/37.0088 ms; cold 20-query
+  p50/p95 41.0982/80.0949 ms; 2,500 records at 2,157.7728 bytes/record; 100 concurrent operations
+  with zero failures; deletion completeness 1.0.
+- Current live microphone/render/kill and app/volume/media repetitions require separate authority.
+  Existing 2026-08-22/26 live results remain historical evidence only.
 
 ## Phase 1 Nemotron acceptance update — 2026-08-22
 
@@ -34,6 +59,7 @@ This laptop is suitable for JARVIS development, private/offline small-model fall
 
 | Area | Result |
 | --- | --- |
+| System | ASUSTeK ASUS TUF Gaming F15 `FX506HF_FX506HF` |
 | CPU | 11th Gen Intel Core i5-11400H @ 2.70 GHz |
 | CPU topology | 6 physical cores / 12 logical processors |
 | Installed memory | 16,888,967,168 bytes: 15.73 GiB (marketed 16 GB) |
@@ -56,18 +82,19 @@ The NVIDIA GPU was idle during inspection: 0 MiB reported in use, 41 °C, 0% uti
 | --- | --- |
 | Git | Installed, `2.55.0.windows.4` |
 | Python | System Python `3.14.7` installed |
-| Project Python | Project requests 3.11; `uv` is expected to provision it, but `uv` is not currently on `PATH` |
+| Project Python | `uv 0.12.5` provisions locked Python `3.11.16` |
 | Node.js | Not found on `PATH` |
 | Docker | Not found on `PATH` |
 | WSL | `wsl.exe` present, but Windows reports WSL is not installed/configured |
-| Ollama | Client installed, `0.32.14`; service was not running/reachable during audit |
+| Ollama | Client/service `0.32.14`; local `nemotron-3-nano:4b` verified reachable in Phase 2 |
 | CUDA toolkit | `nvcc` not found; full developer toolkit not installed/on `PATH` |
 | NVIDIA driver CUDA support | Present through display driver; this is distinct from the CUDA toolkit |
 | Vulkan tooling | Present |
 
 DirectML capability was not separately benchmarked. Both detected display adapters are normal Windows graphics devices, but actual DirectML operator/performance support must be validated with the chosen runtime. Do not install CUDA, Docker, Node, or WSL until an implementation phase requires them.
 
-Python 3.14 does not satisfy the repository constraint `>=3.11,<3.13`. This is not a reason to change the project constraint: install `uv`, let the locked project provision Python 3.11, and avoid global packages.
+System Python 3.14 does not satisfy the repository constraint `>=3.11,<3.13`; the locked `uv`
+environment now correctly isolates Python 3.11.16. Continue avoiding global packages.
 
 ## Audio and camera
 
@@ -80,6 +107,10 @@ PnP reports these relevant devices as healthy:
 - USB2.0 HD UVC WebCam
 
 Steam streaming and monitor/display-audio endpoints also exist. Voice setup must persist explicit capture/render device IDs rather than rely on whichever Windows endpoint is default. Bluetooth hands-free mode may reduce audio quality and must be benchmarked separately from stereo output plus laptop microphone.
+
+The matching ASUS FX506H-series manual documents **Fn+F4** as microphone on/off. This provides a
+host-controlled physical hotkey independent of JARVIS; the software kill path remains
+`jarvis voice disable`.
 
 ## Local model fit
 
@@ -121,14 +152,74 @@ Sources: [NVIDIA Nemotron 3 Ultra](https://build.nvidia.com/nvidia/nemotron-3-ul
 
 ## Voice and multimodal implications
 
-The 4 GB GPU cannot be assumed to hold the main 4B LLM and a useful Whisper model concurrently. Phase 2 must compare:
+The 4 GB GPU cannot be assumed to hold the main 4B LLM and a useful Whisper model concurrently.
+Phase 2 therefore selected CPU speech after comparing the available resource strategies:
 
 1. CPU faster-whisper small/int8 plus GPU-resident LLM;
 2. GPU STT with explicit model unload/swap;
 3. a smaller local command LLM during voice sessions;
 4. optional cloud STT only when privacy policy permits.
 
-Keep Silero VAD, openWakeWord, and Piper TTS on CPU initially. Use the integrated GPU for display and preserve the discrete GPU for inference where possible. Vision fast paths should use MediaPipe/OpenCV and bounded frame rates; multimodal LLM calls are on-demand, not continuous.
+The implemented profile keeps Silero VAD, faster-whisper, openWakeWord, and Windows SAPI TTS on
+CPU. The discrete GPU remains available to Ollama. Cloud speech is not configured. Use the
+integrated GPU for display where possible; future vision fast paths should use MediaPipe/OpenCV and
+bounded frame rates, with multimodal LLM calls on demand rather than continuously.
+
+### Phase 2 measured voice results — 2026-08-22
+
+| Measurement | Result |
+| --- | --- |
+| Speech profile | 16 kHz mono, Silero VAD 6.2.1, faster-whisper 1.2.1 `base.en`, CPU/int8, 4 threads |
+| STT cold load | 2,996.07 ms; CLI warms models before showing `MIC ON` |
+| Short interactive STT | p50 530.71 ms; p95 694.78 ms; RTF p95 0.3101 |
+| WER | quiet 0%; deterministic 10 dB SNR noisy 0%; 10 public real-accent samples 17.25% |
+| Voice process memory | 55.48 MiB start; 513.76 MiB peak; 458.28 MiB growth |
+| Loaded local LLM GPU state | 2,249 MiB before CPU speech; 2,251 MiB after; +2 MiB, 52 C final snapshot |
+| Barge/output stop | 30 samples; p50 9.41 ms; p95 22.75 ms |
+| Actual devices | Realtek mic 992 ms/zero drops; silent SAPI-format 22.05 kHz mono render completed on Crusher ANC 2 |
+| Software kill during actual capture | Cancelled and persisted disabled in 594.52 ms |
+| 30-minute real-time soak | 21,560 detector frames; 1,800 state turns; zero failures; 159.52 MiB peak growth; final idle |
+| Model storage | STT cache 147,770,612 bytes; wake assets 9,195,168 bytes; outside Git |
+
+The faster-whisper cache resolved revision `3d3d5dee26484f91867d81cb899cfcf72b96be6c`.
+The long accent passages are 22–44 seconds and have p95 batch latency 6,058.90 ms but p95 RTF
+0.1755; they are used for WER, not the short-interactive latency gate. All declared Phase 2
+resource/latency thresholds passed with the local 4B model loaded.
+
+### Phase 3 controlled-action results — 2026-08-22
+
+The final pre-live Phase 3 benchmark ran as the current non-elevated Windows user. Evidence is in
+`runtime/phase3-benchmark-20260822-a5/phase3-benchmark.json`. It used fake authority/broker adapters
+plus 24 real same-volume handle-bound rename/rollback round trips inside a new disposable `runtime/`
+controlled root. It sent no keyboard/media input, changed no volume or clipboard, launched no
+application, and submitted no print job.
+
+| Measurement | Result |
+| --- | --- |
+| Exact permission/grant validation | 700 samples; p50 0.135 ms; p95 0.234 ms; 0 false accepts |
+| Invalid categories | Expired, replay, cross-session, wrong-host, mutated, wrong-action: 0 accepted |
+| Fake broker dispatch | 250 samples; p50 0.226 ms; p95 0.278 ms; 0 duplicate effects |
+| Reversible file move | 24 round trips; p50 54.984 ms; p95 60.343 ms |
+| File postcondition/recovery | 24/24 verified moves; 24/24 guarded rollbacks; 0 destination remnants |
+| Escape/unauthorized effects | Escape attempt refused; 0 unauthorized effects/failures |
+| Core Audio read-only probe | Default console render endpoint scalar/mute query succeeded |
+| Printer read-only probe | 2 installed local queues; 2/2 status queries succeeded; no job sent |
+
+The target Windows build exposes Core Audio endpoint volume, `SendInput`, local print spooler,
+clipboard, process-image query, file-ID/path, and rename primitives required by the fixed adapters.
+The separately authorized live acceptance run on 2026-08-26 passed through the production trusted
+CLI, coordinator, and broker. Evidence is in
+`runtime/phase3-live-smoke-20260826-01/result.json`.
+
+| Live action | Result |
+| --- | --- |
+| Enrolled disposable app fixture | Succeeded in 36.942 ms; exact image verified; exited after 2.001 seconds |
+| Near-no-op master-volume write | Succeeded in 23.551 ms; target/readback 38%; scalar delta 0.0; mute unchanged |
+| Global media STOP | Succeeded in 16.636 ms; exactly one key-down/key-up pair accepted; playback state not observable |
+
+The run read/wrote no clipboard data, submitted no print job, accessed no user file, and used no
+network. Clipboard writes and physical printing remain real host-visible effects requiring their
+own separate authorization; they were not needed for Phase 3 acceptance.
 
 ## Benchmark gate for model adoption
 

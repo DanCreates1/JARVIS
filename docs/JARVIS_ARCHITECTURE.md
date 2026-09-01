@@ -2,6 +2,11 @@
 
 Status: target architecture; implementation remains incremental  
 Planning date: 2026-08-20
+Last reconciled with Phase 1–4 implementation: 2026-08-31
+
+Phase 4 currently satisfies its completion gates. Phase 1 has external performance/provider/clean
+host blockers; Phase 2 and Phase 3 await separately authorized current live-device checks. See
+`docs/PHASE_OVERVIEW.md`; these status limits do not alter the architecture boundaries below.
 
 ## 1. Architectural style
 
@@ -188,15 +193,17 @@ flowchart LR
     Session -->|cancel output| TTS
 ```
 
-First vertical slice is push-to-talk. Always-listening behavior follows privacy, false-wake, and soak testing.
+Phase 2 implements the push-to-talk slice and keeps both always-listening modes hard-disabled even
+after detector evaluation. Enabling a resident listener remains a later product/privacy decision
+requiring a persistent indicator and separately verified physical mute workflow.
 
-Recommended first candidates:
+Implemented Phase 2 choices:
 
 - Silero VAD on CPU for speech activity and endpointing;
-- faster-whisper with a small/int8 candidate, testing CPU execution to avoid 4 GB GPU contention;
-- openWakeWord ONNX on Windows for the wake word;
-- Piper on CPU for low-latency local TTS;
-- cloud STT/TTS or realtime audio only behind explicit provider and privacy settings.
+- faster-whisper `base.en` with CPU/int8 execution to avoid 4 GB GPU contention;
+- openWakeWord ONNX and a deterministic double-clap detector as disabled-by-default foundations;
+- Windows SAPI for local TTS; Piper is not bundled because the current maintained package is GPL;
+- no cloud STT/TTS or realtime-audio adapter.
 
 Barge-in is a session-state transition, not another model prompt. New host speech cancels queued TTS and current audio output, preserves already-audible text metadata, marks the previous turn interrupted, and begins a fresh input segment. Echo cancellation or render-reference suppression must prevent JARVIS from interrupting itself.
 
@@ -269,7 +276,18 @@ Every tool declares:
 - idempotency behavior and postcondition verifier;
 - approval rule and rollback/compensation where practical.
 
-Model output becomes an `ActionRequest`, never an executable command. Arguments are schema-validated, canonicalized, policy-checked, approved where needed, and converted to an expiring signed/opaque grant bound to exact parameters. The broker rejects parameter changes, replays, stale grants, wrong actor, and wrong device.
+Model output becomes an `ActionRequest`, never an executable command. Arguments are schema-validated,
+canonicalized, policy-checked, approved where needed, and converted to an expiring one-use grant
+with an opaque nonce and exact canonical fingerprint. The broker rejects parameter changes,
+replays, stale grants, authentication/capability downgrade, wrong actor/session/device/interface,
+and changed policy.
+
+Phase 3 implements this slice for non-elevated Windows actions. Two host gates expose an immutable
+registry. Model-facing side-effect tools are inert and can persist proposals only; authenticated
+local CLI approval and execution are separate commands. SQLite transactions persist request,
+decision, grant claim, receipt, broker events, and a content-free lifecycle projection. The broker
+rechecks the complete policy fingerprint before effect dispatch. See
+[Controlled Computer Access](CONTROLLED_COMPUTER_ACCESS.md).
 
 ### Planning engine
 
@@ -307,7 +325,7 @@ Memory types are separate records with separate retention and retrieval policies
 
 | Type | Examples | Default behavior |
 | --- | --- | --- |
-| Working | Current bounded turn/context | Ephemeral projection from recent messages |
+| Working | Current bounded turn/context | Restart-durable with one-day default expiry |
 | Episodic | “Changed printer default on Aug 10” | Durable only when useful; event provenance |
 | Profile | Name, preferences, devices | Explicit or high-confidence confirmation; inspectable |
 | Semantic | Source-backed learned facts/notes | Requires source/provenance and freshness |
@@ -331,9 +349,25 @@ flowchart TD
 
 SQLite initially stores canonical records and FTS5 indexes. Embeddings are introduced only with a golden retrieval set; at small scale they may be stored in SQLite and scored in-process. Adopt a vector extension only after packaging and backup behavior are verified. PostgreSQL/pgvector becomes an option when server concurrency or data volume exceeds SQLite, not before.
 
+Phase 4 implements the SQLite/FTS5 path. Candidate, committed, corrected, expired, rejected, and
+deleted/tombstone lifecycle states are distinct. Deterministic extraction from user messages writes
+untrusted candidates only. Promotion binds the local host scope, trusted interface, candidate ID,
+exact version, and content SHA-256. Explicit local remember is a separate host action.
+
+Retrieval considers committed records only and combines FTS relevance, recency, confidence, and
+provenance trust. Results carry a human-readable reason and warning flags for conflicts or
+untrusted sources. Prompt projection is capped by record and character count; private or unknown
+projected sensitivity forces local model routing before any provider request.
+
 Each durable memory includes host ID, type, content, structured fields, provenance, confidence, created/updated/accessed timestamps, retention class, sensitivity label, version, and correction lineage. Semantic claims also include publication/retrieval dates and source content hash.
 
 Deletion is transitive: canonical record, FTS row, embedding, summaries derived solely from it, cached prompt fragments, and associated raw media where policy permits. Audit retains only a minimal deletion receipt, not deleted content.
+
+The Phase 4 derivation graph deletes a derived record when its last source is deleted. Canonical
+content, FTS entries, provenance, and conflicts are physically removed. Tombstones and deletion
+events retain identifiers/counts and timestamps only, never deleted content or its hash. JSON
+export uses exclusive local-file creation; SQLite backup/restore uses the consistent backup API and
+integrity verification.
 
 ## 10. Research and learning engine
 
@@ -406,7 +440,8 @@ Trust boundaries:
 2. Model boundary: all output is untrusted proposal data.
 3. Retrieved-content boundary: web/files/documents never supply authority.
 4. Tool boundary: exact schemas, capabilities, permissions, budgets.
-5. Privilege boundary: separate broker; core is not always elevated.
+5. Action boundary: Phase 3 fixed in-process broker is non-elevated and unreachable through direct
+   model invocation; a separately authenticated service is required before any Level 4 capability.
 6. Network boundary: loopback by default, explicit authenticated remote gateway.
 7. Provider boundary: redact/minimize outbound data; privacy label controls cloud use.
 8. Persistence boundary: encryption/OS access, retention, backup, deletion.
@@ -415,7 +450,7 @@ Detailed controls are in `SECURITY_MODEL.md`.
 
 ## 13. Audit and observability
 
-Important actions emit an append-only logical record containing:
+The general design envelope for important actions contains:
 
 - event and correlation IDs; UTC timestamp;
 - actor/host/device/session and originating request ID;
@@ -426,6 +461,11 @@ Important actions emit an append-only logical record containing:
 - verifier evidence reference and model/provider role where relevant.
 
 Never log credentials, authorization headers, raw environment, private keys, full sensitive file content, hidden reasoning, or unrestricted audio/video. Hash or tokenize sensitive identifiers where operationally sufficient.
+
+Phase 3 operator views are intentionally narrower: event time/type, action/version, permission
+level, source, risk, outcome/reason code, and correlation IDs. They omit parameters, private
+content, actors/devices, fingerprints, and raw results. Exact authority remains private enforcement
+state, not a display log.
 
 Metrics:
 

@@ -8,7 +8,18 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from jarvis.core import ToolDefinition, ToolResult, ToolRisk
+from jarvis.core import (
+    ApprovalRule,
+    PermissionLevel,
+    SensitivityClass,
+    ToolConcurrency,
+    ToolDefinition,
+    ToolIdempotency,
+    ToolResult,
+    ToolRetryPolicy,
+    ToolRisk,
+    ToolSideEffect,
+)
 
 
 class ReadTextFileArguments(BaseModel):
@@ -27,9 +38,26 @@ class ReadTextFileTool:
         self._max_bytes = max_bytes
         self._definition = ToolDefinition(
             name="read_text_file",
+            version="1",
             description="Read one UTF-8 text file inside configured private allowlisted roots.",
             input_schema=ReadTextFileArguments.model_json_schema(),
+            permission_level=PermissionLevel.LEVEL_0,
+            approval_rule=ApprovalRule.NONE,
             risk=ToolRisk.READ_ONLY,
+            side_effect=ToolSideEffect.NONE,
+            sensitivity=SensitivityClass.PRIVATE,
+            required_capabilities=("filesystem.read_text",),
+            timeout_seconds=5,
+            max_result_bytes=100 * 1_024,
+            max_result_items=1,
+            idempotency=ToolIdempotency.SIDE_EFFECT_FREE,
+            retry_policy=ToolRetryPolicy.TRANSIENT_ONLY,
+            concurrency=ToolConcurrency.PARALLEL,
+            postcondition=(
+                "Resolved target remains a regular file inside an allowlisted root and the "
+                "returned content is bounded UTF-8 text."
+            ),
+            recovery="No side effect occurs; correct the path, encoding, or file size and retry.",
         )
 
     @property

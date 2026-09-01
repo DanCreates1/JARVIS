@@ -4,7 +4,20 @@ from pathlib import Path
 
 import pytest
 
+from jarvis.core import (
+    ApprovalRule,
+    PermissionLevel,
+    SensitivityClass,
+    ToolConcurrency,
+    ToolIdempotency,
+    ToolRetryPolicy,
+    ToolRisk,
+    ToolSideEffect,
+    count_json_leaf_items,
+)
 from jarvis.tools import (
+    CurrentTimeArguments,
+    CurrentTimeTool,
     ReadTextFileArguments,
     ReadTextFileTool,
     SystemStatusArguments,
@@ -58,12 +71,48 @@ async def test_system_status_and_registry_are_bounded_read_only(tmp_path: Path) 
     assert isinstance(result.data, dict)
     assert result.data["disk_total_bytes"] > 0
     assert "Python" in result.content
+    assert count_json_leaf_items(result.data) <= tool.definition.max_result_items
+
+    clock = CurrentTimeTool()
+    clock_result = await clock.invoke(CurrentTimeArguments(timezone="UTC"))
+    assert count_json_leaf_items(clock_result.data) <= clock.definition.max_result_items
 
     registry = phase_one_tools(allowed_file_roots=(tmp_path,))
     assert {tool.definition.name for tool in registry} == {
         "get_current_time",
         "get_system_status",
         "read_text_file",
+    }
+    for registered in registry:
+        definition = registered.definition
+        assert definition.version == "1"
+        assert definition.permission_level is PermissionLevel.LEVEL_0
+        assert definition.approval_rule is ApprovalRule.NONE
+        assert definition.requires_approval is False
+        assert definition.risk is ToolRisk.READ_ONLY
+        assert definition.side_effect is ToolSideEffect.NONE
+        assert definition.required_capabilities
+        assert 0 < definition.timeout_seconds <= 5
+        assert 0 < definition.max_result_bytes <= 100 * 1_024
+        assert (
+            definition.max_result_items
+            == {
+                "get_current_time": 3,
+                "get_system_status": 8,
+                "read_text_file": 1,
+            }[definition.name]
+        )
+        assert definition.idempotency is ToolIdempotency.SIDE_EFFECT_FREE
+        assert definition.retry_policy is ToolRetryPolicy.TRANSIENT_ONLY
+        assert definition.concurrency is ToolConcurrency.PARALLEL
+        assert definition.postcondition
+        assert definition.recovery
+
+    sensitivity = {tool.definition.name: tool.definition.sensitivity for tool in registry}
+    assert sensitivity == {
+        "get_current_time": SensitivityClass.PUBLIC,
+        "get_system_status": SensitivityClass.PRIVATE,
+        "read_text_file": SensitivityClass.PRIVATE,
     }
 
 

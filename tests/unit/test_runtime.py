@@ -1,21 +1,32 @@
 from __future__ import annotations
 
+import asyncio
 import json
 
 import pytest
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from jarvis.core import (
+    ApprovalRule,
     AssistantRequest,
     AssistantService,
     Message,
     MessageRole,
+    ModelRole,
+    PermissionLevel,
     PolicyDecision,
     ProviderResponse,
+    ReasoningLevel,
+    RoutingDecision,
     RuntimeErrorCode,
     RuntimeEventType,
     RuntimeStatus,
+    SensitivityClass,
+    ToolIdempotency,
     ToolResult,
+    ToolRetryPolicy,
+    ToolRisk,
+    ToolSideEffect,
 )
 from tests.fakes import (
     FakeChatProvider,
@@ -29,6 +40,19 @@ class EchoArguments(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     text: str
+
+
+def test_policy_decision_requires_consistent_approval_shape() -> None:
+    with pytest.raises(ValidationError, match="approval ID"):
+        PolicyDecision(allowed=False, reason="pending", approval_required=True)
+    with pytest.raises(ValidationError, match="valid only"):
+        PolicyDecision(allowed=False, reason="denied", approval_id="unexpected")
+    with pytest.raises(ValidationError, match="cannot require"):
+        PolicyDecision(
+            allowed=True,
+            approval_required=True,
+            approval_id="approval",
+        )
 
 
 def tool_response(
@@ -113,6 +137,39 @@ async def test_stream_yields_live_events_then_terminal_result() -> None:
     assert frames[0].event is not None
     assert frames[-1].result is not None
     assert frames[-1].result.reply == "Stream complete."
+
+
+@pytest.mark.asyncio
+async def test_closing_runtime_stream_cancels_in_flight_provider() -> None:
+    class BlockingProvider:
+        def __init__(self) -> None:
+            self.started = asyncio.Event()
+            self.cancelled = asyncio.Event()
+
+        async def chat(self, **_kwargs: object) -> ProviderResponse:
+            self.started.set()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                self.cancelled.set()
+                raise
+            raise AssertionError("unreachable")
+
+    provider = BlockingProvider()
+    store = InMemoryConversationStore()
+    service = AssistantService(
+        provider=provider,
+        store=store,
+        tools=[],
+        policy=FakeToolPolicy(),
+    )
+    stream = service.stream(AssistantRequest(user_input="cancel me"))
+    first = await anext(stream)
+    assert first.event is not None
+    await asyncio.wait_for(provider.started.wait(), timeout=1)
+    await stream.aclose()
+    await asyncio.wait_for(provider.cancelled.wait(), timeout=1)
+    assert len(store.messages["conversation-1"]) == 1
 
 
 @pytest.mark.asyncio
@@ -297,6 +354,66 @@ async def test_policy_denial_is_a_structured_persisted_result() -> None:
 
 
 @pytest.mark.asyncio
+async def test_approval_required_is_pending_and_cannot_invoke_tool() -> None:
+    policy = FakeToolPolicy(
+        [
+            PolicyDecision(
+                allowed=False,
+                reason="Review this exact action on the trusted local console.",
+                approval_required=True,
+                approval_id="approval-1",
+            )
+        ]
+    )
+    service, _provider, store, tool, _policy = make_service(
+        [tool_response("call-pending")], policy=policy
+    )
+
+    result = await service.respond("propose action")
+
+    assert result.status is RuntimeStatus.APPROVAL_REQUIRED
+    assert result.error is not None
+    assert result.error.code is RuntimeErrorCode.APPROVAL_REQUIRED
+    assert result.error.approval_id == "approval-1"
+    assert tool.calls == []
+    assert RuntimeEventType.TOOL_APPROVAL_REQUIRED in [event.type for event in result.events]
+    assert store.audit_records[-1]["outcome"] == "requested"
+
+
+@pytest.mark.asyncio
+async def test_private_tool_result_is_denied_before_policy_on_cloud_route() -> None:
+    routing = RoutingDecision(
+        chosen_role=ModelRole.FAST,
+        reason="Public prompt selected cloud before private tool request.",
+        sensitivity=SensitivityClass.PUBLIC,
+        reasoning_level=ReasoningLevel.NONE,
+        fallback_chain=(ModelRole.LOCAL,),
+    )
+    response = ProviderResponse.model_validate(tool_response("private-call")).model_copy(
+        update={"routing": routing}
+    )
+    private_tool = FakeTool(
+        name="echo",
+        input_model=EchoArguments,
+        sensitivity=SensitivityClass.PRIVATE,
+    )
+    service, provider, store, tool, policy = make_service(
+        [response],
+        tool=private_tool,
+    )
+
+    result = await service.respond("Use private local data")
+
+    assert result.status is RuntimeStatus.DENIED
+    assert result.error is not None and result.error.code is RuntimeErrorCode.TOOL_DENIED
+    assert "local-only" in result.error.message
+    assert tool.calls == []
+    assert policy.requests == []
+    assert provider.requests[0].tools == ()
+    assert store.audit_records[-1]["outcome"] == "denied"
+
+
+@pytest.mark.asyncio
 async def test_policy_exception_is_surfaced_without_invoking_tool() -> None:
     policy = FakeToolPolicy([RuntimeError("policy backend unavailable")])
     service, _provider, _store, tool, _policy = make_service(
@@ -332,6 +449,73 @@ async def test_tool_exception_is_surfaced_and_persisted() -> None:
     assert len(tool.calls) == 1
     persisted = ToolResult.model_validate_json(result.messages[-1].content)
     assert persisted.is_error
+
+
+@pytest.mark.asyncio
+async def test_direct_side_effect_execution_requires_broker_even_if_policy_allows() -> None:
+    tool = FakeTool(
+        name="echo",
+        input_model=EchoArguments,
+        permission_level=PermissionLevel.LEVEL_1,
+        approval_rule=ApprovalRule.EXPLICIT_ENABLEMENT,
+        risk=ToolRisk.REVERSIBLE,
+        side_effect=ToolSideEffect.REVERSIBLE,
+        idempotency=ToolIdempotency.IDEMPOTENCY_KEY,
+        retry_policy=ToolRetryPolicy.RECONCILE_FIRST,
+    )
+    service, _provider, _store, _tool, _policy = make_service(
+        [tool_response("call-side-effect")], tool=tool
+    )
+
+    result = await service.respond("attempt direct effect")
+
+    assert result.status is RuntimeStatus.DENIED
+    assert result.error is not None
+    assert result.error.code is RuntimeErrorCode.BROKER_REQUIRED
+    assert tool.calls == []
+
+
+@pytest.mark.asyncio
+async def test_tool_timeout_and_serialized_result_limits_fail_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    slow = FakeTool(
+        name="echo",
+        input_model=EchoArguments,
+        timeout_seconds=0.01,
+    )
+
+    async def delayed(_arguments: BaseModel) -> ToolResult:
+        await asyncio.sleep(0.1)
+        return ToolResult(content="late")
+
+    monkeypatch.setattr(slow, "invoke", delayed)
+    timeout_service, *_ = make_service([tool_response("call-timeout")], tool=slow)
+    timeout_result = await timeout_service.respond("timeout")
+    assert timeout_result.error is not None
+    assert timeout_result.error.code is RuntimeErrorCode.TOOL_TIMEOUT
+
+    oversized = FakeTool(
+        name="echo",
+        input_model=EchoArguments,
+        outcomes=[ToolResult(content="x" * 200)],
+        max_result_bytes=100,
+    )
+    bytes_service, *_ = make_service([tool_response("call-bytes")], tool=oversized)
+    bytes_result = await bytes_service.respond("too many bytes")
+    assert bytes_result.error is not None
+    assert bytes_result.error.code is RuntimeErrorCode.TOOL_RESULT_LIMIT
+
+    nested = FakeTool(
+        name="echo",
+        input_model=EchoArguments,
+        outcomes=[ToolResult(content="nested", data={"a": [1, {"b": 2}]})],
+        max_result_items=1,
+    )
+    items_service, *_ = make_service([tool_response("call-items")], tool=nested)
+    items_result = await items_service.respond("too many items")
+    assert items_result.error is not None
+    assert items_result.error.code is RuntimeErrorCode.TOOL_RESULT_LIMIT
 
 
 @pytest.mark.asyncio

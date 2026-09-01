@@ -8,16 +8,25 @@ from typing import Protocol, runtime_checkable
 from pydantic import BaseModel, JsonValue
 
 from .models import (
+    ContextProjection,
     Conversation,
     Message,
     ModelRole,
     PolicyDecision,
     ProviderResponse,
     ReasoningLevel,
+    SensitivityClass,
     ToolCall,
     ToolDefinition,
     ToolResult,
 )
+
+
+@runtime_checkable
+class SensitivityClassifier(Protocol):
+    def classify(self, text: str) -> SensitivityClass:
+        """Classify text locally before it can cross a provider boundary."""
+        ...
 
 
 @runtime_checkable
@@ -82,6 +91,17 @@ class AuditStore(Protocol):
         risk: str,
         detail: Mapping[str, JsonValue] | None = None,
     ) -> object: ...
+
+
+@runtime_checkable
+class MemoryContextPort(Protocol):
+    async def capture_candidates(self, message: Message) -> int:
+        """Persist candidates only; never silently commit extracted text."""
+        ...
+
+    async def project(self, query: str) -> ContextProjection | None:
+        """Return bounded provenance-bearing context, or ``None`` on no accepted hit."""
+        ...
 
 
 @runtime_checkable

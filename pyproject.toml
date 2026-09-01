@@ -20,6 +20,15 @@ dependencies = [
   "uvicorn>=0.34,<1",
 ]
 
+[project.optional-dependencies]
+voice = [
+  "faster-whisper>=1.2.1,<2",
+  "numpy>=1.26,<3",
+  "openwakeword>=0.6,<0.7",
+  "silero-vad>=6.2.1,<7",
+  "sounddevice>=0.5.5,<1",
+]
+
 [project.scripts]
 jarvis = "jarvis.cli:app"
 
@@ -75,5 +84,12 @@ warn_unreachable = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["aiosqlite.*", "respx.*"]
+module = [
+  "aiosqlite.*",
+  "faster_whisper.*",
+  "openwakeword.*",
+  "respx.*",
+  "silero_vad.*",
+  "sounddevice.*",
+]
 ignore_missing_imports = true

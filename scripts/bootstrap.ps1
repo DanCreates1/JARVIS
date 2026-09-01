@@ -64,7 +64,11 @@ try {
     Invoke-NativeCommand -FilePath $uvCommand.Source -Arguments @("python", "install", "3.11")
 
     Write-Host "Synchronizing the locked environment..."
-    Invoke-NativeCommand -FilePath $uvCommand.Source -Arguments @("sync", "--locked")
+    # OneDrive-backed Windows checkouts can reject cache hardlinks with OS error 396.
+    # Copies preserve lock enforcement without coupling the environment to cache files.
+    Invoke-NativeCommand -FilePath $uvCommand.Source -Arguments @(
+        "sync", "--locked", "--link-mode", "copy"
+    )
 
     if ($InstallModel) {
         & (Join-Path $PSScriptRoot "setup-model.ps1")
