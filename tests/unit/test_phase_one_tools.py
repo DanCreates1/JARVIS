@@ -85,6 +85,11 @@ async def test_system_status_and_registry_are_bounded_read_only(tmp_path: Path) 
     }
     for registered in registry:
         definition = registered.definition
+        assert registered.input_model in {
+            CurrentTimeArguments,
+            ReadTextFileArguments,
+            SystemStatusArguments,
+        }
         assert definition.version == "1"
         assert definition.permission_level is PermissionLevel.LEVEL_0
         assert definition.approval_rule is ApprovalRule.NONE

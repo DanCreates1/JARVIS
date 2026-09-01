@@ -40,6 +40,21 @@ async def test_current_time_tool_reports_unknown_timezone() -> None:
     }
 
 
+@pytest.mark.asyncio
+async def test_current_time_tool_handles_local_and_naive_clocks() -> None:
+    local = await CurrentTimeTool().invoke(CurrentTimeArguments(timezone=" local "))
+    assert local.is_error is False
+    assert local.data["timezone"] == "local"
+    assert datetime.fromisoformat(str(local.data["iso8601"])).tzinfo is not None
+
+    def naive_now(_zone: tzinfo | None) -> datetime:
+        return datetime(2026, 8, 18, 17, 30, 45, tzinfo=UTC).replace(tzinfo=None)
+
+    utc = await CurrentTimeTool(now=naive_now).invoke(CurrentTimeArguments(timezone="UTC"))
+    assert utc.data["iso8601"] == "2026-08-18T17:30:45+00:00"
+    assert utc.data["utc_offset_seconds"] == 0
+
+
 def test_current_time_arguments_forbid_extra_fields() -> None:
     with pytest.raises(ValidationError):
         CurrentTimeArguments.model_validate({"timezone": "UTC", "command": "whoami"})
