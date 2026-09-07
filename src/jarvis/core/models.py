@@ -407,6 +407,23 @@ class ProviderResponse(CoreModel):
         return self
 
 
+class ProviderStreamFrame(CoreModel):
+    """One provider token/routing update or the terminal normalized response."""
+
+    content_delta: Annotated[str, Field(min_length=1, max_length=100_000)] | None = None
+    routing: RoutingDecision | None = None
+    response: ProviderResponse | None = None
+
+    @model_validator(mode="after")
+    def require_exactly_one_value(self) -> Self:
+        populated = sum(
+            value is not None for value in (self.content_delta, self.routing, self.response)
+        )
+        if populated != 1:
+            raise ValueError("provider stream frames require exactly one value")
+        return self
+
+
 class ToolResult(CoreModel):
     content: Annotated[str, Field(min_length=1, max_length=100_000)]
     is_error: bool = False
@@ -496,6 +513,7 @@ class RuntimeEventType(StrEnum):
     PROVIDER_RESPONDED = "provider_responded"
     ROUTING_DECIDED = "routing_decided"
     PROVIDER_FALLBACK = "provider_fallback"
+    ASSISTANT_DELTA = "assistant_delta"
     TOOL_REQUESTED = "tool_requested"
     TOOL_VALIDATED = "tool_validated"
     TOOL_AUTHORIZED = "tool_authorized"
@@ -516,6 +534,7 @@ class RuntimeEvent(CoreModel):
     tool_call: ToolCall | None = None
     routing: RoutingDecision | None = None
     usage: ProviderUsage | None = None
+    content_delta: Annotated[str, Field(min_length=1, max_length=100_000)] | None = None
 
 
 class RuntimeResult(CoreModel):

@@ -1,22 +1,24 @@
 # JARVIS
 
-JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–4 implement a
+JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–5 implement a
 local deterministic privacy gate, configurable NVIDIA/Groq/Gemini/Ollama roles,
 zero-cost fallback routing, durable SQLite state, audited read-only tools, CLI,
-loopback browser chat, local push-to-talk speech, and opt-in controlled Windows actions. Sensitive
-and uncertain work remains local.
+loopback browser chat, local push-to-talk speech, opt-in controlled Windows actions, and bounded
+cited public research. Sensitive and uncertain work remains local.
 
 This repository is the source of truth for the project. Local model weights,
 runtime databases, logs, generated media, and secrets do not belong in Git.
 
 ## Current verification status
 
-As of 2026-08-31, Phase 4 is current-complete. Phase 1 remains blocked by fixed local and hosted
-latency targets plus intermittent NVIDIA fallback; its clean-Windows bootstrap and repository
-quality gates now pass on an independent fresh GitHub Windows runner. Phases 2 and 3 pass current
-safe local gates but still require separately authorized current real-device/application smokes.
-See [Phase Overview](docs/PHASE_OVERVIEW.md) and the phase reports for exact evidence. No threshold
-or privacy/authority gate is waived by implementation status.
+As of 2026-09-07, Phases 4 and 5 are complete. Phase 1 genuine Ollama/NVIDIA token streaming and the
+optimized local latency gate pass; Phase 1 remains blocked only by fixed hosted NVIDIA latency
+gates. All four hosted states have 20 successful public-fixture observations, but measured p50/p95
+still exceed one or both fixed targets. Clean-Windows bootstrap and exact repository quality gates
+pass on an independent fresh GitHub Windows runner. Phases 2 and 3 pass current safe local gates but
+still require separately authorized current real-device/application smokes. See
+[Phase Overview](docs/PHASE_OVERVIEW.md) and the phase reports for exact evidence. No threshold or
+privacy/authority gate is waived by implementation status.
 
 ## Implemented Phase 1
 
@@ -25,6 +27,8 @@ The supported text vertical slice can:
 - validate local storage, Ollama, configured cloud credentials, and live model catalogs;
 - chat interactively from a terminal;
 - chat from a loopback-only browser page and JSON/SSE API;
+- stream visible Ollama/NVIDIA token deltas through CLI and browser SSE while persisting only the
+  validated final assistant message;
 - send one non-interactive message;
 - route safe simple, normal, and difficult work across logical model roles;
 - keep credentials, files, memory, communications, personal data, and uncertain content local;
@@ -85,14 +89,29 @@ Durable memory adds:
 Private or unknown retrieved context forces local routing. FTS5 met the declared quality and
 latency targets, so no embedding model, vector extension, or external memory service was added.
 
+## Implemented Phase 5
+
+Research and self-education adds:
+
+- provider-neutral discovery, acquisition, parsing, synthesis, citation, and storage contracts;
+- public-DNS validation, validated-IP/SNI-pinned HTTPS fetching, manual redirects, and hard
+  source/domain/byte/time/content limits;
+- short-lived isolated HTML/plain/PDF parsing with no action tools and bounded PDF resources;
+- exact source-span citations, visible uncertainty/conflicts, and deterministic extractive fallback;
+- volatile-by-default runs plus exact one-use host approval for a separate untrusted research ledger;
+- host-scoped inspection, FTS5 search, supersession, revalidation, unanswered questions, exclusive
+  export, and transitive deletion through CLI and loopback browser/API; and
+- a fixed 30-sample benchmark covering citation, entailment, diversity, freshness, conflicts,
+  injection resistance, reproducibility, failure rate, and latency.
+
 ## Model strategy
 
 | Role | Target default | Use |
 | --- | --- | --- |
 | `FAST` | Groq `openai/gpt-oss-20b` | Safe simple requests and safe ambiguous intent |
 | `PRIMARY` | Groq preview `qwen/qwen3.6-27b` | Safe normal conversation and tool planning |
-| `REASONING` | NVIDIA `nvidia/nemotron-3-ultra-550b-a55b` | Safe difficult reasoning, coding, research, long context, and tools |
-| `LOCAL` | Ollama `nemotron-3-nano:4b` | Normal/private requests, offline operation, cloud fallback |
+| `REASONING` | NVIDIA `nvidia/nemotron-3.5-lightning-30b-a3b` | Safe difficult public reasoning, coding, research, long context, and tools |
+| `LOCAL` | Ollama `qwen3:0.6b` | Normal/private requests, offline operation, cloud fallback |
 
 A deterministic local gate must classify sensitivity before any cloud request.
 Initial cloud spend is hard-capped at `$0`; quota exhaustion, outage, or model
@@ -126,7 +145,8 @@ Set-Location JARVIS
 ./scripts/setup-model.ps1
 ```
 
-The default local model is `nemotron-3-nano:4b`. Then verify the installation:
+The default local model is `qwen3:0.6b`. `nemotron-3-nano:4b` remains a supported live-smoke
+compatibility model. Then verify the installation:
 
 ```powershell
 uv run jarvis doctor
@@ -161,6 +181,21 @@ uv run jarvis memory export .\jarvis-memory-export.json
 
 Use `uv run jarvis memory --help` for confirmation, correction, conflict, retention, expiry, and
 forget commands. Exports use exclusive creation and never overwrite an existing file.
+
+Run bounded public research. Results are volatile unless `--store` explicitly approves the exact
+displayed report:
+
+```powershell
+uv run jarvis research run "What is Python?" --max-sources 3 --max-fetches 6
+uv run jarvis research run "What is Python?" --store
+uv run jarvis research list
+uv run jarvis research search "Python"
+uv run jarvis research export .\jarvis-research-export.json
+```
+
+Use `uv run jarvis research --help` for report inspection, source revalidation, unanswered
+questions, and exact source deletion. External text and PDFs remain untrusted; stored research is
+kept separate from trusted memory.
 
 Install and set up optional local voice support:
 
@@ -201,13 +236,18 @@ The main settings are:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `JARVIS_OLLAMA_MODEL` | `nemotron-3-nano:4b` | Ollama model used for chat |
-| `JARVIS_LOCAL_MODEL` | `nemotron-3-nano:4b` | Preferred local-role model; overrides compatibility alias above |
+| `JARVIS_OLLAMA_MODEL` | `qwen3:0.6b` | Ollama model used for chat |
+| `JARVIS_LOCAL_MODEL` | `qwen3:0.6b` | Preferred local-role model; overrides compatibility alias above |
 | `JARVIS_OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Local Ollama endpoint |
+| `JARVIS_OLLAMA_CONTEXT_TOKENS` | `4096` | Bounded active local context |
+| `JARVIS_OLLAMA_MAX_OUTPUT_TOKENS` | `512` | Local generation ceiling |
+| `JARVIS_OLLAMA_KEEP_ALIVE` | `5m` | Ollama residency policy |
 | `JARVIS_FAST_MODEL` | `openai/gpt-oss-20b` | Groq fast role |
 | `JARVIS_PRIMARY_MODEL` | `qwen/qwen3.6-27b` | Groq primary preview role |
-| `JARVIS_REASONING_MODEL` | `nvidia/nemotron-3-ultra-550b-a55b` | NVIDIA hosted reasoning role |
-| `JARVIS_NVIDIA_MAX_OUTPUT_TOKENS` | `4096` | Local output guard; NVIDIA model maximum is 32,768 |
+| `JARVIS_REASONING_MODEL` | `nvidia/nemotron-3.5-lightning-30b-a3b` | NVIDIA hosted reasoning role |
+| `JARVIS_NVIDIA_MAX_OUTPUT_TOKENS` | `1024` | Hosted thinking-request output ceiling |
+| `JARVIS_NVIDIA_NON_REASONING_MAX_OUTPUT_TOKENS` | `256` | Hosted non-thinking output ceiling |
+| `JARVIS_NVIDIA_REASONING_BUDGET_TOKENS` | `256` | Hosted hidden-reasoning budget when thinking is enabled |
 | `JARVIS_NVIDIA_MAX_REQUESTS_PER_MINUTE` | `30` | Conservative local request guard; account cap is shown in NVIDIA UI |
 | `JARVIS_NVIDIA_MAX_CONCURRENCY` | `1` | Maximum simultaneous NVIDIA requests |
 | `JARVIS_CLOUD_POLICY` | `privacy_aware` | Use cloud only after local public-content classification |
@@ -215,6 +255,9 @@ The main settings are:
 | `JARVIS_WEB_HOST` | `127.0.0.1` | Browser/API bind; Phase 1 rejects non-loopback hosts |
 | `JARVIS_DATA_DIR` | platform default | Override the private runtime data directory |
 | `JARVIS_MEMORY_RETRIEVAL_ENABLED` | `true` | Project committed host memory into bounded local context; `false` preserves data but disables retrieval |
+| `JARVIS_RESEARCH_ENABLED` | `true` | Enable bounded public research; `false` retains approved ledger data for recovery |
+| `JARVIS_RESEARCH_SEARCH_PROVIDER` | `wikimedia` | Account-free discovery adapter; currently Wikimedia only |
+| `JARVIS_RESEARCH_PENDING_TTL_SECONDS` | `900` | Expiry for volatile reports awaiting exact storage approval |
 | `JARVIS_LOG_LEVEL` | `INFO` | Application log verbosity |
 | `JARVIS_VOICE_STT_MODEL` | `base.en` | Local faster-whisper model downloaded by explicit voice setup |
 | `JARVIS_VOICE_STT_CPU_THREADS` | `4` | CPU threads reserved for local transcription |
@@ -266,6 +309,7 @@ always performs secret scanning.
 
 - [Phase overview and status](docs/PHASE_OVERVIEW.md)
 - [Phase 2 voice completion evidence](docs/phase-reports/PHASE_2_COMPLETION.md)
+- [Phase 5 research completion evidence](docs/phase-reports/PHASE_5_COMPLETION.md)
 - [Codex Sol phase execution playbook](docs/CODEX_PHASE_PLAYBOOK.md)
 - [Hands-free control plan](docs/HANDS_FREE_CONTROL.md)
 - [Architecture](docs/architecture.md)

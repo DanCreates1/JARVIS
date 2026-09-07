@@ -2,7 +2,7 @@
 
 Status: required controls and security architecture  
 Planning date: 2026-08-20
-Last reconciled with Phase 1–4 implementation: 2026-08-31
+Last reconciled with Phase 1–5 implementation: 2026-09-07
 
 Current implementation retains these fail-closed controls. The clean-Windows bootstrap and exact
 repository CI gate now pass independently; remaining Phase 1–3 blockers are latency/provider
@@ -261,6 +261,16 @@ Controls:
 
 No prompt-only defense is considered sufficient. Deterministic policy and broker boundaries enforce authority.
 
+Phase 5 acquisition additionally resolves every initial/redirect hostname, rejects direct IP,
+localhost, private/link-local/shared/reserved/multicast/unspecified addresses, pins the connection
+to the validated public IP, and keeps original Host/SNI certificate verification. Redirects are
+manual, bounded, and same-domain unless explicitly allowlisted. Proxy environment settings,
+credentials, cookies across hops, active HTML elements, unsupported types, oversized/empty bodies,
+and missing/invalid response metadata fail closed. HTML/plain/PDF parsing runs in a short-lived
+isolated Python worker with a minimal environment, temporary working directory, fixed time/input/
+output/page/filter limits, and no network or action tools. The worker is defense in depth, not an OS
+AppContainer. Cancellation is never converted into retry.
+
 ## 12. Secrets and credentials
 
 - Never commit `.env`, passwords, API tokens, cookies, private keys, certificates, provider credentials, or device secrets.
@@ -336,6 +346,17 @@ physically removes canonical content, FTS rows, provenance, conflicts, and sole-
 minimal tombstones retain no deleted content or content hash. Exports are explicit local files,
 created exclusively without overwrite. The host ID is an isolation key, not remote authentication;
 authenticated multi-device identity remains Phase 8 scope.
+
+Phase 5 applies the same local host partition to research sources, FTS results, citations, claims,
+conflicts, mutations, exports, and deletion. Cross-host references fail as not found. Source text
+remains explicitly untrusted in typed records and cannot enter trusted Phase 4 memory without a
+separate future host-approved path. Research runs are volatile by default. Durable storage requires
+an exact, expiring, one-use host approval bound to the displayed report digest; source/model content
+cannot grant it. Source changes/unavailability stale dependent claims rather than silently
+preserving verification. Transitive deletion physically removes all versions of a URL plus
+dependent reports, claims, citations, conflicts, and index rows. Minimal tombstones and append-only
+events retain identifiers, versions, reasons, and timestamps only—not source text, claim text,
+quotes, or content hashes. JSON export is explicit, host-scoped, local, and refuses overwrite.
 
 Backups are encrypted, access-controlled, and tested for restore. Deletion policy states whether and when backup copies expire.
 

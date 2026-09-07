@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from enum import StrEnum
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Protocol
 from uuid import uuid4
@@ -21,6 +23,7 @@ from jarvis.llm import (
     OllamaChatProvider,
 )
 from jarvis.memory import SQLiteConversationStore
+from jarvis.research import FetchedDocument, SandboxedDocumentParser
 
 
 class DiagnosticStatus(StrEnum):
@@ -146,6 +149,8 @@ async def run_diagnostics(
     finally:
         if store is not None:
             await store.close()
+
+    checks.append(_research_parser_check(settings))
 
     checks.append(_computer_access_check(settings))
 
@@ -314,4 +319,40 @@ def _computer_access_check(settings: Settings) -> DiagnosticCheck:
             f"{int(policy.maximum_permission_level)} with {len(policy.applications)} enrolled "
             "application(s)."
         ),
+    )
+
+
+def _research_parser_check(settings: Settings) -> DiagnosticCheck:
+    if not settings.research_enabled:
+        return DiagnosticCheck(
+            name="research parser sandbox",
+            status=DiagnosticStatus.PASS,
+            detail="Research is disabled; no network or parser surface is active.",
+        )
+    try:
+        if find_spec("pypdf") is None:
+            raise ModuleNotFoundError("pypdf")
+        parsed = SandboxedDocumentParser(timeout_seconds=5).parse(
+            FetchedDocument(
+                requested_url="https://example.com/doctor",
+                final_url="https://example.com/doctor",
+                media_type="text/plain",
+                body=b"JARVIS isolated parser diagnostic.",
+                retrieved_at=datetime.now(UTC),
+                status_code=200,
+            )
+        )
+        if parsed.text != "JARVIS isolated parser diagnostic.":
+            raise ValueError("unexpected parser output")
+    except Exception:
+        return DiagnosticCheck(
+            name="research parser sandbox",
+            status=DiagnosticStatus.FAIL,
+            detail="The isolated research parser or PDF dependency is unavailable.",
+            remediation="Run `uv sync --locked`, then run `uv run jarvis doctor` again.",
+        )
+    return DiagnosticCheck(
+        name="research parser sandbox",
+        status=DiagnosticStatus.PASS,
+        detail="Isolated parser worker and locked PDF dependency are available.",
     )

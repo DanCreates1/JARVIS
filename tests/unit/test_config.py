@@ -74,6 +74,8 @@ def test_safe_summary_contains_only_declared_diagnostics(tmp_path: Path) -> None
         "primary_model",
         "reasoning_model",
         "nvidia_max_output_tokens",
+        "nvidia_non_reasoning_max_output_tokens",
+        "nvidia_reasoning_budget_tokens",
         "nvidia_max_requests_per_minute",
         "nvidia_max_concurrency",
         "web_host",
@@ -81,6 +83,13 @@ def test_safe_summary_contains_only_declared_diagnostics(tmp_path: Path) -> None
         "computer_access_enabled",
         "computer_access_policy_path",
         "memory_retrieval_enabled",
+        "research_enabled",
+        "research_search_provider",
+        "research_search_endpoint",
+        "research_search_timeout_seconds",
+        "research_search_max_response_bytes",
+        "research_pending_ttl_seconds",
+        "research_max_pending_runs",
         "voice_always_listening_enabled",
         "voice_acoustic_always_listening_enabled",
         "voice_sample_rate_hz",
@@ -101,6 +110,20 @@ def test_phase_three_computer_access_is_disabled_by_default(tmp_path: Path) -> N
     assert settings.computer_access_enabled is False
     assert settings.computer_access_policy_path == tmp_path / "computer-access.json"
     assert settings.computer_controlled_root == tmp_path / "controlled-files"
+
+
+def test_research_defaults_are_zero_cost_bounded_and_https_only(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path, _env_file=None)
+    assert settings.research_enabled is True
+    assert settings.research_search_provider == "wikimedia"
+    assert str(settings.research_search_endpoint) == "https://en.wikipedia.org/w/api.php"
+    assert settings.research_pending_ttl_seconds == 900
+    with pytest.raises(ValidationError, match="research provider endpoints must use HTTPS"):
+        Settings(
+            data_dir=tmp_path,
+            research_search_endpoint="http://en.wikipedia.org/w/api.php",
+            _env_file=None,
+        )
 
 
 def test_cloud_credentials_require_free_tier_and_data_terms_confirmation(tmp_path: Path) -> None:
@@ -162,6 +185,44 @@ def test_zero_cost_https_and_loopback_settings_fail_closed(tmp_path: Path) -> No
         Settings(data_dir=tmp_path, web_host="0.0.0.0", _env_file=None)
     with pytest.raises(ValidationError, match="HTTPS"):
         Settings(data_dir=tmp_path, groq_base_url="http://example.test", _env_file=None)
+
+
+def test_local_inference_bounds_and_keep_alive_are_validated(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path, _env_file=None)
+
+    assert settings.effective_local_model == "qwen3:0.6b"
+    assert settings.ollama_context_tokens == 4_096
+    assert settings.ollama_max_output_tokens == 512
+    assert settings.ollama_keep_alive == "5m"
+    with pytest.raises(ValidationError):
+        Settings(data_dir=tmp_path, ollama_context_tokens=511, _env_file=None)
+    with pytest.raises(ValidationError):
+        Settings(data_dir=tmp_path, ollama_max_output_tokens=0, _env_file=None)
+    with pytest.raises(ValidationError, match="keep-alive"):
+        Settings(data_dir=tmp_path, ollama_keep_alive=" ", _env_file=None)
+
+
+def test_nvidia_reasoning_budget_cannot_exceed_output_limit(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path, _env_file=None)
+
+    assert settings.nvidia_max_output_tokens == 1_024
+    assert settings.nvidia_non_reasoning_max_output_tokens == 256
+    assert settings.nvidia_reasoning_budget_tokens == 256
+    with pytest.raises(ValidationError, match="reasoning budget"):
+        Settings(
+            data_dir=tmp_path,
+            nvidia_max_output_tokens=511,
+            nvidia_reasoning_budget_tokens=512,
+            _env_file=None,
+        )
+    with pytest.raises(ValidationError, match="non-reasoning output limit"):
+        Settings(
+            data_dir=tmp_path,
+            nvidia_max_output_tokens=255,
+            nvidia_non_reasoning_max_output_tokens=256,
+            nvidia_reasoning_budget_tokens=255,
+            _env_file=None,
+        )
 
 
 def test_phase_two_always_listening_is_hard_disabled(tmp_path: Path) -> None:

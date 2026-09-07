@@ -2,284 +2,205 @@
 
 Status: `blocked-external`
 Started: 2026-08-28
-Updated: 2026-08-31
+Updated: 2026-09-04
 Recommended Sol thinking: High
 
 ## Objective
 
-Formally close the privacy-aware text vertical slice with current functional, failure, security,
-restart, deletion, provider, benchmark, bootstrap, and release evidence. Preserve all pre-existing
-Phase 1–4 work. Do not weaken privacy, cost, latency, clean-machine, or release gates.
+Close the privacy-aware text vertical slice without weakening privacy, security, zero-dollar cost,
+reliability, sample count, fixed latency, bootstrap, or release gates.
 
 ## Baseline and preservation
 
-- Branch `main`, HEAD and `origin/main` both
-  `7d32b9378f024e41a250d0864bf4dafca7dd4df1`; no fetch, branch change, stage, commit, or push.
-- Before this closeout continuation, 45 tracked files were modified and 87 paths were untracked.
-  All dirty-file timestamps predated this request. Ignored handoff manifests show the layered
-  Phase 1–4 provenance. Shared files were patched by hunk; no dirty file was reset or replaced.
-- Windows 11 Home build 26200; Intel i5-11400H, 6 cores/12 threads; 16,888,967,168 bytes RAM;
-  RTX 2050 Laptop GPU, 4,096 MiB VRAM; NVIDIA driver 610.62.
-- Project runtime: Python 3.11.16, uv 0.12.5, Ollama 0.33.2, Gitleaks 8.30.1.
-- RTK 0.45.0 now runs normally. Windows Smart App Control still blocks generated `mypy`, `pytest`,
-  `pip-audit`, and `jarvis` console shims with OS error 4551. Allowed Python-module equivalents
-  and independent exact-command CI evidence are both retained; no policy bypass was attempted.
+- Fresh start: branch `main`; HEAD and `origin/main`
+  `c33497b1474d1867230caf5a1f4bd8489dfd73a4`; worktree clean before this continuation.
+- No fetch, branch change, stage, commit, push, remote deployment, billing change, credential change,
+  private cloud disclosure, destructive action, or policy bypass occurred.
+- Host: Windows 11 Home build 26200; Intel i5-11400H, 6 cores/12 threads;
+  16,888,967,168 bytes RAM; RTX 2050 Laptop GPU, 4,096 MiB VRAM; driver 610.62.
+- Tools: uv 0.12.5; Python 3.11.16; Ollama 0.33.3; Gitleaks 8.30.1; RTK 0.45.0.
+- Provider configuration was inventoried by variable name only. Hosted runs used existing explicit
+  NVIDIA free-tier/trial confirmations and the hard `$0` cost cap. No secret value entered evidence.
+- Runtime evidence is ignored under `runtime/`; reports contain fixture hashes and bounded
+  operational metadata, never prompt/response text or credentials.
 
 ## Acceptance checklist
 
-- [x] Functional routes and direct deterministic time command are current-test verified.
-- [x] Failure, cancellation, restart/deletion, quota/outage/removal, and zero-spend scenarios are
-  current-test verified with fakes/contracts.
-- [x] Privacy routing and tool denial are current-test verified, including truncated legacy
-  assistant/tool history, tool arguments, provider payloads, and SQLite label persistence.
-- [x] Deterministic benchmark has 20 current successful samples and passes its fixed target.
-- [x] Local benchmark has 20 verified-cold and 20 warm successful samples with honest p50/p95.
-- [ ] Local cold/warm latency meets the fixed 1,500/3,000 ms p50/p95 target.
-- [ ] Current hosted NVIDIA run yields 20 cold-client and 20 warm-client successful samples per
-  simple/complex profile. Production requests timed out and failed closed before sampling.
-- [x] Bootstrap is reproduced on a fresh independent GitHub `windows-latest` runner through the
-  repository script, with uv 0.12.5, Python 3.11.16, and the locked environment.
-- [x] Independent exact-command repository gate passes in CI: lock, sync, format, lint, mypy,
-  pytest, pip-audit, and complete-history Gitleaks. Current-host module equivalents and doctor also
-  pass; current-host generated console shims remain an environment limitation.
+- [x] Provider-neutral message, tool, routing, usage, and streaming contracts.
+- [x] Genuine visible-token streaming through Ollama NDJSON and NVIDIA SSE.
+- [x] Router/runtime events, CLI, browser SSE, final-only persistence, cancellation, and structured
+  mid-stream errors verified.
+- [x] Buffered completion is not labelled TTFT. First-useful latency is the first nonblank visible
+  `assistant_delta`; deterministic latency uses its persisted nonblank result.
+- [x] Sensitive/uncertain content remains local; provider payloads and cloud tool schemas remain
+  privacy-filtered.
+- [x] Tool denial, unsupported/side-effecting tools, quota, outage, catalog removal, fallback,
+  cancellation, restart, deletion, and zero-spend scenarios pass.
+- [x] Deterministic state: 20/20 successful observations and fixed latency gate pass.
+- [x] Local verified-cold and warm states: 20/20 successful observations each and fixed latency gate
+  pass with the configuration-driven `qwen3:0.6b` local model.
+- [x] Current public live smoke passes for local `nemotron-3-nano:4b`; NVIDIA Ultra catalog and live
+  public streaming also pass. Active NVIDIA Lightning catalog and streaming pass.
+- [x] NVIDIA hosted simple cold/warm and complex cold/warm each reached 20/20 successes with zero
+  failures using compiled public fixtures.
+- [ ] Fixed NVIDIA hosted latency gates pass. All four states miss at least one p50/p95 target.
+- [x] Clean Windows bootstrap evidence remains reproducible on the independent runner.
+- [x] Source formatting, lint, tests/coverage, dependency audit, secret scan, diff check, and doctor
+  pass. Exact current-host `mypy`, `pytest`, `pip-audit`, and `jarvis` console shims remain blocked
+  by Windows Application Control error 4551; locked module entry points pass, and prior clean
+  Windows exact-command evidence remains valid.
 
-## Implemented closeout fixes
+## Implemented streaming path
 
-1. Corrected `get_current_time` and `get_system_status` structured-result leaf caps from one to
-   their real maximums (3 and 8). Runtime previously rejected valid tool output.
-2. Added the missing deterministic phrase `Please tell me the time.` to the fixed time grammar.
-3. Made Ollama honor core reasoning policy with explicit `think: false` for `ReasoningLevel.NONE`
-   and `think: true` for reasoning requests. Ollama enables thinking by default for supported
-   models; the prior adapter silently ignored the requested level.
-4. Added durable disclosure sensitivity/source labels to provider-neutral messages. User,
-   assistant, tool, static-system, and memory-projection messages now receive local provenance.
-5. Router now scans all disclosed message content plus canonical tool-call arguments. Unlabelled
-   legacy assistant/tool/system history is `UNKNOWN` and local-only. A trusted public label can
-   suppress heuristic ambiguity, but a deterministic private match always overrides it.
-6. Changed unmatched nonblank privacy input from implicitly public to conservative `UNKNOWN`.
-   Bounded general-query forms remain public; deictic, confidential, internal, client, patient,
-   employee, attachment, and multiline content stays local unless deterministically proven public.
-7. Corrected hosted benchmark fixtures and added a preflight proving every compiled hosted fixture
-   classifies `PUBLIC` before any network call.
-8. Retained OneDrive-safe `uv sync --locked --link-mode copy` bootstrap behavior and Nemotron local
-   default in the model setup script.
+- Added typed `ProviderStreamFrame` and `ASSISTANT_DELTA` contracts.
+- Ollama uses `/api/chat` with `stream: true`, bounded NDJSON parsing, separate-thinking suppression,
+  visible deltas, terminal response assembly, usage, tool calls, response-byte bounds, and transport
+  cancellation.
+- NVIDIA uses OpenAI-compatible SSE with `stream: true`, separate `reasoning_content` suppression,
+  visible deltas, fragmented tool-call assembly, usage, `[DONE]` validation, response-byte bounds,
+  concurrency/rate limits, and transport cancellation.
+- Router emits the selected/fallback route before provider frames. Retry/fallback is allowed only
+  before the first provider frame; partial output is never combined with another provider.
+- Runtime emits ordered deltas but persists only the validated terminal assistant response.
+  Cancellation or a mid-stream provider failure persists no partial assistant message.
+- CLI renders deltas live without duplicating the terminal reply. Browser page consumes the
+  loopback POST SSE interface; typed JSON chat remains available.
+- Groq/Gemini remain provider-neutral terminal-frame adapters. No genuine-token claim is made for
+  those adapters.
 
-## Verification evidence
+## Local optimization
 
-### Focused Phase 1 suite
+Fixed settings used for the final local gate:
 
-```text
-uv run --locked python -m pytest -q --no-cov \
-  tests/unit/test_bootstrap.py tests/unit/test_cli.py tests/unit/test_config.py \
-  tests/unit/test_diagnostics.py tests/unit/test_phase_one_tools.py \
-  tests/unit/test_policy.py tests/unit/test_routing.py tests/unit/test_runtime.py \
-  tests/unit/test_phase1_acceptance_script.py tests/contract/test_cloud_providers.py \
-  tests/contract/test_ollama.py tests/integration/test_sqlite_store.py \
-  tests/integration/test_web.py
-PASS: 115 tests; 1 upstream Starlette TestClient deprecation warning; 1.78 s.
-```
+- model: `qwen3:0.6b`
+- digest: `7df6b6e09427a769808717c0a93cadc4ae99ed4eb8bf5ca557c90846becea435`
+- size: 522,653,767 bytes; Q4_K_M; tools/thinking capabilities
+- active context: 4,096 tokens
+- maximum output: 512 tokens
+- keep-alive: `5m`
+- verified cold: `ollama stop` plus `/api/ps` absence before every observation; OS caches not flushed
+- warm: one excluded warm-up, same runtime/client, model residency verified
 
-Focused post-fix lint and types:
+Comparative genuine-TTFT evidence:
 
-```text
-uv run --locked ruff check <changed Phase 1 files>
-PASS
-uv run --locked python -m mypy src
-PASS: 66 source files
-```
+| Model/settings | Cold p50/p95 | Warm p50/p95 | Result |
+| --- | ---: | ---: | --- |
+| Nemotron Nano 4B, 4K | 7,304.644/9,260.436 ms | 964.546/2,746.125 ms | Cold fail; warm pass |
+| Qwen 2.5 3B, 4K | 3,416.946/3,833.340 ms | 49.409/579.827 ms | Cold fail; warm pass |
+| Qwen3 1.7B, 4K | 2,942.449/3,432.295 ms | 34.183/411.135 ms | Cold fail; warm pass |
+| Qwen3 1.7B, 2K | 2,706.817/3,122.634 ms | 36.285/424.831 ms | Cold fail; warm pass |
+| Qwen3.5 0.8B, 4K | 2,978.988/3,761.379 ms | 155.738/532.889 ms | Cold fail; warm pass |
+| Qwen3 0.6B, 4K final | 1,233.312/1,453.556 ms | 25.374/212.986 ms | PASS/PASS |
 
-Smart App Control blocks the unsigned `pytest.exe` launcher used by exact `uv run pytest` with OS
-error 4551. The same locked Python 3.11 environment executes `python -m pytest` successfully. Both
-results remain visible; the independent fresh Windows runner now supplies passing exact-command
-evidence.
+All candidate reports contain 20 successful cold and 20 successful warm observations. Context was
+not reduced below 2K merely to pass. The selected 4K model passed a live exact-output smoke and
+issued a real read-only file tool call that independently failed closed outside configured roots.
+Current Nemotron Nano compatibility smoke returned exactly `NEMOTRON NANO LIVE` through the
+production CLI streaming path.
 
-### Integrated repository gate — 2026-08-31
+## Final deterministic and local evidence
 
-Independent fresh Windows evidence:
+Evidence: `runtime/phase1-benchmark-20260901-final-local-01/phase1-benchmark.json`
 
-```text
-GitHub Actions run 33467300560, commit 1f75017531a8e31d9119d10dfb088a9c19effc67
-scripts/bootstrap.ps1                         PASS: Python 3.11.16; 115 resolved; 62 checked
-uv lock --check / uv sync --locked            PASS
-uv run ruff format --check .                  PASS: 148 files
-uv run ruff check .                           PASS
-uv run mypy src                               PASS: 66 source files
-uv run pytest                                 PASS: 535 passed, 1 skipped, 85.09% coverage
-uv run pip-audit                              PASS: no known vulnerabilities
-complete-history Gitleaks job                 PASS
-```
+| State | Success/failure | First-useful p50 | p95 | Fixed target | Result |
+| --- | ---: | ---: | ---: | --- | --- |
+| Deterministic steady | 20/0 | 5.329 ms | 6.621 ms | 300/800 ms | PASS |
+| Local verified cold | 20/0 | 1,233.312 ms | 1,453.556 ms | 1,500/3,000 ms | PASS |
+| Local warm resident | 20/0 | 25.374 ms | 212.986 ms | 1,500/3,000 ms | PASS |
 
-The capability skip is the directory-symlink negative on a runner without that host capability;
-all other tests pass. The sole warning is the upstream Starlette `TestClient` deprecation.
+Nearest-rank quantiles are used. Final local completion p50/p95 was 1,473.186/1,808.234 ms cold
+and 218.119/394.576 ms warm. Benchmark enforcement exited successfully with all three required
+states complete.
 
-Final current-host evidence after documentation reconciliation:
+## Hosted NVIDIA evidence and blocker
 
-```text
-rtk uv lock --check                          PASS: 115 packages
-rtk uv sync --locked                         PASS: base environment synchronized
-rtk uv run ruff format --check .             PASS: 148 files
-rtk uv run ruff check .                      PASS
-rtk uv run mypy src                          BLOCKED: OS error 4551
-rtk uv run python -m mypy src                PASS: 66 source files
-rtk uv run pytest                            BLOCKED: OS error 4551
-rtk uv run python -m pytest                  PASS: 535 passed, 1 skipped, 85.24% coverage
-rtk uv run pip-audit                         BLOCKED: OS error 4551
-rtk uv run python -m pip_audit               PASS: no known vulnerabilities
-rtk gitleaks detect --source . --redact ...  PASS: 11 commits, 2.30 MB, no leaks
-rtk git diff --check                         PASS
-rtk uv run jarvis doctor                     BLOCKED: OS error 4551
-rtk uv run python -m jarvis doctor           PASS: every diagnostic; JARVIS ready
-rtk uv sync --locked --extra voice           PASS: optional voice environment restored
-voice dependency audit and voice doctor      PASS: no vulnerabilities; every diagnostic healthy
-```
+Final evidence:
+`runtime/phase1-benchmark-20260904-nvidia-lightning-bounded-02/phase1-benchmark.json`
 
-The voice doctor found 26 capture and 30 render endpoints, verified the persisted microphone and
-speaker, and passed local VAD/STT/TTS/openWakeWord health checks. The sole skip remains the
-non-elevated Windows directory-symlink case (`WinError 1314`); the sole warning is upstream
-Starlette `TestClient` deprecation.
+Exact configured model: `nvidia/nemotron-3.5-lightning-30b-a3b`. Catalog validation passed. The
+adapter used genuine OpenAI-compatible SSE and counted the first nonblank visible assistant delta,
+never hidden `reasoning_content` or buffered completion. Only compiled public fixtures were sent.
 
-### Privacy/security regressions added
+Exact settings: 1,024 maximum output tokens, 256 non-reasoning output tokens, 256 hidden-reasoning
+budget tokens, one concurrent request, local 30-request/minute guard, 60-second total stream
+deadline, and bounded serial execution. Simple used `ReasoningLevel.NONE`/thinking disabled;
+complex used `ReasoningLevel.DEEP`/thinking enabled.
 
-- Unlabelled orphan assistant/tool history after message-count truncation forces local routing.
-- Labelled public history can use cloud, but private content overrides a bad public label.
-- Canonical tool-call arguments are scanned before disclosure.
-- Ollama provider payloads exclude internal sensitivity/provenance metadata.
-- SQLite restart preserves disclosure labels.
-- Sensitive and uncertain override requests remain local; cloud tool schemas remain public-only.
-- Result byte/leaf limits, unsupported tools, side-effect broker requirement, timeout,
-  cancellation, provider failure, and zero-dollar usage enforcement remain covered.
+| Required state | Success/failure | Visible TTFT p50 | p95 | Fixed target | Result |
+| --- | ---: | ---: | ---: | --- | --- |
+| Simple cold-client | 20/0 | 2,076.445 ms | 4,304.367 ms | 1,000/2,500 ms | FAIL |
+| Simple warm-client | 20/0 | 1,179.622 ms | 37,975.215 ms | 1,000/2,500 ms | FAIL |
+| Complex cold-client | 20/0 | 2,172.771 ms | 11,608.523 ms | 3,000/7,000 ms | FAIL |
+| Complex warm-client | 20/0 | 3,607.162 ms | 10,243.188 ms | 3,000/7,000 ms | FAIL |
 
-## Benchmarks
+Nearest-rank quantiles are used. All 80 required observations succeeded on the requested provider
+with no fallback, so sample count and capacity errors no longer block. Provider tail latency still
+fails the immutable Phase 1 gate. An earlier Lightning run independently completed all states with
+zero failures and also failed all p95 targets; Ultra retains current public catalog/live-streaming
+compatibility evidence but was materially slower in benchmark evidence.
 
-All reports are ignored under `runtime/`; they contain fixture hashes and bounded operational
-metadata, never prompt/response text or credentials. Quantiles are nearest-rank.
+This is the sole Phase 1 completion blocker. A `PHASE_1_COMPLETION.md` was not created and progress
+was not retired.
 
-### Final deterministic evidence
+## Scenario and release verification
 
-Evidence: `runtime/phase1-benchmark-20260831-03/phase1-benchmark.json`
-
-| State | Samples | Success | Failures | p50 | p95 | Target | Result |
-| --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
-| Steady deterministic | 20 | 20 | 0 | 6.204 ms | 6.691 ms | 300/800 ms | PASS |
-
-All 20 used the deterministic path; no model ran.
-
-### Final local evidence
-
-Evidence: `runtime/phase1-benchmark-20260831-04/phase1-benchmark.json`
-
-| State | Samples | Success | Failures | p50 | p95 | Target | Result |
-| --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
-| Verified cold | 20 | 20 | 0 | 9,477.214 ms | 10,927.172 ms | 1,500/3,000 ms | FAIL |
-| Warm resident | 20 | 20 | 0 | 2,344.215 ms | 4,078.548 ms | 1,500/3,000 ms | FAIL |
-
-- Cold eviction verified 20/20 with `ollama stop` plus `/api/ps` absence; OS caches were not
-  flushed. All 40 observations used Ollama with no route failure.
-- Model `nemotron-3-nano:4b`, digest
-  `6cc467f054393a55e98a74098abde0c762ffb6d1d8cd64becf30458f38886197`,
-  2,837,597,147 bytes, 3,973,556,832 parameters, Q4_K_M, tools and thinking.
-- Declared artifact context is 262,144; observed active Ollama context was 4,096. Adapter responses
-  remain buffered, so measured first-useful output equals complete-response latency, not TTFT.
-- Host before/after: GPU 0/2,289 MiB; 41/62 C; 10.18/28.14 W snapshot; available RAM
-  2,729,299,968/2,145,206,272 bytes. These are endpoint snapshots, not sampled peaks.
-- Earlier preserved runs show the fixes' effect:
-  - pre-fix: deterministic 0/20 due tool cap; local cold 11,153.715/15,331.710 ms,
-    warm 6,925.224/16,116.059 ms;
-  - after tool/thinking fix but before grammar/privacy closeout: deterministic 15/20,
-    local cold 7,610.182/9,838.166 ms, warm 2,308.359/4,376.473 ms.
-
-The current local path is functionally reliable but does not meet the declared interactive latency
-gate on this hardware. Targets were not moved.
-
-### Hosted NVIDIA evidence
-
-Evidence: `runtime/phase1-benchmark-20260831-06/phase1-benchmark.json`
-
-- Existing private configuration was verified without printing the secret: key configured,
-  free-tier confirmation true, prior trial-terms acknowledgement true, cost cap exactly `$0`, and
-  model `nvidia/nemotron-3-ultra-550b-a55b`. Exact catalog validation passed before each profile.
-- Simple cold-client: 10 observations, 9 NVIDIA successes and one local fallback; successful p50
-  `1,584.476 ms`, p95 `5,790.438 ms`, versus fixed `1,000/2,500 ms`. The harness stopped on the
-  first capacity/fallback signal, so no simple warm state was started.
-- Complex cold-client: 20/20 NVIDIA successes; p50 `22,227.169 ms`, p95 `43,157.135 ms`, versus
-  fixed `3,000/7,000 ms`.
-- Complex warm-client: 7 observations, 6 NVIDIA successes and one local fallback; successful p50
-  `11,025.118 ms`, p95 `46,278.779 ms`. The harness stopped on the first fallback.
-- Three of four required states were observed, but only complex cold reached 20 successes. None met
-  its latency target. No quota ceiling was probed, no paid path exists, and no sensitive content
-  was sent. The endpoint is usable intermittently but does not satisfy current capacity/latency
-  acceptance.
-
-## Bootstrap and clean Windows
-
-Independent fresh Windows evidence:
+Focused Phase 1 suite after streaming/default changes:
 
 ```text
-GitHub Actions run 33467300560 on windows-latest
-setup-uv 0.12.5 + uv-managed CPython 3.11.16
-uv lock --check; uv sync --locked; ./scripts/bootstrap.ps1
-PASS: 115 locked packages resolved; 62 packages checked; bootstrap ready message emitted
+120 passed, 1 upstream Starlette deprecation warning
 ```
 
-The same clean checkout then passed exact format, lint, mypy, pytest, and dependency audit
-commands; a separate complete-history Gitleaks job passed. This resolves the independent Windows
-bootstrap/repository-gate requirement.
-
-Current-host fresh environment rehearsal:
+Full repository suite after final hosted-model/deadline changes:
 
 ```text
-UV_PROJECT_ENVIRONMENT=runtime/phase1-bootstrap-20260831-01
-./scripts/bootstrap.ps1
-PASS: Python 3.11 already installed; 115 packages resolved; 62 locked packages installed
-      using copy mode in 4.02 s.
-runtime/phase1-bootstrap-20260831-01/Scripts/python.exe --version
-PASS: Python 3.11.16
-fresh Python import jarvis, fastapi, httpx, pydantic
-PASS: imports-ok
+rtk uv run python -m pytest
+PASS: 543 passed, 1 skipped, 1 warning; coverage 85.01% (required 85%)
 ```
 
-This remains useful host-specific regression evidence. The independent CI run supplies the clean
-Windows result without creating a VM, account, license, remote deployment, or policy bypass.
+The skip is the existing Windows capability-dependent directory-symlink case. Full tests cover
+privacy routes/overrides, cloud-schema filtering, tool denial, unsupported and side-effecting tool
+fail-closed behavior, quota/outage/catalog removal, zero spend, restart, deletion, cancellation,
+stream ordering, final-only persistence, and mid-stream error behavior.
 
-## External blockers
+Current-host release gate:
 
-1. **NVIDIA capacity and latency remain insufficient.** The endpoint completed 35 current public
-   fixture requests but fell back twice before every state reached 20 successes, and all measured
-   hosted p50/p95 values missed their fixed targets. Retry with the same zero-dollar policy,
-   2.1-second pacing, bounded timeouts, and fail-closed stop. Do not probe quota ceilings.
-2. **Local latency misses on target hardware.** Completing this gate requires a measured adapter
-   streaming/preload improvement or stronger approved hardware. Buffered completion cannot be
-   relabelled TTFT, and cold model load cannot be called passing.
-3. **Current-host launcher policy.** RTK and uv run, but generated console launchers remain blocked
-   by Smart App Control. Allowed module entry points pass locally and exact commands pass on the
-   independent Windows runner; no host policy was changed.
+```text
+rtk uv lock --check                         PASS: 115 packages
+rtk uv sync --locked                        PASS
+rtk uv run ruff format --check .            PASS: 148 files
+rtk uv run ruff check .                     PASS
+rtk uv run mypy src                         BLOCKED: Windows Application Control, OS 4551
+rtk uv run python -m mypy src               PASS: 66 source files
+rtk uv run pytest                           BLOCKED: Windows Application Control, OS 4551
+rtk uv run python -m pytest                 PASS: 543 passed, 1 skipped, 85.01% coverage
+rtk uv run pip-audit                        BLOCKED: Windows Application Control, OS 4551
+rtk uv run python -m pip_audit              PASS: no known vulnerabilities
+rtk gitleaks detect --source . --redact ... PASS: 12 commits, 2.31 MB, no leaks
+rtk git diff --check                        PASS
+rtk uv run jarvis doctor                    BLOCKED: Windows Application Control, OS 4551
+rtk uv run python -X utf8 -m jarvis doctor  PASS; Qwen local and NVIDIA Lightning catalog healthy
+```
 
-## Known limits and deferred scope
+The exact console-launcher blocks are host policy, not code/test failures; no bypass was attempted.
+Independent clean Windows run 33467300560 previously passed the exact commands with uv 0.12.5 and
+Python 3.11.16. Current lock, complete module-entry release gate, and doctor were revalidated on
+2026-09-04. `scripts/bootstrap.ps1` remains unchanged; `scripts/setup-model.ps1` changes only the
+configuration-driven latency-qualified local-model default and bounded Ollama settings.
 
-- Ollama adapter still buffers full responses and has no current local output-token setting; the
-  60-second timeout and HTTP/result validation remain the primary bound.
-- Benchmark corpus has four fixed prompts per profile repeated to 20 observations; it measures
-  latency/routing success, not broad answer quality. Hosted digest is not published; record exact
-  model ID/version/catalog date instead.
-- Hosted-runner bootstrap proves a fresh Windows checkout and toolchain, not this laptop's exact
-  OEM drivers, Ollama/GPU stack, or Smart App Control policy.
-- Phase 2–4 revalidation and integrated release evidence are recorded in their own reports.
+## Smallest external action
 
-## Recovery and rollback
+Retry the same public-only, zero-dollar hosted command when NVIDIA free-endpoint tail latency
+improves. Sample count already passes. Completion requires every fixed p50/p95 target to pass. If
+the endpoint continues producing 4–38 second p95 visible TTFT, completion requires NVIDIA service
+improvement or separately authorized replacement hardware/provider that still satisfies zero cost
+and public-only disclosure. No local code, threshold, privacy rule, or sample-count change can
+honestly convert current evidence to a pass.
 
-- Runtime benchmark/bootstrap artifacts are ignored and can be removed only after resolving and
-  verifying their exact workspace-local paths. No cleanup was performed.
-- To revert this continuation, reverse only the explicit hunks in Phase 1 routing, runtime,
-  provider, tool, benchmark, tests, and documentation. Do not restore whole dirty files from HEAD.
-- No database migration was required: messages already persist versioned Pydantic payload JSON;
-  new optional fields remain compatible with legacy rows, which deliberately fail local.
+## Recovery
 
-## Final handoff
-
-- Final status: `blocked-external`; no `PHASE_1_COMPLETION.md` exists.
-- Safe local work completed: correctness/privacy fixes, 115-test suite, deterministic/local
-  benchmarks, bounded hosted attempt, and fresh current-host bootstrap rehearsal.
-- Next action: improve local streaming/preload latency and retry NVIDIA only when capacity is
-  healthy, without relaxing targets. Clean-Windows/bootstrap evidence is now complete.
-- Phase 1–4 implementation, CI hardening, and final evidence reconciliation are committed and
-  pushed to `origin/main`; remote SHA verification is recorded in the final handoff.
+- Runtime benchmark artifacts remain ignored and were not deleted.
+- Additional Ollama candidate models were downloaded outside Git and may be removed later through a
+  separately authorized cleanup; no model artifact is committed.
+- Revert only Phase 1 streaming/default/documentation hunks if rollback is required. Do not reset
+  unrelated repository state.
+- No database schema migration was required. Existing persisted messages remain compatible.

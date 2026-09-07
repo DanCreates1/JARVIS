@@ -5,7 +5,13 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Sequence
 from typing import Protocol, runtime_checkable
 
-from jarvis.core.models import Message, ModelProfile, ProviderResponse, ToolDefinition
+from jarvis.core.models import (
+    Message,
+    ModelProfile,
+    ProviderResponse,
+    ProviderStreamFrame,
+    ToolDefinition,
+)
 
 
 class ProviderError(RuntimeError):
@@ -59,7 +65,7 @@ class ModelProvider(Protocol):
         messages: Sequence[Message],
         tools: Sequence[ToolDefinition],
         reasoning_level: str = "none",
-    ) -> AsyncIterator[ProviderResponse]: ...
+    ) -> AsyncIterator[ProviderStreamFrame]: ...
 
     async def validate_model(self) -> bool: ...
 

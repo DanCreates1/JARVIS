@@ -167,7 +167,7 @@ async def run_benchmark(args: argparse.Namespace, work_dir: Path) -> dict[str, A
         "cross_host_hits": len(cross_host) == _TARGETS["cross_host_hits"],
         "concurrency_failures": (concurrency["failures"] == _TARGETS["concurrency_failures"]),
         "backup_restore": restore["passed"],
-        "migration": migration_versions == [1, 2, 3, 4, 5],
+        "migration": migration_versions[:5] == [1, 2, 3, 4, 5],
         "integrity": integrity == "ok",
         "fts5": fts5,
     }

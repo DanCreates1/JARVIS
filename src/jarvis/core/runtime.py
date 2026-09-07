@@ -14,7 +14,9 @@ from .contracts import (
     ConversationStore,
     MemoryContextPort,
     RoutedChatProvider,
+    RoutedStreamingChatProvider,
     SensitivityClassifier,
+    StreamingChatProvider,
     Tool,
     ToolPolicy,
 )
@@ -27,6 +29,7 @@ from .models import (
     PermissionLevel,
     PolicyDecision,
     ProviderResponse,
+    ProviderStreamFrame,
     ProviderUsage,
     ReasoningLevel,
     RoutingDecision,
@@ -60,6 +63,7 @@ class _Events:
         tool_call: ToolCall | None = None,
         routing: RoutingDecision | None = None,
         usage: ProviderUsage | None = None,
+        content_delta: str | None = None,
     ) -> None:
         event = RuntimeEvent(
             sequence=len(self.items) + 1,
@@ -70,6 +74,7 @@ class _Events:
             tool_call=tool_call,
             routing=routing,
             usage=usage,
+            content_delta=content_delta,
         )
         self.items.append(event)
         if self.queue is not None:
@@ -78,6 +83,10 @@ class _Events:
 
 class _ConversationMissing(LookupError):
     """Internal sentinel that distinguishes absence from adapter failures."""
+
+
+class _InvalidProviderStream(ValueError):
+    """Internal sentinel for a provider stream without one terminal response."""
 
 
 class AssistantService:
@@ -256,20 +265,70 @@ class AssistantService:
                 detail=f"Sent {len(context)} messages to the chat provider.",
             )
             try:
-                if isinstance(self.provider, RoutedChatProvider):
-                    raw_response = await self.provider.chat_routed(
+                response: ProviderResponse | None = None
+                if isinstance(self.provider, RoutedStreamingChatProvider):
+                    provider_stream = self.provider.stream_chat_routed(
                         messages=context,
                         tools=self.tool_definitions,
                         requested_role=request.requested_model_role,
                         reasoning_level=request.reasoning_level,
                     )
-                else:
-                    raw_response = await self.provider.chat(
+                elif isinstance(self.provider, StreamingChatProvider):
+                    provider_stream = self.provider.stream_chat(
                         messages=context,
                         tools=self.public_tool_definitions,
                     )
-                response = ProviderResponse.model_validate(raw_response)
-            except ValidationError:
+                else:
+                    provider_stream = None
+
+                if provider_stream is not None:
+                    async for raw_frame in provider_stream:
+                        if response is not None:
+                            raise _InvalidProviderStream(
+                                "provider stream emitted a frame after its terminal response"
+                            )
+                        provider_frame = ProviderStreamFrame.model_validate(raw_frame)
+                        if provider_frame.routing is not None:
+                            events.add(
+                                RuntimeEventType.ROUTING_DECIDED,
+                                conversation_id=conversation.id,
+                                detail=provider_frame.routing.reason,
+                                routing=provider_frame.routing,
+                            )
+                            if provider_frame.routing.fallback_used:
+                                events.add(
+                                    RuntimeEventType.PROVIDER_FALLBACK,
+                                    conversation_id=conversation.id,
+                                    detail=provider_frame.routing.reason,
+                                    routing=provider_frame.routing,
+                                )
+                        elif provider_frame.content_delta is not None:
+                            events.add(
+                                RuntimeEventType.ASSISTANT_DELTA,
+                                conversation_id=conversation.id,
+                                content_delta=provider_frame.content_delta,
+                            )
+                        else:
+                            response = ProviderResponse.model_validate(provider_frame.response)
+                    if response is None:
+                        raise _InvalidProviderStream("provider stream omitted terminal response")
+                elif isinstance(self.provider, RoutedChatProvider):
+                    response = ProviderResponse.model_validate(
+                        await self.provider.chat_routed(
+                            messages=context,
+                            tools=self.tool_definitions,
+                            requested_role=request.requested_model_role,
+                            reasoning_level=request.reasoning_level,
+                        )
+                    )
+                else:
+                    response = ProviderResponse.model_validate(
+                        await self.provider.chat(
+                            messages=context,
+                            tools=self.public_tool_definitions,
+                        )
+                    )
+            except (ValidationError, _InvalidProviderStream):
                 error = RuntimeErrorDetail(
                     code=RuntimeErrorCode.INVALID_PROVIDER_RESPONSE,
                     message="The chat provider returned an invalid response.",
@@ -296,7 +355,10 @@ class AssistantService:
                     tool_iterations=tool_iterations,
                 )
 
-            if response.routing is not None:
+            if response.routing is not None and not any(
+                event.type is RuntimeEventType.ROUTING_DECIDED and event.routing == response.routing
+                for event in events.items
+            ):
                 events.add(
                     RuntimeEventType.ROUTING_DECIDED,
                     conversation_id=conversation.id,

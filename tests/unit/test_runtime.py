@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from collections.abc import AsyncIterator
 
 import pytest
 from pydantic import BaseModel, ConfigDict, ValidationError
@@ -16,6 +17,7 @@ from jarvis.core import (
     PermissionLevel,
     PolicyDecision,
     ProviderResponse,
+    ProviderStreamFrame,
     ReasoningLevel,
     RoutingDecision,
     RuntimeErrorCode,
@@ -137,6 +139,120 @@ async def test_stream_yields_live_events_then_terminal_result() -> None:
     assert frames[0].event is not None
     assert frames[-1].result is not None
     assert frames[-1].result.reply == "Stream complete."
+
+
+@pytest.mark.asyncio
+async def test_provider_tokens_stream_before_atomic_assistant_persistence() -> None:
+    class StreamingProvider:
+        async def stream_chat(self, **_kwargs: object) -> AsyncIterator[ProviderStreamFrame]:
+            yield ProviderStreamFrame(content_delta="Stream ")
+            yield ProviderStreamFrame(content_delta="complete.")
+            yield ProviderStreamFrame(response=ProviderResponse(content="Stream complete."))
+
+    store = InMemoryConversationStore()
+    service = AssistantService(
+        provider=StreamingProvider(),  # type: ignore[arg-type]
+        store=store,
+        tools=[],
+        policy=FakeToolPolicy(),
+    )
+
+    frames = [frame async for frame in service.stream(AssistantRequest(user_input="Hello"))]
+
+    deltas = [
+        frame.event.content_delta
+        for frame in frames
+        if frame.event is not None and frame.event.type is RuntimeEventType.ASSISTANT_DELTA
+    ]
+    assert deltas == ["Stream ", "complete."]
+    assert frames[-1].result is not None
+    assert frames[-1].result.reply == "Stream complete."
+    persisted = store.messages["conversation-1"]
+    assert [message.content for message in persisted] == ["Hello", "Stream complete."]
+
+
+@pytest.mark.asyncio
+async def test_provider_frame_after_terminal_fails_closed_without_assistant_persistence() -> None:
+    class InvalidStreamProvider:
+        async def stream_chat(self, **_kwargs: object) -> AsyncIterator[ProviderStreamFrame]:
+            yield ProviderStreamFrame(response=ProviderResponse(content="Terminal"))
+            yield ProviderStreamFrame(content_delta="late")
+
+    store = InMemoryConversationStore()
+    service = AssistantService(
+        provider=InvalidStreamProvider(),  # type: ignore[arg-type]
+        store=store,
+        tools=[],
+        policy=FakeToolPolicy(),
+    )
+
+    result = await service.respond("Hello")
+
+    assert result.status is RuntimeStatus.FAILED
+    assert result.error is not None
+    assert result.error.code is RuntimeErrorCode.INVALID_PROVIDER_RESPONSE
+    assert [message.role for message in store.messages["conversation-1"]] == [MessageRole.USER]
+
+
+@pytest.mark.asyncio
+async def test_stream_error_after_visible_delta_persists_no_partial_assistant() -> None:
+    class FailingStreamProvider:
+        async def stream_chat(self, **_kwargs: object) -> AsyncIterator[ProviderStreamFrame]:
+            yield ProviderStreamFrame(content_delta="Partial")
+            raise RuntimeError("provider disconnected")
+
+    store = InMemoryConversationStore()
+    service = AssistantService(
+        provider=FailingStreamProvider(),  # type: ignore[arg-type]
+        store=store,
+        tools=[],
+        policy=FakeToolPolicy(),
+    )
+
+    frames = [frame async for frame in service.stream(AssistantRequest(user_input="Hello"))]
+
+    assert any(
+        frame.event is not None and frame.event.type is RuntimeEventType.ASSISTANT_DELTA
+        for frame in frames
+    )
+    assert frames[-1].result is not None
+    assert frames[-1].result.status is RuntimeStatus.FAILED
+    assert frames[-1].result.error is not None
+    assert frames[-1].result.error.code is RuntimeErrorCode.PROVIDER_ERROR
+    assert [message.role for message in store.messages["conversation-1"]] == [MessageRole.USER]
+
+
+@pytest.mark.asyncio
+async def test_closing_token_stream_cancels_provider_and_discards_partial_assistant() -> None:
+    class CancellableStreamProvider:
+        def __init__(self) -> None:
+            self.cancelled = asyncio.Event()
+
+        async def stream_chat(self, **_kwargs: object) -> AsyncIterator[ProviderStreamFrame]:
+            yield ProviderStreamFrame(content_delta="Partial")
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                self.cancelled.set()
+                raise
+
+    provider = CancellableStreamProvider()
+    store = InMemoryConversationStore()
+    service = AssistantService(
+        provider=provider,  # type: ignore[arg-type]
+        store=store,
+        tools=[],
+        policy=FakeToolPolicy(),
+    )
+    stream = service.stream(AssistantRequest(user_input="cancel me"))
+    while True:
+        frame = await anext(stream)
+        if frame.event is not None and frame.event.type is RuntimeEventType.ASSISTANT_DELTA:
+            break
+    await stream.aclose()
+
+    await asyncio.wait_for(provider.cancelled.wait(), timeout=1)
+    assert [message.role for message in store.messages["conversation-1"]] == [MessageRole.USER]
 
 
 @pytest.mark.asyncio

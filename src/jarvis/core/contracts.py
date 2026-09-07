@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import AsyncIterator, Mapping, Sequence
 from typing import Protocol, runtime_checkable
 
 from pydantic import BaseModel, JsonValue
@@ -14,6 +14,7 @@ from .models import (
     ModelRole,
     PolicyDecision,
     ProviderResponse,
+    ProviderStreamFrame,
     ReasoningLevel,
     SensitivityClass,
     ToolCall,
@@ -54,6 +55,28 @@ class RoutedChatProvider(Protocol):
         requested_role: ModelRole | None = None,
         reasoning_level: ReasoningLevel | None = None,
     ) -> ProviderResponse: ...
+
+
+@runtime_checkable
+class StreamingChatProvider(Protocol):
+    def stream_chat(
+        self,
+        *,
+        messages: Sequence[Message],
+        tools: Sequence[ToolDefinition],
+    ) -> AsyncIterator[ProviderStreamFrame]: ...
+
+
+@runtime_checkable
+class RoutedStreamingChatProvider(Protocol):
+    def stream_chat_routed(
+        self,
+        *,
+        messages: Sequence[Message],
+        tools: Sequence[ToolDefinition],
+        requested_role: ModelRole | None = None,
+        reasoning_level: ReasoningLevel | None = None,
+    ) -> AsyncIterator[ProviderStreamFrame]: ...
 
 
 @runtime_checkable

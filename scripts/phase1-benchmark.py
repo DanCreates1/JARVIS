@@ -37,8 +37,8 @@ from jarvis.core import (
 )
 from jarvis.llm import PrivacyGate
 
-LOCAL_MODEL: Final = "nemotron-3-nano:4b"
-HOSTED_MODEL: Final = "nvidia/nemotron-3-ultra-550b-a55b"
+LOCAL_MODEL: Final = "qwen3:0.6b"
+HOSTED_MODEL: Final = "nvidia/nemotron-3.5-lightning-30b-a3b"
 MIN_SAMPLES: Final = 20
 MAX_SAMPLES: Final = 100
 MAX_WARMUPS: Final = 5
@@ -137,6 +137,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--samples", type=int, default=MIN_SAMPLES)
     parser.add_argument("--warmups", type=int, default=1)
     parser.add_argument(
+        "--local-model",
+        default=LOCAL_MODEL,
+        help="Installed Ollama model to measure; exact ID is recorded in evidence.",
+    )
+    parser.add_argument(
+        "--hosted-model",
+        default=HOSTED_MODEL,
+        help="NVIDIA model to measure; exact configured ID is validated and recorded.",
+    )
+    parser.add_argument(
         "--include-hosted",
         action="store_true",
         help="Permit fixed public NVIDIA fixtures after repository confirmation checks pass.",
@@ -160,6 +170,22 @@ def validate_args(args: argparse.Namespace) -> None:
         raise ValueError(f"--samples must be between {MIN_SAMPLES} and {MAX_SAMPLES}")
     if not 0 <= args.warmups <= MAX_WARMUPS:
         raise ValueError(f"--warmups must be between 0 and {MAX_WARMUPS}")
+    if (
+        not isinstance(args.local_model, str)
+        or not args.local_model.strip()
+        or len(args.local_model) > 200
+        or any(character in args.local_model for character in "\r\n")
+    ):
+        raise ValueError("--local-model must be a nonblank single-line Ollama model ID")
+    args.local_model = args.local_model.strip()
+    if (
+        not isinstance(args.hosted_model, str)
+        or not args.hosted_model.strip()
+        or len(args.hosted_model) > 200
+        or any(character in args.hosted_model for character in "\r\n")
+    ):
+        raise ValueError("--hosted-model must be a nonblank single-line NVIDIA model ID")
+    args.hosted_model = args.hosted_model.strip()
     if args.hosted_min_interval_seconds < DEFAULT_HOSTED_INTERVAL_SECONDS:
         raise ValueError(
             "--hosted-min-interval-seconds cannot be below the conservative 2.1-second guard"
@@ -247,6 +273,7 @@ async def run_sample(
     routing = None
     usage = None
     result = None
+    streamed_delta_seen = False
     request = AssistantRequest(
         user_input=fixture.prompt,
         metadata={"source": "phase1-benchmark", "fixture_id": fixture.fixture_id},
@@ -261,6 +288,14 @@ async def run_sample(
             if event.usage is not None:
                 usage = event.usage
             if (
+                first_useful_ms is None
+                and event.type is RuntimeEventType.ASSISTANT_DELTA
+                and event.content_delta is not None
+                and event.content_delta.strip()
+            ):
+                streamed_delta_seen = True
+                first_useful_ms = (time.perf_counter_ns() - started) / 1_000_000
+            elif (
                 first_useful_ms is None
                 and event.type is RuntimeEventType.MESSAGE_PERSISTED
                 and event.message is not None
@@ -321,8 +356,12 @@ async def run_sample(
         "input_tokens": usage.input_tokens if usage is not None else None,
         "output_tokens": usage.output_tokens if usage is not None else None,
         "rate_limit_remaining": usage.rate_limit_remaining if usage is not None else None,
-        "adapter_streaming": False,
-        "first_useful_definition": "first persisted nonblank assistant message",
+        "adapter_streaming": streamed_delta_seen,
+        "first_useful_definition": (
+            "first nonblank visible assistant token delta"
+            if streamed_delta_seen
+            else "first persisted nonblank deterministic assistant message"
+        ),
     }
 
 
@@ -395,24 +434,28 @@ def summarize_state(
     }
 
 
-def _local_settings(data_dir: Path) -> Settings:
+def _local_settings(data_dir: Path, local_model: str) -> Settings:
     return Settings(
         _env_file=None,
         data_dir=data_dir,
         cloud_policy="local_only",
-        local_model=LOCAL_MODEL,
+        local_model=local_model,
         computer_access_enabled=False,
     )
 
 
-def _hosted_settings(data_dir: Path) -> Settings:
+def _hosted_settings(data_dir: Path, hosted_model: str) -> Settings:
     try:
-        settings = Settings(data_dir=data_dir, computer_access_enabled=False)
+        settings = Settings(
+            data_dir=data_dir,
+            reasoning_model=hosted_model,
+            computer_access_enabled=False,
+        )
     except ValidationError as error:
         raise BenchmarkBlocked(
             "NVIDIA configuration failed closed; verify key presence and both confirmations."
         ) from error
-    if settings.reasoning_provider != "nvidia" or settings.reasoning_model != HOSTED_MODEL:
+    if settings.reasoning_provider != "nvidia" or settings.reasoning_model != hosted_model:
         raise BenchmarkBlocked(
             "Configured hosted reasoning path is not the required Nemotron model."
         )
@@ -450,7 +493,7 @@ async def evict_local_model(settings: Settings) -> dict[str, Any]:
         process = await asyncio.create_subprocess_exec(
             "ollama",
             "stop",
-            LOCAL_MODEL,
+            settings.effective_local_model,
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL,
         )
@@ -463,7 +506,9 @@ async def evict_local_model(settings: Settings) -> dict[str, Any]:
         raise BenchmarkBlocked("Ollama refused the explicit model-stop request.")
     deadline = time.monotonic() + 15
     while time.monotonic() < deadline:
-        if not await _is_model_loaded(str(settings.ollama_base_url), LOCAL_MODEL):
+        if not await _is_model_loaded(
+            str(settings.ollama_base_url), settings.effective_local_model
+        ):
             return {
                 "verified": True,
                 "method": "ollama stop plus GET /api/ps absence check",
@@ -503,7 +548,7 @@ async def _warmups(
 
 
 async def benchmark_deterministic(args: argparse.Namespace, work_dir: Path) -> dict[str, Any]:
-    settings = _local_settings(work_dir / "data-deterministic")
+    settings = _local_settings(work_dir / "data-deterministic", args.local_model)
     async with await build_runtime(settings) as runtime:
         samples = [
             await run_sample(
@@ -522,7 +567,10 @@ async def benchmark_local(args: argparse.Namespace, work_dir: Path) -> dict[str,
     cold_samples: list[dict[str, Any]] = []
     evictions: list[dict[str, Any]] = []
     for index in range(args.samples):
-        settings = _local_settings(work_dir / "data-local-cold" / f"sample-{index + 1:03d}")
+        settings = _local_settings(
+            work_dir / "data-local-cold" / f"sample-{index + 1:03d}",
+            args.local_model,
+        )
         evictions.append(await evict_local_model(settings))
         async with await build_runtime(settings) as runtime:
             cold_samples.append(
@@ -535,7 +583,7 @@ async def benchmark_local(args: argparse.Namespace, work_dir: Path) -> dict[str,
                 )
             )
 
-    warm_settings = _local_settings(work_dir / "data-local-warm")
+    warm_settings = _local_settings(work_dir / "data-local-warm", args.local_model)
     async with await build_runtime(warm_settings) as runtime:
         warmups = await _warmups(
             runtime,
@@ -546,7 +594,7 @@ async def benchmark_local(args: argparse.Namespace, work_dir: Path) -> dict[str,
             reasoning_level=None,
             expected_provider="ollama",
         )
-        if not await _is_model_loaded(str(warm_settings.ollama_base_url), LOCAL_MODEL):
+        if not await _is_model_loaded(str(warm_settings.ollama_base_url), args.local_model):
             raise BenchmarkBlocked("Local warm-up did not leave the required model resident.")
         warm_samples = [
             await run_sample(
@@ -586,14 +634,30 @@ async def benchmark_hosted(
     reasoning_level: ReasoningLevel,
     pacer: HostedPacer,
 ) -> dict[str, Any]:
-    validation_settings = _hosted_settings(work_dir / f"data-{profile}-catalog")
+    validation_settings = _hosted_settings(work_dir / f"data-{profile}-catalog", args.hosted_model)
     await pacer.wait()
     await _validate_hosted_catalog(validation_settings)
+    hosted_settings = {
+        "model": validation_settings.reasoning_model,
+        "max_output_tokens": validation_settings.nvidia_max_output_tokens,
+        "non_reasoning_max_output_tokens": (
+            validation_settings.nvidia_non_reasoning_max_output_tokens
+        ),
+        "reasoning_budget_tokens": validation_settings.nvidia_reasoning_budget_tokens,
+        "reasoning_level": reasoning_level.value,
+        "enable_thinking": reasoning_level is not ReasoningLevel.NONE,
+        "max_requests_per_minute": validation_settings.nvidia_max_requests_per_minute,
+        "max_concurrency": validation_settings.nvidia_max_concurrency,
+        "request_timeout_seconds": validation_settings.request_timeout_seconds,
+    }
 
     cold_samples: list[dict[str, Any]] = []
     for index in range(args.samples):
         await pacer.wait()
-        settings = _hosted_settings(work_dir / f"data-{profile}-cold" / f"sample-{index + 1:03d}")
+        settings = _hosted_settings(
+            work_dir / f"data-{profile}-cold" / f"sample-{index + 1:03d}",
+            args.hosted_model,
+        )
         async with await build_runtime(settings) as runtime:
             record = await run_sample(
                 runtime,
@@ -609,6 +673,7 @@ async def benchmark_hosted(
             or record["failure_code"] == "provider_error"
         ):
             return {
+                "model_settings": hosted_settings,
                 "hosted_cold_definition": (
                     "fresh JARVIS runtime and HTTP client; not provider eviction"
                 ),
@@ -618,7 +683,7 @@ async def benchmark_hosted(
                 "blocker": HOSTED_CAPACITY_STOP,
             }
 
-    warm_settings = _hosted_settings(work_dir / f"data-{profile}-warm")
+    warm_settings = _hosted_settings(work_dir / f"data-{profile}-warm", args.hosted_model)
     async with await build_runtime(warm_settings) as runtime:
         warmups = await _warmups(
             runtime,
@@ -647,6 +712,7 @@ async def benchmark_hosted(
                 or record["failure_code"] == "provider_error"
             ):
                 return {
+                    "model_settings": hosted_settings,
                     "hosted_cold_definition": (
                         "fresh JARVIS runtime and HTTP client; not provider eviction"
                     ),
@@ -659,6 +725,7 @@ async def benchmark_hosted(
                     "blocker": HOSTED_CAPACITY_STOP,
                 }
     return {
+        "model_settings": hosted_settings,
         "hosted_cold_definition": "fresh JARVIS runtime and HTTP client; not provider eviction",
         "bounded_serial_interval_seconds": args.hosted_min_interval_seconds,
         "states": [
@@ -668,13 +735,16 @@ async def benchmark_hosted(
     }
 
 
-async def collect_local_model_metadata() -> dict[str, Any]:
-    settings = _local_settings(_repository_root() / "runtime" / "phase1-metadata-unused")
+async def collect_local_model_metadata(local_model: str) -> dict[str, Any]:
+    settings = _local_settings(
+        _repository_root() / "runtime" / "phase1-metadata-unused",
+        local_model,
+    )
     base_url = str(settings.ollama_base_url).rstrip("/")
     async with httpx.AsyncClient(timeout=10) as client:
         tags_response, show_response = await asyncio.gather(
             client.get(f"{base_url}/api/tags"),
-            client.post(f"{base_url}/api/show", json={"model": LOCAL_MODEL, "verbose": False}),
+            client.post(f"{base_url}/api/show", json={"model": local_model, "verbose": False}),
         )
     tags_response.raise_for_status()
     show_response.raise_for_status()
@@ -686,7 +756,7 @@ async def collect_local_model_metadata() -> dict[str, Any]:
             item
             for item in entries
             if isinstance(item, dict)
-            and (item.get("name") == LOCAL_MODEL or item.get("model") == LOCAL_MODEL)
+            and (item.get("name") == local_model or item.get("model") == local_model)
         ),
         {},
     )
@@ -701,7 +771,7 @@ async def collect_local_model_metadata() -> dict[str, Any]:
         )
     }
     return {
-        "model": LOCAL_MODEL,
+        "model": local_model,
         "installed": bool(entry),
         "digest": entry.get("digest") if isinstance(entry, dict) else None,
         "size_bytes": entry.get("size") if isinstance(entry, dict) else None,
@@ -792,11 +862,14 @@ async def run(args: argparse.Namespace, work_dir: Path) -> dict[str, Any]:
             "uv": _command_output(("uv", "--version")),
         },
         "model_settings": {
-            "local_model": LOCAL_MODEL,
-            "hosted_model": HOSTED_MODEL,
+            "local_model": args.local_model,
+            "hosted_model": args.hosted_model,
             "cloud_cost_limit_usd": 0,
-            "adapter_response_mode": "buffered complete responses",
-            "token_streaming_claimed": False,
+            "adapter_response_mode": "visible token deltas plus terminal normalized response",
+            "token_streaming_claimed": True,
+            "local_context_tokens": Settings(_env_file=None).ollama_context_tokens,
+            "local_max_output_tokens": Settings(_env_file=None).ollama_max_output_tokens,
+            "local_keep_alive": Settings(_env_file=None).ollama_keep_alive,
         },
         "host_before": host_snapshot(),
         "local_model_metadata": None,
@@ -806,7 +879,7 @@ async def run(args: argparse.Namespace, work_dir: Path) -> dict[str, Any]:
         "blockers": [],
     }
     try:
-        report["local_model_metadata"] = await collect_local_model_metadata()
+        report["local_model_metadata"] = await collect_local_model_metadata(args.local_model)
     except Exception as error:
         report["blockers"].append({"scope": "local-model-metadata", "error": type(error).__name__})
 

@@ -12,6 +12,7 @@ from jarvis.core.models import (
     MessageRole,
     ModelRole,
     ProviderResponse,
+    ProviderStreamFrame,
     ReasoningLevel,
     RoutingDecision,
     SensitivityClass,
@@ -184,19 +185,46 @@ class ModelRouter:
         requested_role: ModelRole | None = None,
         reasoning_level: ReasoningLevel | None = None,
     ) -> ProviderResponse:
+        response: ProviderResponse | None = None
+        async for frame in self.stream_chat_routed(
+            messages=messages,
+            tools=tools,
+            requested_role=requested_role,
+            reasoning_level=reasoning_level,
+        ):
+            if frame.response is not None:
+                response = frame.response
+        if response is None:
+            raise ProviderProtocolError("Provider stream ended without a terminal response")
+        return response
+
+    async def stream_chat_routed(
+        self,
+        *,
+        messages: Sequence[Message],
+        tools: Sequence[ToolDefinition],
+        requested_role: ModelRole | None = None,
+        reasoning_level: ReasoningLevel | None = None,
+    ) -> AsyncIterator[ProviderStreamFrame]:
         latest_user = next(
             (message.content for message in reversed(messages) if message.role is MessageRole.USER),
             "",
         )
         latest = messages[-1] if messages else None
         if latest is not None and latest.role is MessageRole.TOOL:
-            return ProviderResponse(content=_tool_result_text(latest.content))
+            yield ProviderStreamFrame(
+                response=ProviderResponse(content=_tool_result_text(latest.content))
+            )
+            return
 
         direct_call = self.policy.gate.direct_tool_call(latest_user)
         if direct_call is not None and not any(
             message.role is MessageRole.TOOL for message in messages
         ):
-            return ProviderResponse(content=None, tool_calls=(direct_call,))
+            yield ProviderStreamFrame(
+                response=ProviderResponse(content=None, tool_calls=(direct_call,))
+            )
+            return
 
         disclosure_text = "\n".join(_message_disclosure_text(message) for message in messages)
         forced_sensitivity = _messages_sensitivity(messages, self.policy.gate)
@@ -215,11 +243,12 @@ class ModelRouter:
                 continue
             if decision.sensitivity is not SensitivityClass.PUBLIC and provider.profile.is_cloud:
                 continue
-            response: ProviderResponse | None = None
+            provider_stream: AsyncIterator[ProviderStreamFrame] | None = None
+            first_frame: ProviderStreamFrame | None = None
             last_error: Exception | None = None
             for attempt in range(2):
                 try:
-                    response = await provider.chat(
+                    provider_stream = provider.stream_chat(
                         messages=messages,
                         tools=_tools_for_provider(
                             tools,
@@ -227,12 +256,17 @@ class ModelRouter:
                         ),
                         reasoning_level=decision.reasoning_level.value,
                     )
+                    first_frame = ProviderStreamFrame.model_validate(await anext(provider_stream))
                     break
+                except StopAsyncIteration:
+                    last_error = ProviderProtocolError(
+                        "Provider stream ended without a terminal response"
+                    )
                 except Exception as exc:
                     last_error = exc
-                    if not _is_retryable(exc) or attempt == 1:
-                        break
-            if response is None:
+                if not _is_retryable(last_error) or attempt == 1:
+                    break
+            if provider_stream is None or first_frame is None:
                 assert last_error is not None
                 failures.append(f"{role.value}: {type(last_error).__name__}")
                 if decision.sensitivity is not SensitivityClass.PUBLIC:
@@ -240,8 +274,6 @@ class ModelRouter:
                         "Private request could not run locally; cloud fallback is prohibited."
                     ) from last_error
                 continue
-            if response.usage and response.usage.estimated_cost_usd > self.max_cloud_cost_usd:
-                raise ZeroCostPolicyError("Provider usage violates zero-dollar budget")
             actual_decision = decision.model_copy(
                 update={
                     "chosen_role": role,
@@ -250,7 +282,34 @@ class ModelRouter:
                     "fallback_used": bool(failures),
                 }
             )
-            return response.model_copy(update={"routing": actual_decision})
+            yield ProviderStreamFrame(routing=actual_decision)
+            terminal_seen = False
+            current_frame: ProviderStreamFrame | None = first_frame
+            while current_frame is not None:
+                if current_frame.response is not None:
+                    if terminal_seen:
+                        raise ProviderProtocolError(
+                            "Provider stream returned multiple terminal responses"
+                        )
+                    terminal_seen = True
+                    response = current_frame.response
+                    if (
+                        response.usage
+                        and response.usage.estimated_cost_usd > self.max_cloud_cost_usd
+                    ):
+                        raise ZeroCostPolicyError("Provider usage violates zero-dollar budget")
+                    yield ProviderStreamFrame(
+                        response=response.model_copy(update={"routing": actual_decision})
+                    )
+                else:
+                    yield current_frame
+                try:
+                    current_frame = ProviderStreamFrame.model_validate(await anext(provider_stream))
+                except StopAsyncIteration:
+                    current_frame = None
+            if not terminal_seen:
+                raise ProviderProtocolError("Provider stream ended without a terminal response")
+            return
 
         if decision.sensitivity is not SensitivityClass.PUBLIC:
             raise PrivateRouteUnavailableError(
@@ -265,8 +324,9 @@ class ModelRouter:
         *,
         messages: Sequence[Message],
         tools: Sequence[ToolDefinition],
-    ) -> AsyncIterator[ProviderResponse]:
-        yield await self.chat(messages=messages, tools=tools)
+    ) -> AsyncIterator[ProviderStreamFrame]:
+        async for frame in self.stream_chat_routed(messages=messages, tools=tools):
+            yield frame
 
     async def validate_models(self) -> dict[ModelRole, bool]:
         results: dict[ModelRole, bool] = {}

@@ -75,8 +75,8 @@ The laptop has 16 GB RAM and an RTX 2050 with 4 GB VRAM. It can provide private/
 | --- | --- | --- | --- |
 | `FAST` | Groq `openai/gpt-oss-20b` | Production; about 1,000 tokens/s; 131,072-token context; tools, reasoning, JSON object/schema modes; no parallel tool calls | Safe simple requests and safe ambiguous intent classification |
 | `PRIMARY` | Groq `qwen/qwen3.6-27b` | Preview; about 500 tokens/s; 131,072-token context; text/image input, tools, parallel tool calls, JSON mode, vision, thinking/non-thinking modes | Safe normal conversation and tool planning; non-thinking by default |
-| `REASONING` | NVIDIA `nvidia/nemotron-3-ultra-550b-a55b` | Hosted trial; 1,000,000-token context; 32,768-token maximum output; text, tools, and thinking | Safe complex public reasoning, coding, research, and large documents |
-| `LOCAL` | Ollama `nemotron-3-nano:4b` | Installed 2.8 GB Q4_K_M model; tools and thinking; bounded context recommended on 4 GB VRAM | Normal, sensitive/private, offline, and cloud-failure fallback |
+| `REASONING` | NVIDIA `nvidia/nemotron-3.5-lightning-30b-a3b` | Hosted free endpoint; 1,000,000-token context; text, tools, and thinking | Safe complex public reasoning, coding, research, and large documents |
+| `LOCAL` | Ollama `qwen3:0.6b` | Installed 522,653,767-byte Q4_K_M model; tools and thinking; 4,096-token active context | Normal, sensitive/private, offline, and cloud-failure fallback |
 
 The provider registry owns these roles. Model IDs occur in configuration and provider-catalog metadata, never in orchestration logic. NVIDIA, Groq, and Gemini remain replaceable adapters with startup catalog checks and tested fallback.
 
@@ -90,9 +90,9 @@ JARVIS_FAST_MODEL=openai/gpt-oss-20b
 JARVIS_PRIMARY_PROVIDER=groq
 JARVIS_PRIMARY_MODEL=qwen/qwen3.6-27b
 JARVIS_REASONING_PROVIDER=nvidia
-JARVIS_REASONING_MODEL=nvidia/nemotron-3-ultra-550b-a55b
+JARVIS_REASONING_MODEL=nvidia/nemotron-3.5-lightning-30b-a3b
 JARVIS_LOCAL_PROVIDER=ollama
-JARVIS_LOCAL_MODEL=nemotron-3-nano:4b
+JARVIS_LOCAL_MODEL=qwen3:0.6b
 JARVIS_CLOUD_POLICY=privacy_aware
 JARVIS_MAX_CLOUD_COST_USD=0
 ```
@@ -121,7 +121,7 @@ Fallback is capability- and privacy-aware:
 
 Use free/trial credentials only. The cost budget is a hard zero, not a warning, and all cloud transmission remains external disclosure. NVIDIA trial service must never receive sensitive, confidential, or personal information.
 
-Verified sources: [NVIDIA Nemotron 3 Ultra](https://build.nvidia.com/nvidia/nemotron-3-ultra-550b-a55b/modelcard), [NVIDIA API reference](https://docs.api.nvidia.com/nim/reference/nvidia-nemotron-3-ultra-550b-a55b), [NVIDIA trial terms](https://assets.ngc.nvidia.com/products/api-catalog/legal/NVIDIA%20API%20Trial%20Terms%20of%20Service.pdf), plus the optional [Groq](https://console.groq.com/docs/models) and [Gemini](https://ai.google.dev/gemini-api/docs/models) catalogs.
+Verified sources: [NVIDIA Nemotron 3.5 Lightning](https://build.nvidia.com/nvidia/nemotron-3.5-lightning-30b-a3b), [NVIDIA Nemotron 3 Ultra](https://build.nvidia.com/nvidia/nemotron-3-ultra-550b-a55b/modelcard), [NVIDIA API reference](https://docs.api.nvidia.com/nim/reference/nvidia-nemotron-3-ultra-550b-a55b), [NVIDIA trial terms](https://assets.ngc.nvidia.com/products/api-catalog/legal/NVIDIA%20API%20Trial%20Terms%20of%20Service.pdf), plus the optional [Groq](https://console.groq.com/docs/models) and [Gemini](https://ai.google.dev/gemini-api/docs/models) catalogs.
 
 Benchmark all roles on representative JARVIS tasks for time to first token, tokens/second, tool-call accuracy, reasoning quality, context behavior, provider failure rate, quota consumption, and privacy-policy accuracy. Local benchmarks additionally record RAM, VRAM, power, and temperature. Published speed and context figures are dated catalog observations, not acceptance results.
 
@@ -207,14 +207,15 @@ The checks in `PHASE_0_REBUILD_PLAN.md` pass. For current repository, existing c
 
 ### Phase 1 — JARVIS core and first text vertical slice (Medium; implemented 2026-08-20)
 
-**Status (2026-08-31)**
+**Status (2026-09-05)**
 
-Blocked external for formal closeout. Deterministic routing passes 20/20, privacy and failure
-suites pass, and a fresh GitHub Windows runner passes the locked bootstrap plus exact repository
-quality commands. The installed local model still misses fixed latency targets. NVIDIA now
-completes some production requests, including 20/20 complex cold-client samples, but latency misses
-target and intermittent fallback prevents all four hosted states from reaching 20 successes.
-Gates remain unchanged.
+Blocked external for formal closeout. Genuine Ollama/NVIDIA streaming, deterministic routing,
+privacy/failure suites, optimized Qwen3 local cold/warm latency, and clean-Windows/repository gates
+pass. NVIDIA Nemotron 3.5 Lightning completed 20/20 public-fixture observations in all four hosted
+states with zero failures. Visible TTFT p50/p95 was 2,076.445/4,304.367 ms simple cold,
+1,179.622/37,975.215 ms simple warm, 2,172.771/11,608.523 ms complex cold, and
+3,607.162/10,243.188 ms complex warm. Fixed hosted latency targets remain unmet; sample count no
+longer blocks. Gates remain unchanged.
 
 **Goal**  
 A useful text JARVIS with swappable providers, deterministic local privacy routing, zero-cost cloud roles, local fallback, personality, persistence, safe tools, and measurable behavior.
@@ -222,7 +223,8 @@ A useful text JARVIS with swappable providers, deterministic local privacy routi
 **Deliverables**
 
 - Provider-neutral `ModelRole`, `ModelProfile`, `RoutingDecision`, and `ProviderUsage` contracts.
-- Groq, Gemini, and Ollama adapters behind one streaming `ModelProvider` contract.
+- Ollama and NVIDIA genuine-token adapters plus Groq/Gemini terminal-frame adapters behind one
+  streaming `ModelProvider` contract.
 - Deterministic local sensitivity/command gate before cloud routing.
 - Configured `FAST`, `PRIMARY`, `REASONING`, and `LOCAL` roles with catalog validation and privacy-safe fallback.
 - Bounded conversation orchestration and streaming event contract.
@@ -343,6 +345,16 @@ Memory pollution, privacy over-retention, irrelevant retrieval, stale preference
 Host can inspect, correct, export, and delete every durable memory; retrieval improves benchmark answers without unacceptable false recall.
 
 ### Phase 5 — Research and self-education (Large)
+
+**Status (2026-09-07)**
+
+Complete. Provider-neutral search/fetch/parse/synthesis contracts, deterministic public-network
+policy, validated-IP/SNI-pinned bounded acquisition, isolated HTML/plain/PDF parsing, cited bounded
+orchestration, and safe extractive synthesis fallback ship. A host-isolated SQLite/FTS5 ledger
+stores only explicitly approved reports and supports source/claim inspection, conflicts,
+supersession, unanswered questions, revalidation, exclusive export, restart/concurrency, and
+transitive deletion. CLI and loopback browser workflows pass. The fixed 30-sample research
+benchmark passes every quality/security target with zero failures and p95 below its 2,000 ms bound.
 
 **Goal**  
 Study host-selected subjects, build a cited library, and answer later from traceable knowledge.

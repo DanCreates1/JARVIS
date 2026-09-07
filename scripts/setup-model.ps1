@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Model = "nemotron-3-nano:4b"
+    [string]$Model = "qwen3:0.6b"
 )
 
 Set-StrictMode -Version Latest
@@ -10,7 +10,7 @@ if (
     $Model.Length -gt 128 -or
     $Model -notmatch "^[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)*(?::[A-Za-z0-9][A-Za-z0-9._-]*)?$"
 ) {
-    throw "Model must be a valid Ollama model name, for example nemotron-3-nano:4b."
+    throw "Model must be a valid Ollama model name, for example qwen3:0.6b."
 }
 
 $ollamaCommand = Get-Command "ollama" -ErrorAction SilentlyContinue

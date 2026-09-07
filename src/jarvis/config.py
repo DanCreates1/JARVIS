@@ -38,7 +38,10 @@ class Settings(BaseSettings):
     data_dir: Path = Field(default_factory=default_data_dir)
     database_filename: str = "jarvis.db"
     ollama_base_url: AnyHttpUrl = AnyHttpUrl("http://127.0.0.1:11434")
-    ollama_model: str = "nemotron-3-nano:4b"
+    ollama_model: str = "qwen3:0.6b"
+    ollama_context_tokens: int = Field(default=4_096, ge=512, le=262_144)
+    ollama_max_output_tokens: int = Field(default=512, ge=1, le=32_768)
+    ollama_keep_alive: str = Field(default="5m", min_length=1, max_length=32)
     local_provider: Literal["ollama"] = "ollama"
     local_model: str | None = None
     fast_provider: Literal["groq"] = "groq"
@@ -46,7 +49,7 @@ class Settings(BaseSettings):
     primary_provider: Literal["groq"] = "groq"
     primary_model: str = "qwen/qwen3.6-27b"
     reasoning_provider: Literal["gemini", "nvidia"] = "nvidia"
-    reasoning_model: str = "nvidia/nemotron-3-ultra-550b-a55b"
+    reasoning_model: str = "nvidia/nemotron-3.5-lightning-30b-a3b"
     cloud_policy: Literal["privacy_aware", "local_only"] = "privacy_aware"
     max_cloud_cost_usd: float = Field(default=0, ge=0)
     groq_api_key: SecretStr | None = None
@@ -63,7 +66,9 @@ class Settings(BaseSettings):
     groq_base_url: AnyHttpUrl = AnyHttpUrl("https://api.groq.com/openai/v1")
     gemini_base_url: AnyHttpUrl = AnyHttpUrl("https://generativelanguage.googleapis.com/v1beta")
     nvidia_base_url: AnyHttpUrl = AnyHttpUrl("https://integrate.api.nvidia.com/v1")
-    nvidia_max_output_tokens: int = Field(default=4_096, ge=1, le=32_768)
+    nvidia_max_output_tokens: int = Field(default=1_024, ge=1, le=32_768)
+    nvidia_non_reasoning_max_output_tokens: int = Field(default=256, ge=1, le=32_768)
+    nvidia_reasoning_budget_tokens: int = Field(default=256, ge=0, le=32_768)
     nvidia_max_requests_per_minute: int = Field(default=30, ge=1, le=1_000)
     nvidia_max_concurrency: int = Field(default=1, ge=1, le=16)
     allow_remote_ollama: bool = False
@@ -76,6 +81,13 @@ class Settings(BaseSettings):
     web_port: int = Field(default=8765, ge=1, le=65535)
     computer_access_enabled: bool = False
     memory_retrieval_enabled: bool = True
+    research_enabled: bool = True
+    research_search_provider: Literal["wikimedia"] = "wikimedia"
+    research_search_endpoint: AnyHttpUrl = AnyHttpUrl("https://en.wikipedia.org/w/api.php")
+    research_search_timeout_seconds: float = Field(default=10, gt=0, le=60)
+    research_search_max_response_bytes: int = Field(default=512 * 1_024, ge=1_024, le=2_000_000)
+    research_pending_ttl_seconds: int = Field(default=900, ge=30, le=3_600)
+    research_max_pending_runs: int = Field(default=10, ge=1, le=100)
     voice_always_listening_enabled: Literal[False] = False
     voice_acoustic_always_listening_enabled: Literal[False] = False
     voice_sample_rate_hz: Literal[16_000] = 16_000
@@ -125,6 +137,14 @@ class Settings(BaseSettings):
             raise ValueError("model ID must be non-empty and at most 200 characters")
         return normalized
 
+    @field_validator("ollama_keep_alive")
+    @classmethod
+    def validate_ollama_keep_alive(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Ollama keep-alive must not be blank")
+        return normalized
+
     @field_validator("web_host")
     @classmethod
     def require_loopback_web_host(cls, value: str) -> str:
@@ -158,12 +178,19 @@ class Settings(BaseSettings):
             raise ValueError(
                 "NVIDIA credentials require free-tier confirmation and trial-terms acknowledgement"
             )
+        if self.nvidia_reasoning_budget_tokens > self.nvidia_max_output_tokens:
+            raise ValueError("NVIDIA reasoning budget must not exceed maximum output tokens")
+        if self.nvidia_non_reasoning_max_output_tokens > self.nvidia_max_output_tokens:
+            raise ValueError(
+                "NVIDIA non-reasoning output limit must not exceed maximum output tokens"
+            )
         if (
             self.groq_base_url.scheme != "https"
             or self.gemini_base_url.scheme != "https"
             or self.nvidia_base_url.scheme != "https"
+            or self.research_search_endpoint.scheme != "https"
         ):
-            raise ValueError("cloud provider endpoints must use HTTPS")
+            raise ValueError("cloud and research provider endpoints must use HTTPS")
         return self
 
     @property
@@ -227,6 +254,8 @@ class Settings(BaseSettings):
             "primary_model": self.primary_model,
             "reasoning_model": self.reasoning_model,
             "nvidia_max_output_tokens": self.nvidia_max_output_tokens,
+            "nvidia_non_reasoning_max_output_tokens": (self.nvidia_non_reasoning_max_output_tokens),
+            "nvidia_reasoning_budget_tokens": self.nvidia_reasoning_budget_tokens,
             "nvidia_max_requests_per_minute": self.nvidia_max_requests_per_minute,
             "nvidia_max_concurrency": self.nvidia_max_concurrency,
             "allow_remote_ollama": self.allow_remote_ollama,
@@ -238,6 +267,13 @@ class Settings(BaseSettings):
             "web_port": self.web_port,
             "computer_access_enabled": self.computer_access_enabled,
             "memory_retrieval_enabled": self.memory_retrieval_enabled,
+            "research_enabled": self.research_enabled,
+            "research_search_provider": self.research_search_provider,
+            "research_search_endpoint": str(self.research_search_endpoint),
+            "research_search_timeout_seconds": self.research_search_timeout_seconds,
+            "research_search_max_response_bytes": self.research_search_max_response_bytes,
+            "research_pending_ttl_seconds": self.research_pending_ttl_seconds,
+            "research_max_pending_runs": self.research_max_pending_runs,
             "computer_access_policy_path": str(self.computer_access_policy_path),
             "voice_always_listening_enabled": self.voice_always_listening_enabled,
             "voice_acoustic_always_listening_enabled": (

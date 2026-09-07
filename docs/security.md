@@ -3,10 +3,11 @@
 JARVIS processes private conversations and will eventually control local devices.
 Security therefore belongs in the runtime architecture, not only in prompts.
 
-This document describes implemented Phases 1–4 controls, including local sensitivity
+This document describes implemented Phases 1–5 controls, including local sensitivity
 classification, zero-cost NVIDIA/Groq/Gemini/Ollama routing, local push-to-talk speech, and
 default-off controlled computer access, plus candidate-only host-isolated memory, provenance,
-conflict visibility, and transitive deletion. Independent clean-Windows bootstrap/repository CI
+conflict visibility, transitive deletion, and bounded cited public research. Independent
+clean-Windows bootstrap/repository CI
 passes; current latency/provider-capacity and separately authorized live-effect limitations remain
 explicit in `docs/PHASE_OVERVIEW.md` and are not security-gate waivers.
 
@@ -56,6 +57,9 @@ state their narrow purpose and should not expose unnecessary system details.
 
 Do not store hidden reasoning. Persist only user-visible messages, normalized
 tool requests/results, timestamps, and the metadata needed for diagnostics.
+Visible streaming deltas are transient interface events. Persistence occurs only after one
+validated terminal response; cancellation or a mid-stream provider error leaves no partial
+assistant message. Provider fallback is prohibited after the first streamed frame.
 Logs should default to operational metadata and redact authorization headers,
 tokens, environment values, and private tool results.
 
@@ -79,6 +83,23 @@ explicit-memory deletion are implemented; richer-media retention remains deferre
   derivations. Content-free tombstones/events retain no deleted plaintext or hash.
 - Export is explicit, local, and exclusive-create. Retention is configurable per category. Backup
   copies remain separate artifacts and must follow the operator's access and expiry policy.
+
+## Research boundary
+
+- Only public HTTPS destinations pass deterministic URL/DNS checks. Fetching pins a validated
+  global IP while retaining original Host/SNI verification and enforces redirect, type, byte,
+  source, domain, and total-time limits.
+- HTML/plain/PDF extraction runs in a short-lived isolated Python worker with a minimal environment,
+  temporary working directory, and strict input/output/page/filter/deadline limits. It has no action
+  tools; this process boundary is not a Windows AppContainer.
+- Citation review binds each material claim to an exact source span, limits quoted words, and
+  rejects fabricated, unknown, inactive, or structurally invalid evidence.
+- A run is volatile by default. Durable storage consumes an exact one-use host approval for the
+  displayed report digest. No webpage, model response, or conversational instruction can approve
+  storage or promote research into trusted memory.
+- Host-scoped inspection, revalidation, export, and exact source deletion are available. Changed or
+  unavailable sources stale dependent claims; deletion removes dependent reports, claims,
+  citations, conflicts, and indexes while leaving only content-free lifecycle evidence.
 
 ## Controlled computer access
 

@@ -14,6 +14,7 @@ from jarvis.core import (
     ModelProfile,
     ModelRole,
     ProviderResponse,
+    ProviderStreamFrame,
     ProviderUsage,
     ReasoningLevel,
     SensitivityClass,
@@ -83,8 +84,9 @@ class FakeModelProvider:
         messages: Sequence[Message],
         tools: Sequence[ToolDefinition],
         reasoning_level: str = "none",
-    ) -> AsyncIterator[ProviderResponse]:
-        yield await self.chat(messages=messages, tools=tools, reasoning_level=reasoning_level)
+    ) -> AsyncIterator[ProviderStreamFrame]:
+        response = await self.chat(messages=messages, tools=tools, reasoning_level=reasoning_level)
+        yield ProviderStreamFrame(response=response)
 
     async def validate_model(self) -> bool:
         return self.available
@@ -410,9 +412,10 @@ async def test_reasoning_fallback_validation_stream_close_and_zero_cost() -> Non
             messages=[user_message("Research public climate history")], tools=[]
         )
     ]
-    assert frames[0].content == "reasoned"
     assert frames[0].routing is not None
     assert frames[0].routing.chosen_role is ModelRole.PRIMARY
+    assert frames[1].response is not None
+    assert frames[1].response.content == "reasoned"
     assert primary.requests == ["deep"]
     assert await router.validate_models() == {
         ModelRole.REASONING: False,

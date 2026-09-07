@@ -22,16 +22,16 @@ The secure text foundation currently provides:
 Cloud roles activate only when mandatory free-tier/data-term confirmations and
 keys are configured. Otherwise runtime remains local and offline-capable.
 
-## Phase 1 — privacy-aware text core (implemented; closeout blocked 2026-08-31)
+## Phase 1 — privacy-aware text core (implemented; closeout blocked 2026-09-04)
 
 - Added provider-neutral `FAST`, `PRIMARY`, `REASONING`, and `LOCAL` roles.
 - Added NVIDIA, Groq, and Gemini adapters while retaining Ollama for private/offline fallback.
-- Current active defaults map `REASONING` to NVIDIA `nvidia/nemotron-3-ultra-550b-a55b` and `LOCAL` to Ollama `nemotron-3-nano:4b`; optional `FAST`/`PRIMARY` mappings remain configurable.
+- Current active defaults map `REASONING` to NVIDIA `nvidia/nemotron-3.5-lightning-30b-a3b` and `LOCAL` to Ollama `qwen3:0.6b`; Nemotron Ultra and Nano remain live-smoke compatibility-tested, and optional `FAST`/`PRIMARY` mappings remain configurable.
 - Runs deterministic local sensitivity and command classification before any cloud request.
 - Send sensitive or uncertain content only to `LOCAL`; never silently weaken privacy during fallback.
 - Keep initial cloud cost exactly `$0`; quota exhaustion, `429`, outage, or model retirement falls back free/local or returns a capacity error.
 - Validate configured model IDs/capabilities against provider catalogs at startup.
-- Added streaming events, structured usage/quota/cost metrics, personality regression checks,
+- Added genuine Ollama/NVIDIA visible-token streaming events, structured usage/quota/cost metrics, personality regression checks,
   memory deletion, tool risk metadata, audit records, and local browser chat.
 
 Acceptance suite covers safe simple, normal, reasoning, sensitive-local,
@@ -76,7 +76,13 @@ Complete; revalidated on 2026-08-31:
 
 ## Phase 5 — research and learning
 
-- Add bounded search/browser adapters, a source ledger, claim status, citations, freshness, and conflict reporting.
+- Complete: provider-neutral discovery, acquisition, isolated HTML/text/PDF parsing, cited
+  synthesis, and deterministic fallback run under hard source/fetch/domain/byte/time limits.
+- Exact report approval gates the host-isolated source/claim ledger. Inspection, search,
+  supersession, unanswered questions, revalidation, exclusive export, restart, conflicts, and
+  transitive deletion pass through CLI and loopback browser interfaces.
+- Fixed 30-sample benchmark passes citation coverage, fixture entailment, source diversity,
+  freshness, conflict handling, injection resistance, reproducibility, failures, and latency.
 - Treat all external content as untrusted data and preserve source-level provenance.
 
 ## Later phases

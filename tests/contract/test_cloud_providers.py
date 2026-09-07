@@ -33,6 +33,19 @@ from jarvis.llm import (
 )
 
 
+def openai_sse(
+    *documents: dict[str, object],
+    headers: dict[str, str] | None = None,
+) -> httpx.Response:
+    body = "".join(f"data: {json.dumps(document)}\n\n" for document in documents)
+    body += "data: [DONE]\n\n"
+    return httpx.Response(
+        200,
+        content=body.encode(),
+        headers={"content-type": "text/event-stream", **(headers or {})},
+    )
+
+
 def profile(role: ModelRole, provider: str, model_id: str) -> ModelProfile:
     return ModelProfile(
         role=role,
@@ -129,7 +142,8 @@ async def test_groq_normalizes_tool_calls_usage_reasoning_and_catalog() -> None:
     assert response.usage.rate_limit_remaining == 29
     assert await provider.validate_model() is True
     streamed = [frame async for frame in provider.stream_chat(messages=messages(), tools=[])]
-    assert streamed[0].tool_calls
+    assert streamed[0].response is not None
+    assert streamed[0].response.tool_calls
     assert all(request.headers["authorization"] == "Bearer test" for request in requests)
     await provider.close()
     await provider.close()
@@ -235,7 +249,8 @@ async def test_gemini_normalizes_multimodal_rest_shape_usage_and_catalog() -> No
     assert generation["thinkingConfig"] == {"thinkingLevel": "high"}
     assert await provider.validate_model() is True
     streamed = [frame async for frame in provider.stream_chat(messages=messages(), tools=[])]
-    assert streamed[0].content == "Checking."
+    assert streamed[0].response is not None
+    assert streamed[0].response.content == "Checking."
     await provider.close()
     await client.aclose()
 
@@ -268,16 +283,15 @@ async def test_nvidia_normalizes_tools_usage_thinking_and_catalog() -> None:
             )
         payload = json.loads(request.content)
         payloads.append(payload)
-        return httpx.Response(
-            200,
-            headers={"x-ratelimit-remaining-requests": "9"},
-            json={
+        return openai_sse(
+            {
                 "choices": [
                     {
-                        "message": {
+                        "delta": {
                             "content": "private scratchpad</think>Checking.",
                             "tool_calls": [
                                 {
+                                    "index": 0,
                                     "id": "call-nv-1",
                                     "function": {
                                         "name": "weather",
@@ -288,8 +302,12 @@ async def test_nvidia_normalizes_tools_usage_thinking_and_catalog() -> None:
                         }
                     }
                 ],
+            },
+            {
+                "choices": [],
                 "usage": {"prompt_tokens": 12, "completion_tokens": 5},
             },
+            headers={"x-ratelimit-remaining-requests": "9"},
         )
 
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
@@ -301,6 +319,8 @@ async def test_nvidia_normalizes_tools_usage_thinking_and_catalog() -> None:
             "nvidia/nemotron-3-ultra-550b-a55b",
         ),
         max_output_tokens=4_096,
+        non_reasoning_max_output_tokens=256,
+        reasoning_budget_tokens=256,
         client=client,
     )
 
@@ -314,6 +334,9 @@ async def test_nvidia_normalizes_tools_usage_thinking_and_catalog() -> None:
     assert payloads[0]["temperature"] == 1.0
     assert payloads[0]["top_p"] == 0.95
     assert payloads[0]["max_tokens"] == 4_096
+    assert payloads[0]["reasoning_budget"] == 256
+    assert payloads[0]["stream"] is True
+    assert payloads[0]["stream_options"] == {"include_usage": True}
     assert payloads[0]["chat_template_kwargs"] == {
         "enable_thinking": True,
         "force_nonempty_content": True,
@@ -331,9 +354,9 @@ async def test_nvidia_client_rate_guard_fails_over_before_extra_request() -> Non
     async def handler(_request: httpx.Request) -> httpx.Response:
         nonlocal request_count
         request_count += 1
-        return httpx.Response(
-            200,
-            json={"choices": [{"message": {"content": "Ready."}}]},
+        return openai_sse(
+            {"choices": [{"delta": {"content": "Ready."}}]},
+            {"choices": [], "usage": {}},
         )
 
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
@@ -360,13 +383,10 @@ async def test_nvidia_stream_hides_reasoning_and_reports_missing_catalog_model()
         if request.method == "GET":
             return httpx.Response(200, json={"data": [{"id": "nvidia/other"}]})
         payloads.append(json.loads(request.content))
-        return httpx.Response(
-            200,
+        return openai_sse(
+            {"choices": [{"delta": {"content": "scratchpad</think>Final."}}]},
+            {"choices": [], "usage": {}},
             headers={"x-ratelimit-remaining-requests": "unknown"},
-            json={
-                "choices": [{"message": {"content": "scratchpad</think>Final."}}],
-                "usage": {},
-            },
         )
 
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
@@ -378,10 +398,13 @@ async def test_nvidia_stream_hides_reasoning_and_reports_missing_catalog_model()
 
     frames = [frame async for frame in provider.stream_chat(messages=messages(), tools=[])]
 
-    assert frames[0].content == "Final."
-    assert frames[0].usage is not None
-    assert frames[0].usage.rate_limit_remaining is None
+    assert "".join(frame.content_delta or "" for frame in frames) == "Final."
+    terminal = next(frame.response for frame in frames if frame.response is not None)
+    assert terminal.usage is not None
+    assert terminal.usage.rate_limit_remaining is None
     assert payloads[0]["chat_template_kwargs"] == {"enable_thinking": False}
+    assert payloads[0]["max_tokens"] == 256
+    assert "reasoning_budget" not in payloads[0]
     assert await provider.validate_model() is False
     await client.aclose()
 
@@ -389,25 +412,25 @@ async def test_nvidia_stream_hides_reasoning_and_reports_missing_catalog_model()
 @pytest.mark.asyncio
 async def test_nvidia_rejects_malformed_tool_arguments() -> None:
     async def handler(_request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200,
-            json={
+        return openai_sse(
+            {
                 "choices": [
                     {
-                        "message": {
+                        "delta": {
                             "content": None,
                             "tool_calls": [
                                 {
+                                    "index": 0,
                                     "function": {
                                         "name": "weather",
                                         "arguments": "{broken",
-                                    }
+                                    },
                                 }
                             ],
                         }
                     }
                 ]
-            },
+            }
         )
 
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
@@ -443,6 +466,21 @@ def test_cloud_provider_constructors_reject_wrong_profiles_and_blank_keys() -> N
         NvidiaChatProvider(api_key="x", profile=groq_profile)
     with pytest.raises(ValueError, match="max_output_tokens"):
         NvidiaChatProvider(api_key="x", profile=nvidia_profile, max_output_tokens=32_769)
+    with pytest.raises(ValueError, match="reasoning_budget_tokens"):
+        NvidiaChatProvider(
+            api_key="x",
+            profile=nvidia_profile,
+            max_output_tokens=10,
+            reasoning_budget_tokens=11,
+        )
+    with pytest.raises(ValueError, match="non_reasoning_max_output_tokens"):
+        NvidiaChatProvider(
+            api_key="x",
+            profile=nvidia_profile,
+            max_output_tokens=10,
+            non_reasoning_max_output_tokens=11,
+            reasoning_budget_tokens=10,
+        )
     with pytest.raises(ValueError, match="max_response_bytes"):
         NvidiaChatProvider(api_key="x", profile=nvidia_profile, max_response_bytes=0)
     with pytest.raises(ValueError, match="max_requests_per_minute"):

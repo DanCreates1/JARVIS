@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+from datetime import UTC, datetime
 from io import StringIO
 from pathlib import Path
 from typing import Any
@@ -11,12 +13,30 @@ from typer.testing import CliRunner
 import jarvis.cli as cli
 from jarvis.config import Settings
 from jarvis.core import (
+    AssistantRequest,
     RuntimeErrorCode,
     RuntimeErrorDetail,
+    RuntimeEvent,
+    RuntimeEventType,
     RuntimeResult,
     RuntimeStatus,
+    RuntimeStreamFrame,
 )
 from jarvis.diagnostics import DiagnosticCheck, DiagnosticReport, DiagnosticStatus
+from jarvis.research import (
+    Citation,
+    CitationValidationReceipt,
+    ClaimStatus,
+    PendingResearchRun,
+    ResearchApprovalReceipt,
+    ResearchClaim,
+    ResearchInterface,
+    ResearchPlan,
+    ResearchReport,
+    ResearchRunResult,
+    SourceRecord,
+    SQLiteResearchStore,
+)
 from jarvis.voice.models import (
     AudioDevice,
     AudioDeviceDirection,
@@ -41,6 +61,10 @@ class FakeService:
     ) -> RuntimeResult:
         self.requests.append((user_input, conversation_id, metadata or {}))
         return self.result
+
+    async def stream(self, request: AssistantRequest) -> Any:
+        self.requests.append((request.user_input, request.conversation_id, request.metadata))
+        yield RuntimeStreamFrame(result=self.result)
 
 
 class FakeComponents:
@@ -139,6 +163,66 @@ def test_render_failure_preserves_structured_error_code(
     cli._render_result(result)
 
     assert "[provider_error] Provider unavailable." in output.getvalue()
+
+
+@pytest.mark.asyncio
+async def test_stream_cli_turn_prints_deltas_once_and_requires_terminal_result(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = capture_console(monkeypatch)
+    result = RuntimeResult(
+        status=RuntimeStatus.COMPLETED,
+        reply="Ready now.",
+        conversation_id="conversation-1",
+    )
+
+    class StreamingService:
+        async def stream(self, _request: AssistantRequest) -> Any:
+            yield RuntimeStreamFrame(
+                event=RuntimeEvent(
+                    sequence=1,
+                    type=RuntimeEventType.CONVERSATION_CREATED,
+                )
+            )
+            yield RuntimeStreamFrame(
+                event=RuntimeEvent(
+                    sequence=2,
+                    type=RuntimeEventType.ASSISTANT_DELTA,
+                    content_delta="Ready ",
+                )
+            )
+            yield RuntimeStreamFrame(
+                event=RuntimeEvent(
+                    sequence=3,
+                    type=RuntimeEventType.ASSISTANT_DELTA,
+                    content_delta="now.",
+                )
+            )
+            yield RuntimeStreamFrame(result=result)
+
+    terminal, streamed = await cli._stream_cli_turn(
+        StreamingService(),
+        AssistantRequest(user_input="Hello"),
+    )
+    cli._render_result(terminal, reply_streamed=streamed)
+
+    rendered = output.getvalue()
+    assert terminal is result
+    assert streamed is True
+    assert rendered.count("JARVIS>") == 1
+    assert "Ready now." in rendered
+    assert "Conversation: conversation-1" in rendered
+
+    class MissingTerminalService:
+        async def stream(self, _request: AssistantRequest) -> Any:
+            if False:
+                yield
+
+    with pytest.raises(RuntimeError, match="without a terminal result"):
+        await cli._stream_cli_turn(
+            MissingTerminalService(),
+            AssistantRequest(user_input="Hello"),
+        )
 
 
 def test_render_diagnostics_includes_remediation(
@@ -403,3 +487,191 @@ def test_computer_audit_rejects_unknown_view_before_state_access(
 
     assert result.exit_code == 2
     assert "all, lifecycle, receipts, or events" in output.getvalue()
+
+
+def _pending_research() -> PendingResearchRun:
+    now = datetime(2026, 9, 6, tzinfo=UTC)
+    source = SourceRecord(
+        id="source-cli",
+        host_id="host-cli",
+        url="https://example.com/source",
+        title="CLI source",
+        topic="Alpha",
+        media_type="text/plain",
+        content_sha256="a" * 64,
+        extracted_text="Alpha evidence.",
+        retrieved_at=now,
+        last_checked_at=now,
+    )
+    claim = ResearchClaim(
+        id="claim-cli",
+        statement="Alpha.",
+        status=ClaimStatus.VERIFIED,
+        citations=(Citation(source_id=source.id, locator="text:0-5", quote="Alpha"),),
+    )
+    plan = ResearchPlan(objective="Research Alpha", questions=("What is Alpha?",))
+    result = ResearchRunResult(
+        plan=plan,
+        report=ResearchReport(
+            objective=plan.objective,
+            answer="Alpha. [source:source-cli]",
+            sources=(source,),
+            claims=(claim,),
+            unanswered_questions=("What remains unknown?",),
+            generated_at=now,
+        ),
+        validation=CitationValidationReceipt(
+            source_count=1,
+            claim_count=1,
+            material_claim_count=1,
+            citation_count=1,
+            quoted_word_count=1,
+        ),
+        queries_attempted=1,
+        search_results_considered=1,
+        fetches_attempted=1,
+    )
+    return PendingResearchRun(
+        id="pending-cli",
+        host_id="host-cli",
+        report_sha256="b" * 64,
+        result=result,
+        expires_at=now.replace(hour=1),
+    )
+
+
+def test_research_cli_defaults_to_denial_and_requires_store_flag(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = capture_console(monkeypatch)
+    settings = Settings(data_dir=tmp_path, _env_file=None)
+    decisions: list[str] = []
+
+    class FakeResearch:
+        async def run(self, **_kwargs: object) -> PendingResearchRun:
+            return _pending_research()
+
+        async def deny(self, **_kwargs: object) -> ResearchApprovalReceipt:
+            decisions.append("deny")
+            return ResearchApprovalReceipt(
+                pending_run_id="pending-cli", report_sha256="b" * 64, stored=False
+            )
+
+        async def approve(self, approval) -> ResearchApprovalReceipt:  # type: ignore[no-untyped-def]
+            assert approval.interface is ResearchInterface.LOCAL_CLI
+            decisions.append("approve")
+            return ResearchApprovalReceipt(
+                pending_run_id="pending-cli",
+                report_sha256="b" * 64,
+                stored=True,
+                report_id="report-cli",
+                source_count=1,
+                claim_count=1,
+            )
+
+    class ResearchComponents:
+        research = FakeResearch()
+        memory_host_id = "host-cli"
+
+        async def close(self) -> None:
+            return None
+
+    async def fake_runtime(_settings: Settings) -> ResearchComponents:
+        return ResearchComponents()
+
+    monkeypatch.setattr(cli, "_load_settings", lambda: settings)
+    monkeypatch.setattr(cli, "build_runtime", fake_runtime)
+    runner = CliRunner()
+    volatile = runner.invoke(cli.app, ["research", "run", "Research Alpha", "-q", "What is Alpha?"])
+    stored = runner.invoke(
+        cli.app,
+        ["research", "run", "Research Alpha", "-q", "What is Alpha?", "--store"],
+    )
+    assert volatile.exit_code == 0
+    assert stored.exit_code == 0
+    assert decisions == ["deny", "approve"]
+    assert "Not stored" in output.getvalue()
+    assert "Stored approved research report-cli" in output.getvalue()
+
+
+def test_research_cli_delete_requires_exact_source_confirmation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = capture_console(monkeypatch)
+    result = CliRunner().invoke(
+        cli.app,
+        ["research", "delete-source", "source-1", "--confirm", "source-2"],
+    )
+    assert result.exit_code == 2
+    assert "must exactly match" in output.getvalue()
+
+
+def test_research_cli_inspect_search_question_export_and_delete_controls(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = capture_console(monkeypatch)
+    settings = Settings(data_dir=tmp_path, _env_file=None)
+
+    async def seed():  # type: ignore[no-untyped-def]
+        pending = _pending_research()
+        async with SQLiteResearchStore(settings.database_path) as store:
+            return await store.store_approved_report(
+                host_id=pending.host_id,
+                report=pending.result.report,
+                report_sha256=pending.report_sha256,
+                interface=ResearchInterface.LOCAL_CLI,
+                approved_at=datetime(2026, 9, 6, tzinfo=UTC),
+            )
+
+    stored = asyncio.run(seed())
+    monkeypatch.setattr(cli, "_load_settings", lambda: settings)
+    monkeypatch.setattr(cli, "local_memory_host_id", lambda: "host-cli")
+    runner = CliRunner()
+
+    listed = runner.invoke(cli.app, ["research", "list"])
+    shown = runner.invoke(cli.app, ["research", "show", stored.id])
+    searched = runner.invoke(cli.app, ["research", "search", "Alpha"])
+    questions = runner.invoke(cli.app, ["research", "questions"])
+
+    async def question_id() -> str:
+        async with SQLiteResearchStore(settings.database_path) as store:
+            return (await store.list_unanswered_questions(host_id="host-cli"))[0].id
+
+    closed = runner.invoke(
+        cli.app,
+        [
+            "research",
+            "close-question",
+            asyncio.run(question_id()),
+            "--expected-version",
+            "1",
+            "--answer-claim-id",
+            stored.claim_ids[0],
+        ],
+    )
+    destination = tmp_path / "research-export.json"
+    exported = runner.invoke(cli.app, ["research", "export", str(destination)])
+    duplicate_export = runner.invoke(cli.app, ["research", "export", str(destination)])
+    deleted = runner.invoke(
+        cli.app,
+        [
+            "research",
+            "delete-source",
+            stored.source_ids[0],
+            "--confirm",
+            stored.source_ids[0],
+        ],
+    )
+
+    assert all(
+        result.exit_code == 0
+        for result in (listed, shown, searched, questions, closed, exported, deleted)
+    )
+    assert duplicate_export.exit_code == 1
+    rendered = output.getvalue()
+    assert "Research Alpha" in rendered
+    assert "[source:" in rendered
+    assert "What remains unknown?" in rendered
+    assert "Export path already exists" in rendered
+    assert "Deleted research source history" in rendered

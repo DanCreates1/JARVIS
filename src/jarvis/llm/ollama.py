@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import AsyncIterator, Mapping, Sequence
 from dataclasses import dataclass
@@ -17,6 +18,7 @@ from jarvis.core.models import (
     ModelProfile,
     ModelRole,
     ProviderResponse,
+    ProviderStreamFrame,
     ProviderUsage,
     ToolCall,
     ToolDefinition,
@@ -66,7 +68,7 @@ class OllamaModelDiagnostics:
 
 
 class OllamaChatProvider:
-    """Send non-streaming chat requests to an existing Ollama installation."""
+    """Send bounded streaming chat requests to an existing Ollama installation."""
 
     def __init__(
         self,
@@ -74,6 +76,10 @@ class OllamaChatProvider:
         base_url: str = "http://127.0.0.1:11434",
         model: str,
         timeout_seconds: float = 60.0,
+        max_response_bytes: int = 2_000_000,
+        context_tokens: int = 4_096,
+        max_output_tokens: int = 512,
+        keep_alive: str = "5m",
         role: ModelRole = ModelRole.LOCAL,
         client: httpx.AsyncClient | None = None,
     ) -> None:
@@ -84,8 +90,17 @@ class OllamaChatProvider:
             raise ValueError("model must not be empty")
         if timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be positive")
+        if max_response_bytes < 1:
+            raise ValueError("max_response_bytes must be positive")
+        if context_tokens < 512:
+            raise ValueError("context_tokens must be at least 512")
+        if max_output_tokens < 1:
+            raise ValueError("max_output_tokens must be positive")
+        if not keep_alive.strip():
+            raise ValueError("keep_alive must not be empty")
 
         self._base_url = normalized_base_url
+        self._timeout_seconds = timeout_seconds
         self._model = model.strip()
         self._profile = ModelProfile(
             role=role,
@@ -93,9 +108,14 @@ class OllamaChatProvider:
             model_id=self._model,
             capabilities=(ModelCapability.TEXT, ModelCapability.TOOLS),
             lifecycle=ModelLifecycle.LOCAL,
-            context_window=32_768,
+            context_window=context_tokens,
+            max_output_tokens=max_output_tokens,
             is_cloud=False,
         )
+        self._max_response_bytes = max_response_bytes
+        self._context_tokens = context_tokens
+        self._max_output_tokens = max_output_tokens
+        self._keep_alive = keep_alive.strip()
         self._owns_client = client is None
         self._client = client or httpx.AsyncClient(timeout=timeout_seconds)
         self._closed = False
@@ -115,51 +135,18 @@ class OllamaChatProvider:
         tools: Sequence[ToolDefinition],
         reasoning_level: str = "none",
     ) -> ProviderResponse:
-        """Return one complete assistant response from Ollama's ``/api/chat`` endpoint."""
-        payload: dict[str, object] = {
-            "model": self._model,
-            "stream": False,
-            "think": reasoning_level != "none",
-            "messages": [_message_payload(message) for message in messages],
-        }
-        if tools:
-            payload["tools"] = [_tool_payload(tool) for tool in tools]
-
-        response = await self._request("POST", "/api/chat", json_payload=payload)
-        if response.status_code == httpx.codes.NOT_FOUND:
-            diagnostics = await self._diagnostics_after_missing_model()
-            raise OllamaModelNotFoundError(self._model, diagnostics.installed_models)
-        self._raise_for_status(response)
-        document = _response_json(response, endpoint="/api/chat")
-
-        message = document.get("message")
-        if not isinstance(message, Mapping):
-            raise OllamaProtocolError("Ollama /api/chat response is missing a message object")
-
-        content = message.get("content")
-        if content is not None and not isinstance(content, str):
-            raise OllamaProtocolError("Ollama message content must be a string or null")
-
-        raw_tool_calls = message.get("tool_calls", [])
-        if not isinstance(raw_tool_calls, list):
-            raise OllamaProtocolError("Ollama message tool_calls must be a list")
-        tool_calls = tuple(
-            _parse_tool_call(raw_tool_call, position=position)
-            for position, raw_tool_call in enumerate(raw_tool_calls)
-        )
-        if (content is None or not content.strip()) and not tool_calls:
-            raise OllamaProtocolError(
-                "Ollama assistant message must contain text or at least one tool call"
-            )
-        usage = ProviderUsage(
-            provider="ollama",
-            model_id=self._model,
-            input_tokens=int(document.get("prompt_eval_count", 0) or 0),
-            output_tokens=int(document.get("eval_count", 0) or 0),
-            latency_ms=float(document.get("total_duration", 0) or 0) / 1_000_000,
-            estimated_cost_usd=0,
-        )
-        return ProviderResponse(content=content, tool_calls=tool_calls, usage=usage)
+        """Consume the token stream and return its one terminal response."""
+        terminal: ProviderResponse | None = None
+        async for frame in self.stream_chat(
+            messages=messages,
+            tools=tools,
+            reasoning_level=reasoning_level,
+        ):
+            if frame.response is not None:
+                terminal = frame.response
+        if terminal is None:
+            raise OllamaProtocolError("Ollama stream ended without a terminal response")
+        return terminal
 
     async def stream_chat(
         self,
@@ -167,12 +154,104 @@ class OllamaChatProvider:
         messages: Sequence[Message],
         tools: Sequence[ToolDefinition],
         reasoning_level: str = "none",
-    ) -> AsyncIterator[ProviderResponse]:
-        """Expose the provider-neutral stream contract; one normalized frame for now."""
-        yield await self.chat(
-            messages=messages,
-            tools=tools,
-            reasoning_level=reasoning_level,
+    ) -> AsyncIterator[ProviderStreamFrame]:
+        """Yield genuine Ollama NDJSON text deltas and one terminal response."""
+        payload: dict[str, object] = {
+            "model": self._model,
+            "stream": True,
+            "think": reasoning_level != "none",
+            "keep_alive": self._keep_alive,
+            "options": {
+                "num_ctx": self._context_tokens,
+                "num_predict": self._max_output_tokens,
+            },
+            "messages": [_message_payload(message) for message in messages],
+        }
+        if tools:
+            payload["tools"] = [_tool_payload(tool) for tool in tools]
+
+        if self._closed:
+            raise RuntimeError("OllamaChatProvider is closed")
+        url = f"{self._base_url}/api/chat"
+        try:
+            async with asyncio.timeout(self._timeout_seconds):
+                async with self._client.stream("POST", url, json=payload) as response:
+                    async for frame in self._consume_stream(response):
+                        yield frame
+        except (TimeoutError, httpx.TimeoutException) as exc:
+            raise OllamaTimeoutError(
+                f"Ollama request timed out at {self._base_url}; verify the service and model"
+            ) from exc
+        except httpx.ConnectError as exc:
+            raise OllamaConnectionError(
+                f"Cannot connect to Ollama at {self._base_url}; start Ollama or correct the URL"
+            ) from exc
+        except httpx.RequestError as exc:
+            raise OllamaConnectionError(
+                f"Ollama request failed at {self._base_url}: {exc.__class__.__name__}"
+            ) from exc
+
+    async def _consume_stream(self, response: httpx.Response) -> AsyncIterator[ProviderStreamFrame]:
+        if response.status_code == httpx.codes.NOT_FOUND:
+            await response.aread()
+            diagnostics = await self._diagnostics_after_missing_model()
+            raise OllamaModelNotFoundError(self._model, diagnostics.installed_models)
+        if not response.is_success:
+            await response.aread()
+            self._raise_for_status(response)
+
+        received_bytes = 0
+        content_parts: list[str] = []
+        tool_calls: list[ToolCall] = []
+        final_document: Mapping[str, Any] | None = None
+        async for line in response.aiter_lines():
+            received_bytes += len(line.encode("utf-8")) + 1
+            if received_bytes > self._max_response_bytes:
+                raise OllamaProtocolError(
+                    "Ollama streaming response exceeded configured byte limit"
+                )
+            if not line.strip():
+                continue
+            document = _line_json(line)
+            message = document.get("message")
+            if not isinstance(message, Mapping):
+                raise OllamaProtocolError("Ollama stream frame is missing a message object")
+            content = message.get("content")
+            if content is not None and not isinstance(content, str):
+                raise OllamaProtocolError("Ollama stream message content must be a string or null")
+            if content:
+                content_parts.append(content)
+                yield ProviderStreamFrame(content_delta=content)
+            raw_calls = message.get("tool_calls", [])
+            if not isinstance(raw_calls, list):
+                raise OllamaProtocolError("Ollama stream message tool_calls must be a list")
+            tool_calls.extend(
+                _parse_tool_call(raw_call, position=len(tool_calls) + position)
+                for position, raw_call in enumerate(raw_calls)
+            )
+            if document.get("done") is True:
+                final_document = document
+        if final_document is None:
+            raise OllamaProtocolError("Ollama stream ended without a done frame")
+        assembled_content = "".join(content_parts)
+        if not assembled_content.strip() and not tool_calls:
+            raise OllamaProtocolError(
+                "Ollama assistant stream must contain text or at least one tool call"
+            )
+        usage = ProviderUsage(
+            provider="ollama",
+            model_id=self._model,
+            input_tokens=int(final_document.get("prompt_eval_count", 0) or 0),
+            output_tokens=int(final_document.get("eval_count", 0) or 0),
+            latency_ms=float(final_document.get("total_duration", 0) or 0) / 1_000_000,
+            estimated_cost_usd=0,
+        )
+        yield ProviderStreamFrame(
+            response=ProviderResponse(
+                content=assembled_content,
+                tool_calls=tuple(tool_calls),
+                usage=usage,
+            )
         )
 
     async def validate_model(self) -> bool:
@@ -330,6 +409,16 @@ def _response_json(response: httpx.Response, *, endpoint: str) -> Mapping[str, A
         raise OllamaProtocolError(f"Ollama {endpoint} returned invalid JSON") from exc
     if not isinstance(document, Mapping):
         raise OllamaProtocolError(f"Ollama {endpoint} response must be a JSON object")
+    return document
+
+
+def _line_json(line: str) -> Mapping[str, Any]:
+    try:
+        document = json.loads(line)
+    except ValueError as exc:
+        raise OllamaProtocolError("Ollama stream returned invalid JSON") from exc
+    if not isinstance(document, Mapping):
+        raise OllamaProtocolError("Ollama stream frame must be a JSON object")
     return document
 
 

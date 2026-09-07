@@ -14,6 +14,7 @@ from jarvis.core.models import (
     MessageRole,
     ModelProfile,
     ProviderResponse,
+    ProviderStreamFrame,
     ProviderUsage,
     ToolCall,
     ToolDefinition,
@@ -142,8 +143,14 @@ class GeminiChatProvider:
         messages: Sequence[Message],
         tools: Sequence[ToolDefinition],
         reasoning_level: str = "deep",
-    ) -> AsyncIterator[ProviderResponse]:
-        yield await self.chat(messages=messages, tools=tools, reasoning_level=reasoning_level)
+    ) -> AsyncIterator[ProviderStreamFrame]:
+        yield ProviderStreamFrame(
+            response=await self.chat(
+                messages=messages,
+                tools=tools,
+                reasoning_level=reasoning_level,
+            )
+        )
 
     async def validate_model(self) -> bool:
         response = await self._request("GET", "/models")

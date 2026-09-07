@@ -5,6 +5,35 @@ Hosted-model strategy verified: 2026-08-20
 Method: lightweight Windows CIM/PnP queries, installed-command checks, Phase 1/2 benchmarks, and
 Phase 3 read-only capability probes plus disposable controlled-root benchmark
 
+## Phase 1 hosted closeout update — 2026-09-04
+
+- Active hosted reasoning moved configuration-only to NVIDIA
+  `nvidia/nemotron-3.5-lightning-30b-a3b`; Nemotron Ultra retains public catalog/live-streaming
+  compatibility evidence.
+- With 1,024 thinking output tokens, 256 non-thinking output tokens, 256 hidden-reasoning tokens,
+  one concurrent request, 30 requests/minute, and a 60-second total stream deadline, every hosted
+  state completed 20/20 public-fixture observations with zero failures.
+- Visible TTFT p50/p95 remained over fixed gates: simple cold 2,076.445/4,304.367 ms, simple warm
+  1,179.622/37,975.215 ms, complex cold 2,172.771/11,608.523 ms, and complex warm
+  3,607.162/10,243.188 ms. The remaining Phase 1 blocker is NVIDIA free-endpoint latency, not
+  sample count, local hardware, privacy, or cost policy.
+
+## Phase 1 streaming/local update — 2026-09-01
+
+- Current host remains Windows 11 build 26200, Intel i5-11400H (6C/12T), 16,888,967,168 bytes
+  RAM, RTX 2050 Laptop GPU with 4,096 MiB VRAM, driver 610.62, and Ollama 0.33.2.
+- Genuine visible-token TTFT with Ollama `qwen3:0.6b`, digest
+  `7df6b6e09427a769808717c0a93cadc4ae99ed4eb8bf5ca557c90846becea435`, 522,653,767 bytes,
+  Q4_K_M, 4,096-token active context, 512-token output cap, and `5m` keep-alive:
+  verified cold 20/20 at p50/p95 1,233.312/1,453.556 ms; warm 20/20 at
+  25.374/212.986 ms. Both pass the fixed 1,500/3,000 ms gate.
+- `nemotron-3-nano:4b` remains installed and passed a current public live streaming smoke. Its
+  verified cold load remains above the fixed local gate, so it is compatibility evidence rather
+  than the active latency-qualified default.
+- Current NVIDIA Ultra public streaming remains capacity/latency blocked: simple reached 9 live
+  successes at p50/p95 26,352.776/37,574.708 ms before fallback; complex reached one live success
+  at 25,266.730 ms before fallback. No quota ceiling or paid path was probed.
+
 ## Phase 1–4 revalidation update — 2026-08-31
 
 - Phase 1 deterministic: 20/20, p50/p95 6.204/6.691 ms.
@@ -126,7 +155,7 @@ VRAM is the primary constraint. Model file size is not total runtime memory: con
 
 Local fallback candidates, without downloading during planning:
 
-- Current local default: `nemotron-3-nano:4b`; start with bounded 4K/8K working context.
+- Current local default: `qwen3:0.6b`; use the measured 4K working context on this laptop.
 - Fast local candidate: `qwen3:1.7b` Q4 through Ollama; official Ollama artifact is about 1.4 GB.
 - Main local candidate: `qwen3.5:4b` Q4_K_M; official Ollama artifact is about 3.4 GB. Limit context initially and measure VRAM headroom.
 - Alternative main: `gemma3:4b`, about 3.3 GB, for an independent quality/license/tool-use comparison.
@@ -143,12 +172,12 @@ Hosted catalog facts were verified from official provider documentation on 2026-
 | --- | --- | --- | --- |
 | `FAST` | Groq `openai/gpt-oss-20b` | About 1,000 tokens/s; 131,072-token context; tools, reasoning, JSON object/schema modes | Production model; free tier remains quota-limited |
 | `PRIMARY` | Groq `qwen/qwen3.6-27b` | About 500 tokens/s; 131,072-token context; text/images, tools, parallel calls, vision, thinking/non-thinking | Preview; startup catalog checks and fallback required |
-| `REASONING` | NVIDIA `nvidia/nemotron-3-ultra-550b-a55b` | 1,000,000-token context; 32,768-token maximum output; text, tools, and thinking | Trial capacity uses model/account-specific unpublished limits |
-| `LOCAL` | Ollama `nemotron-3-nano:4b` | 256K advertised model context; use bounded 4K/8K working context on this laptop | Hardware-limited but private/offline |
+| `REASONING` | NVIDIA `nvidia/nemotron-3.5-lightning-30b-a3b` | 1,000,000-token context; text, tools, thinking, and reasoning budget | Free-endpoint capacity has no latency SLA |
+| `LOCAL` | Ollama `qwen3:0.6b` | 40K advertised model context; measured at bounded 4K active context on this laptop | Latency-qualified, private/offline; Nemotron Nano compatibility retained |
 
 NVIDIA trial capacity is model/account-specific and visible in the API Catalog UI rather than a fixed published RPM. Free service is not an SLA. Quota exhaustion falls back locally or returns a capacity error. NVIDIA trial APIs receive public content only.
 
-Sources: [NVIDIA Nemotron 3 Ultra](https://build.nvidia.com/nvidia/nemotron-3-ultra-550b-a55b/modelcard), [NVIDIA API reference](https://docs.api.nvidia.com/nim/reference/nvidia-nemotron-3-ultra-550b-a55b), and [NVIDIA trial terms](https://assets.ngc.nvidia.com/products/api-catalog/legal/NVIDIA%20API%20Trial%20Terms%20of%20Service.pdf).
+Sources: [NVIDIA Nemotron 3.5 Lightning](https://build.nvidia.com/nvidia/nemotron-3.5-lightning-30b-a3b), [NVIDIA Nemotron 3 Ultra](https://build.nvidia.com/nvidia/nemotron-3-ultra-550b-a55b/modelcard), [NVIDIA API reference](https://docs.api.nvidia.com/nim/reference/nvidia-nemotron-3-ultra-550b-a55b), and [NVIDIA trial terms](https://assets.ngc.nvidia.com/products/api-catalog/legal/NVIDIA%20API%20Trial%20Terms%20of%20Service.pdf).
 
 ## Voice and multimodal implications
 

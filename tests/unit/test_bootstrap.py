@@ -57,6 +57,7 @@ async def test_build_runtime_composes_and_closes_adapters(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(bootstrap, "SQLiteConversationStore", FakeStore)
+    monkeypatch.setattr(bootstrap, "SQLiteResearchStore", FakeStore)
     monkeypatch.setattr(bootstrap, "OllamaChatProvider", FakeProvider)
     monkeypatch.setattr(bootstrap, "ModelRouter", FakeRouter)
     monkeypatch.setattr(bootstrap, "AssistantService", FakeService)
@@ -72,8 +73,12 @@ async def test_build_runtime_composes_and_closes_adapters(
     local_provider = next(iter(components.provider.providers.values()))
     assert local_provider.kwargs == {
         "base_url": "http://127.0.0.1:11434/",
-        "model": "nemotron-3-nano:4b",
+        "model": "qwen3:0.6b",
         "timeout_seconds": 60.0,
+        "max_response_bytes": 2_000_000,
+        "context_tokens": 4_096,
+        "max_output_tokens": 512,
+        "keep_alive": "5m",
     }
     assert components.service.kwargs["tools"] == ("clock",)
     assert components.service.kwargs["policy"] == "policy"
@@ -84,6 +89,9 @@ async def test_build_runtime_composes_and_closes_adapters(
 
     assert local_provider.closed is True
     assert components.store.closed is True
+    assert components.research_store is not None
+    assert FakeStore.last is components.research_store
+    assert FakeStore.last.closed is True
 
 
 @pytest.mark.asyncio
@@ -130,7 +138,9 @@ async def test_build_runtime_adds_nvidia_only_as_reasoning_provider(
     assert nvidia.kwargs["api_key"] == "secret"
     assert nvidia.kwargs["profile"].provider == "nvidia"
     assert nvidia.kwargs["profile"].max_output_tokens == 32_768
-    assert nvidia.kwargs["max_output_tokens"] == 4_096
+    assert nvidia.kwargs["max_output_tokens"] == 1_024
+    assert nvidia.kwargs["non_reasoning_max_output_tokens"] == 256
+    assert nvidia.kwargs["reasoning_budget_tokens"] == 256
     await components.close()
 
 

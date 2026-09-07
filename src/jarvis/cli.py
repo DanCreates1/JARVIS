@@ -6,6 +6,7 @@ import asyncio
 import json
 import secrets
 from contextlib import suppress
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -18,7 +19,13 @@ from rich.text import Text
 from jarvis import __version__
 from jarvis.bootstrap import build_runtime
 from jarvis.config import Settings
-from jarvis.core import ModelRole, RuntimeResult, RuntimeStatus
+from jarvis.core import (
+    AssistantRequest,
+    ModelRole,
+    RuntimeEventType,
+    RuntimeResult,
+    RuntimeStatus,
+)
 from jarvis.diagnostics import DiagnosticReport, DiagnosticStatus, run_diagnostics
 from jarvis.logging_config import configure_logging
 from jarvis.memory import (
@@ -32,6 +39,15 @@ from jarvis.memory import (
     SQLiteMemoryStore,
     explicit_provenance,
     local_memory_host_id,
+)
+from jarvis.research import (
+    ResearchInterface,
+    ResearchNotFoundError,
+    ResearchOrchestrationError,
+    ResearchPlan,
+    ResearchStorageApproval,
+    SQLiteResearchStore,
+    UnansweredQuestionStatus,
 )
 
 app = typer.Typer(
@@ -58,6 +74,12 @@ memory_app = typer.Typer(
     no_args_is_help=True,
 )
 app.add_typer(memory_app, name="memory")
+research_app = typer.Typer(
+    name="research",
+    help="Run volatile cited research, approve storage, revalidate, and review open questions.",
+    no_args_is_help=True,
+)
+app.add_typer(research_app, name="research")
 console = Console(highlight=False, legacy_windows=False)
 
 
@@ -77,6 +99,381 @@ def _load_settings() -> Settings:
         raise typer.Exit(code=2) from None
     configure_logging(settings.log_level)
     return settings
+
+
+@research_app.command("run")
+def research_run(
+    objective: Annotated[str, typer.Argument(help="Public research objective.")],
+    question: Annotated[
+        list[str] | None,
+        typer.Option("--question", "-q", help="Public search question; repeat as needed."),
+    ] = None,
+    store: Annotated[
+        bool,
+        typer.Option("--store", help="Explicitly approve storage of the exact displayed report."),
+    ] = False,
+    supersedes_report_id: Annotated[
+        str | None,
+        typer.Option(help="Current stored report replaced only when --store succeeds."),
+    ] = None,
+    max_sources: Annotated[int, typer.Option(min=1, max=50)] = 5,
+    max_fetches: Annotated[int, typer.Option(min=1, max=100)] = 10,
+) -> None:
+    """Run bounded research; default result is volatile and disappears on exit."""
+    settings = _load_settings()
+    exit_code = asyncio.run(
+        _research_run(
+            settings,
+            objective=objective,
+            questions=tuple(question or (objective,)),
+            store=store,
+            supersedes_report_id=supersedes_report_id,
+            max_sources=max_sources,
+            max_fetches=max_fetches,
+        )
+    )
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _research_run(
+    settings: Settings,
+    *,
+    objective: str,
+    questions: tuple[str, ...],
+    store: bool,
+    supersedes_report_id: str | None,
+    max_sources: int = 5,
+    max_fetches: int = 10,
+) -> int:
+    components = None
+    try:
+        components = await build_runtime(settings)
+        if components.research is None or components.memory_host_id is None:
+            console.print("[bold red]Research is disabled.[/]")
+            return 1
+        pending = await components.research.run(
+            host_id=components.memory_host_id,
+            plan=ResearchPlan(
+                objective=objective,
+                questions=questions,
+                max_sources=max_sources,
+                max_fetches=max_fetches,
+            ),
+        )
+        console.print(Text(pending.result.report.answer))
+        console.print(
+            f"[dim]Report SHA-256: {pending.report_sha256} · "
+            f"sources={len(pending.result.report.sources)} · "
+            f"claims={len(pending.result.report.claims)}[/]"
+        )
+        if store:
+            receipt = await components.research.approve(
+                ResearchStorageApproval(
+                    host_id=components.memory_host_id,
+                    pending_run_id=pending.id,
+                    expected_report_sha256=pending.report_sha256,
+                    interface=ResearchInterface.LOCAL_CLI,
+                    approved_at=datetime.now(UTC),
+                    supersedes_report_id=supersedes_report_id,
+                )
+            )
+            console.print(f"[bold green]Stored approved research[/] {receipt.report_id}")
+        else:
+            await components.research.deny(
+                host_id=components.memory_host_id,
+                pending_run_id=pending.id,
+                expected_report_sha256=pending.report_sha256,
+            )
+            console.print("[bold yellow]Not stored.[/] Re-run with --store after review.")
+        return 0
+    except asyncio.CancelledError:
+        raise
+    except ResearchOrchestrationError as exc:
+        console.print(f"[bold red]Research failed.[/] {exc.code.value}: {exc}")
+        for failure in exc.failures:
+            console.print(f"[dim]{failure.stage.value}/{failure.code.value}: {failure.target}[/]")
+        return 1
+    except Exception as exc:
+        console.print(f"[bold red]Research failed.[/] {type(exc).__name__}")
+        return 1
+    finally:
+        if components is not None:
+            await components.close()
+
+
+@research_app.command("list")
+def research_list(limit: Annotated[int, typer.Option(min=1, max=500)] = 100) -> None:
+    """List explicitly approved research reports."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_research_list(settings, limit=limit))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _research_list(settings: Settings, *, limit: int) -> int:
+    async with SQLiteResearchStore(settings.database_path) as store:
+        reports = await store.list_reports(host_id=local_memory_host_id(), limit=limit)
+    table = Table(title="Approved research reports", show_lines=True)
+    table.add_column("ID / state")
+    table.add_column("Objective")
+    table.add_column("Sources / claims")
+    table.add_column("Approved")
+    for report in reports:
+        table.add_row(
+            f"{report.id}\n{report.state.value}",
+            report.objective,
+            f"{len(report.source_ids)} / {len(report.claim_ids)}",
+            f"{report.approved_interface.value}\n{report.approved_at.isoformat()}",
+        )
+    console.print(table)
+    return 0
+
+
+@research_app.command("show")
+def research_show(
+    report_id: Annotated[str, typer.Argument(help="Approved report ID.")],
+) -> None:
+    """Show one approved report with its durable source and claim ledger."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_research_show(settings, report_id=report_id))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _research_show(settings: Settings, *, report_id: str) -> int:
+    async with SQLiteResearchStore(settings.database_path) as store:
+        host_id = local_memory_host_id()
+        report = await store.get_report(host_id=host_id, report_id=report_id)
+        if report is None:
+            console.print("[bold red]Research report not found.[/]")
+            return 1
+        sources = [
+            source
+            for source_id in report.source_ids
+            if (source := await store.get_source(host_id=host_id, source_id=source_id)) is not None
+        ]
+        claims = [
+            claim
+            for claim_id in report.claim_ids
+            if (claim := await store.get_claim(host_id=host_id, claim_id=claim_id)) is not None
+        ]
+    console.print(f"[bold]{report.objective}[/]")
+    console.print(Text(report.answer))
+    console.print(f"[dim]Report {report.id} · state={report.state.value}[/]")
+    for source in sources:
+        console.print(
+            f"[dim][source:{source.id}] {source.title} · {source.url} · "
+            f"checked={source.last_checked_at.isoformat()} · state={source.state.value}[/]"
+        )
+    for claim in claims:
+        console.print(f"[dim][claim:{claim.id}] {claim.status.value}: {claim.statement}[/]")
+    return 0
+
+
+@research_app.command("search")
+def research_search(
+    query: Annotated[str, typer.Argument(help="Search approved source text.")],
+    limit: Annotated[int, typer.Option(min=1, max=100)] = 20,
+) -> None:
+    """Search the approved local research ledger; no network request occurs."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_research_search(settings, query=query, limit=limit))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _research_search(settings: Settings, *, query: str, limit: int) -> int:
+    async with SQLiteResearchStore(settings.database_path) as store:
+        sources = await store.search_sources(
+            host_id=local_memory_host_id(), text=query, limit=limit
+        )
+    table = Table(title="Approved research source matches", show_lines=True)
+    table.add_column("ID / state")
+    table.add_column("Title / topic")
+    table.add_column("URL")
+    table.add_column("Checked")
+    for source in sources:
+        table.add_row(
+            f"{source.id}\n{source.state.value}",
+            f"{source.title}\n{source.topic}",
+            source.url,
+            source.last_checked_at.isoformat(),
+        )
+    console.print(table)
+    return 0
+
+
+@research_app.command("export")
+def research_export(
+    destination: Annotated[Path, typer.Argument(help="New local JSON export path.")],
+) -> None:
+    """Export this host's approved research without overwriting an existing file."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_research_export(settings, destination=destination))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _research_export(settings: Settings, *, destination: Path) -> int:
+    try:
+        async with SQLiteResearchStore(settings.database_path) as store:
+            receipt = await store.export_json(
+                host_id=local_memory_host_id(), destination=destination
+            )
+    except FileExistsError:
+        console.print("[bold red]Export path already exists; nothing overwritten.[/]")
+        return 1
+    console.print(
+        f"[bold green]Exported research[/] {receipt.path} · {receipt.byte_count} bytes · "
+        f"sources={receipt.source_count} · claims={receipt.claim_count}"
+    )
+    return 0
+
+
+@research_app.command("delete-source")
+def research_delete_source(
+    source_id: Annotated[str, typer.Argument(help="Approved source ID; all URL versions delete.")],
+    confirm_source_id: Annotated[
+        str,
+        typer.Option("--confirm", help="Must exactly repeat source ID."),
+    ],
+) -> None:
+    """Delete exact source URL history and dependent reports, claims, citations, and indexes."""
+    if confirm_source_id != source_id:
+        console.print("[bold red]Deletion confirmation must exactly match source ID.[/]")
+        raise typer.Exit(code=2)
+    settings = _load_settings()
+    exit_code = asyncio.run(_research_delete_source(settings, source_id=source_id))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _research_delete_source(settings: Settings, *, source_id: str) -> int:
+    try:
+        async with SQLiteResearchStore(settings.database_path) as store:
+            receipt = await store.delete_source(host_id=local_memory_host_id(), source_id=source_id)
+    except ResearchNotFoundError:
+        console.print("[bold red]Research source not found.[/]")
+        return 1
+    console.print(
+        f"[bold green]Deleted research source history[/] {source_id} · "
+        f"sources={receipt.source_rows} · claims={receipt.claim_rows} · "
+        f"citations={receipt.citation_rows} · indexes={receipt.fts_rows}"
+    )
+    return 0
+
+
+@research_app.command("revalidate")
+def research_revalidate(
+    source_id: Annotated[str, typer.Argument(help="Approved source ID to re-fetch explicitly.")],
+) -> None:
+    """Revalidate one approved source and stale dependent claims when content changes."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_research_revalidate(settings, source_id=source_id))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _research_revalidate(settings: Settings, *, source_id: str) -> int:
+    components = None
+    try:
+        components = await build_runtime(settings)
+        if components.research is None or components.memory_host_id is None:
+            console.print("[bold red]Research is disabled.[/]")
+            return 1
+        receipt = await components.research.revalidate_source(
+            host_id=components.memory_host_id, source_id=source_id
+        )
+        console.print(
+            f"[bold green]Revalidated[/] {receipt.requested_source_id} · "
+            f"current={receipt.current_source_id} · changed={receipt.changed} · "
+            f"state={receipt.state.value}"
+        )
+        return 0
+    except Exception as exc:
+        console.print(f"[bold red]Research revalidation failed.[/] {type(exc).__name__}")
+        return 1
+    finally:
+        if components is not None:
+            await components.close()
+
+
+@research_app.command("questions")
+def research_questions(
+    limit: Annotated[int, typer.Option(min=1, max=500)] = 100,
+) -> None:
+    """List open questions from explicitly approved reports."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_research_questions(settings, limit=limit))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _research_questions(settings: Settings, *, limit: int) -> int:
+    async with SQLiteResearchStore(settings.database_path) as store:
+        questions = await store.list_unanswered_questions(
+            host_id=local_memory_host_id(), limit=limit
+        )
+    table = Table(title="Open research questions", show_lines=True)
+    table.add_column("ID / version")
+    table.add_column("Report")
+    table.add_column("Question")
+    for question in questions:
+        table.add_row(f"{question.id}\nv{question.version}", question.report_id, question.question)
+    console.print(table)
+    return 0
+
+
+@research_app.command("close-question")
+def research_close_question(
+    question_id: Annotated[str, typer.Argument(help="Open question ID.")],
+    expected_version: Annotated[int, typer.Option(min=1)],
+    answer_claim_id: Annotated[
+        str | None,
+        typer.Option(help="Approved active claim answering this question; omit to dismiss."),
+    ] = None,
+) -> None:
+    """Answer from an approved claim or explicitly dismiss one open question."""
+    settings = _load_settings()
+    exit_code = asyncio.run(
+        _research_close_question(
+            settings,
+            question_id=question_id,
+            expected_version=expected_version,
+            answer_claim_id=answer_claim_id,
+        )
+    )
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _research_close_question(
+    settings: Settings,
+    *,
+    question_id: str,
+    expected_version: int,
+    answer_claim_id: str | None,
+) -> int:
+    try:
+        async with SQLiteResearchStore(settings.database_path) as store:
+            question = await store.update_unanswered_question(
+                host_id=local_memory_host_id(),
+                question_id=question_id,
+                expected_version=expected_version,
+                status=(
+                    UnansweredQuestionStatus.ANSWERED
+                    if answer_claim_id is not None
+                    else UnansweredQuestionStatus.DISMISSED
+                ),
+                answer_claim_id=answer_claim_id,
+                interface=ResearchInterface.LOCAL_CLI,
+            )
+    except Exception as exc:
+        console.print(f"[bold red]Question update failed.[/] {type(exc).__name__}")
+        return 1
+    console.print(f"[bold green]Question {question.status.value}[/] {question.id}")
+    return 0
 
 
 @app.command()
@@ -150,20 +547,16 @@ async def _chat(
             if not normalized:
                 console.print("[bold red]Message cannot be blank.[/]")
                 return 2
-            if model_role is None:
-                result = await components.service.respond(
-                    normalized,
-                    conversation_id=conversation_id,
-                    metadata={"interface": "cli"},
-                )
-            else:
-                result = await components.service.respond(
-                    normalized,
+            result, streamed = await _stream_cli_turn(
+                components.service,
+                AssistantRequest(
+                    user_input=normalized,
                     conversation_id=conversation_id,
                     metadata={"interface": "cli"},
                     requested_model_role=model_role,
-                )
-            _render_result(result)
+                ),
+            )
+            _render_result(result, reply_streamed=streamed)
             return 0 if result.status is RuntimeStatus.COMPLETED else 1
 
         console.print("[bold cyan]JARVIS[/] — type /exit to stop.")
@@ -178,27 +571,55 @@ async def _chat(
                 return 0
             if not user_input:
                 continue
-            if model_role is None:
-                result = await components.service.respond(
-                    user_input,
-                    conversation_id=active_conversation,
-                    metadata={"interface": "cli"},
-                )
-            else:
-                result = await components.service.respond(
-                    user_input,
+            result, streamed = await _stream_cli_turn(
+                components.service,
+                AssistantRequest(
+                    user_input=user_input,
                     conversation_id=active_conversation,
                     metadata={"interface": "cli"},
                     requested_model_role=model_role,
-                )
-            _render_result(result)
+                ),
+            )
+            _render_result(result, reply_streamed=streamed)
             if result.conversation_id is not None:
                 active_conversation = result.conversation_id
 
 
-def _render_result(result: RuntimeResult) -> None:
+async def _stream_cli_turn(
+    service: object,
+    request: AssistantRequest,
+) -> tuple[RuntimeResult, bool]:
+    result: RuntimeResult | None = None
+    streamed = False
+    async for frame in service.stream(request):  # type: ignore[attr-defined]
+        if frame.event is not None:
+            if (
+                frame.event.type is RuntimeEventType.ASSISTANT_DELTA
+                and frame.event.content_delta is not None
+            ):
+                if not streamed:
+                    console.print("[bold green]JARVIS>[/] ", end="")
+                    streamed = True
+                console.print(
+                    frame.event.content_delta,
+                    end="",
+                    markup=False,
+                    highlight=False,
+                    soft_wrap=True,
+                )
+        else:
+            result = frame.result
+    if streamed:
+        console.print()
+    if result is None:
+        raise RuntimeError("JARVIS runtime stream ended without a terminal result")
+    return result, streamed
+
+
+def _render_result(result: RuntimeResult, *, reply_streamed: bool = False) -> None:
     if result.status is RuntimeStatus.COMPLETED:
-        console.print(f"[bold green]JARVIS>[/] {result.reply}")
+        if not reply_streamed:
+            console.print(f"[bold green]JARVIS>[/] {result.reply}")
         if result.conversation_id:
             console.print(f"[dim]Conversation: {result.conversation_id}[/]")
         return

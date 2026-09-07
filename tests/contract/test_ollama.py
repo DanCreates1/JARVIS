@@ -30,12 +30,49 @@ from jarvis.llm.ollama import (
 BASE_URL = "http://127.0.0.1:11434"
 
 
+def ollama_stream(*frames: dict[str, object]) -> httpx.Response:
+    content = "".join(json.dumps(frame) + "\n" for frame in frames).encode()
+    return httpx.Response(200, content=content, headers={"content-type": "application/x-ndjson"})
+
+
+@respx.mock
+async def test_stream_chat_yields_genuine_text_deltas_then_terminal_usage() -> None:
+    respx.post(f"{BASE_URL}/api/chat").mock(
+        return_value=ollama_stream(
+            {"message": {"role": "assistant", "content": "Hel"}, "done": False},
+            {
+                "message": {"role": "assistant", "content": "lo"},
+                "done": True,
+                "prompt_eval_count": 7,
+                "eval_count": 2,
+                "total_duration": 12_000_000,
+            },
+        )
+    )
+    provider = OllamaChatProvider(model="test-model")
+
+    frames = [
+        frame
+        async for frame in provider.stream_chat(
+            messages=[Message(conversation_id="c", role=MessageRole.USER, content="Hi")],
+            tools=[],
+        )
+    ]
+
+    assert [frame.content_delta for frame in frames[:-1]] == ["Hel", "lo"]
+    assert frames[-1].response is not None
+    assert frames[-1].response.content == "Hello"
+    assert frames[-1].response.usage is not None
+    assert frames[-1].response.usage.output_tokens == 2
+    assert frames[-1].response.usage.latency_ms == 12
+    await provider.close()
+
+
 @respx.mock
 async def test_chat_normalizes_messages_tools_and_tool_calls() -> None:
     route = respx.post(f"{BASE_URL}/api/chat").mock(
-        return_value=httpx.Response(
-            200,
-            json={
+        return_value=ollama_stream(
+            {
                 "model": "test-model",
                 "done": True,
                 "message": {
@@ -45,7 +82,7 @@ async def test_chat_normalizes_messages_tools_and_tool_calls() -> None:
                         {"function": {"name": "weather", "arguments": '{"city":"Toronto"}'}}
                     ],
                 },
-            },
+            }
         )
     )
     provider = OllamaChatProvider(model="test-model")
@@ -96,8 +133,10 @@ async def test_chat_normalizes_messages_tools_and_tool_calls() -> None:
     request_payload = json.loads(route.calls.last.request.content)
     assert request_payload == {
         "model": "test-model",
-        "stream": False,
+        "stream": True,
         "think": False,
+        "keep_alive": "5m",
+        "options": {"num_ctx": 4096, "num_predict": 512},
         "messages": [{"role": "user", "content": "Weather?"}],
         "tools": [
             {
@@ -119,9 +158,8 @@ async def test_chat_normalizes_messages_tools_and_tool_calls() -> None:
 @respx.mock
 async def test_chat_normalizes_assistant_tool_calls_and_tool_results() -> None:
     route = respx.post(f"{BASE_URL}/api/chat").mock(
-        return_value=httpx.Response(
-            200,
-            json={"message": {"role": "assistant", "content": "complete"}},
+        return_value=ollama_stream(
+            {"message": {"role": "assistant", "content": "complete"}, "done": True}
         )
     )
     provider = OllamaChatProvider(model="test-model")
@@ -164,9 +202,8 @@ async def test_chat_normalizes_assistant_tool_calls_and_tool_results() -> None:
 @respx.mock
 async def test_chat_maps_reasoning_level_to_ollama_thinking() -> None:
     route = respx.post(f"{BASE_URL}/api/chat").mock(
-        return_value=httpx.Response(
-            200,
-            json={"message": {"role": "assistant", "content": "complete"}},
+        return_value=ollama_stream(
+            {"message": {"role": "assistant", "content": "complete"}, "done": True}
         )
     )
     provider = OllamaChatProvider(model="test-model")

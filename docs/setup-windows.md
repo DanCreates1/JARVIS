@@ -127,8 +127,8 @@ Download the default model explicitly:
 To select a different Ollama model, pass one argument and configure the same name:
 
 ```powershell
-./scripts/setup-model.ps1 -Model "nemotron-3-nano:4b"
-$env:JARVIS_OLLAMA_MODEL = "nemotron-3-nano:4b"
+./scripts/setup-model.ps1 -Model "qwen3:0.6b"
+$env:JARVIS_OLLAMA_MODEL = "qwen3:0.6b"
 ```
 
 Ollama stores weights in its own model directory. Do not copy weights into this
@@ -192,6 +192,37 @@ records. Inspection, export, correction, retention, and deletion remain availabl
 is additive; legacy note/profile/task rows are preserved under an isolated legacy scope rather
 than silently attributed to a different host. Encrypted cross-device backup/retention remains a
 later deployment phase.
+
+## Bounded public research
+
+Phase 5 research is enabled by default and uses an account-free Wikimedia search adapter. Only
+public HTTPS sources are eligible. Discovery and acquisition obey fixed source/fetch/domain/byte/
+redirect/time limits; HTML, plain text, and PDF parsing occurs in a short-lived isolated worker.
+JavaScript rendering, authentication/paywall bypass, file downloads, and OCR are unsupported.
+
+```powershell
+uv run jarvis research run "What is Python?" --max-sources 3 --max-fetches 6
+uv run jarvis research run "What is Python?" --store
+uv run jarvis research list
+uv run jarvis research show <report-id>
+uv run jarvis research search "Python"
+uv run jarvis research revalidate <source-id>
+uv run jarvis research export .\jarvis-research-export.json
+```
+
+Without `--store`, the report disappears when the process exits. `--store` consumes an exact
+one-use approval bound to the displayed report digest; it does not create trusted Phase 4 memory.
+Use `research questions` and `research close-question` for approved report gaps. Source deletion is
+transitive and requires its exact ID twice:
+
+```powershell
+uv run jarvis research delete-source <source-id> --confirm <source-id>
+```
+
+Export first if recovery may be needed. Export refuses overwrite and is for inspection/portability,
+not automatic restore. Set `JARVIS_RESEARCH_ENABLED=false` and restart to disable new research while
+retaining the approved ledger for inspection/export/deletion. Run `jarvis doctor`; the `research
+parser sandbox` row verifies the isolated worker and locked PDF dependency.
 
 ## Optional local voice
 
@@ -312,7 +343,7 @@ Copy-Item .env.example .env
 ```
 
 Edit only the values needed on that machine. `.env` is ignored by Git. The
-default Ollama endpoint is loopback-only and the default model is `nemotron-3-nano:4b`.
+default Ollama endpoint is loopback-only and the default model is `qwen3:0.6b`.
 
 Mutable state is stored in the current user's local application-data directory.
 For an isolated test, set a temporary data directory for that terminal:
@@ -354,7 +385,7 @@ configured.
 
 ### The model is missing
 
-Run `./scripts/setup-model.ps1` or `ollama pull nemotron-3-nano:4b`, then rerun
+Run `./scripts/setup-model.ps1` or `ollama pull qwen3:0.6b`, then rerun
 `uv run jarvis doctor`.
 
 ### Voice setup or endpoint fails

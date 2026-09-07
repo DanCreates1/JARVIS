@@ -18,8 +18,8 @@ These are architectural defaults, not permanent vendor commitments. Revisit a de
 | Model strategy | Privacy-aware hybrid roles: `FAST`, `PRIMARY`, `REASONING`, `LOCAL` | Fully local, unrestricted cloud-first | Hosted speed for non-sensitive work; local privacy/offline fallback |
 | Fast cloud role | Groq `openai/gpt-oss-20b` | Local classifier, other hosted small model | Production model, about 1,000 tokens/s, tools and structured outputs |
 | Primary cloud role | Groq `qwen/qwen3.6-27b` | GPT-OSS 20B, replacement from provider catalog | About 500 tokens/s, vision/tools/parallel calls; preview lifecycle requires fallback |
-| Reasoning role | NVIDIA `nvidia/nemotron-3-ultra-550b-a55b` | Gemini, Groq reasoning models | Hosted 1M-context text/tool reasoning for difficult public work |
-| Local role | Ollama `nemotron-3-nano:4b` | Qwen/Gemma 1B–4B candidates | Installed private/offline path on current 4 GB GPU |
+| Reasoning role | NVIDIA `nvidia/nemotron-3.5-lightning-30b-a3b` | Nemotron Ultra, Gemini, Groq reasoning models | Hosted 1M-context text/tool reasoning for difficult public work |
+| Local role | Ollama `qwen3:0.6b` | Nemotron Nano; larger Qwen/Gemma candidates | Tool-capable private/offline path meeting fixed local TTFT on current 4 GB GPU |
 | Cloud cost policy | Hard `$0` development budget | Explicit future paid policy decision | Free-tier exhaustion falls back or fails; never enters paid quota |
 | Primary data store | SQLite WAL + migrations | PostgreSQL, document DB | One host/user and simple backups; already adopted |
 | Text retrieval | SQLite FTS5 | Elasticsearch, hosted search | Built in, sufficient for early corpus |
@@ -126,15 +126,26 @@ Yes. llama.cpp or vLLM can implement the provider contract on future hardware.
 ## TD-006 — Initial provider/model portfolio
 
 **Decision**  
-Use NVIDIA `nvidia/nemotron-3-ultra-550b-a55b` for difficult public `REASONING` and Ollama `nemotron-3-nano:4b` for active `LOCAL` work. Retain Groq `FAST`/`PRIMARY` and Gemini as optional configuration-driven adapters rather than required credentials.
+Use NVIDIA `nvidia/nemotron-3.5-lightning-30b-a3b` for difficult public `REASONING` and Ollama
+`qwen3:0.6b` for active `LOCAL` work. Retain Nemotron Ultra and local `nemotron-3-nano:4b` as
+compatible live-smoke models. Retain Groq `FAST`/`PRIMARY` and Gemini as optional
+configuration-driven adapters rather than required credentials.
 
 **Reason**  
-As verified on 2026-08-22, NVIDIA Nemotron 3 Ultra exposes a 1,000,000-token context, a 32,768-token maximum output, tools, and configurable thinking through NVIDIA's OpenAI-compatible endpoint. Ollama Nemotron 3 Nano 4B is installed locally as a 2.8 GB Q4_K_M model with tools and thinking. The NVIDIA catalog and both live response paths passed.
+At a bounded 4,096-token context and 512-token output ceiling, Qwen3 0.6B produced genuine visible
+token TTFT of 1,233.312/1,453.556 ms cold and 25.374/212.986 ms warm across 20 successful samples
+per state on the audited RTX 2050 laptop. Nemotron Nano remains functional but its model load
+misses the fixed local cold gate. NVIDIA Lightning completed the hosted sample-count gate but
+remains blocked for formal closeout by free-endpoint tail latency, not by the local role decision.
+As verified on 2026-09-04, NVIDIA Nemotron 3.5 Lightning exposes a 1,000,000-token context, tools,
+thinking, a reasoning budget, and OpenAI-compatible streaming. Nemotron 3 Ultra retains current
+catalog/live compatibility evidence. Ollama Nemotron 3 Nano 4B is installed locally as a 2.8 GB
+Q4_K_M model with tools and thinking.
 
 **Alternatives considered / why rejected**
 
 - Local models for every role: insufficient interactive quality/latency on current hardware.
-- Gemini as default reasoning role: retained as an optional adapter, but NVIDIA Ultra is active.
+- Gemini as default reasoning role: retained as an optional adapter, but NVIDIA Lightning is active.
 - Hard-coded provider IDs in orchestration: prevents catalog-driven replacement and safe deprecation handling.
 - Qwen preview without fallback: unacceptable lifecycle risk.
 
@@ -416,6 +427,93 @@ executable, URL, printer command language, or filesystem root.
 
 Yes. Each adapter sits behind the same typed action definition, exact grant, receipt, and
 postcondition contracts. Security semantics remain.
+
+## TD-021 — Pinned bounded research acquisition
+
+**Decision**
+
+Use provider-neutral search/fetch/parser ports. The initial HTTP adapter performs public-DNS
+validation and connects to a validated IP with original Host/SNI certificate verification. Handle
+redirects manually and apply immutable domain, type, decompressed-byte, redirect, and total-time
+limits. Parse supported documents in a separate bounded worker without executing active content.
+
+**Reason**
+
+Preflight DNS checks alone permit rebinding between validation and connection. Automatic redirects,
+proxy environment inheritance, cookies, and unbounded decompression create additional disclosure
+and SSRF paths. IP pinning with TLS hostname verification closes the validation/connection gap while
+keeping ordinary certificate validation.
+
+**Alternatives considered / why rejected**
+
+- Automatic redirects: destination policy would be bypassed.
+- DNS validation followed by hostname connection: vulnerable to DNS rebinding/TOCTOU.
+- Headless browser first: larger executable, JavaScript, download, cookie, and sandbox surface.
+- Full document-parser dependency set immediately: unnecessary before format demand is measured.
+
+**Replaceable later?**
+
+Yes. Search providers, browser workers, and document parsers remain adapters. Public-network,
+redirect, resource, untrusted-content, and cancellation boundaries remain mandatory.
+
+## TD-022 — Separate host-isolated research ledger
+
+**Decision**
+
+Persist research sources, source versions, claims, citations, conflicts, and lifecycle metadata in
+additive SQLite migration 006 behind `SQLiteResearchStore`. Keep this ledger separate from trusted
+Phase 4 memory. Index active sources only. Use content-free tombstones and append-only events.
+
+**Reason**
+
+Research evidence needs source-level freshness, replacement, contradiction, export, and deletion
+semantics that do not make hostile external text trusted memory. Host partitioning and typed
+claim-source links prevent cross-host evidence reuse. Immutable versions plus SHA-256 make changed
+content visible. Physical transitive deletion clears text and derived indexes while preserving a
+minimal non-content audit fact.
+
+**Alternatives considered / why rejected**
+
+- Store research directly as committed memory: collapses trust and approval boundaries.
+- Overwrite sources in place: loses update history and invalidates reproducibility.
+- Retain deleted hashes/text in audit: conflicts with deletion semantics.
+- Add a server/vector database now: no measured scale or concurrency need.
+
+**Replaceable later?**
+
+Yes. Persistence can move behind the same typed store behavior. Host isolation, explicit trust,
+versioning, citation integrity, append-only audit, export, and transitive deletion remain required.
+
+## TD-023 — Isolated document parsing and exact research approval
+
+**Decision**
+
+Parse HTML, plain text, and PDF in a short-lived `python -I` worker with a minimal environment,
+temporary working directory, deadline, bounded stdio, PDF page/filter caps, and no network/action
+tools. Keep research runs volatile until a trusted local interface consumes an expiring one-use
+approval bound to the exact displayed report digest. Validate citations after synthesis and use a
+deterministic extractive fallback when configured-model output is unavailable or malformed.
+
+**Reason**
+
+Document parsers handle adversarial bytes and should not share the long-lived assistant process.
+Model output is also untrusted and cannot decide what becomes durable. Exact approval prevents
+report substitution, while post-synthesis source-span validation preserves traceability even when
+a provider violates the requested response schema.
+
+**Alternatives considered / why rejected**
+
+- Parse PDFs in the main process: expands parser failure and resource-exhaustion impact.
+- Treat subprocess isolation as a full OS sandbox: it is not a Windows AppContainer/kernel boundary.
+- Automatically store every result: allows hostile or poor-quality content to pollute the ledger.
+- Accept provider-authored URLs/citations: permits fabricated or swapped evidence.
+- Fail every malformed synthesis: loses safe availability when exact source sentences can answer.
+
+**Replaceable later?**
+
+Yes. A reviewed AppContainer or dedicated parser service and additional search/synthesis providers
+may replace adapters. Untrusted-content separation, hard resource limits, exact approval, citation
+validation, cancellation, and host isolation remain mandatory.
 
 ## Review triggers
 

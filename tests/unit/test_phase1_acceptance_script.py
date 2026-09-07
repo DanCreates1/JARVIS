@@ -30,6 +30,8 @@ def _arguments(**overrides: object) -> argparse.Namespace:
         "profiles": ["deterministic", "local"],
         "samples": 20,
         "warmups": 1,
+        "local_model": "qwen3:0.6b",
+        "hosted_model": "nvidia/nemotron-3.5-lightning-30b-a3b",
         "include_hosted": False,
         "confirm_public_fixtures": False,
         "hosted_min_interval_seconds": 2.1,

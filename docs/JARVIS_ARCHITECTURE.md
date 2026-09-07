@@ -2,11 +2,11 @@
 
 Status: target architecture; implementation remains incremental  
 Planning date: 2026-08-20
-Last reconciled with Phase 1–4 implementation: 2026-08-31
+Last reconciled with Phase 1–5 implementation: 2026-09-07
 
-Phase 4 currently satisfies its completion gates. Phase 1 clean-host/bootstrap/repository gates
-pass on an independent Windows runner, while local/hosted latency and intermittent provider
-capacity remain external blockers. Phase 2 and Phase 3 await separately authorized current live
+Phases 4 and 5 currently satisfy their completion gates. Phase 1 clean-host/bootstrap/repository and
+optimized local latency gates pass, while hosted NVIDIA fixed latency remains an external blocker
+despite complete 20-sample states. Phase 2 and Phase 3 await separately authorized current live
 device/effect checks. See `docs/PHASE_OVERVIEW.md`; these status limits do not alter the
 architecture boundaries below.
 
@@ -246,8 +246,8 @@ Default role mapping:
 | --- | --- | --- |
 | `FAST` | Groq `openai/gpt-oss-20b` | Safe simple requests and safe ambiguous routing; low reasoning where needed |
 | `PRIMARY` | Groq `qwen/qwen3.6-27b` | Safe normal conversation/tool planning; non-thinking by default, thinking for moderate reasoning |
-| `REASONING` | NVIDIA `nvidia/nemotron-3-ultra-550b-a55b` | Safe difficult public reasoning, coding, research, long context, and tools |
-| `LOCAL` | Ollama `nemotron-3-nano:4b` | Normal, sensitive/private, offline, and cloud-fallback work |
+| `REASONING` | NVIDIA `nvidia/nemotron-3.5-lightning-30b-a3b` | Safe difficult public reasoning, coding, research, long context, and tools |
+| `LOCAL` | Ollama `qwen3:0.6b` | Normal, sensitive/private, offline, and cloud-fallback work; Nemotron Nano remains compatibility-tested |
 
 Routing order:
 
@@ -381,15 +381,36 @@ flowchart LR
     Fetch --> Parse[Bounded parse; external content = data]
     Parse --> Claims[Claims + source spans]
     Claims --> Compare[Corroborate/conflict/freshness]
-    Compare --> Notes[Cited structured notes]
-    Notes --> Knowledge[Semantic memory]
+    Compare --> Notes[Cited structured report]
+    Notes --> Review{Exact host storage approval}
+    Review --> Ledger[(Untrusted research ledger)]
     Compare --> Gaps[Unanswered questions]
-    Knowledge --> Revalidate[Scheduled/host-triggered refresh]
+    Ledger --> Revalidate[Host-triggered refresh]
 ```
 
 Source artifacts and model-generated summaries remain distinct. A claim never cites another generated summary as if it were the primary source. Labels include verified, likely, hypothesis, opinion, stale, and conflicting. “Verified” means supported under configured evidence rules; it does not mean universally true.
 
 Webpages, PDFs, documents, tool outputs, and retrieved notes are untrusted data. Their embedded instructions cannot add tools, change system prompts, alter permissions, or authorize network/file actions. Fetch and parsing use size, type, domain, redirect, timeout, and download limits.
+
+Phase 5 migrations 006–007 and `SQLiteResearchStore` implement the durable ledger independently
+from trusted memory. `BoundedResearchOrchestrator` composes provider-neutral discovery, pinned HTTP
+fetching, isolated parsing, synthesis, and citation review under total query/source/fetch/domain/
+byte/time budgets. The production parser runs HTML, plain text, and PDF extraction in a short-lived
+`python -I` subprocess with a minimal environment, temporary working directory, input/output caps,
+PDF page/filter limits, and no action tools. This reduces parser blast radius but is not a Windows
+AppContainer or kernel security boundary.
+
+Source versions retain URL, publisher, title, topic, media type, SHA-256, access/publication dates,
+validators, bounded extracted text, usage notes, state, and lineage. Claims retain typed evidence
+links, uncertainty, status, version, and replacement lineage. The citation validator requires exact
+source spans, caps quoted words, rejects fabricated/unknown evidence, and renders nearby source IDs
+itself. Malformed configured-model synthesis degrades to deterministic extractive claims rather
+than weakening validation. Changed/unavailable sources stale dependent claims; claim replacement
+dismisses obsolete open conflicts. Host scope applies to every read, search, citation, conflict,
+mutation, export, and deletion path. Active sources alone enter FTS5. Transitive deletion removes
+all URL versions and dependent reports/claims/citations/conflicts/index rows; tombstones and
+append-only events retain no source text, claim text, quote, or content hash. Research remains
+untrusted and is never silently promoted into Phase 4 memory.
 
 ## 11. Device and network architecture
 
@@ -500,12 +521,15 @@ Use structured logs and OpenTelemetry-compatible concepts, but avoid an observab
 ## 15. Testing architecture
 
 - Unit: router, policy, schemas, retrieval scoring, redaction, state transitions, deterministic tools.
-- Contract: every model, STT/TTS, browser, device, and storage adapter against recorded/mocked protocol cases.
+- Contract: every model, STT/TTS, research, browser, device, and storage adapter against
+  recorded/mocked protocol cases.
 - Integration: model event → action request → policy → fake broker → verification → audit.
 - Agent/planning: golden task graphs, dependency and budget correctness, restart reconciliation.
-- Security: injection, traversal, argument confusion, replay, stale approval, cross-host/device isolation, auth/rate limits.
+- Security: injection, SSRF/rebinding, hostile documents, traversal, argument confusion, replay,
+  stale approval, cross-host/device isolation, auth/rate limits.
 - Voice: fixed audio corpus, WER, endpoint latency, false wake/reject, echo and barge-in.
-- Memory: golden retrieval, provenance, contradiction, correction, retention, transitive deletion.
+- Memory/research: golden retrieval, citations, provenance, contradiction, freshness, correction,
+  retention, and transitive deletion.
 - Failure: provider outage, partial tool effects, corrupt response, full disk, database lock, device/network loss.
 - Performance: reproducible warm/cold benchmarks with resource telemetry and p50/p95 reports.
 

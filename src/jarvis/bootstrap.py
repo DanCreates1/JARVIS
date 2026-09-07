@@ -1,4 +1,4 @@
-"""Composition root for the Phase 1 runtime."""
+"""Composition root for the JARVIS runtime."""
 
 from __future__ import annotations
 
@@ -32,6 +32,18 @@ from jarvis.memory import (
     SQLiteMemoryStore,
     local_memory_host_id,
 )
+from jarvis.research import (
+    BoundedResearchOrchestrator,
+    ExtractiveResearchSynthesizer,
+    FallbackResearchSynthesizer,
+    HttpDocumentFetcher,
+    MediaWikiSearchProvider,
+    PrivacyRoutedSearchProvider,
+    ResearchWorkflow,
+    RoutedResearchSynthesizer,
+    SandboxedDocumentParser,
+    SQLiteResearchStore,
+)
 from jarvis.security import phase_one_policy
 from jarvis.security.computer_policy import ComputerProposalPolicy
 from jarvis.tools import phase_one_tools
@@ -57,6 +69,8 @@ class RuntimeComponents:
     service: AssistantService
     computer: ComputerRuntimeComponents | None = None
     memory_store: SQLiteMemoryStore | None = None
+    research_store: SQLiteResearchStore | None = None
+    research: ResearchWorkflow | None = None
     memory: MemoryManager | None = None
     memory_host_id: str | None = None
 
@@ -65,14 +79,22 @@ class RuntimeComponents:
             await self.provider.close()
         finally:
             try:
-                if self.computer is not None:
-                    await self.computer.close()
+                if self.research is not None:
+                    await self.research.close()
             finally:
                 try:
-                    if self.memory_store is not None:
-                        await self.memory_store.close()
+                    if self.computer is not None:
+                        await self.computer.close()
                 finally:
-                    await self.store.close()
+                    try:
+                        if self.research_store is not None:
+                            await self.research_store.close()
+                    finally:
+                        try:
+                            if self.memory_store is not None:
+                                await self.memory_store.close()
+                        finally:
+                            await self.store.close()
 
     async def __aenter__(self) -> RuntimeComponents:
         return self
@@ -87,28 +109,38 @@ class RuntimeComponents:
 
 
 async def build_runtime(settings: Settings) -> RuntimeComponents:
-    """Construct and initialize every Phase 1 adapter exactly once."""
+    """Construct and initialize every runtime adapter exactly once."""
     store = SQLiteConversationStore(settings.database_path)
     memory_store = SQLiteMemoryStore(settings.database_path)
+    research_store = SQLiteResearchStore(settings.database_path)
     try:
         await store.initialize()
         await memory_store.initialize()
+        await research_store.initialize()
         memory_host_id = local_memory_host_id()
         memory = MemoryManager(memory_store, host_id=memory_host_id)
     except BaseException:
         try:
-            await memory_store.close()
+            await research_store.close()
         finally:
-            await store.close()
+            try:
+                await memory_store.close()
+            finally:
+                await store.close()
         raise
     provider: ModelRouter | None = None
     computer: ComputerRuntimeComponents | None = None
+    research: ResearchWorkflow | None = None
     created_providers: list[ModelProvider] = []
     try:
         local = OllamaChatProvider(
             base_url=str(settings.ollama_base_url),
             model=settings.effective_local_model,
             timeout_seconds=settings.request_timeout_seconds,
+            max_response_bytes=settings.max_provider_response_bytes,
+            context_tokens=settings.ollama_context_tokens,
+            max_output_tokens=settings.ollama_max_output_tokens,
+            keep_alive=settings.ollama_keep_alive,
         )
         created_providers.append(local)
         providers: dict[ModelRole, ModelProvider] = {ModelRole.LOCAL: local}
@@ -158,6 +190,8 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
                 timeout_seconds=settings.request_timeout_seconds,
                 max_response_bytes=settings.max_provider_response_bytes,
                 max_output_tokens=settings.nvidia_max_output_tokens,
+                non_reasoning_max_output_tokens=(settings.nvidia_non_reasoning_max_output_tokens),
+                reasoning_budget_tokens=settings.nvidia_reasoning_budget_tokens,
                 max_requests_per_minute=settings.nvidia_max_requests_per_minute,
                 max_concurrency=settings.nvidia_max_concurrency,
             )
@@ -169,6 +203,36 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
             policy=RoutingPolicy(privacy_gate),
             max_cloud_cost_usd=settings.max_cloud_cost_usd,
         )
+        if settings.research_enabled:
+            research_fetcher = HttpDocumentFetcher()
+            search = PrivacyRoutedSearchProvider(
+                MediaWikiSearchProvider(
+                    fetcher=research_fetcher,
+                    endpoint=str(settings.research_search_endpoint),
+                    timeout_seconds=settings.research_search_timeout_seconds,
+                    max_response_bytes=settings.research_search_max_response_bytes,
+                ),
+                gate=privacy_gate,
+            )
+            parser = SandboxedDocumentParser()
+            routed_synthesizer = RoutedResearchSynthesizer(provider, gate=privacy_gate)
+            synthesizer = FallbackResearchSynthesizer(
+                routed_synthesizer, ExtractiveResearchSynthesizer()
+            )
+            research = ResearchWorkflow(
+                orchestrator=BoundedResearchOrchestrator(
+                    search_provider=search,
+                    fetcher=research_fetcher,
+                    parser=parser,
+                    synthesizer=synthesizer,
+                ),
+                store=research_store,
+                fetcher=research_fetcher,
+                parser=parser,
+                pending_ttl_seconds=settings.research_pending_ttl_seconds,
+                max_pending_runs=settings.research_max_pending_runs,
+                closeables=(search, research_fetcher, synthesizer),
+            )
         registered_tools: tuple[Tool, ...] = phase_one_tools(
             allowed_file_roots=(settings.data_dir,)
         )
@@ -199,6 +263,8 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
         )
     except BaseException:
         try:
+            if research is not None:
+                await research.close()
             if computer is not None:
                 await computer.close()
             if provider is not None:
@@ -208,15 +274,20 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
                     await created_provider.close()
         finally:
             try:
-                await memory_store.close()
+                await research_store.close()
             finally:
-                await store.close()
+                try:
+                    await memory_store.close()
+                finally:
+                    await store.close()
         raise
     assert provider is not None
     return RuntimeComponents(
         settings=settings,
         store=store,
         memory_store=memory_store,
+        research_store=research_store,
+        research=research,
         memory=memory,
         memory_host_id=memory_host_id,
         provider=provider,

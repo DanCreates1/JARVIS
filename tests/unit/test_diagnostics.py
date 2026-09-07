@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+import jarvis.diagnostics as diagnostics
 from jarvis.config import Settings
 from jarvis.diagnostics import DiagnosticStatus, run_diagnostics
 
@@ -121,3 +122,21 @@ async def test_diagnostics_reports_default_computer_access_as_safely_disabled(
     computer = next(check for check in report.checks if check.name == "controlled computer access")
     assert computer.status is DiagnosticStatus.PASS
     assert "disabled" in computer.detail
+
+
+def test_research_parser_diagnostic_reports_disabled_and_missing_dependency(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    disabled = diagnostics._research_parser_check(
+        Settings(data_dir=tmp_path, research_enabled=False, _env_file=None)
+    )
+    assert disabled.status is DiagnosticStatus.PASS
+    assert "disabled" in disabled.detail
+
+    monkeypatch.setattr(diagnostics, "find_spec", lambda _name: None)
+    missing = diagnostics._research_parser_check(
+        Settings(data_dir=tmp_path, research_enabled=True, _env_file=None)
+    )
+    assert missing.status is DiagnosticStatus.FAIL
+    assert missing.remediation is not None and "uv sync --locked" in missing.remediation

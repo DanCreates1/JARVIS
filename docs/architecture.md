@@ -2,11 +2,12 @@
 
 ## Status
 
-This document describes implemented Phases 1–4: one modular Python application
+This document describes implemented Phases 1–5: one modular Python application
 with deterministic local privacy routing, NVIDIA/Groq/Gemini/Ollama adapters, SQLite,
 audited tools, CLI, loopback browser/API interfaces, optional local push-to-talk voice, and an
 opt-in controlled Windows action broker, plus host-isolated candidate/committed memory with FTS5
-retrieval and transitive deletion. Current release status and external gates are tracked in
+retrieval and transitive deletion and bounded cited public research with explicit storage approval.
+Current release status and external gates are tracked in
 `docs/PHASE_OVERVIEW.md`; implementation presence alone is not a completion claim.
 
 ## Goals
@@ -55,20 +56,45 @@ A turn follows this bounded flow:
 2. Persist the user message.
 3. Load a bounded context window from the conversation store.
 4. Scan full disclosed context locally, select a role, and ask a configured provider.
-5. If the response requests a tool, validate its name and arguments, apply the
+5. Forward visible token deltas as typed events; hidden reasoning is never forwarded or stored.
+6. If the response requests a tool, validate its name and arguments, apply the
    tool policy, execute it, and record an audit result.
-6. Return the tool result to the provider when another model pass is needed.
-7. Persist and return the final assistant response.
+7. Return the tool result to the provider when another model pass is needed.
+8. Persist and return only the validated final assistant response.
 
 The number of tool rounds, model duration, result size, and message size must be
 bounded. A provider failure must not corrupt a conversation.
 
 ### Provider boundary
 
-`ModelProvider` normalizes Groq, Gemini, and Ollama wire formats. `ModelRouter`
+`ModelProvider` normalizes NVIDIA, Groq, Gemini, and Ollama wire formats. Ollama NDJSON and NVIDIA
+SSE emit genuine visible-token deltas plus one terminal normalized response; Groq/Gemini currently
+emit terminal frames. `ModelRouter`
 owns sensitivity gating, role selection, bounded transient retry, quota/model
 fallback, and zero-cost enforcement. Sensitive or uncertain routes never use a
-cloud provider. Profiles expose lifecycle, context, and verified capabilities.
+cloud provider. Fallback is allowed only before streamed output begins; partial output cannot be
+silently combined with another provider. Profiles expose lifecycle, context, and verified capabilities.
+
+Phase 5 research uses separate `SearchProvider`, `DocumentFetcher`, and `DocumentParser` ports.
+The first fetch adapter validates public DNS, connects to the validated IP while retaining the
+original Host/SNI for TLS verification, ignores proxy environment configuration, follows only
+manually revalidated bounded redirects, streams under type/byte/time limits, and propagates
+cancellation. HTML/plain/PDF extraction runs in a short-lived isolated Python worker with a minimal
+environment, temporary working directory, page/filter/input/output/time limits, and no action
+tools. It never executes scripts, styles, templates, macros, or source instructions. This process
+boundary is defense in depth, not a Windows AppContainer. Parsed text remains untrusted data and
+has no action authority.
+
+Migrations 006–007 add the host-isolated research ledger and approved report workflows beside—not
+inside—trusted Phase 4 memory.
+`SQLiteResearchStore` owns immutable source versions, content hashes, access/publication metadata,
+claim-to-source links, claim replacement, conflicts, active-source FTS5, append-only events,
+exclusive JSON export, and transitive deletion with content-free tombstones. Changed/unavailable
+sources stale dependent claims. `BoundedResearchOrchestrator` enforces source/fetch/domain/text/time
+budgets and exact citation validation. Reports are volatile unless the trusted host explicitly
+approves the displayed digest; model or source text cannot approve storage. Runtime composition
+opens and closes this store explicitly; no research artifact is silently promoted into trusted
+memory.
 
 ### Memory boundary
 
@@ -93,6 +119,11 @@ candidate/committed/corrected/expired/rejected lifecycle; typed provenance and t
 sensitivity, retention, correction lineage, conflicts, derivation edges, content-free tombstones,
 append-only memory events, and synchronized SQLite FTS5. Legacy Phase 1 note/profile/task records
 are preserved in a quarantined legacy host scope during migration.
+
+Phase 5 migrations 006–007 add separate host-isolated research sources, active-source FTS5, claims,
+citations, reports, unanswered questions, approval records, conflicts, content-free tombstones, and
+append-only lifecycle events. They are additive and do not reinterpret Phase 4 memory as research
+evidence.
 
 Short-term context remains a bounded projection over recent messages. Durable retrieval adds only
 committed, unexpired records through relevance/recency/confidence/trust scoring and strict item/
@@ -130,10 +161,11 @@ automation, overwrite, delete, or elevation adapter exists.
 ### Interfaces
 
 CLI supports diagnostics, interactive/one-shot chat, role override, browser-server, voice, trusted
-computer controls, and Phase 4 memory remember/list/search/promote/reject/correct/forget/export/
-conflict/retention workflows. FastAPI exposes typed health, chat, SSE event streaming, host-bound
-memory list/create/search/promote/correct/delete, conversation deletion, and audit reads; it exposes
-no Phase 3 approval or execution endpoint. Configuration rejects non-loopback browser binding.
+computer controls, Phase 4 memory workflows, and Phase 5 volatile run/explicit store/list/show/
+search/revalidate/export/delete/question workflows. FastAPI exposes typed health, chat, SSE event
+streaming, host-bound memory controls, and Phase 5 loopback run/approve/inspect/search/revalidate/
+delete controls; it exposes no Phase 3 approval or execution endpoint. Configuration rejects
+non-loopback browser binding.
 
 ### Voice and vision
 
@@ -191,7 +223,7 @@ reported as proof that nothing happened.
 
 - Unit tests exercise the runtime with fake providers, stores, clocks, and tools.
 - Integration tests use a temporary SQLite database.
-- Contract tests mock Ollama, Groq, and Gemini HTTP responses and malformed payloads.
+- Contract tests mock model, research-search, and fetch HTTP responses and malformed payloads.
 - Scenario tests cover privacy, role override, fallback, quota, outage, catalog removal,
   streaming, deletion, and zero-spend enforcement.
 - Policy tests prove unknown and unauthorized tools cannot execute.
