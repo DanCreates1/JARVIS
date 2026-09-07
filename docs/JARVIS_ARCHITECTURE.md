@@ -313,6 +313,29 @@ stateDiagram-v2
 
 A task graph stores dependencies, attempts, deadlines, budgets, evidence, and approval references. Only nodes whose dependencies are complete may run. Retries require a classified transient error and idempotent or explicitly compensatable action. Restarts reload state; they do not blindly repeat `running` side effects.
 
+Phase 6 implements this engine in `jarvis.planning`. An untrusted `TaskPlanProposal` contains only
+objective, owner, provenance, requested budgets/deadline, dependencies, handler names/arguments,
+timeouts, retry counts, and idempotency keys. `TaskPlanValidator` resolves node kind, retry mode,
+resource charge, timeout ceiling, and approval requirement from the immutable runtime registry. It
+rejects cycles, unknown dependencies/handlers, host-envelope expansion, unsafe effects/retries, and
+planner-supplied authority before persistence.
+
+Migration 008 adds host-scoped task records, append-only sanitized events, content-minimized effect
+checkpoints, exact approval bindings, and content-free deletion tombstones. `SQLiteTaskStore` uses
+optimistic versions and serialized transactions. `TaskScheduler` reserves charge before execution,
+runs no more than four independent read-only nodes concurrently, serializes all effects, and has no
+background worker. Every start is an explicit foreground call behind a default-false configuration
+gate. Pause, resume, cancel, failure propagation, classified retry, compensation, and terminal
+replay are durable.
+
+Effect nodes checkpoint before dispatch and after verification. An orphaned read-only node may
+return to ready only inside remaining retry/budget limits. An orphaned running/verifying/
+compensating effect enters `needs_reconciliation`; handler-specific durable evidence must resolve it
+before completion, and missing evidence never triggers blind replay. `computer.grant.execute`
+delegates authority to the existing Phase 3 broker and accepts only an exact pre-existing one-use
+grant. `research.report.inspect` exposes bounded metadata from an already approved host-scoped
+Phase 5 report and does not treat report text as instruction. See [Bounded Tasks](BOUNDED_TASKS.md).
+
 Specialized agents are bounded contexts:
 
 - Conversation orchestrator: owns the current host interaction.

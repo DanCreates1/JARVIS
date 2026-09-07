@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -27,6 +27,13 @@ from jarvis.memory import (
     SQLiteConversationStore,
     SQLiteMemoryStore,
     untrusted_provenance,
+)
+from jarvis.planning import (
+    SQLiteTaskStore,
+    TaskHandlerRegistry,
+    TaskPlanValidator,
+    TaskScheduler,
+    ValueTaskHandler,
 )
 from jarvis.research import (
     Citation,
@@ -132,6 +139,7 @@ def test_loopback_web_chat_stream_memory_deletion_and_security_headers(tmp_path:
             "cloud_policy": "privacy_aware",
             "max_cloud_cost_usd": 0.0,
             "roles": ["local"],
+            "task_execution_enabled": False,
         }
 
         chat = client.post(
@@ -168,6 +176,66 @@ def test_loopback_web_chat_stream_memory_deletion_and_security_headers(tmp_path:
     service = created["service"]
     assert isinstance(service, FakeService)
     assert service.requests[0].requested_model_role is ModelRole.FAST
+
+
+def test_phase6_web_previews_and_controls_tasks_without_execution_authority(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path, _env_file=None)
+    host_id = "host-web-task"
+
+    async def runtime_factory(_settings: Settings) -> RuntimeComponents:
+        store = SQLiteConversationStore(tmp_path / "phase6-web.db")
+        task_store = SQLiteTaskStore(tmp_path / "phase6-web.db")
+        await store.initialize()
+        await task_store.initialize()
+        registry = TaskHandlerRegistry((ValueTaskHandler(),))
+        tasks = TaskScheduler(
+            store=task_store,
+            registry=registry,
+            validator=TaskPlanValidator(registry),
+            execution_enabled=False,
+        )
+        return RuntimeComponents(
+            settings=settings,
+            store=store,
+            provider=FakeRouter(),  # type: ignore[arg-type]
+            service=FakeService(),  # type: ignore[arg-type]
+            task_store=task_store,
+            tasks=tasks,
+            memory_host_id=host_id,
+        )
+
+    app = create_app(settings, runtime_factory=runtime_factory)
+    payload = {
+        "objective": "preview only",
+        "owner": "owner-a",
+        "provenance": {"source_type": "api", "source_id": "web", "untrusted": True},
+        "budget": {
+            "max_steps": 2,
+            "max_wall_seconds": 60,
+            "max_tokens": 0,
+            "max_provider_requests": 0,
+            "max_retries": 0,
+            "max_tool_calls": 2,
+            "max_cost_usd": 0,
+            "max_concurrency": 2,
+        },
+        "deadline_at": (datetime.now(UTC) + timedelta(seconds=30)).isoformat(),
+        "nodes": [{"id": "value", "handler": "task.value", "arguments": {"value": 1}}],
+    }
+    with TestClient(app) as client:
+        created = client.post("/api/tasks", json=payload)
+        assert created.status_code == 201
+        task_id = created.json()["graph"]["id"]
+        assert created.json()["status"] == "proposed"
+        assert client.get("/api/tasks").json()[0]["graph"]["id"] == task_id
+        assert client.get(f"/api/tasks/{task_id}").status_code == 200
+        assert client.get(f"/api/tasks/{task_id}/events").json()[0]["event_type"] == "task_created"
+        paused = client.post(f"/api/tasks/{task_id}/pause")
+        assert paused.json()["status"] == "paused"
+        cancelled = client.post(f"/api/tasks/{task_id}/cancel")
+        assert cancelled.json()["status"] == "cancelled"
+        assert client.post(f"/api/tasks/{task_id}/run").status_code == 404
+        assert client.get("/api/tasks/missing").status_code == 404
 
 
 def test_phase4_web_memory_inspection_confirmation_correction_and_deletion(

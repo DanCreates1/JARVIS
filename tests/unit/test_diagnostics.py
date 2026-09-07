@@ -123,6 +123,21 @@ async def test_diagnostics_reports_default_computer_access_as_safely_disabled(
     assert computer.status is DiagnosticStatus.PASS
     assert "disabled" in computer.detail
 
+    task = next(check for check in report.checks if check.name == "bounded task execution")
+    assert task.status is DiagnosticStatus.PASS
+    assert "disabled" in task.detail
+    assert "$0 cloud cost" in task.detail
+
+
+def test_bounded_task_diagnostic_reports_explicit_foreground_limits(tmp_path: Path) -> None:
+    check = diagnostics._bounded_task_check(
+        Settings(data_dir=tmp_path, task_execution_enabled=True, _env_file=None)
+    )
+
+    assert check.status is DiagnosticStatus.PASS
+    assert "explicit foreground runs" in check.detail
+    assert "4 read-only workers" in check.detail
+
 
 def test_research_parser_diagnostic_reports_disabled_and_missing_dependency(
     tmp_path: Path,

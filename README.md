@@ -1,17 +1,17 @@
 # JARVIS
 
-JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–5 implement a
+JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–6 implement a
 local deterministic privacy gate, configurable NVIDIA/Groq/Gemini/Ollama roles,
 zero-cost fallback routing, durable SQLite state, audited read-only tools, CLI,
-loopback browser chat, local push-to-talk speech, opt-in controlled Windows actions, and bounded
-cited public research. Sensitive and uncertain work remains local.
+loopback browser chat, local push-to-talk speech, opt-in controlled Windows actions, bounded cited
+public research, and durable budgeted task graphs. Sensitive and uncertain work remains local.
 
 This repository is the source of truth for the project. Local model weights,
 runtime databases, logs, generated media, and secrets do not belong in Git.
 
 ## Current verification status
 
-As of 2026-09-07, Phases 4 and 5 are complete. Phase 1 genuine Ollama/NVIDIA token streaming and the
+As of 2026-09-07, Phases 4–6 are complete. Phase 1 genuine Ollama/NVIDIA token streaming and the
 optimized local latency gate pass; Phase 1 remains blocked only by fixed hosted NVIDIA latency
 gates. All four hosted states have 20 successful public-fixture observations, but measured p50/p95
 still exceed one or both fixed targets. Clean-Windows bootstrap and exact repository quality gates
@@ -103,6 +103,22 @@ Research and self-education adds:
   export, and transitive deletion through CLI and loopback browser/API; and
 - a fixed 30-sample benchmark covering citation, entailment, diversity, freshness, conflicts,
   injection resistance, reproducibility, failure rate, and latency.
+
+## Implemented Phase 6
+
+Planning and bounded tasks add:
+
+- immutable validated DAGs with owner, host, provenance, deadline, dependencies, budgets, attempts,
+  outputs, checkpoints, and ordered lifecycle events;
+- hard ceilings for steps, wall time, tokens, provider requests, retries, tool calls, zero cloud
+  cost, and four-way read-only concurrency;
+- explicit foreground execution, pause/resume/cancel, classified retries, partial failure,
+  compensation hooks, and restart reconciliation without blind effect replay;
+- approved-research metadata inspection and exact Phase 3 one-use grant execution through fixed
+  handlers; and
+- CLI lifecycle/export/deletion controls plus loopback preview/inspection/pause/cancel endpoints.
+
+Task execution is disabled by default. See [Bounded Tasks](docs/BOUNDED_TASKS.md).
 
 ## Model strategy
 
@@ -310,6 +326,8 @@ always performs secret scanning.
 - [Phase overview and status](docs/PHASE_OVERVIEW.md)
 - [Phase 2 voice completion evidence](docs/phase-reports/PHASE_2_COMPLETION.md)
 - [Phase 5 research completion evidence](docs/phase-reports/PHASE_5_COMPLETION.md)
+- [Phase 6 planning completion evidence](docs/phase-reports/PHASE_6_COMPLETION.md)
+- [Phase 6 bounded task operator guide](docs/BOUNDED_TASKS.md)
 - [Codex Sol phase execution playbook](docs/CODEX_PHASE_PLAYBOOK.md)
 - [Hands-free control plan](docs/HANDS_FREE_CONTROL.md)
 - [Architecture](docs/architecture.md)

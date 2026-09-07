@@ -311,6 +311,31 @@ Windows session and requires deliberate operator approval. Printer discovery/sta
 Full schemas, permission levels, action limits, audit behavior, recovery, and Windows constraints:
 [Controlled Computer Access](CONTROLLED_COMPUTER_ACCESS.md).
 
+## Optional bounded task execution
+
+Phase 6 plan creation and inspection work with execution disabled. Create a current-deadline JSON
+proposal, then inspect immutable handler resolution and budgets:
+
+```powershell
+uv run jarvis task create .\plan.json
+uv run jarvis task list
+uv run jarvis task show <task-id>
+uv run jarvis task events <task-id>
+```
+
+Only after review, enable explicit foreground runs for current process or in `.env`:
+
+```powershell
+$env:JARVIS_TASK_EXECUTION_ENABLED = "true"
+uv run jarvis task run <task-id>
+```
+
+No background scheduler starts. Computer effect nodes still require both Phase 3 gates plus one
+exact pre-existing grant bound with `task bind-approval`; task commands cannot approve actions.
+Use pause/resume/cancel and explicit reconciliation as documented in
+[Bounded Tasks](BOUNDED_TASKS.md). Return `JARVIS_TASK_EXECUTION_ENABLED=false` to restore safe
+default. `jarvis doctor` reports current execution state and host ceilings.
+
 ## Optional free-tier cloud roles
 
 Local Ollama works without cloud credentials. To activate Groq, inject a key from

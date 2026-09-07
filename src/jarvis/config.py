@@ -88,6 +88,15 @@ class Settings(BaseSettings):
     research_search_max_response_bytes: int = Field(default=512 * 1_024, ge=1_024, le=2_000_000)
     research_pending_ttl_seconds: int = Field(default=900, ge=30, le=3_600)
     research_max_pending_runs: int = Field(default=10, ge=1, le=100)
+    task_execution_enabled: bool = False
+    task_max_steps: int = Field(default=100, ge=1, le=100)
+    task_max_wall_seconds: float = Field(default=3_600, gt=0, le=86_400)
+    task_max_tokens: int = Field(default=100_000, ge=0, le=1_000_000)
+    task_max_provider_requests: int = Field(default=100, ge=0, le=1_000)
+    task_max_retries: int = Field(default=5, ge=0, le=10)
+    task_max_tool_calls: int = Field(default=100, ge=0, le=1_000)
+    task_max_cost_usd: float = Field(default=0, ge=0, le=0)
+    task_max_concurrency: int = Field(default=4, ge=1, le=4)
     voice_always_listening_enabled: Literal[False] = False
     voice_acoustic_always_listening_enabled: Literal[False] = False
     voice_sample_rate_hz: Literal[16_000] = 16_000
@@ -274,6 +283,15 @@ class Settings(BaseSettings):
             "research_search_max_response_bytes": self.research_search_max_response_bytes,
             "research_pending_ttl_seconds": self.research_pending_ttl_seconds,
             "research_max_pending_runs": self.research_max_pending_runs,
+            "task_execution_enabled": self.task_execution_enabled,
+            "task_max_steps": self.task_max_steps,
+            "task_max_wall_seconds": self.task_max_wall_seconds,
+            "task_max_tokens": self.task_max_tokens,
+            "task_max_provider_requests": self.task_max_provider_requests,
+            "task_max_retries": self.task_max_retries,
+            "task_max_tool_calls": self.task_max_tool_calls,
+            "task_max_cost_usd": self.task_max_cost_usd,
+            "task_max_concurrency": self.task_max_concurrency,
             "computer_access_policy_path": str(self.computer_access_policy_path),
             "voice_always_listening_enabled": self.voice_always_listening_enabled,
             "voice_acoustic_always_listening_enabled": (

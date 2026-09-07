@@ -85,9 +85,24 @@ Complete; revalidated on 2026-08-31:
   freshness, conflict handling, injection resistance, reproducibility, failures, and latency.
 - Treat all external content as untrusted data and preserve source-level provenance.
 
+## Phase 6 — planning and bounded tasks
+
+Complete; revalidated on 2026-09-07:
+
+- Typed immutable DAG proposals resolve handler authority and charges through deterministic host
+  validation; plans cannot register tools, broaden permissions, or raise budgets.
+- Host-scoped SQLite state includes optimistic versions, ordered events, effect checkpoints, exact
+  approval bindings, exclusive export, transitive deletion, and content-free tombstones.
+- Explicit foreground scheduler enforces steps, wall time, tokens, provider calls, retries, tool
+  calls, `$0` cost, and maximum four-way concurrency only for independent read-only nodes.
+- Pause/resume/cancel, partial failure, compensation hooks, classified retry, restart recovery, and
+  reconciliation prevent blind effect replay.
+- Fixed 100-run latency and 100-scenario correctness/recovery benchmark passes with zero duplicate
+  or unauthorized effects and zero budget violations.
+
 ## Later phases
 
-6. Persisted planning and bounded specialized agents.
+6. Maintain completed persisted planning and bounded specialized tasks.
 7. Vision and configurable gestures.
 8. Authenticated phone/PWA access over a private network.
 9. Optional dedicated-server migration.

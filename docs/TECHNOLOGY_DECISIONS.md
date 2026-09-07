@@ -515,6 +515,37 @@ Yes. A reviewed AppContainer or dedicated parser service and additional search/s
 may replace adapters. Untrusted-content separation, hard resource limits, exact approval, citation
 validation, cancellation, and host isolation remain mandatory.
 
+## TD-024 — Deterministic foreground DAG scheduler over SQLite
+
+**Decision**
+
+Implement Phase 6 as typed immutable task proposals validated against a fixed handler registry,
+then persist runtime state, checkpoints, approval bindings, and lifecycle events in additive SQLite
+migration 008. Use one deterministic foreground scheduler with hard multi-dimensional budgets,
+maximum four-way read-only parallelism, serialized effects, classified retry, and explicit
+reconciliation. Reuse Phase 3 grants and Phase 5 report records through narrow adapters.
+
+**Reason**
+
+One scheduler keeps authority, budget reservation, dependency ordering, restart behavior, and audit
+under deterministic host control. SQLite already supplies the required single-host transactions,
+backup portability, optimistic concurrency, and migration path. Existing Phase 3 broker remains
+the only effect authority; research remains untrusted evidence.
+
+**Alternatives considered / why rejected**
+
+- Recursive agent swarm: hides ownership and multiplies cost, concurrency, and permission paths.
+- Model-driven tool loop as scheduler: model text cannot enforce durable budgets or recovery.
+- Background worker now: scheduled/proactive activity belongs to Phase 11 and needs separate policy.
+- General shell/task plugin: violates fixed schema, allowlist, audit, and authority boundaries.
+- External queue/database: no measured single-host scale need; adds operations and network surface.
+
+**Replaceable later?**
+
+Yes. Planner and persistence adapters may change after measured need. Immutable validated authority,
+hard budgets, exact approval binding, idempotency, effect checkpointing, no blind replay, explicit
+execution, host isolation, and ordered audit remain required.
+
 ## Review triggers
 
 Re-open a decision when any occurs:

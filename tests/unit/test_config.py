@@ -90,6 +90,15 @@ def test_safe_summary_contains_only_declared_diagnostics(tmp_path: Path) -> None
         "research_search_max_response_bytes",
         "research_pending_ttl_seconds",
         "research_max_pending_runs",
+        "task_execution_enabled",
+        "task_max_steps",
+        "task_max_wall_seconds",
+        "task_max_tokens",
+        "task_max_provider_requests",
+        "task_max_retries",
+        "task_max_tool_calls",
+        "task_max_cost_usd",
+        "task_max_concurrency",
         "voice_always_listening_enabled",
         "voice_acoustic_always_listening_enabled",
         "voice_sample_rate_hz",
@@ -124,6 +133,17 @@ def test_research_defaults_are_zero_cost_bounded_and_https_only(tmp_path: Path) 
             research_search_endpoint="http://en.wikipedia.org/w/api.php",
             _env_file=None,
         )
+
+
+def test_task_execution_defaults_off_with_zero_cost_bounded_parallelism(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path, _env_file=None)
+    assert settings.task_execution_enabled is False
+    assert settings.task_max_cost_usd == 0
+    assert settings.task_max_concurrency == 4
+    with pytest.raises(ValidationError):
+        Settings(data_dir=tmp_path, task_max_cost_usd=0.01, _env_file=None)
+    with pytest.raises(ValidationError):
+        Settings(data_dir=tmp_path, task_max_concurrency=5, _env_file=None)
 
 
 def test_cloud_credentials_require_free_tier_and_data_terms_confirmation(tmp_path: Path) -> None:

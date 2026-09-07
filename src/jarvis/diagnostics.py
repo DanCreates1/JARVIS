@@ -154,6 +154,8 @@ async def run_diagnostics(
 
     checks.append(_computer_access_check(settings))
 
+    checks.append(_bounded_task_check(settings))
+
     provider: DiagnosticProvider | None = None
     try:
         provider = provider_factory(settings)
@@ -355,4 +357,20 @@ def _research_parser_check(settings: Settings) -> DiagnosticCheck:
         name="research parser sandbox",
         status=DiagnosticStatus.PASS,
         detail="Isolated parser worker and locked PDF dependency are available.",
+    )
+
+
+def _bounded_task_check(settings: Settings) -> DiagnosticCheck:
+    state = (
+        "enabled for explicit foreground runs" if settings.task_execution_enabled else "disabled"
+    )
+    return DiagnosticCheck(
+        name="bounded task execution",
+        status=DiagnosticStatus.PASS,
+        detail=(
+            f"Task execution is {state}; host ceilings are {settings.task_max_steps} steps, "
+            f"{settings.task_max_wall_seconds:g}s wall time, {settings.task_max_retries} retries, "
+            f"{settings.task_max_tool_calls} tool calls, {settings.task_max_concurrency} "
+            f"read-only workers, and ${settings.task_max_cost_usd:g} cloud cost."
+        ),
     )

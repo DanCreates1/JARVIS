@@ -381,6 +381,12 @@ A topic can be researched, stored, inspected, updated, deleted, and later answer
 
 ### Phase 6 — Planning and bounded agents (Very Large)
 
+**Status (2026-09-07): Complete.** Additive migration 008, typed plan/runtime contracts, immutable
+handler registry, deterministic validator, transactional task store, bounded foreground scheduler,
+research/computer adapters, CLI/loopback controls, recovery suite, and fixed benchmark pass. See
+[Bounded Tasks](BOUNDED_TASKS.md) and
+[Phase 6 completion evidence](phase-reports/PHASE_6_COMPLETION.md).
+
 **Goal**  
 Execute multi-step tasks with durable state, approval gates, verification, retries, and cancellation.
 
@@ -397,6 +403,11 @@ Phases 3–5; reliable tool postcondition checks.
 
 **Verification**  
 Deterministic scenario suite covers partial failures, restarts, duplicate events, denial, timeout, budget exhaustion, and user cancellation.
+
+Current evidence includes 100 warm six-node DAG runs at 26.32 ms p95 and 100 golden recovery/
+failure scenarios with zero incorrect terminal states, duplicate effects, unauthorized effects, or
+budget violations. SQLite host isolation, concurrency, backup/restore, corruption, export, and
+transitive deletion tests pass.
 
 **Risks**  
 Autonomous loops, compounding model errors, stale plans, runaway tokens/cost, duplicate side effects.
@@ -615,10 +626,9 @@ Local sensitivity/command gate → Ollama Nemotron 3 Nano 4B `LOCAL` for normal/
 
 ### Next implementation milestone
 
-**M4: durable memory and personalization.** Phase 3 controlled access is complete. Phase 2 acoustic
-intents remain data only, and mapped proposals stay disabled by default. Add source-aware memory,
-retention, correction/export/deletion, and measured retrieval without weakening Phase 3 authority.
-Basic cited research remains separate MVP closure work.
+**Phase 7: vision and gestures.** Phases 4–6 are complete. Preserve Phase 3 exact authority and
+Phase 6 bounded scheduling while adding local perception, explicit capture indicators, calibrated
+typed gesture intents, and fixed accuracy/latency/privacy gates.
 
 ### Exact build order
 
@@ -630,7 +640,7 @@ Basic cited research remains separate MVP closure work.
 6. Maintain the default-disabled permission broker and controlled laptop/printing tools.
 7. Add durable memory controls and retrieval evaluation.
 8. Add research/learning engine.
-9. Add persisted planning and bounded specialized agents.
+9. Maintain completed persisted planning and bounded specialized tasks.
 10. Add vision/gesture track.
 11. Add device registry and secure phone PWA.
 12. Migrate to server when hardware exists.

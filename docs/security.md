@@ -3,13 +3,21 @@
 JARVIS processes private conversations and will eventually control local devices.
 Security therefore belongs in the runtime architecture, not only in prompts.
 
-This document describes implemented Phases 1–5 controls, including local sensitivity
+This document describes implemented Phases 1–6 controls, including local sensitivity
 classification, zero-cost NVIDIA/Groq/Gemini/Ollama routing, local push-to-talk speech, and
 default-off controlled computer access, plus candidate-only host-isolated memory, provenance,
 conflict visibility, transitive deletion, and bounded cited public research. Independent
 clean-Windows bootstrap/repository CI
 passes; current latency/provider-capacity and separately authorized live-effect limitations remain
 explicit in `docs/PHASE_OVERVIEW.md` and are not security-gate waivers.
+
+Phase 6 adds host-scoped immutable task graphs. Planner output cannot define authority metadata,
+raise host budgets, register tools, or start execution. Task execution is default-off and explicit
+foreground only. Charges are reserved before handler dispatch; read-only concurrency is capped at
+four and effects serialize. Exact Phase 3 grants remain single-use. Effect checkpoints omit
+arguments/results, and restart recovery reconciles durable evidence instead of replaying uncertain
+effects. Task export is exclusive-create; exact deletion removes task content transitively and
+leaves a content-free tombstone. See `docs/BOUNDED_TASKS.md`.
 
 ## Trust boundaries
 

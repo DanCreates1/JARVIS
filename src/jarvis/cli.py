@@ -40,6 +40,16 @@ from jarvis.memory import (
     explicit_provenance,
     local_memory_host_id,
 )
+from jarvis.planning import (
+    SQLiteTaskStore,
+    TaskExecutionDisabledError,
+    TaskNotFoundError,
+    TaskPlanProposal,
+    TaskPlanValidationError,
+    TaskRecord,
+    TaskStateError,
+    TaskStatus,
+)
 from jarvis.research import (
     ResearchInterface,
     ResearchNotFoundError,
@@ -80,6 +90,12 @@ research_app = typer.Typer(
     no_args_is_help=True,
 )
 app.add_typer(research_app, name="research")
+task_app = typer.Typer(
+    name="task",
+    help="Preview, inspect, run, pause, resume, cancel, reconcile, and delete bounded tasks.",
+    no_args_is_help=True,
+)
+app.add_typer(task_app, name="task")
 console = Console(highlight=False, legacy_windows=False)
 
 
@@ -99,6 +115,406 @@ def _load_settings() -> Settings:
         raise typer.Exit(code=2) from None
     configure_logging(settings.log_level)
     return settings
+
+
+@task_app.command("create")
+def task_create(
+    plan_path: Annotated[Path, typer.Argument(help="UTF-8 JSON task-plan proposal.")],
+) -> None:
+    """Validate and persist an untrusted plan for human-readable preview; do not execute it."""
+    settings = _load_settings()
+    try:
+        proposal = TaskPlanProposal.model_validate_json(plan_path.read_text(encoding="utf-8"))
+    except (OSError, ValidationError, ValueError):
+        console.print("[bold red]Task plan is unreadable or invalid.[/]")
+        raise typer.Exit(code=2) from None
+    exit_code = asyncio.run(_task_create(settings, proposal))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _task_create(settings: Settings, proposal: TaskPlanProposal) -> int:
+    components = None
+    try:
+        components = await build_runtime(settings)
+        if components.tasks is None or components.memory_host_id is None:
+            console.print("[bold red]Task planning is unavailable.[/]")
+            return 1
+        record = await components.tasks.submit(
+            host_id=components.memory_host_id,
+            proposal=proposal,
+        )
+    except (TaskPlanValidationError, TaskStateError) as exc:
+        console.print(f"[bold red]Task rejected.[/] {exc}")
+        return 2
+    except Exception:
+        console.print("[bold red]Task creation failed.[/] No execution occurred.")
+        return 1
+    finally:
+        if components is not None:
+            await components.close()
+    _render_task(record)
+    console.print("[dim]Plan persisted only. Run explicitly with `jarvis task run <task-id>`.[/]")
+    return 0
+
+
+@task_app.command("list")
+def task_list(
+    status: Annotated[TaskStatus | None, typer.Option(help="Optional task status.")] = None,
+    limit: Annotated[int, typer.Option(min=1, max=500)] = 100,
+) -> None:
+    """List host-scoped durable task state."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_task_list(settings, status=status, limit=limit))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _task_list(settings: Settings, *, status: TaskStatus | None, limit: int) -> int:
+    try:
+        async with SQLiteTaskStore(settings.database_path) as store:
+            records = await store.list_tasks(
+                host_id=local_memory_host_id(), status=status, limit=limit
+            )
+    except Exception:
+        console.print("[bold red]Task state is unavailable.[/]")
+        return 1
+    table = Table(title="Bounded tasks")
+    table.add_column("Task / version", no_wrap=True)
+    table.add_column("Status")
+    table.add_column("Objective")
+    table.add_column("Usage")
+    for record in records:
+        table.add_row(
+            f"{record.graph.id}\nv{record.version}",
+            record.status.value,
+            record.graph.objective,
+            (
+                f"steps={record.usage.steps}/{record.graph.budget.max_steps} "
+                f"tools={record.usage.tool_calls}/{record.graph.budget.max_tool_calls} "
+                f"retries={record.usage.retries}/{record.graph.budget.max_retries}"
+            ),
+        )
+    console.print(table)
+    return 0
+
+
+@task_app.command("show")
+def task_show(task_id: Annotated[str, typer.Argument(help="Exact task ID.")]) -> None:
+    """Show plan, dependencies, limits, approval state, attempts, and results."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_task_show(settings, task_id=task_id))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _task_show(settings: Settings, *, task_id: str) -> int:
+    try:
+        async with SQLiteTaskStore(settings.database_path) as store:
+            record = await store.require_task(host_id=local_memory_host_id(), task_id=task_id)
+    except TaskNotFoundError:
+        console.print("[bold red]Task not found.[/]")
+        return 1
+    except Exception:
+        console.print("[bold red]Task state is unavailable.[/]")
+        return 1
+    _render_task(record)
+    return 0
+
+
+@task_app.command("run")
+def task_run(task_id: Annotated[str, typer.Argument(help="Exact task ID.")]) -> None:
+    """Run one task in foreground under configured hard limits."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_task_run(settings, task_id=task_id))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _task_run(settings: Settings, *, task_id: str) -> int:
+    components = None
+    try:
+        components = await build_runtime(settings)
+        if components.tasks is None or components.memory_host_id is None:
+            raise TaskStateError("task scheduler is unavailable")
+        record = await components.tasks.run(
+            host_id=components.memory_host_id,
+            task_id=task_id,
+        )
+    except TaskExecutionDisabledError:
+        console.print(
+            "[bold red]Task execution is disabled.[/] "
+            "Set JARVIS_TASK_EXECUTION_ENABLED=true only after reviewing the plan."
+        )
+        return 1
+    except (TaskNotFoundError, TaskStateError) as exc:
+        console.print(f"[bold red]Task cannot run.[/] {exc}")
+        return 1
+    except Exception:
+        console.print("[bold red]Task execution failed safely.[/] Inspect task events.")
+        return 1
+    finally:
+        if components is not None:
+            await components.close()
+    _render_task(record)
+    return 0 if record.status is TaskStatus.COMPLETED else 1
+
+
+@task_app.command("pause")
+def task_pause(task_id: Annotated[str, typer.Argument(help="Exact task ID.")]) -> None:
+    """Pause before the next node; active effect verification still completes."""
+    _run_task_control("pause", task_id)
+
+
+@task_app.command("resume")
+def task_resume(task_id: Annotated[str, typer.Argument(help="Exact task ID.")]) -> None:
+    """Clear pause state; explicit run remains required."""
+    _run_task_control("resume", task_id)
+
+
+@task_app.command("cancel")
+def task_cancel(task_id: Annotated[str, typer.Argument(help="Exact task ID.")]) -> None:
+    """Cancel remaining work; uncertain effects require reconciliation."""
+    _run_task_control("cancel", task_id)
+
+
+def _run_task_control(action: str, task_id: str) -> None:
+    settings = _load_settings()
+    exit_code = asyncio.run(_task_control(settings, action=action, task_id=task_id))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _task_control(settings: Settings, *, action: str, task_id: str) -> int:
+    components = None
+    try:
+        components = await build_runtime(settings)
+        if components.tasks is None or components.memory_host_id is None:
+            raise TaskStateError("task scheduler is unavailable")
+        operation = getattr(components.tasks, action)
+        record = await operation(host_id=components.memory_host_id, task_id=task_id)
+    except (TaskNotFoundError, TaskStateError) as exc:
+        console.print(f"[bold red]Task control failed.[/] {exc}")
+        return 1
+    except Exception:
+        console.print("[bold red]Task control failed safely.[/]")
+        return 1
+    finally:
+        if components is not None:
+            await components.close()
+    console.print(
+        f"[bold green]{action.title()} recorded[/] {record.graph.id} · {record.status.value}"
+    )
+    return 0
+
+
+@task_app.command("bind-approval")
+def task_bind_approval(
+    task_id: Annotated[str, typer.Argument(help="Exact task ID.")],
+    node_id: Annotated[str, typer.Argument(help="Exact effect-node ID.")],
+    grant_id: Annotated[str, typer.Argument(help="Existing exact Phase 3 one-use grant ID.")],
+    expected_version: Annotated[int, typer.Option(min=1, help="Exact displayed task version.")],
+) -> None:
+    """Bind an existing one-use grant; this command cannot create or approve authority."""
+    settings = _load_settings()
+    exit_code = asyncio.run(
+        _task_bind_approval(
+            settings,
+            task_id=task_id,
+            node_id=node_id,
+            grant_id=grant_id,
+            expected_version=expected_version,
+        )
+    )
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _task_bind_approval(
+    settings: Settings,
+    *,
+    task_id: str,
+    node_id: str,
+    grant_id: str,
+    expected_version: int,
+) -> int:
+    components = None
+    try:
+        components = await build_runtime(settings)
+        if components.tasks is None or components.memory_host_id is None:
+            raise TaskStateError("task scheduler is unavailable")
+        record = await components.tasks.bind_approval(
+            host_id=components.memory_host_id,
+            task_id=task_id,
+            node_id=node_id,
+            grant_id=grant_id,
+            expected_version=expected_version,
+        )
+    except Exception as exc:
+        console.print(f"[bold red]Approval binding denied.[/] {type(exc).__name__}")
+        return 1
+    finally:
+        if components is not None:
+            await components.close()
+    console.print(
+        f"[bold green]Exact grant bound[/] {record.graph.id}:{node_id} · v{record.version}"
+    )
+    return 0
+
+
+@task_app.command("reconcile")
+def task_reconcile(
+    task_id: Annotated[str, typer.Argument(help="Exact task ID.")],
+    node_id: Annotated[str, typer.Argument(help="Exact uncertain node ID.")],
+) -> None:
+    """Run handler-specific read-only reconciliation; never replay an effect blindly."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_task_reconcile(settings, task_id=task_id, node_id=node_id))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _task_reconcile(settings: Settings, *, task_id: str, node_id: str) -> int:
+    components = None
+    try:
+        components = await build_runtime(settings)
+        if components.tasks is None or components.memory_host_id is None:
+            raise TaskStateError("task scheduler is unavailable")
+        record = await components.tasks.reconcile(
+            host_id=components.memory_host_id, task_id=task_id, node_id=node_id
+        )
+    except Exception as exc:
+        console.print(f"[bold red]Reconciliation incomplete.[/] {type(exc).__name__}")
+        return 1
+    finally:
+        if components is not None:
+            await components.close()
+    _render_task(record)
+    return 0 if record.status is TaskStatus.COMPLETED else 1
+
+
+@task_app.command("events")
+def task_events(
+    task_id: Annotated[str, typer.Argument(help="Exact task ID.")],
+    limit: Annotated[int, typer.Option(min=1, max=2_000)] = 500,
+) -> None:
+    """Show ordered content-minimized task lifecycle events."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_task_events(settings, task_id=task_id, limit=limit))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _task_events(settings: Settings, *, task_id: str, limit: int) -> int:
+    try:
+        async with SQLiteTaskStore(settings.database_path) as store:
+            events = await store.list_events(
+                host_id=local_memory_host_id(), task_id=task_id, limit=limit
+            )
+    except TaskNotFoundError:
+        console.print("[bold red]Task not found.[/]")
+        return 1
+    table = Table(title="Task lifecycle audit")
+    table.add_column("Seq / time", no_wrap=True)
+    table.add_column("Event")
+    table.add_column("Task / node")
+    table.add_column("Reason")
+    for event in events:
+        table.add_row(
+            f"{event.sequence}\n{event.created_at.isoformat(timespec='seconds')}",
+            event.event_type.value,
+            f"{event.task_status.value}\n{event.node_id or '-'}:{event.node_status or '-'}",
+            event.reason_code or "-",
+        )
+    console.print(table)
+    return 0
+
+
+@task_app.command("export")
+def task_export(path: Annotated[Path, typer.Argument(help="New JSON export path.")]) -> None:
+    """Export current host task graphs and content-minimized events without overwrite."""
+    settings = _load_settings()
+    exit_code = asyncio.run(_task_export(settings, path=path))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _task_export(settings: Settings, *, path: Path) -> int:
+    try:
+        async with SQLiteTaskStore(settings.database_path) as store:
+            receipt = await store.export(host_id=local_memory_host_id(), path=path)
+    except FileExistsError:
+        console.print("[bold red]Export path already exists; refusing overwrite.[/]")
+        return 1
+    except Exception:
+        console.print("[bold red]Task export failed.[/]")
+        return 1
+    console.print(
+        f"[bold green]Exported[/] {receipt.task_count} tasks · "
+        f"{receipt.event_count} events · {receipt.path}"
+    )
+    return 0
+
+
+@task_app.command("delete")
+def task_delete(
+    task_id: Annotated[str, typer.Argument(help="Exact task ID.")],
+    confirm_task_id: Annotated[
+        str, typer.Option(help="Repeat exact task ID; deletion removes graph, outputs, and events.")
+    ],
+) -> None:
+    """Delete one exact task transitively, leaving only a content-free tombstone."""
+    if confirm_task_id != task_id:
+        console.print("[bold red]Deletion confirmation does not match.[/]")
+        raise typer.Exit(code=2)
+    settings = _load_settings()
+    exit_code = asyncio.run(_task_delete(settings, task_id=task_id))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _task_delete(settings: Settings, *, task_id: str) -> int:
+    try:
+        async with SQLiteTaskStore(settings.database_path) as store:
+            receipt = await store.delete_task(host_id=local_memory_host_id(), task_id=task_id)
+    except TaskNotFoundError:
+        console.print("[bold red]Task not found.[/]")
+        return 1
+    console.print(
+        f"[bold green]Deleted[/] {receipt.task_id} · nodes={receipt.deleted_nodes} · "
+        f"events={receipt.deleted_events}"
+    )
+    return 0
+
+
+def _render_task(record: TaskRecord) -> None:
+    graph = record.graph
+    runtimes = record.nodes
+    console.print(
+        f"[bold cyan]{graph.objective}[/]\n"
+        f"Task: {graph.id} · status={record.status.value} · version={record.version} · "
+        f"plan_sha256={graph.plan_sha256}\n"
+        f"Budget: steps={graph.budget.max_steps}, wall={graph.budget.max_wall_seconds}s, "
+        f"tokens={graph.budget.max_tokens}, "
+        f"provider_requests={graph.budget.max_provider_requests}, "
+        f"retries={graph.budget.max_retries}, tools={graph.budget.max_tool_calls}, "
+        f"cost=${graph.budget.max_cost_usd:.2f}, concurrency={graph.budget.max_concurrency}"
+    )
+    table = Table(title="Validated immutable plan", show_lines=True)
+    table.add_column("Node")
+    table.add_column("Handler / kind")
+    table.add_column("Dependencies")
+    table.add_column("State / attempts")
+    table.add_column("Approval / recovery")
+    for node, runtime in zip(graph.nodes, runtimes, strict=True):
+        table.add_row(
+            node.id,
+            f"{node.handler}\n{node.kind.value}",
+            ", ".join(node.dependencies) or "-",
+            f"{runtime.status.value}\n{runtime.attempts}/{node.retry_limit + 1}",
+            (f"grant={node.approval_grant_id or '-'}\nerror={runtime.error_code or '-'}"),
+        )
+    console.print(table)
 
 
 @research_app.command("run")

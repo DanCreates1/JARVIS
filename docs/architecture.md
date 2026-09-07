@@ -2,11 +2,12 @@
 
 ## Status
 
-This document describes implemented Phases 1–5: one modular Python application
+This document describes implemented Phases 1–6: one modular Python application
 with deterministic local privacy routing, NVIDIA/Groq/Gemini/Ollama adapters, SQLite,
 audited tools, CLI, loopback browser/API interfaces, optional local push-to-talk voice, and an
 opt-in controlled Windows action broker, plus host-isolated candidate/committed memory with FTS5
-retrieval and transitive deletion and bounded cited public research with explicit storage approval.
+retrieval and transitive deletion, bounded cited public research with explicit storage approval,
+and durable default-off foreground task graphs with hard budgets and effect reconciliation.
 Current release status and external gates are tracked in
 `docs/PHASE_OVERVIEW.md`; implementation presence alone is not a completion claim.
 
@@ -124,6 +125,14 @@ Phase 5 migrations 006–007 add separate host-isolated research sources, active
 citations, reports, unanswered questions, approval records, conflicts, content-free tombstones, and
 append-only lifecycle events. They are additive and do not reinterpret Phase 4 memory as research
 evidence.
+
+Phase 6 migration 008 adds host-scoped immutable task graphs, versioned runtime state, exact approval
+bindings, content-minimized effect checkpoints, append-only lifecycle events, and deletion
+tombstones. `TaskPlanValidator` resolves authority and resource metadata from a fixed handler
+registry. `TaskScheduler` reserves hard budgets before dispatch, parallelizes only independent
+read-only nodes up to four, serializes effects, and requires explicit foreground execution.
+Interrupted effects enter reconciliation and are never blindly replayed. See
+`docs/BOUNDED_TASKS.md`.
 
 Short-term context remains a bounded projection over recent messages. Durable retrieval adds only
 committed, unexpired records through relevance/recency/confidence/trust scoring and strict item/

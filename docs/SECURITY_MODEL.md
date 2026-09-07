@@ -271,6 +271,30 @@ isolated Python worker with a minimal environment, temporary working directory, 
 output/page/filter limits, and no network or action tools. The worker is defense in depth, not an OS
 AppContainer. Cancellation is never converted into retry.
 
+### Phase 6 bounded-task boundary
+
+- Plan JSON and model-generated structure are untrusted proposals, never authority. Host validator
+  resolves handler kind, retry mode, charges, timeout ceilings, and approval requirements from an
+  immutable registry.
+- Unknown handlers/dependencies, cycles, budget expansion, unsafe effect retry, planner-supplied
+  authority fields, and excessive deadlines fail before persistence or execution.
+- Execution defaults off and starts only through explicit foreground CLI use. No daemon,
+  self-scheduling loop, recursive delegation, or dynamic handler loading ships.
+- Steps, wall time, tokens, provider requests, retries, tool calls, cost, and concurrency are hard
+  ceilings reserved before dispatch. Cost remains `$0`; parallelism is at most four independent
+  read-only nodes; effects serialize.
+- Effect nodes require idempotency plus an exact existing Phase 3 one-use grant. Task planning and
+  loopback API cannot create approvals. Grant reuse and argument/action substitution fail closed.
+- Durable content-minimized checkpoints bracket effects. Restarted read-only work may retry only
+  within remaining policy and budget; uncertain effects enter `needs_reconciliation` and are never
+  replayed without durable postcondition evidence.
+- Host-scoped records use optimistic versions and ordered append-only lifecycle events. Events and
+  checkpoints exclude node arguments, research text, action payloads, and raw handler output.
+- Exclusive export and exact transitive deletion ship. Deletion leaves only a content-free
+  tombstone; external backup copies remain separately governed artifacts.
+
+See [Bounded Tasks](BOUNDED_TASKS.md) for operator and recovery commands.
+
 ## 12. Secrets and credentials
 
 - Never commit `.env`, passwords, API tokens, cookies, private keys, certificates, provider credentials, or device secrets.

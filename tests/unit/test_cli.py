@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
+import json
+from datetime import UTC, datetime, timedelta
 from io import StringIO
 from pathlib import Path
 from typing import Any
@@ -92,6 +93,135 @@ def test_version_command(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert result.exit_code == 0
     assert output.getvalue().strip() == "JARVIS 0.1.0"
+
+
+def test_phase6_task_cli_preview_list_show_default_off_and_delete(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = capture_console(monkeypatch)
+    data_dir = tmp_path / "data"
+    monkeypatch.setenv("JARVIS_DATA_DIR", str(data_dir))
+    plan_path = tmp_path / "plan.json"
+    plan_path.write_text(
+        json.dumps(
+            {
+                "objective": "CLI bounded plan",
+                "owner": "owner-a",
+                "provenance": {
+                    "source_type": "host",
+                    "source_id": "cli-fixture",
+                    "untrusted": True,
+                },
+                "budget": {
+                    "max_steps": 1,
+                    "max_wall_seconds": 60,
+                    "max_tokens": 0,
+                    "max_provider_requests": 0,
+                    "max_retries": 0,
+                    "max_tool_calls": 1,
+                    "max_cost_usd": 0,
+                    "max_concurrency": 1,
+                },
+                "deadline_at": (datetime.now(UTC) + timedelta(seconds=30)).isoformat(),
+                "nodes": [{"id": "value", "handler": "task.value", "arguments": {"value": 1}}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    runner = CliRunner()
+    created = runner.invoke(cli.app, ["task", "create", str(plan_path)])
+    assert created.exit_code == 0
+    text = output.getvalue()
+    assert "CLI bounded plan" in text
+    task_id = text.split("Task: ", 1)[1].split(" ", 1)[0]
+    output.seek(0)
+    output.truncate(0)
+    assert runner.invoke(cli.app, ["task", "list"]).exit_code == 0
+    assert task_id in output.getvalue()
+    output.seek(0)
+    output.truncate(0)
+    assert runner.invoke(cli.app, ["task", "show", task_id]).exit_code == 0
+    assert "Validated immutable plan" in output.getvalue()
+    output.seek(0)
+    output.truncate(0)
+    assert runner.invoke(cli.app, ["task", "run", task_id]).exit_code == 1
+    assert "Task execution is disabled" in output.getvalue()
+    output.seek(0)
+    output.truncate(0)
+    deleted = runner.invoke(
+        cli.app,
+        ["task", "delete", task_id, "--confirm-task-id", task_id],
+    )
+    assert deleted.exit_code == 0
+    assert "Deleted" in output.getvalue()
+
+
+def test_phase6_task_cli_foreground_controls_events_and_export(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = capture_console(monkeypatch)
+    data_dir = tmp_path / "data"
+    monkeypatch.setenv("JARVIS_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("JARVIS_TASK_EXECUTION_ENABLED", "true")
+    plan_path = tmp_path / "plan.json"
+    plan_path.write_text(
+        json.dumps(
+            {
+                "objective": "CLI lifecycle plan",
+                "owner": "owner-a",
+                "provenance": {"source_type": "host", "source_id": "cli-lifecycle"},
+                "budget": {
+                    "max_steps": 1,
+                    "max_wall_seconds": 60,
+                    "max_tokens": 0,
+                    "max_provider_requests": 0,
+                    "max_retries": 0,
+                    "max_tool_calls": 1,
+                    "max_cost_usd": 0,
+                    "max_concurrency": 1,
+                },
+                "deadline_at": (datetime.now(UTC) + timedelta(seconds=30)).isoformat(),
+                "nodes": [{"id": "value", "handler": "task.value", "arguments": {"value": 7}}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    runner = CliRunner()
+
+    created = runner.invoke(cli.app, ["task", "create", str(plan_path)])
+    assert created.exit_code == 0
+    task_id = output.getvalue().split("Task: ", 1)[1].split(" ", 1)[0]
+
+    output.seek(0)
+    output.truncate(0)
+    assert runner.invoke(cli.app, ["task", "pause", task_id]).exit_code == 0
+    assert "Pause recorded" in output.getvalue()
+    assert runner.invoke(cli.app, ["task", "resume", task_id]).exit_code == 0
+    assert runner.invoke(cli.app, ["task", "run", task_id]).exit_code == 0
+
+    output.seek(0)
+    output.truncate(0)
+    assert runner.invoke(cli.app, ["task", "events", task_id]).exit_code == 0
+    assert "task_completed" in output.getvalue()
+    export_path = tmp_path / "task-export.json"
+    assert runner.invoke(cli.app, ["task", "export", str(export_path)]).exit_code == 0
+    assert export_path.is_file()
+    assert runner.invoke(cli.app, ["task", "export", str(export_path)]).exit_code == 1
+
+    output.seek(0)
+    output.truncate(0)
+    second = runner.invoke(cli.app, ["task", "create", str(plan_path)])
+    assert second.exit_code == 0
+    second_id = output.getvalue().split("Task: ", 1)[1].split(" ", 1)[0]
+    assert runner.invoke(cli.app, ["task", "cancel", second_id]).exit_code == 0
+    assert runner.invoke(cli.app, ["task", "show", "missing-task"]).exit_code == 1
+    assert (
+        runner.invoke(
+            cli.app,
+            ["task", "delete", second_id, "--confirm-task-id", "wrong-task"],
+        ).exit_code
+        == 2
+    )
 
 
 @pytest.mark.asyncio

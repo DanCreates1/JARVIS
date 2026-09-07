@@ -30,7 +30,7 @@ implementation protocol, acceptance gates, safety boundaries, and completion rep
 | 3 | Controlled computer access | Implemented; closeout pending | Current broker/adversarial/rollback gates pass; repeat live app/volume/media smokes only with separate real-application/device authorization | Ultra |
 | 4 | Durable memory and personalization | Complete | Current host isolation, lifecycle, retrieval/deletion, migration, concurrency, backup/restore, and benchmark gates pass | Extra high |
 | 5 | Research and self-education | Complete | Bounded public research, isolated HTML/text/PDF parsing, exact citations, explicit storage approval, host-scoped inspection/revalidation/export/deletion, and fixed benchmark pass | High |
-| 6 | Planning and bounded agents | Foundations only | Durable task graphs, budgets, checkpoints, cancellation, resumability, bounded parallel work, and approval-aware execution | Ultra |
+| 6 | Planning and bounded agents | Complete | Durable host-scoped DAGs, hard budgets, checkpoints, pause/resume/cancel, bounded read-only parallelism, exact approval binding, recovery, audit, export/deletion, and fixed benchmark pass | Ultra |
 | 7 | Vision and gestures | Not started | Screen/camera ports, finger-roll volume and palm/fist/navigation gestures, local perception, calibration, privacy indicators, and accuracy/latency datasets | Extra high |
 | 8 | Secure phone/PWA access | Foundations only | Authenticated PWA, TLS/private networking, device enrollment/revocation, rate limits, secure streaming, and remote threat tests | Ultra |
 | 9 | Dedicated server migration | Not started | Configurable split deployment, encrypted transport, service identity, backup/restore, offline degradation, migration rehearsal, and rollback | Ultra |
@@ -47,8 +47,9 @@ implementation protocol, acceptance gates, safety boundaries, and completion rep
 4. Maintain completed Phase 5 research and its untrusted-evidence/storage-approval boundary. Phase
    1 NVIDIA latency is an accepted known limitation, but its unchanged formal gate remains
    `blocked-external`.
-5. Add Phase 6 bounded agents on the completed permission, memory, and research foundations.
-6. Add vision, phone, server, wearables, and proactive behavior in Phases 7–11.
+5. Maintain completed Phase 6 bounded tasks and its default-off, foreground-only execution boundary.
+6. Add Phase 7 vision and gestures, then phone, server, wearables, and proactive behavior in
+   Phases 8–11.
 
 Hands-free control is a cross-phase track: Phase 2 detects claps, Phase 7 recognizes hand
 gestures, and Phase 3 alone authorizes and executes the mapped computer action. See

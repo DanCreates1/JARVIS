@@ -24,6 +24,7 @@ from jarvis.memory import (
     MemoryStateError,
     explicit_provenance,
 )
+from jarvis.planning import TaskNotFoundError, TaskPlanProposal, TaskStateError, TaskStatus
 from jarvis.research import (
     ResearchInterface,
     ResearchNotFoundError,
@@ -144,6 +145,7 @@ def create_app(
             "cloud_policy": runtime.settings.cloud_policy,
             "max_cloud_cost_usd": runtime.settings.max_cloud_cost_usd,
             "roles": [role.value for role in runtime.provider.providers],
+            "task_execution_enabled": runtime.settings.task_execution_enabled,
         }
 
     @app.post("/api/chat")
@@ -479,6 +481,106 @@ def create_app(
         except ResearchStateError:
             raise HTTPException(status_code=409, detail="Question changed or is invalid") from None
         return question.model_dump(mode="json")
+
+    @app.post("/api/tasks", status_code=201)
+    async def create_task(payload: TaskPlanProposal, request: Request) -> dict[str, object]:
+        """Persist a validated preview only; browser API cannot run or approve effects."""
+        runtime = _runtime(request)
+        if runtime.tasks is None or runtime.memory_host_id is None:
+            raise HTTPException(status_code=503, detail="Task planning is unavailable")
+        try:
+            record = await runtime.tasks.submit(
+                host_id=runtime.memory_host_id,
+                proposal=payload,
+            )
+        except (ValueError, TaskStateError):
+            raise HTTPException(status_code=422, detail="Task plan was rejected") from None
+        return record.model_dump(mode="json")
+
+    @app.get("/api/tasks")
+    async def list_tasks(
+        request: Request,
+        status: TaskStatus | None = None,
+        limit: Annotated[int, Query(ge=1, le=500)] = 100,
+    ) -> list[dict[str, object]]:
+        runtime = _runtime(request)
+        if runtime.task_store is None or runtime.memory_host_id is None:
+            raise HTTPException(status_code=503, detail="Task planning is unavailable")
+        records = await runtime.task_store.list_tasks(
+            host_id=runtime.memory_host_id,
+            status=status,
+            limit=limit,
+        )
+        return [record.model_dump(mode="json") for record in records]
+
+    @app.get("/api/tasks/{task_id}")
+    async def get_task(
+        request: Request,
+        task_id: Annotated[str, Path(min_length=1, max_length=200)],
+    ) -> dict[str, object]:
+        runtime = _runtime(request)
+        if runtime.task_store is None or runtime.memory_host_id is None:
+            raise HTTPException(status_code=503, detail="Task planning is unavailable")
+        record = await runtime.task_store.get_task(
+            host_id=runtime.memory_host_id,
+            task_id=task_id,
+        )
+        if record is None:
+            raise HTTPException(status_code=404, detail="Task not found")
+        return record.model_dump(mode="json")
+
+    @app.get("/api/tasks/{task_id}/events")
+    async def get_task_events(
+        request: Request,
+        task_id: Annotated[str, Path(min_length=1, max_length=200)],
+        limit: Annotated[int, Query(ge=1, le=2_000)] = 500,
+    ) -> list[dict[str, object]]:
+        runtime = _runtime(request)
+        if runtime.task_store is None or runtime.memory_host_id is None:
+            raise HTTPException(status_code=503, detail="Task planning is unavailable")
+        try:
+            events = await runtime.task_store.list_events(
+                host_id=runtime.memory_host_id,
+                task_id=task_id,
+                limit=limit,
+            )
+        except TaskNotFoundError:
+            raise HTTPException(status_code=404, detail="Task not found") from None
+        return [event.model_dump(mode="json") for event in events]
+
+    @app.post("/api/tasks/{task_id}/pause")
+    async def pause_task(
+        request: Request,
+        task_id: Annotated[str, Path(min_length=1, max_length=200)],
+    ) -> dict[str, object]:
+        runtime = _runtime(request)
+        if runtime.tasks is None or runtime.memory_host_id is None:
+            raise HTTPException(status_code=503, detail="Task planning is unavailable")
+        try:
+            record = await runtime.tasks.pause(
+                host_id=runtime.memory_host_id,
+                task_id=task_id,
+            )
+        except TaskNotFoundError:
+            raise HTTPException(status_code=404, detail="Task not found") from None
+        return record.model_dump(mode="json")
+
+    @app.post("/api/tasks/{task_id}/cancel")
+    async def cancel_task(
+        request: Request,
+        task_id: Annotated[str, Path(min_length=1, max_length=200)],
+    ) -> dict[str, object]:
+        runtime = _runtime(request)
+        if runtime.tasks is None or runtime.memory_host_id is None:
+            raise HTTPException(status_code=503, detail="Task planning is unavailable")
+        try:
+            record = await runtime.tasks.cancel(
+                host_id=runtime.memory_host_id,
+                task_id=task_id,
+            )
+        except TaskNotFoundError:
+            raise HTTPException(status_code=404, detail="Task not found") from None
+        return record.model_dump(mode="json")
 
     @app.get("/api/audit")
     async def list_audit(request: Request, limit: int = 100) -> list[dict[str, object]]:
