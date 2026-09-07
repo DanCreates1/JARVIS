@@ -41,7 +41,10 @@ or an obvious equivalent where `X` is 0–11:
 - Keep code provider-neutral and configuration-driven. Model output is untrusted data, never
   authorization.
 - Run the narrowest relevant checks during development and the complete phase gate before closure.
-- Commit or push only when the user explicitly authorizes it. Never include unrelated changes.
+- Standing user authorization (2026-09-07): after completed repository work and required gates,
+  commit and push all current safe source changes to the configured GitHub upstream. This does not
+  authorize secrets, private runtime data, generated artifacts, destructive Git, history rewrites,
+  or force-pushes. Preserve and report any unsafe or ambiguous artifact instead of publishing it.
 
 ## Repository quality commands
 
