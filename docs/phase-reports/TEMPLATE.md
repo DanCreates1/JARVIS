@@ -3,7 +3,10 @@
 Status: `not-started | in-progress | blocked-prerequisite | blocked-external | implemented-closeout-pending | complete`  
 Started: YYYY-MM-DD  
 Updated: YYYY-MM-DD  
-Recommended Sol thinking: LEVEL
+Active subphase: Phase XA
+Recommended Codex model: MODEL
+Recommended reasoning: LEVEL
+Session start / five-hour stop: TIMESTAMP / TIMESTAMP
 
 ## Objective
 

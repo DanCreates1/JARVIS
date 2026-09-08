@@ -23,7 +23,7 @@ or an obvious equivalent where `X` is 0–11:
 
 ## Phase execution rules
 
-- Use the phase's listed Sol thinking level as the minimum recommendation. Codex cannot change the
+- Use the phase/subphase's listed Codex model and reasoning level as the minimum recommendation. Codex cannot change the
   user's selected model or reasoning effort; never claim it did. Continue with maximum available
   diligence unless the user must select a stronger model for a safety-critical decision.
 - A request to finish a phase means persist through safe in-scope implementation and verification.

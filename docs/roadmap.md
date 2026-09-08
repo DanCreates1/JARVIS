@@ -1,11 +1,11 @@
 # Roadmap
 
 Status: concise view of `JARVIS_MASTER_ROADMAP.md`
-Updated: 2026-08-31
+Updated: 2026-09-08
 
 The roadmap is capability-driven. A phase advances only after its Windows acceptance checks pass with reproducible setup and tests. Current implementation status and target behavior are stated separately.
 
-## Implemented through Phase 4
+## Implemented through Phase 6
 
 The secure text foundation currently provides:
 
@@ -108,6 +108,10 @@ Complete; revalidated on 2026-09-07:
 9. Optional dedicated-server migration.
 10. Generic wearable clients after capability validation.
 11. Explicitly opt-in proactive and advanced multimodal assistance.
+
+Large phases are split into resume-safe `Phase XA/B/C` sessions capped at five elapsed hours.
+`gpt-6-astra` handles architecture/security/cross-system/high-risk work; cheaper Codex models handle
+bounded work where quality is unaffected. See [the phase execution playbook](CODEX_PHASE_PLAYBOOK.md).
 
 ## Continuous requirements
 

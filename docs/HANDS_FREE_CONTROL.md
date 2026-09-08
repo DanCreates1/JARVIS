@@ -80,6 +80,6 @@ execution remain separate.
 5. Calibration UI, profiles, indicators, audit viewer, and false-trigger report.
 6. Optional confirmation and advanced navigation gestures.
 
-Overall recommended Sol thinking: **Ultra** because real-world gestures can trigger computer
-actions. Audio and vision recognition work uses **Extra high**; permission and execution policy
-uses **Ultra**.
+Recommended execution: **`gpt-6-astra`, `ultra`** for permission/execution policy and
+**`gpt-6-astra`, `xhigh`** for real-time audio/vision. Real gestures can trigger computer actions;
+cheaper models are limited to isolated mechanical tests/docs.

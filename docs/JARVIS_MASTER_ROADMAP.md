@@ -1,7 +1,7 @@
 # JARVIS Master Roadmap
 
 Status: decision-ready plan  
-Planning date: 2026-08-20
+Planning date: 2026-09-08
 Model catalog and free-tier facts last verified: 2026-08-20
 Repository: `DanCreates1/JARVIS`, branch `main`
 
@@ -179,7 +179,26 @@ Phone access waits for authenticated API and device enrollment. Research waits f
 
 ## 8. Staged roadmap
 
-Relative size covers implementation and verification, not calendar time.
+Relative size covers implementation and verification, not calendar time. Execution is divided into
+resume-safe subphases, each limited to one five-hour Codex session:
+
+| Phase | Ordered subphases | Recommended aggregate model/reasoning |
+| --- | --- | --- |
+| 0 | Continuous baseline audit | `gpt-5.6-sol` / `medium` |
+| 1 | 1A contracts/config/persistence; 1B providers/routing/privacy; 1C tools/interfaces; 1D performance/closeout | `gpt-6-astra` / `xhigh` (`max` for 1D) |
+| 2 | 2A push-to-talk/adapters; 2B duplex/wake safety; 2C device closeout | `gpt-6-astra` / `xhigh` |
+| 3 | 3A permission broker; 3B actions/recovery; 3C adversarial/live closeout | `gpt-6-astra` / `ultra` |
+| 4 | 4A schema/lifecycle/provenance; 4B retrieval/interfaces; 4C evaluation/deletion | `gpt-6-astra` / `xhigh` |
+| 5 | 5A acquisition/parsing; 5B evidence/synthesis; 5C ledger/closeout | `gpt-6-astra` / `xhigh` |
+| 6 | 6A DAG/validator/store; 6B scheduler/recovery; 6C interfaces/benchmark | `gpt-6-astra` / `ultra` |
+| 7 | 7A capture/privacy/contracts; 7B gestures/calibration; 7C mapping/closeout | `gpt-6-astra` / `max` |
+| 8 | 8A API/identity/enrollment; 8B approval/web hardening; 8C PWA/reconnect; 8D deployment/closeout | `gpt-6-astra` / `ultra` |
+| 9 | 9A topology/protocol/identity; 9B migration/backup/reconciliation; 9C deployment/resilience | `gpt-6-astra` / `ultra` |
+| 10 | 10A feasibility/license/contracts; 10B adapter/phone bridge; 10C real-device closeout | `gpt-6-astra` / `max` |
+| 11 | 11A trigger/proactivity policy; 11B runner/notifications; 11C multi-device/adapters; 11D long-duration closeout | `gpt-6-astra` / `ultra` |
+
+Exact subphase models, prerequisites, exclusions, tests, security/privacy rules, documentation,
+acceptance, and exit criteria live in [the Codex phase playbook](CODEX_PHASE_PLAYBOOK.md).
 
 ### Phase 0 — Repository baseline and reset verification (Small; mostly complete)
 

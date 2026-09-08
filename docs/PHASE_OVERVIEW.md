@@ -1,41 +1,40 @@
 # JARVIS Phase Overview
 
-Updated: 2026-09-07
+Updated: 2026-09-08
 
 This is the concise execution view of the master roadmap. Status describes implemented code,
-not just design work. "Sol thinking" is the recommended reasoning effort for the main
-implementation work in that phase.
+not just design work. Model/reasoning values are Codex execution recommendations, not JARVIS
+runtime providers.
 
 To execute a phase with Codex, use `Initiate Phase X and finish it.` Root `AGENTS.md` then loads
-the full [Codex Sol phase execution playbook](CODEX_PHASE_PLAYBOOK.md), including prerequisites,
+the full [Codex phase execution playbook](CODEX_PHASE_PLAYBOOK.md), including prerequisites,
 implementation protocol, acceptance gates, safety boundaries, and completion reporting.
 
-## Thinking-level guide
+## Model guide
 
-| Level | Use |
+| Model | Use |
 | --- | --- |
-| Low | Mechanical edits, formatting, straightforward documentation, and known commands |
-| Medium | Bounded implementation with familiar patterns and limited architectural impact |
-| High | Multi-module implementation requiring careful design, tests, and failure handling |
-| Extra high | Complex real-time, multimodal, or stateful integration with difficult debugging |
-| Ultra | Security-critical, autonomy, remote access, destructive actions, or system-wide architecture |
+| `gpt-6-astra` | Architecture, security, difficult debugging, cross-system work, migration, high-risk decisions |
+| `gpt-5.6-sol` | Strong general implementation, evaluation, closeout |
+| `gpt-5.6-terra` | Bounded known-pattern implementation and UI |
+| `gpt-5.6-luna` / `gpt-5.4-mini` | Isolated mechanical work only; never security design or phase closure |
 
 ## Phase status
 
-| Phase | Scope | Status | Remaining completion work | Sol thinking |
+| Phase | Scope | Status | Active subphase | Model / reasoning |
 | --- | --- | --- | --- | --- |
-| 0 | Repository baseline and reset verification | Complete | Maintain passing CI/secret scans and a clean reproducible `main` | Medium |
-| 1 | JARVIS core and first text vertical slice | Blocked external | Genuine streaming, deterministic/local latency, clean Windows, and repository gates pass; all four NVIDIA hosted states reached 20 successes, but simple/complex latency still misses fixed targets | High |
-| 2 | Voice | Implemented; closeout pending | Current synthetic/STT/soak gates pass; repeat live microphone/render/kill smokes only with separate device-control authorization; always-listening stays hard-disabled | Extra high |
-| 3 | Controlled computer access | Implemented; closeout pending | Current broker/adversarial/rollback gates pass; repeat live app/volume/media smokes only with separate real-application/device authorization | Ultra |
-| 4 | Durable memory and personalization | Complete | Current host isolation, lifecycle, retrieval/deletion, migration, concurrency, backup/restore, and benchmark gates pass | Extra high |
-| 5 | Research and self-education | Complete | Bounded public research, isolated HTML/text/PDF parsing, exact citations, explicit storage approval, host-scoped inspection/revalidation/export/deletion, and fixed benchmark pass | High |
-| 6 | Planning and bounded agents | Complete | Durable host-scoped DAGs, hard budgets, checkpoints, pause/resume/cancel, bounded read-only parallelism, exact approval binding, recovery, audit, export/deletion, and fixed benchmark pass | Ultra |
-| 7 | Vision and gestures | Not started | Screen/camera ports, finger-roll volume and palm/fist/navigation gestures, local perception, calibration, privacy indicators, and accuracy/latency datasets | Extra high |
-| 8 | Secure phone/PWA access | Foundations only | Authenticated PWA, TLS/private networking, device enrollment/revocation, rate limits, secure streaming, and remote threat tests | Ultra |
-| 9 | Dedicated server migration | Not started | Configurable split deployment, encrypted transport, service identity, backup/restore, offline degradation, migration rehearsal, and rollback | Ultra |
-| 10 | Wearables and Meta glasses | Not started; lower priority | Generic wearable protocol, safe local read-only Garmin data integration, capability discovery, revocation, camera/mic indicators, and one real-device interaction | Extra high |
-| 11 | Advanced JARVIS | Not started; long-term | Proactive/scheduled help, multi-device orchestration, deeper multimodal workflows, autonomy budgets, disable controls, and host acceptance thresholds | Ultra |
+| 0 | Repository baseline | Complete | Continuous audit | `gpt-5.6-sol` / `medium` |
+| 1 | Privacy-aware text core | Blocked external | 1D hosted latency closeout | `gpt-6-astra` / `max` |
+| 2 | Local-first voice | Implemented; closeout pending | 2C authorized device closeout | `gpt-5.6-sol` / `high` |
+| 3 | Controlled computer access | Implemented; closeout pending | 3C authorized live closeout | `gpt-6-astra` / `max` |
+| 4 | Durable memory | Complete | 4A-4C complete | `gpt-6-astra` / `xhigh` aggregate |
+| 5 | Research | Complete | 5A-5C complete | `gpt-6-astra` / `xhigh` aggregate |
+| 6 | Bounded tasks | Complete | 6A-6C complete | `gpt-6-astra` / `ultra` aggregate |
+| 7 | Vision and gestures | Not started | 7A capture/privacy | `gpt-6-astra` / `xhigh` |
+| 8 | Secure phone/PWA | Loopback foundation only | 8A API/identity/enrollment | `gpt-6-astra` / `ultra` |
+| 9 | Dedicated server migration | Not started | 9A topology/protocol/identity | `gpt-6-astra` / `ultra` |
+| 10 | Generic wearables | Not started; lower priority | 10A feasibility/license/contracts | `gpt-5.6-sol` / `high` |
+| 11 | Advanced proactive/multimodal | Not started; long-term | 11A trigger/proactivity policy | `gpt-6-astra` / `ultra` |
 
 ## Recommended order
 
@@ -55,6 +54,5 @@ Hands-free control is a cross-phase track: Phase 2 detects claps, Phase 7 recogn
 gestures, and Phase 3 alone authorizes and executes the mapped computer action. See
 [Hands-Free Control Plan](HANDS_FREE_CONTROL.md).
 
-Routine subtasks inside any phase may use Low or Medium. Do not lower the listed effort for
-security boundary design, permission changes, destructive actions, authentication, privacy
-routing, or autonomy policy.
+Each lettered subphase is one session capped at five elapsed hours. See the playbook for exact
+scope, tests, security/privacy, documentation, acceptance, exit, and per-subphase assignments.

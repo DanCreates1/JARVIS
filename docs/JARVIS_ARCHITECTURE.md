@@ -1,10 +1,10 @@
 # JARVIS Architecture
 
 Status: target architecture; implementation remains incremental  
-Planning date: 2026-08-20
-Last reconciled with Phase 1–5 implementation: 2026-09-07
+Planning date: 2026-09-08
+Last reconciled with Phase 1-6 implementation: 2026-09-08
 
-Phases 4 and 5 currently satisfy their completion gates. Phase 1 clean-host/bootstrap/repository and
+Phases 4, 5, and 6 currently satisfy their completion gates. Phase 1 clean-host/bootstrap/repository and
 optimized local latency gates pass, while hosted NVIDIA fixed latency remains an external blocker
 despite complete 20-sample states. Phase 2 and Phase 3 await separately authorized current live
 device/effect checks. See `docs/PHASE_OVERVIEW.md`; these status limits do not alter the

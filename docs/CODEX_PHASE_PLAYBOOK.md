@@ -1,6 +1,6 @@
-# Codex Sol JARVIS Phase Playbook
+# JARVIS Codex Phase Playbook
 
-Updated: 2026-08-22  
+Updated: 2026-09-08
 Owner command: `Initiate Phase X and finish it.`  
 Phase range: 0–11
 
@@ -28,34 +28,44 @@ On a trigger, Codex must:
    by variable name only, and previous progress/completion reports.
 4. Reconcile the documented status with observed evidence.
 5. Create a milestone plan and a durable progress report before substantial implementation.
+   Name the active lettered subphase from Section 18.
 6. Execute without repeatedly asking about ordinary reversible implementation choices.
 7. Stop for user input only at the authority boundaries listed below.
-8. Finish only after every applicable exit criterion has evidence.
+8. Finish only after every applicable exit criterion has current evidence.
+9. Stop after five elapsed hours, including audit, implementation, tests, documentation, and
+   handoff. At four hours, stop starting broad work and reserve the final hour for gates, evidence,
+   recovery, and a resume-safe boundary.
 
-The phrase `finish it` requires persistence, but cannot grant new authority or waive safety.
+The phrase `finish it` requires persistence across bounded sessions, but cannot grant new authority,
+waive safety, or permit a five-hour overrun. If discovered work cannot fit its named subphase,
+define the next coherent lettered subphase in this playbook and the roadmap before continuing.
 
-## 2. Sol model and thinking levels
+## 2. Codex model and reasoning assignments
 
-Recommended model: Codex Sol. Reasoning effort is chosen in the Codex UI or caller configuration;
-instructions cannot switch it automatically.
+These are Codex execution models, not JARVIS runtime provider roles. Reasoning effort is chosen in
+the Codex UI or caller configuration; instructions cannot switch it. Availability was checked
+against this host on 2026-09-08.
 
-| Phase | Recommended Sol thinking | Reason |
-| --- | --- | --- |
-| 0 | Medium | Repository, history, reproducibility, and secret checks are bounded but require care |
-| 1 | High | Cross-cutting runtime, providers, privacy, persistence, tools, and acceptance evidence |
-| 2 | Extra high | Real-time audio, cancellation, device behavior, latency, noise, and GPU contention |
-| 3 | Ultra | Computer control, permissions, approval integrity, rollback, and irreversible-action risk |
-| 4 | Extra high | Stateful memory, provenance, deletion, conflicts, retrieval quality, and privacy |
-| 5 | High | Retrieval, citations, hostile sources, freshness, and measurable research quality |
-| 6 | Ultra | Bounded autonomy, durable execution, budgets, recovery, and approval-aware planning |
-| 7 | Extra high | Real-time vision, gesture temporal logic, calibration, privacy, and false activations |
-| 8 | Ultra | Remote access, authentication, device identity, revocation, TLS, and attack surface |
-| 9 | Ultra | Distributed state, migration, backup/restore, identity, network loss, and rollback |
-| 10 | Extra high | Real-device capability limits, media privacy, phone bridging, and vendor churn |
-| 11 | Ultra | Proactivity, schedules, multi-device autonomy, privacy, cost, and host-control guarantees |
+| Phase | Recommended model | Reasoning | Reason |
+| --- | --- | --- | --- |
+| 0 | `gpt-5.6-sol` | `medium` | Bounded repository/reproducibility/secret audit; Astra only when history or provenance is ambiguous |
+| 1 | `gpt-6-astra` | `xhigh` | Provider/privacy architecture and difficult hosted-latency diagnosis; Sol handles named routine subphases |
+| 2 | `gpt-6-astra` | `xhigh` | Real-time cancellation, device failure, capture privacy, latency, noise, and GPU contention |
+| 3 | `gpt-6-astra` | `ultra` | Authorization, approval integrity, OS effects, rollback, and irreversible-action risk |
+| 4 | `gpt-6-astra` | `xhigh` | Durable privacy schema, provenance, deletion, conflicts, retrieval quality |
+| 5 | `gpt-6-astra` | `xhigh` | SSRF/parser isolation, hostile sources, evidence integrity, and citations |
+| 6 | `gpt-6-astra` | `ultra` | Bounded autonomy, durable effects, budgets, recovery, approval-aware planning |
+| 7 | `gpt-6-astra` | `max` | Media privacy and perception-to-action false activation |
+| 8 | `gpt-6-astra` | `ultra` | Remote identity, revocation, trusted approval, TLS, web attack surface |
+| 9 | `gpt-6-astra` | `ultra` | Distributed state, migration, backup/restore, partition and rollback |
+| 10 | `gpt-6-astra` | `max` | Cross-device identity, media privacy, vendor limits and live hardware |
+| 11 | `gpt-6-astra` | `ultra` | Proactivity, schedules, multi-device ownership, privacy and host-control guarantees |
 
-Low thinking is only for mechanical subtasks. Medium is acceptable for isolated known-pattern
-subtasks. Never reduce security-boundary design below the listed phase level.
+Exact supported reasoning values for `gpt-6-astra`, `gpt-5.6-sol`, and `gpt-5.6-terra` are `low`,
+`medium`, `high`, `xhigh`, `max`, and `ultra`; `gpt-5.6-luna` stops at `max`; `gpt-5.4-mini` stops
+at `xhigh`. `Extra high` is retired; use `xhigh`. Luna or Mini may perform isolated mechanical
+inventory/docs/test maintenance, never security design or phase closure. A listed setting is the
+minimum recommendation. Do not lower it to meet a deadline.
 
 ## 3. Authority boundaries
 
@@ -192,9 +202,22 @@ Allowed status values:
 - `implemented-closeout-pending`
 - `complete`
 
+### Audited current state
+
+Audited 2026-09-08 at `96143e7` before this rewrite: Python 3.11 modular monolith; 94 source files,
+72 test files, 65 test modules, nine migrations, and 532 static test declarations. Installed tools
+included `uv 0.12.5`, Git 2.55.0, Gitleaks 8.30.1, and Node 24.20.0. Bare `python` resolved only to
+the disabled Windows Store alias; repository commands use `uv run`.
+
+Actual status: Phase 1 has one external hosted-latency blocker; Phases 2-3 are implemented with
+current authorized live effects pending; Phases 4-6 are complete; Phase 7 onward is not implemented;
+Phase 8 has only a loopback browser foundation. No root license exists, so copying external code is
+blocked on an owner licensing decision. No external code was copied. See
+[External Repository Comparison](EXTERNAL_REPOSITORY_COMPARISON.md).
+
 ## 6. Phase 0 — Repository baseline and reset verification
 
-Recommended thinking: **Medium**  
+Recommended execution: **`gpt-5.6-sol`, `medium`**
 Baseline status: **complete; maintain continuously**
 
 ### Read first
@@ -237,8 +260,8 @@ keeping runtime/private artifacts outside Git.
 
 ## 7. Phase 1 — Core and first text vertical slice
 
-Recommended thinking: **High**  
-Baseline status: **implemented; formal closeout pending**
+Recommended execution: **`gpt-6-astra`, `xhigh`**
+Baseline status: **blocked-external; hosted latency is sole closeout blocker**
 
 ### Read first
 
@@ -285,8 +308,8 @@ measurable behavior.
 
 ## 8. Phase 2 — Voice
 
-Recommended thinking: **Extra high**  
-Baseline status: **not started**  
+Recommended execution: **`gpt-6-astra`, `xhigh`**
+Baseline status: **implemented-closeout-pending; current live device evidence requires authority**
 Prerequisite: Phase 1 event stream/cancellation stable
 
 ### Read first
@@ -335,8 +358,8 @@ text fallback, device diagnostics, and optional clap-event intents.
 
 ## 9. Phase 3 — Controlled computer access
 
-Recommended thinking: **Ultra**  
-Baseline status: **foundations only**  
+Recommended execution: **`gpt-6-astra`, `ultra`**
+Baseline status: **implemented-closeout-pending; current live OS effects require authority**
 Prerequisite: Phase 1 typed tools/policy; local trusted approval interface
 
 ### Read first
@@ -384,8 +407,8 @@ broker. Never expose unrestricted shell, model-generated command strings, or alw
 
 ## 10. Phase 4 — Durable memory and personalization
 
-Recommended thinking: **Extra high**  
-Baseline status: **foundations only**  
+Recommended execution: **`gpt-6-astra`, `xhigh`**
+Baseline status: **complete**
 Prerequisite: Phase 1 persistence, audit, host identity
 
 ### Read first
@@ -422,8 +445,8 @@ model guesses into facts.
 
 ## 11. Phase 5 — Research and self-education
 
-Recommended thinking: **High**  
-Baseline status: **not started**  
+Recommended execution: **`gpt-6-astra`, `xhigh`**
+Baseline status: **complete**
 Prerequisite: Phase 4 provenance model; sandboxed browser/retrieval; injection defenses
 
 ### Read first
@@ -458,8 +481,8 @@ and safe separation between hostile source content and executable instructions.
 
 ## 12. Phase 6 — Planning and bounded agents
 
-Recommended thinking: **Ultra**  
-Baseline status: **foundations only**  
+Recommended execution: **`gpt-6-astra`, `ultra`**
+Baseline status: **complete**
 Prerequisites: Phase 3 permissions, Phase 4 memory, Phase 5 research
 
 ### Read first
@@ -495,7 +518,7 @@ resumption, and recovery. Plans never expand permissions.
 
 ## 13. Phase 7 — Vision and gestures
 
-Recommended thinking: **Extra high**  
+Recommended execution: **`gpt-6-astra`, `max`**
 Baseline status: **not started**  
 Prerequisite: Phase 3 permission broker and media privacy controls
 
@@ -535,7 +558,7 @@ insufficient.
 
 ## 14. Phase 8 — Secure phone/PWA access
 
-Recommended thinking: **Ultra**  
+Recommended execution: **`gpt-6-astra`, `ultra`**
 Baseline status: **foundations only (loopback web UI exists)**  
 Prerequisites: stable internal API/events; Phase 3 permissions; device identity model
 
@@ -572,7 +595,7 @@ internet or weakening local privacy/permission boundaries.
 
 ## 15. Phase 9 — Dedicated server migration
 
-Recommended thinking: **Ultra**  
+Recommended execution: **`gpt-6-astra`, `ultra`**
 Baseline status: **not started**  
 Prerequisite: stable internal ports, Phase 8 identity/network model
 
@@ -606,7 +629,7 @@ laptop retains defined offline capability and no business-logic rewrite is requi
 
 ## 16. Phase 10 — Wearables and Meta glasses
 
-Recommended thinking: **Extra high**  
+Recommended execution: **`gpt-6-astra`, `max`**
 Baseline status: **not started; lower priority**  
 Prerequisites: Phase 8 secure client protocol; Phase 7 media controls
 
@@ -639,7 +662,7 @@ core depend on Meta or any single vendor.
 
 ## 17. Phase 11 — Advanced JARVIS
 
-Recommended thinking: **Ultra**  
+Recommended execution: **`gpt-6-astra`, `ultra`**
 Baseline status: **not started; long-term**  
 Prerequisites: dependable permissions, memory, research, agents, clients, and observability
 
@@ -672,7 +695,239 @@ JARVIS is safe, reliable, inspectable, and easy to disable.
 - Disable switch stops new proactive activity and cancellation handles active work.
 - Disabling/removing proactive features does not degrade core on-demand JARVIS.
 
-## 18. Cross-phase hands-free control track
+## 18. Five-hour phase and subphase execution matrix
+
+The phase sections above provide aggregate objective, scope, prerequisites/dependencies,
+deliverables, testing, security/privacy, acceptance, and exit. Universal Steps 1-10 provide the
+sequence and documentation requirements. This table makes session count, split order, exclusions,
+and exact model assignments explicit.
+
+| Phase | Sequence and expected sessions | Aggregate exclusions | Aggregate documentation and exit | Model rationale |
+| --- | --- | --- | --- | --- |
+| 0 | One audit session per material baseline change | History rewrite, archive deletion, private/generated Git data | Rebuild/setup/overview/report; clean clone, scans, refs and gates pass | `gpt-5.6-sol` `medium`: bounded audit |
+| 1 | 1A -> 1B -> 1C -> 1D; four build sessions plus one per external retry | Paid/privacy downgrade, effects, public bind, provider-specific core | Architecture/security/setup/hardware/technology/report; all fixed route/reliability/TTFT gates pass | Astra for privacy and hard latency; Sol for known implementation |
+| 2 | 2A -> 2B -> 2C; three sessions | Default continuous listening, retained audio, unapproved cloud speech, voice approval | Voice/setup/hardware/hands-free/report; current live device, quality, kill and soak gates pass | Astra for duplex/capture safety; Sol for ports/closeout |
+| 3 | 3A -> 3B -> 3C; three sessions | Shell, generated commands, admin, broad grants, gesture/voice approval | Security/controlled access/hands-free/setup/report; full tool control records and current live evidence pass | Astra ultra/max for authorization and OS effects |
+| 4 | 4A -> 4B -> 4C; three sessions | Silent/cross-host memory, unmeasured vectors, private Git/cloud memory | Architecture/security/config/report; lifecycle, retrieval, isolation, deletion gates pass | Astra for durable privacy/retrieval; Sol for closeout |
+| 5 | 5A -> 5B -> 5C; three sessions | Login/paywall bypass, arbitrary/private fetch, source authority, silent memory | Architecture/security/research/report; bounded cited lifecycle benchmark passes | Astra for network/parser/synthesis trust; Sol for ledger closeout |
+| 6 | 6A -> 6B -> 6C; three sessions | Swarm, recursion, hidden daemon, self-policy, planner tools, paid work | Architecture/bounded-tasks/security/report; zero bad states/effects/budget violations | Astra for autonomy; Sol for bounded interfaces/evidence |
+| 7 | 7A -> 7B -> 7C; three sessions | Hidden capture, biometrics, raw commands, unclassified cloud images, gesture approval | Architecture/security/hands-free/hardware/report; fixed live/recorded metrics and soak pass | Astra where media crosses authority; Sol for bounded CV evaluation |
+| 8 | 8A -> 8B -> 8C -> 8D; four sessions | Public unauthenticated API, weak device trust, approval bypass, multi-replica | Threat/API/enrollment/deployment/report; real private phone, revoke, scan, offline pass | Astra for identity/security/deploy; Terra for bounded PWA |
+| 9 | 9A -> 9B -> 9C; three sessions | Premature services/databases, multi-primary, public admin, one-way migration | Topology/ownership/operations/DR/report; local/split parity and restore/rollback pass | Astra ultra/max for distributed trust/data |
+| 10 | 10A -> 10B -> 10C; three sessions | Marketing assumptions, hidden media, vendor core, unapproved unofficial connector | Feasibility/license/adapter/privacy/report; real generic flow and adapter-removal pass | Sol for feasibility; Astra for cross-device/live privacy |
+| 11 | 11A -> 11B -> 11C -> 11D; four sessions | Hidden activity, model authority/budgets, unbounded agents, surveillance, unjustified training | Autonomy/operations/privacy/evaluation/report; fixed long-duration and removal gates pass | Astra ultra/max because autonomy compounds every boundary |
+
+Every subphase row explicitly uses: O objective; S scope; P prerequisites/dependencies; D
+deliverables; X exclusions; Q implementation sequence; T functional/failure tests; SP security and
+privacy; M documentation; A acceptance; E exit criteria; N expected sessions; R exact model,
+reasoning, and rationale. Universal requirements still apply.
+
+### Completed and closeout subphases
+
+- **1A Contracts/config/persistence (`complete`)** — O/S: owned messages, roles, events, settings,
+  migrations, conversations, explicit memory/audit/delete. P: Phase 0/SQLite. D: contracts, stores,
+  tests. X: cloud/rich memory/privileged tools. Q: schema -> migration/store -> restart/delete. T:
+  validation, upgrade, concurrency, corruption, bounds. SP: private defaults, host isolation,
+  redacted errors. M: architecture/setup/report. A: offline state works. E: restart/delete/gates.
+  N: 1. R: `gpt-5.6-sol` `high`, mature cross-cutting patterns.
+- **1B Providers/routing/privacy (`complete`)** — O/S: adapters, stream/usage, local classification,
+  catalog, free/local fallback. P: 1A and optional configured keys/terms. D: router/contract tests.
+  X: prompt authorization, paid/privacy downgrade. Q: threat -> adapters -> router -> live. T: route
+  matrix, malformed SSE, timeout, 429/outage/removal/quota/cancel. SP: classify first, uncertain
+  local, content-free logs. M: dated provider/privacy/config. A/E: observable safe swap/fallback.
+  N: 1. R: `gpt-6-astra` `xhigh`, interacting trust boundaries.
+- **1C Tools/interfaces (`complete`)** — O/S: bounded orchestration/personality, read tools, CLI,
+  loopback web/SSE. P: 1A-B. D: schemas, roots, risk, caps, cancel, audit, UI. X: shell/effects/
+  non-loopback. Q: policy/fakes -> tools -> CLI -> web -> abuse. T: iteration, traversal, output,
+  injection, disconnect, session. SP: output cannot change policy; session isolation. M: README,
+  architecture/security/setup. A/E: offline interfaces fail closed. N: 1. R: `gpt-5.6-sol`
+  `high`, mature integration.
+- **1D Performance/closeout (`blocked-external`)** — O/S: reproduce setup/fixed benchmark. P: 1A-C,
+  Ollama, public NVIDIA. D: dated safe metrics/completion report. X: private prompts, quota probing,
+  threshold weakening. Q: freeze settings -> 20/state -> diagnose -> tune -> gate. T: route/fallback/
+  privacy and first-visible-token harness. SP: public fixtures, zero spend. M: hardware/overview/
+  roadmap/report. A/E: p50/p95 deterministic 300/800 ms, local 1,500/3,000, hosted simple
+  1,000/2,500, hosted complex 3,000/7,000; 20/20 each. N: 1/retry. R: `gpt-6-astra` `max`, hard
+  external latency diagnosis.
+- **2A Push-to-talk/adapters (`complete`)** — O/S/D: capture -> VAD/STT -> core -> TTS, ports/events/
+  workers/devices. P: Phase 1. X: continuous capture. Q: fakes -> local adapters -> health/fallback.
+  T: WER, absent/removed device, malformed audio, timeout/crash/cancel/restart. SP: local, bounded
+  buffers, no retention. M: voice/config/setup/report. A/E: end-to-end plus text fallback. N: 1.
+  R: `gpt-5.6-sol` `high`, known concurrent adapters.
+- **2B Duplex/wake safety (`complete`)** — O/S/D: state machine, interruption, echo, wake/clap,
+  indicator/kill behind default-off. P: 2A. X: action authority/continuous release. Q: threat/state
+  -> cancel -> duplex -> detector -> soak. T: every transition, music/TV/typing/noise, stuck worker/
+  leak. SP: acoustic input untrusted; kill dominates. M: voice/hands-free/security. A/E: prompt stop,
+  recovery, detector bounds. N: 1. R: `gpt-6-astra` `xhigh`, races plus capture privacy.
+- **2C Device closeout (`implemented-closeout-pending`)** — O/S: current Windows device proof. P:
+  2A-B plus mic/render authority. D: sanitized evidence/report. X: personal recordings/hidden
+  enablement. Q: inventory -> live/loss/barge/kill -> load/soak -> gates. T: selection/reconnect/
+  offline/LLM contention. SP: consent, visible/ephemeral, cloud off. M: hardware/setup/overview/
+  roadmap/report. A/E: all current device gates. N: 1. R: `gpt-5.6-sol` `high`, evidence closeout.
+- **3A Permission broker (`complete`)** — O/S/D: levels, proposals, atomic exact grants, receipts,
+  durable store. P: Phase 1/host identity. X: OS effects. Q: threat -> contracts/store -> trusted UI
+  seam -> replay/race. T: deny/expire/revoke/duplicate/restart/corrupt/audit/cross-host. SP: model/
+  chat cannot approve; redact receipts. M: schema/security/report. A/E: one exact valid grant required.
+  N: 1. R: `gpt-6-astra` `ultra`, core authority boundary.
+- **3B Actions/recovery (`complete`)** — O/S/D: fixed identities/arrays/canonical roots, idempotency,
+  postcondition, compensation. P: 3A/disposable fixtures. X: shell/admin. Q: read-only -> reversible
+  -> app/media -> optional print. T: missing/collision/partial/cancel/retry/restart/mismatch. SP:
+  execution revalidation/result caps. M: action/recovery matrix. A/E: complete control record/tool.
+  N: 1. R: `gpt-6-astra` `ultra`, real effects and rollback.
+- **3C Adversarial/live closeout (`implemented-closeout-pending`)** — O/S: attack chain and named
+  minimal effects. P: 3A-B/live authority. D: corpus/benchmark/receipts. X: broader effects. Q:
+  audit -> adversarial -> restart/rollback -> exact live -> gates. T: aggregate attacks/false intents.
+  SP: fixed args/expiring grants. M: security/hardware/overview/report. A/E: current adversarial/live
+  pass. N: 1. R: `gpt-6-astra` `max`, cross-OS security.
+- **4A Schema/lifecycle/provenance (`complete`)** — O/S/D: memory states, sources, conflicts,
+  retention, ownership, migration/APIs. P: Phase 1. X: retrieval/auto-confirm. Q: threat/data model
+  -> migration -> lifecycle. T: transitions, duplicate/conflict/expiry/rollback/corrupt/concurrent.
+  SP: candidate quarantine, least data, host predicates. M: schema/security/report. A/E: durable,
+  isolated, reversible lifecycle. N: 1. R: `gpt-6-astra` `xhigh`, durable privacy schema.
+- **4B Retrieval/interfaces (`complete`)** — O/S/D: FTS5 scoring/reasons, inspect/promote/correct/
+  forget/export, bounded projection. P: 4A. X: unjustified vectors. Q: golden set -> retrieval ->
+  explanation -> UI -> abuse. T: relevance/stale/conflict/poison/output/concurrency. SP: retrieved
+  text untrusted; sensitivity gates cloud. M: architecture/user controls/report. A/E: explained,
+  privacy-safe recall. N: 1. R: `gpt-6-astra` `xhigh`, retrieval/privacy interaction.
+- **4C Evaluation/deletion (`complete`)** — O/S/D: quality/performance, transitive delete, export,
+  backup/restore. P: 4A-B. X: vector dependency. Q: benchmark -> adversarial -> deletion -> restore
+  -> gates. T: precision/recall/cold/warm/scale/derived cleanup. SP: exact export, content-free
+  tombstones. M: overview/roadmap/report. A/E: all fixed gates. N: 1. R: `gpt-5.6-sol` `high`,
+  bounded closeout.
+- **5A Acquisition/parsing (`complete`)** — O/S/D: URL/type/size/time contracts, IP/SNI pinning,
+  redirects, subprocess parsers. P: Phase 4. X: private addresses/scripts/active content. Q: threat
+  -> fixtures -> network policy -> parsers -> hostile corpus. T: reserved/mapped IP, rebind,
+  redirect, bomb, malformed, crash/hang. SP: data only; pre-parse limits; no local pivot. M: source
+  policy/report. A/E: safe provenance and bounded hostile failure. N: 1. R: `gpt-6-astra`
+  `xhigh`, SSRF/parser boundary.
+- **5B Evidence/synthesis (`complete`)** — O/S/D: claim links, conflict, uncertainty, cited answer/
+  fallback. P: 5A. X: uncited material claim/source-driven tool. Q: schema -> synthesis -> injection/
+  citation. T: missing/conflicting/stale/unsupported/malicious/malformed/quote. SP: source cannot
+  alter policy; inference labeled; sensitive local. M: workflow/citations/report. A/E: fixed
+  coverage/entailment/diversity/freshness. N: 1. R: `gpt-6-astra` `high`, untrusted synthesis.
+- **5C Ledger/closeout (`complete`)** — O/S/D: exact approval, ledger/search/supersede/queue/
+  revalidate/export/delete, CLI/web/benchmark. P: 5A-B/Phase 4. X: automatic trust. Q: ledger -> UI
+  -> lifecycle -> 30 samples. T: isolate/duplicate/concurrent/restart/conflict/export/delete/replay.
+  SP: approved reports only; content-free operations. M: overview/roadmap/report. A/E: fixed quality/
+  security/release gates. N: 1. R: `gpt-5.6-sol` `high`, durable closeout.
+- **6A DAG/validator/store (`complete`)** — O/S/D: proposal, dependencies, budgets, states/events/
+  versions/owner/handlers, migration. P: Phases 3-5. X: execution/planner authority. Q: threat/state
+  -> contracts -> store -> property/restart. T: cycle/missing/budget/stale/duplicate/concurrent/
+  corrupt. SP: host resolves authority/cost and scope. M: schema/security/report. A/E: invalid or
+  authority-expanding graph cannot persist. N: 1. R: `gpt-6-astra` `xhigh`, durable invariants.
+- **6B Scheduler/recovery (`complete`)** — O/S/D: bounded execution/retry/checkpoint/grant/cancel/
+  compensate/reconcile. P: 6A/Phase 3. X: background/unbounded effect parallelism. Q: read-only ->
+  budgets -> effects -> recovery -> safe parallel. T: crash each state/partial/timeout/retry/cancel/
+  pause/orphan/deny/exhaust. SP: grant recheck/node/args. M: recovery/security/report. A/E: zero
+  unauthorized/duplicate effect; exact stops. N: 1. R: `gpt-6-astra` `ultra`, bounded autonomy.
+- **6C Interfaces/benchmark (`complete`)** — O/S/D: preview/run/control/status/export/delete and
+  evidence. P: 6A-B. X: daemon. Q: UI -> golden/recovery/scale -> lifecycle -> gates. T: terminal
+  states/version/restart/tombstone. SP: preview is not approval; UI cannot alter authority/budget.
+  M: guide/overview/roadmap/report. A/E: fixed 100-run/100-scenario benchmark. N: 1. R:
+  `gpt-5.6-sol` `high`, bounded evidence.
+
+### Future subphases
+
+- **7A Capture/privacy/contracts (`not-started`)** — O/S/D: purpose/region/fps/retention capture
+  ports/fakes/adapters/indicator/kill. P: Phase 3/live authority/current library license review. X:
+  recognition/retention. Q: threat -> contracts -> fake/OS -> privacy. T: deny/switch/loss/stale/
+  cap/timeout/restart/off. SP: explicit active state, least frames, local. M: capture policy/setup/
+  report. A/E: no capture outside state/limits. N: 1. R: `gpt-6-astra` `xhigh`, media boundary.
+- **7B Temporal gestures/calibration (`not-started`)** — O/S/D: local landmarks, confidence/
+  debounce/cooldown, fist/palm/pinch/finger-roll, calibration. P: 7A/licensed candidate. X: tool
+  execution. Q: diverse dataset -> candidate benchmark -> state machine -> soak. T: lighting,
+  distance, occlusion, skin tones, handedness, no-hand, drop/conflict/contention. SP: uncertainty no
+  intent; ephemeral features. M: detector/dataset/hardware/report. A/E: fixed precision/recall/
+  latency/false/resource targets. N: 1. R: `gpt-5.6-sol` `high`, bounded CV evaluation.
+- **7C Intent mapping/closeout (`not-started`)** — O/S/D: `gesture -> typed intent -> Phase 3`,
+  rate/cancel/audit/live proof. P: 7A-B/exact grants/live authority. X: gesture approval/risk raise.
+  Q: mapping -> broker fakes -> adversarial -> live -> gates. T: stale/conflict/storm/replay/expiry/
+  false/cancel. SP: execution recheck. M: hands-free/controlled/overview/report. A/E: fixed metrics
+  without escalation/storm; 30-minute soak. N: 1. R: `gpt-6-astra` `max`, perception meets effects.
+- **8A API/identity/enrollment (`not-started`)** — O/S/D: versioned API/events and device key/
+  session secure storage/rotate/revoke/replay/audit. P: Phase 1/3 and current crypto/TLS docs. X:
+  exposure. Q: threat -> contracts -> lifecycle -> middleware -> abuse. T: token type/audience/
+  device, expiry/revoke/rotate/nonce/skew/restart. SP: cover method/authority/path/query/body/date/
+  nonce where signed; no secrets in model/log. M: ADR/API/recovery/report. A/E: strict request/
+  subscription scope. N: 1. R: `gpt-6-astra` `ultra`, remote identity.
+- **8B Trusted approval/web hardening (`not-started`)** — O/S/D: device/session/action decisions,
+  atomic winner, effect preview, CSRF/CORS/CSP/cookie/body/rate controls. P: 8A/Phase 3. X: local-
+  required bypass. Q: matrix -> execution recheck -> API/UI -> abuse. T: stale/race/cross-device/
+  origin/CSRF/XSS/oversize/confused deputy/audit. SP: required audience; empty scope denies; owner
+  data withheld. M: security/UX/API/report. A/E: no grant expansion/session leak. N: 1. R:
+  `gpt-6-astra` `ultra`, authorization plus web surface.
+- **8C PWA/stream/reconnect (`not-started`)** — O/S/D: responsive client, offline shell, desired
+  subscriptions/cursors/logout clearing/private notifications. P: 8A-B. X: offline effects/content
+  cache. Q: state -> typed client -> auth -> reconnect -> offline/accessibility. T: flap/duplicate/
+  order/expiry/zombie/logout/cache/tabs. SP: minimal cache, clear secrets/subscriptions. M: install/
+  troubleshooting/report. A/E: resume without duplicate/leak. N: 1. R: `gpt-5.6-terra` `high`,
+  known UI after Astra contracts.
+- **8D Private deployment/closeout (`not-started`)** — O/S/D: approved TLS/private topology,
+  phone, runbook/backup/rollback/live proof. P: 8A-C/exposure authority. X: public/multi-replica.
+  Q: bind/firewall/TLS -> deploy -> enroll/loss/revoke -> scan/rollback -> gates. T: lost phone,
+  partition/restart/revoked stream/certificate/offline. SP: app/network deny; one replica while
+  replay/session/rate state is local. M: setup/security/deployment/overview/report. A/E: real phone,
+  immediate revoke, no listener, laptop offline. N: 1. R: `gpt-6-astra` `max`, cross-system deploy.
+- **9A Topology/protocol/identity (`not-started`)** — O/S/D: topology roles, one-owner map,
+  authenticated version/capability protocol. P: Phase 8/measurements. X: migration/scale. Q: measure
+  -> threat/ADR -> protocol fakes -> downgrade/replay. T: stale/skew/revoke/mismatch/loss/fallback.
+  SP: least privilege/audience/owner. M: architecture/security/topology/report. A/E: one owner and
+  negotiated capability. N: 1. R: `gpt-6-astra` `ultra`, distributed trust.
+- **9B Migration/backup/reconciliation (`not-started`)** — O/S/D: reversible transfer/cutover,
+  manifests/checksums/backup/restore. P: 9A/capacity/keys. X: cutover before rehearsal/unjustified
+  database. Q: classify -> backup/restore -> shadow/check -> cutover/rollback. T: interruption,
+  duplicate/order/stale writer/disk/corrupt/schema/partition. SP: encryption/key separation/no split
+  brain. M: migration/RPO/RTO/report. A/E: verified invariants and real rollback. N: 1. R:
+  `gpt-6-astra` `ultra`, data-loss risk.
+- **9C Deployment/resilience (`not-started`)** — O/S/D: pinned deployment/update/health/telemetry/
+  offline/runbooks. P: 9A-B/deploy authority. X: floating/privileged containers. Q: staging -> chaos
+  -> upgrade/rollback -> gates. T: crash/TLS/partition/overload/disk/bad release/offline. SP:
+  non-root/read-only/drop capabilities/process/network limits; shared replay/session/rate before
+  replicas. M: operations/security/overview/report. A/E: local/split parity and rollback. N: 1.
+  R: `gpt-6-astra` `max`, deployment resilience.
+- **10A Feasibility/license/contract (`not-started`)** — O/S/D: dated vendor access/capability/
+  license matrix, generic audio/display/camera/input/notification/health contract/fakes, ADR. P:
+  Phases 7-8, official sources/device. X: marketing/inaccessible claims. Q: sources -> inventory ->
+  threat/license -> contract. T: missing/version/deny/simulator/remove. SP: capability grants
+  nothing; classify health/media. M: ADR/matrix/report. A/E: feasible legal slice or external
+  blocker. N: 1. R: `gpt-5.6-sol` `high`, evidence-heavy research.
+- **10B Adapter/phone bridge (`not-started`)** — O/S/D: chosen adapter behind generic contract,
+  enrollment/revoke/resource limits/CI fake. P: 10A/Phase 8/SDK. X: vendor core/unapproved
+  unofficial path. Q: contract -> enrollment -> bridge -> limits -> removal. T: disconnect/revoke/
+  version/battery/network/phone/duplicate. SP: scoped grants, secure storage, visible capture,
+  minimal retention. M: setup/security/recovery/report. A/E: fake and bounded device fixture pass.
+  N: 1. R: `gpt-6-astra` `xhigh`, cross-device identity/streaming.
+- **10C Real-device closeout (`not-started`)** — O/S/D: functional/privacy/resource sanitized
+  proof. P: 10A-B/live authority. X: personal health/media retention or unapproved cloud. Q: freeze
+  versions -> live/loss/revoke/indicator -> battery/latency -> remove -> gates. T: aggregate real
+  matrix. SP: indicator/bystander/delete/disconnect. M: hardware/privacy/overview/report. A/E: one
+  real generic flow and adapter-removal pass. N: 1. R: `gpt-6-astra` `max`, live media/vendor risk.
+- **11A Trigger/proactivity policy (`not-started`)** — O/S/D: user schedules/triggers,
+  suggestions, timezone/expiry/quiet/rate/attention, deterministic policy/preview. P: Phases 4/6.
+  X: runner/model-created grant. Q: threat/usefulness -> contracts/store -> controls -> clock abuse.
+  T: DST/skew/duplicate/noise/stale/expiry/disable/delete/restart. SP: suggestion not authority; host
+  budgets. M: policy/config/report. A/E: trigger cannot execute/outlive scope. N: 1. R:
+  `gpt-6-astra` `ultra`, autonomy boundary.
+- **11B Durable runner/notifications (`not-started`)** — O/S/D: bounded evaluation/task handoff/
+  dedup/notify/snooze/cancel/recovery/checkpoints. P: 11A/Phase 6/8 when remote. X: hidden work or
+  sensitive preview. Q: clock fake -> candidate -> task boundary -> notify -> recovery. T: restart/
+  duplicate/offline/failure/cancel/budget. SP: audience classification/fresh grants/private preview.
+  M: operations/controls/report. A/E: single candidate ownership/no duplicate effect. N: 1. R:
+  `gpt-6-astra` `ultra`, time-driven effects.
+- **11C Multi-device/adapters (`not-started`)** — O/S/D: single ownership/handoff/dedup/visible
+  state and approved scoped adapters. P: 11A-B/relevant 7-10. X: broad discovery/new capability.
+  Q: ownership fakes -> handoff -> one adapter -> partition/revoke. T: simultaneous/stale owner,
+  partition/heal/revoke/conflict/removal. SP: scope intersection, required audience, local kill.
+  M: architecture/device/recovery/report. A/E: no split ownership/effect/leak. N: 1. R:
+  `gpt-6-astra` `ultra`, system-wide coordination.
+- **11D Long-duration closeout (`not-started`)** — O/S/D: usefulness/annoyance/correctness/privacy/
+  cost/power/recovery/removal evidence. P: 11A-C, frozen thresholds, authorized run. X: post-result
+  weakening. Q: freeze -> simulation -> bounded soak -> incidents/kill/removal -> gates. T:
+  aggregate phase and core regression. SP: minimal telemetry; explain why/data/tools/audience;
+  delete evaluation state. M: evaluation/operations/overview/report. A/E: fixed thresholds and
+  removal leaves on-demand core intact. N: 1. R: `gpt-6-astra` `max`, residual-risk judgment.
+
+## 19. Cross-phase hands-free control track
 
 Hands-free control is not a permission bypass or isolated phase:
 
@@ -685,7 +940,7 @@ Minimum hands-free release requires completed Phase 3 broker plus the relevant P
 false-trigger datasets, visible indicators, audit, cooldowns, rate limits, universal cancel, and a
 verified kill switch. See `docs/HANDS_FREE_CONTROL.md`.
 
-## 19. Progress and completion reports
+## 20. Progress and completion reports
 
 Use `docs/phase-reports/TEMPLATE.md`. Keep checkboxes and evidence current after each milestone.
 Reports must never contain credentials, private prompts, recordings, screenshots, personal paths,
