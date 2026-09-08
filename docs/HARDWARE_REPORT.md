@@ -5,6 +5,25 @@ Hosted-model strategy verified: 2026-08-20
 Method: lightweight Windows CIM/PnP queries, installed-command checks, Phase 1/2 benchmarks, and
 Phase 3 read-only capability probes plus disposable controlled-root benchmark
 
+## Phase 1 adaptive-routing revalidation — 2026-09-08
+
+- A fresh deterministic/local run preserved 20/20 successes: deterministic 7.871/9.200 ms and
+  local warm 28.243/221.007 ms p50/p95 passed. Verified-cold local was
+  2,383.312/2,996.117 ms, so its p50 missed the unchanged 1,500 ms target despite p95 remaining
+  below 3,000 ms. The prior 1,233.312/1,453.556 ms cold pass remains evidence, not a substitute for
+  this regression.
+- A second quiet-host 20/20 run confirmed the current pattern: deterministic 6.907/9.024 ms and
+  local warm 26.699/214.644 ms passed; local cold 2,305.991/2,612.835 ms again missed only p50.
+- A fresh phase-resolved NVIDIA run stopped fail-closed on capacity. Hosted simple cold recorded
+  4 requested-provider successes and 1 failure; visible TTFT was 42,754.940/58,327.901 ms p50/p95.
+  Successful provider first-SSE TTFT was 42,751.087/58,324.613 ms. Hosted complex failed its first
+  request, so no percentile claim is made for that state.
+- Successful NVIDIA observations spent roughly 42–58 seconds before response headers. First SSE and
+  visible output followed roughly 0.1–0.2 seconds later. DNS was sub-4 ms in captured samples; TCP
+  and TLS markers were unavailable where the transport/proxy did not expose separate events.
+- These measurements support provider-side queue/tail delay. They do not prove NVIDIA fixed, and
+  adaptive routing does not replace the provider-specific gate.
+
 ## Phase 1 hosted closeout update — 2026-09-04
 
 - Active hosted reasoning moved configuration-only to NVIDIA

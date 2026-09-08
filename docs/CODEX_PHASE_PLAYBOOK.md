@@ -209,7 +209,8 @@ Audited 2026-09-08 at `96143e7` before this rewrite: Python 3.11 modular monolit
 included `uv 0.12.5`, Git 2.55.0, Gitleaks 8.30.1, and Node 24.20.0. Bare `python` resolved only to
 the disabled Windows Store alias; repository commands use `uv run`.
 
-Actual status: Phase 1 has one external hosted-latency blocker; Phases 2-3 are implemented with
+Actual status: Phase 1 has an external hosted-latency blocker and a fresh local-cold revalidation
+miss; Phases 2-3 are implemented with
 current authorized live effects pending; Phases 4-6 are complete; Phase 7 onward is not implemented;
 Phase 8 has only a loopback browser foundation. No root license exists, so copying external code is
 blocked on an owner licensing decision. No external code was copied. See
@@ -261,7 +262,25 @@ keeping runtime/private artifacts outside Git.
 ## 7. Phase 1 — Core and first text vertical slice
 
 Recommended execution: **`gpt-6-astra`, `xhigh`**
-Baseline status: **blocked-external; hosted latency is sole closeout blocker**
+Baseline status: **blocked-external; hosted latency remains unfixed and current local-cold p50 also requires revalidation**
+
+### Phase 1 latency closure governance
+
+Keep product responsiveness and provider acceptance separate. Tier 0 deterministic/direct paths,
+Tier 1 local-first interaction, Tier 2 responsive cloud, context reduction, health-aware fallback,
+or voice response ownership may mitigate user impact. None changes a Tier 3 NVIDIA measurement.
+
+The 1D NVIDIA simple/complex p50/p95 thresholds below remain hard provider-specific requirements
+under this playbook. The universal definition of done requires a live external gate to pass and says
+an external blocker leaves the phase incomplete. Allowed status values contain `blocked-external`
+but no completed-with-limitation state. Therefore:
+
+- use `PASS` only when NVIDIA itself meets all fixed 20/20 gates;
+- keep `STILL BLOCKED`/`blocked-external` when it does not;
+- never report routed local/Groq latency as NVIDIA latency; and
+- use `CLOSED WITH EXTERNAL PROVIDER LIMITATION` only after an explicit owner governance revision
+  adds that closure state and its evidence requirements. Such a revision is a release-policy
+  decision, not benchmark tuning, and must not mark the NVIDIA-specific gate green.
 
 ### Read first
 

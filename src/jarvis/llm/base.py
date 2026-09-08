@@ -17,6 +17,10 @@ from jarvis.core.models import (
 class ProviderError(RuntimeError):
     """Base class for model-provider failures safe for router classification."""
 
+    def __init__(self, message: str, *, status_code: int | None = None) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
 
 class ProviderUnavailableError(ProviderError):
     """Provider cannot currently serve the request."""

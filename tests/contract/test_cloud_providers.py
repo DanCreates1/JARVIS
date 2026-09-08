@@ -283,6 +283,12 @@ async def test_nvidia_normalizes_tools_usage_thinking_and_catalog() -> None:
             )
         payload = json.loads(request.content)
         payloads.append(payload)
+        trace = request.extensions.get("trace")
+        assert callable(trace)
+        await trace("connection.connect_tcp.complete", {})
+        await trace("connection.start_tls.complete", {})
+        await trace("http11.send_request_body.complete", {})
+        await trace("http11.receive_response_headers.complete", {})
         return openai_sse(
             {
                 "choices": [
@@ -331,6 +337,19 @@ async def test_nvidia_normalizes_tools_usage_thinking_and_catalog() -> None:
     assert response.usage is not None
     assert response.usage.input_tokens == 12
     assert response.usage.rate_limit_remaining == 9
+    assert response.usage.message_count == 2
+    assert response.usage.tool_schema_count == 1
+    assert response.usage.reasoning_budget_tokens == 256
+    assert response.usage.latency is not None
+    assert response.usage.latency.first_sse_frame_ms is not None
+    assert response.usage.latency.tcp_connect_ms is not None
+    assert response.usage.latency.tls_ms is not None
+    assert response.usage.latency.request_upload_ms is not None
+    assert response.usage.latency.response_headers_ms is not None
+    assert response.usage.latency.first_reasoning_token_ms is not None
+    assert response.usage.latency.first_visible_token_ms is not None
+    assert response.usage.latency.final_visible_token_ms is not None
+    assert response.usage.latency.completion_ms is not None
     assert payloads[0]["temperature"] == 1.0
     assert payloads[0]["top_p"] == 0.95
     assert payloads[0]["max_tokens"] == 4_096

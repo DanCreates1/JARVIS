@@ -30,6 +30,7 @@ from jarvis.core import (
     ToolRisk,
     ToolSideEffect,
 )
+from jarvis.llm import PrivacyGate
 from tests.fakes import (
     FakeChatProvider,
     FakeTool,
@@ -330,6 +331,42 @@ async def test_resumes_conversation_with_bounded_recent_context() -> None:
         (MessageRole.USER, "latest"),
     ]
     assert store.recent_requests == [("existing", 3)]
+
+
+@pytest.mark.asyncio
+async def test_service_reduces_older_context_before_provider_prefill() -> None:
+    store = InMemoryConversationStore()
+    store.add_conversation("existing")
+    for role, content in (
+        (MessageRole.USER, "Discuss public planets and orbital periods."),
+        (MessageRole.ASSISTANT, "Planets have different orbital periods."),
+        (MessageRole.USER, "Unrelated cooking question."),
+        (MessageRole.ASSISTANT, "Use a saucepan."),
+        (MessageRole.USER, "Another unrelated topic."),
+    ):
+        await store.append_message(Message(conversation_id="existing", role=role, content=content))
+    provider = FakeChatProvider([ProviderResponse(content="done")])
+    service = AssistantService(
+        provider=provider,
+        store=store,
+        tools=[],
+        policy=FakeToolPolicy(),
+        context_message_limit=6,
+        context_recent_message_limit=2,
+        context_summary_max_chars=1_000,
+        sensitivity_classifier=PrivacyGate(),
+    )
+
+    result = await service.respond(
+        "Explain public planet orbital periods.", conversation_id="existing"
+    )
+
+    assert result.status is RuntimeStatus.COMPLETED
+    sent = provider.requests[0].messages
+    assert sent[0].context_source == "local-conversation-summary"
+    assert "orbital periods" in sent[0].content
+    assert "saucepan" not in sent[0].content
+    assert len(sent) == 3
 
 
 @pytest.mark.asyncio

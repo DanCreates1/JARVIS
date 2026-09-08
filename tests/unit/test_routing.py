@@ -7,12 +7,14 @@ from pathlib import Path
 import pytest
 
 from jarvis.core import (
+    LatencyClass,
     Message,
     MessageRole,
     ModelCapability,
     ModelLifecycle,
     ModelProfile,
     ModelRole,
+    ProviderLatencyBreakdown,
     ProviderResponse,
     ProviderStreamFrame,
     ProviderUsage,
@@ -22,9 +24,11 @@ from jarvis.core import (
     ToolDefinition,
 )
 from jarvis.llm import (
+    LatencyBudgets,
     ModelRouter,
     PrivacyGate,
     PrivateRouteUnavailableError,
+    ProviderHealthTracker,
     ProviderQuotaError,
     ProviderUnavailableError,
     RoutingPolicy,
@@ -112,7 +116,10 @@ def test_privacy_gate_and_routing_policy_cover_all_roles() -> None:
     assert gate.direct_tool_call("Explain time zones") is None
 
     policy = RoutingPolicy(gate)
-    assert policy.decide("Hello").chosen_role is ModelRole.FAST
+    assert policy.decide("Hello").chosen_role is ModelRole.LOCAL
+    assert (
+        policy.decide("Hello", latency_class=LatencyClass.FAST_CLOUD).chosen_role is ModelRole.FAST
+    )
     assert policy.decide("Compare these two public algorithms").chosen_role is ModelRole.PRIMARY
     assert (
         policy.decide("Do complex analysis of public benchmark data").chosen_role
@@ -181,7 +188,7 @@ async def test_legacy_unlabelled_non_user_history_fails_local(
     )
     router = ModelRouter({ModelRole.FAST: cloud, ModelRole.LOCAL: local})
 
-    response = await router.chat(
+    response = await router.chat_routed(
         messages=[legacy, user_message("What is the largest planet?")],
         tools=[],
     )
@@ -212,9 +219,10 @@ async def test_labelled_public_history_can_use_cloud_but_private_scan_overrides_
         disclosure_source="assistant-turn",
     )
 
-    response = await router.chat(
+    response = await router.chat_routed(
         messages=[public_assistant, user_message("What is the largest planet?")],
         tools=[],
+        requested_role=ModelRole.FAST,
     )
     assert response.content == "cloud answer"
     assert len(cloud.requests) == 1
@@ -222,9 +230,10 @@ async def test_labelled_public_history_can_use_cloud_but_private_scan_overrides_
     private_assistant = public_assistant.model_copy(
         update={"content": "My password is synthetic-secret."}
     )
-    response = await router.chat(
+    response = await router.chat_routed(
         messages=[private_assistant, user_message("What is the largest planet?")],
         tools=[],
+        requested_role=ModelRole.FAST,
     )
     assert response.content == "local answer"
     assert len(cloud.requests) == 1
@@ -291,7 +300,7 @@ async def test_safe_primary_falls_back_to_fast_then_records_actual_route() -> No
         }
     )
     response = await router.chat_routed(
-        messages=[user_message("Public information " * 20)],
+        messages=[user_message("What is the UTC timezone?")],
         tools=[],
         requested_role=ModelRole.PRIMARY,
     )
@@ -331,7 +340,7 @@ async def test_cloud_provider_never_receives_private_tool_schemas_or_host_enums(
     router = ModelRouter({ModelRole.PRIMARY: cloud, ModelRole.LOCAL: local})
 
     response = await router.chat_routed(
-        messages=[user_message("Public information " * 20)],
+        messages=[user_message("What is the UTC timezone?")],
         tools=(public_tool, private_tool),
         requested_role=ModelRole.PRIMARY,
     )
@@ -451,3 +460,137 @@ def test_router_requires_local_and_exact_zero_budget() -> None:
     local = FakeModelProvider(ModelRole.LOCAL, cloud=False, outcomes=[])
     with pytest.raises(ValueError, match="equal 0"):
         ModelRouter({ModelRole.LOCAL: local}, max_cloud_cost_usd=1)
+
+
+@pytest.mark.asyncio
+async def test_cloud_congestion_is_not_retried_and_falls_back_once() -> None:
+    fast = FakeModelProvider(
+        ModelRole.FAST,
+        cloud=True,
+        outcomes=[
+            ProviderUnavailableError("congested"),
+            ProviderResponse(content="must not be retried"),
+        ],
+    )
+    local = FakeModelProvider(
+        ModelRole.LOCAL,
+        cloud=False,
+        outcomes=[ProviderResponse(content="local fallback")],
+    )
+    router = ModelRouter({ModelRole.FAST: fast, ModelRole.LOCAL: local})
+
+    response = await router.chat_routed(
+        messages=[user_message("What is photosynthesis?")],
+        tools=[],
+        requested_role=ModelRole.FAST,
+    )
+
+    assert response.content == "local fallback"
+    assert fast.requests == ["none"]
+    assert local.requests == ["none"]
+    assert router.health_snapshot()[ModelRole.FAST].degraded
+
+
+@pytest.mark.asyncio
+async def test_severely_degraded_nvidia_is_temporarily_deprioritized() -> None:
+    health = ProviderHealthTracker(
+        minimum_latency_samples=3,
+        severe_latency_multiplier=1,
+        degradation_seconds=120,
+    )
+    slow_usage = ProviderUsage(
+        provider="cloud",
+        model_id="model-reasoning",
+        latency_ms=20_000,
+        latency=ProviderLatencyBreakdown(
+            first_visible_token_ms=20_000,
+            completion_ms=21_000,
+        ),
+    )
+    for _ in range(3):
+        health.record_success("cloud:model-reasoning", slow_usage, budget_ms=7_000)
+    reasoning = FakeModelProvider(
+        ModelRole.REASONING,
+        cloud=True,
+        outcomes=[ProviderResponse(content="slow")],
+    )
+    primary = FakeModelProvider(
+        ModelRole.PRIMARY,
+        cloud=True,
+        outcomes=[ProviderResponse(content="responsive")],
+    )
+    local = FakeModelProvider(ModelRole.LOCAL, cloud=False, outcomes=[])
+    router = ModelRouter(
+        {
+            ModelRole.REASONING: reasoning,
+            ModelRole.PRIMARY: primary,
+            ModelRole.LOCAL: local,
+        },
+        health=health,
+        latency_budgets=LatencyBudgets(deep_reasoning_ms=7_000),
+    )
+
+    response = await router.chat(
+        messages=[user_message("Do complex analysis of a public algorithm")], tools=[]
+    )
+
+    assert response.content == "responsive"
+    assert reasoning.requests == []
+    assert primary.requests == ["deep"]
+    snapshot = router.health_snapshot()[ModelRole.REASONING]
+    assert snapshot.degraded
+    assert snapshot.ttft_p95_ms == 20_000
+
+
+@pytest.mark.asyncio
+async def test_visible_provider_output_claims_response_and_disables_fallback() -> None:
+    class PartialProvider(FakeModelProvider):
+        async def stream_chat(self, **_kwargs: object) -> AsyncIterator[ProviderStreamFrame]:
+            self.requests.append("none")
+            yield ProviderStreamFrame(content_delta="Owned answer")
+            raise ProviderUnavailableError("failed after speech-safe output began")
+
+    fast = PartialProvider(ModelRole.FAST, cloud=True, outcomes=[])
+    local = FakeModelProvider(
+        ModelRole.LOCAL,
+        cloud=False,
+        outcomes=[ProviderResponse(content="competing answer")],
+    )
+    router = ModelRouter({ModelRole.FAST: fast, ModelRole.LOCAL: local})
+
+    with pytest.raises(ProviderUnavailableError, match="after speech-safe output"):
+        _ = [
+            frame
+            async for frame in router.stream_chat_routed(
+                messages=[user_message("What is photosynthesis?")],
+                tools=[],
+                requested_role=ModelRole.FAST,
+            )
+        ]
+
+    assert fast.requests == ["none"]
+    assert local.requests == []
+    snapshot = router.health_snapshot()[ModelRole.FAST]
+    assert snapshot.failure_count == 1
+    assert snapshot.error_rate == 1
+
+
+def test_provider_health_records_quota_and_5xx_without_content() -> None:
+    health = ProviderHealthTracker(minimum_latency_samples=3)
+    health.record_failure(
+        "nvidia:model",
+        ProviderQuotaError("quota", status_code=429),
+        budget_ms=7_000,
+    )
+    health.record_failure(
+        "nvidia:model",
+        ProviderUnavailableError("unavailable", status_code=503),
+        budget_ms=7_000,
+    )
+
+    snapshot = health.snapshot("nvidia:model", budget_ms=7_000)
+
+    assert snapshot.recent_429_count == 1
+    assert snapshot.recent_5xx_count == 1
+    assert snapshot.quota_limited
+    assert snapshot.degraded

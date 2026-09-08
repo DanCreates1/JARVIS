@@ -57,6 +57,22 @@ THRESHOLDS_MS: Final[dict[str, tuple[float, float]]] = {
     "hosted-simple": (1_000.0, 2_500.0),
     "hosted-complex": (3_000.0, 7_000.0),
 }
+PROVIDER_LATENCY_PHASES: Final = (
+    "request_start_ms",
+    "dns_ms",
+    "tcp_connect_ms",
+    "tls_ms",
+    "request_upload_ms",
+    "response_headers_ms",
+    "first_sse_frame_ms",
+    "first_reasoning_token_ms",
+    "first_visible_token_ms",
+    "final_visible_token_ms",
+    "completion_ms",
+)
+PHASE1_PASS: Final = "PASS"
+PHASE1_EXTERNAL_LIMITATION: Final = "CLOSED WITH EXTERNAL PROVIDER LIMITATION"
+PHASE1_BLOCKED: Final = "STILL BLOCKED"
 
 DETERMINISTIC_PROMPTS: Final = (
     "What is the current time?",
@@ -161,6 +177,23 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=DEFAULT_HOSTED_INTERVAL_SECONDS,
     )
+    parser.add_argument(
+        "--nvidia-reasoning-matrix",
+        action="store_true",
+        help="Compare no-thinking plus 64/128/256-token NVIDIA reasoning budgets.",
+    )
+    parser.add_argument(
+        "--nvidia-reasoning-budgets",
+        nargs="+",
+        type=int,
+        default=[64, 128, 256],
+    )
+    parser.add_argument(
+        "--nvidia-matrix-samples",
+        type=int,
+        default=MIN_SAMPLES,
+        help="Samples per NVIDIA matrix variant; formal evidence uses 20 or more.",
+    )
     parser.add_argument("--enforce", action="store_true")
     return parser.parse_args()
 
@@ -191,6 +224,7 @@ def validate_args(args: argparse.Namespace) -> None:
             "--hosted-min-interval-seconds cannot be below the conservative 2.1-second guard"
         )
     hosted_requested = any(profile.startswith("hosted-") for profile in args.profiles)
+    hosted_requested = hosted_requested or args.nvidia_reasoning_matrix
     if hosted_requested and not (args.include_hosted and args.confirm_public_fixtures):
         raise ValueError("hosted profiles require --include-hosted and --confirm-public-fixtures")
     if hosted_requested:
@@ -198,6 +232,14 @@ def validate_args(args: argparse.Namespace) -> None:
         hosted_prompts = (*HOSTED_SIMPLE_PROMPTS, *HOSTED_COMPLEX_PROMPTS)
         if any(gate.classify(prompt) is not SensitivityClass.PUBLIC for prompt in hosted_prompts):
             raise ValueError("every compiled hosted fixture must classify public")
+    if args.nvidia_reasoning_matrix and sorted(set(args.nvidia_reasoning_budgets)) != [
+        64,
+        128,
+        256,
+    ]:
+        raise ValueError("NVIDIA reasoning matrix requires exactly budgets 64, 128, and 256")
+    if not 1 <= args.nvidia_matrix_samples <= MAX_SAMPLES:
+        raise ValueError("--nvidia-matrix-samples must be between 1 and 100")
 
 
 def _repository_root() -> Path:
@@ -258,6 +300,30 @@ def _fixture(prompts: Sequence[str], profile: str, index: int) -> Fixture:
 
 def _prompt_hash(prompt: str) -> str:
     return hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+
+
+def _answer_quality_pass(prompt: str, reply: str | None) -> bool:
+    """Apply a transparent, low-cost fixture rubric without retaining provider text."""
+    if not reply or not reply.strip():
+        return False
+    normalized = reply.casefold()
+    rubrics: dict[str, tuple[tuple[str, ...], ...]] = {
+        HOSTED_SIMPLE_PROMPTS[0]: (("public fixture ready",),),
+        HOSTED_SIMPLE_PROMPTS[1]: (("jupiter",),),
+        HOSTED_SIMPLE_PROMPTS[2]: (("au",),),
+        HOSTED_SIMPLE_PROMPTS[3]: (("moon",),),
+        HOSTED_COMPLEX_PROMPTS[0]: (("half", "halving"), ("log", "logarithm")),
+        HOSTED_COMPLEX_PROMPTS[1]: (
+            ("stateless", "state"),
+            ("database", "store", "cache"),
+        ),
+        HOSTED_COMPLEX_PROMPTS[2]: (("odd",), ("induction", "n squared", "n^2")),
+        HOSTED_COMPLEX_PROMPTS[3]: (("optimistic",), ("pessimistic",)),
+    }
+    required_groups = rubrics.get(prompt)
+    if required_groups is None:
+        return True
+    return all(any(term in normalized for term in group) for group in required_groups)
 
 
 async def run_sample(
@@ -322,6 +388,11 @@ async def run_sample(
         actual_provider = "deterministic"
         model_id = None
 
+    health = runtime.provider.health_snapshot()
+    tracked_role = requested_role or (routing.chosen_role if routing is not None else None)
+    role_health = health.get(tracked_role) if tracked_role is not None else None
+    latency = usage.latency.model_dump(mode="json") if usage is not None and usage.latency else None
+
     useful_success = (
         result.status is RuntimeStatus.COMPLETED
         and result.reply is not None
@@ -355,7 +426,27 @@ async def run_sample(
         "provider_latency_ms": round(usage.latency_ms, 3) if usage is not None else None,
         "input_tokens": usage.input_tokens if usage is not None else None,
         "output_tokens": usage.output_tokens if usage is not None else None,
+        "conversation_message_count": usage.message_count if usage is not None else None,
+        "supplied_tool_schema_count": usage.tool_schema_count if usage is not None else None,
+        "reasoning_budget_tokens": usage.reasoning_budget_tokens if usage is not None else None,
+        "provider_latency_phases_ms": latency,
         "rate_limit_remaining": usage.rate_limit_remaining if usage is not None else None,
+        "provider_health": (
+            {
+                "rolling_ttft_p50_ms": role_health.ttft_p50_ms,
+                "rolling_ttft_p95_ms": role_health.ttft_p95_ms,
+                "rolling_total_p50_ms": role_health.total_p50_ms,
+                "rolling_total_p95_ms": role_health.total_p95_ms,
+                "error_rate": role_health.error_rate,
+                "recent_429_count": role_health.recent_429_count,
+                "recent_5xx_count": role_health.recent_5xx_count,
+                "quota_limited": role_health.quota_limited,
+                "degraded": role_health.degraded,
+            }
+            if role_health is not None
+            else None
+        ),
+        "answer_quality_pass": _answer_quality_pass(fixture.prompt, result.reply),
         "adapter_streaming": streamed_delta_seen,
         "first_useful_definition": (
             "first nonblank visible assistant token delta"
@@ -380,6 +471,64 @@ def summarize_state(
     first = [float(sample["first_useful_output_ms"]) for sample in successful]
     total = [float(sample["total_completion_ms"]) for sample in successful]
     output_sizes = [float(sample["output_bytes"]) for sample in successful]
+    provider_ttft = [
+        float(phases["first_sse_frame_ms"])
+        for sample in successful
+        if isinstance((phases := sample.get("provider_latency_phases_ms")), dict)
+        and phases.get("first_sse_frame_ms") is not None
+    ]
+    provider_visible_ttft = [
+        float(phases["first_visible_token_ms"])
+        for sample in successful
+        if isinstance((phases := sample.get("provider_latency_phases_ms")), dict)
+        and phases.get("first_visible_token_ms") is not None
+    ]
+    phase_summary = {
+        phase: {
+            "sample_count": len(values),
+            "nearest_rank_p50": nearest_rank(values, 0.50),
+            "nearest_rank_p95": nearest_rank(values, 0.95),
+        }
+        for phase in PROVIDER_LATENCY_PHASES
+        if (
+            values := [
+                float(phases[phase])
+                for sample in successful
+                if isinstance((phases := sample.get("provider_latency_phases_ms")), dict)
+                and phases.get(phase) is not None
+            ]
+        )
+    }
+    input_tokens = [
+        float(sample["input_tokens"])
+        for sample in successful
+        if sample.get("input_tokens") is not None
+    ]
+    message_counts = [
+        float(sample["conversation_message_count"])
+        for sample in successful
+        if sample.get("conversation_message_count") is not None
+    ]
+    tool_schema_counts = [
+        float(sample["supplied_tool_schema_count"])
+        for sample in successful
+        if sample.get("supplied_tool_schema_count") is not None
+    ]
+    reasoning_budgets = sorted(
+        {
+            int(sample["reasoning_budget_tokens"])
+            for sample in successful
+            if sample.get("reasoning_budget_tokens") is not None
+        }
+    )
+    latest_health = next(
+        (
+            health
+            for sample in reversed(samples)
+            if isinstance((health := sample.get("provider_health")), dict)
+        ),
+        None,
+    )
     p50_target, p95_target = THRESHOLDS_MS[profile]
     p50 = nearest_rank(first, 0.50)
     p95 = nearest_rank(first, 0.95)
@@ -411,6 +560,34 @@ def summarize_state(
             "nearest_rank_p50": nearest_rank(total, 0.50),
             "nearest_rank_p95": nearest_rank(total, 0.95),
         },
+        "provider_ttft_ms": {
+            "nearest_rank_p50": nearest_rank(provider_ttft, 0.50),
+            "nearest_rank_p95": nearest_rank(provider_ttft, 0.95),
+        },
+        "provider_visible_ttft_ms": {
+            "nearest_rank_p50": nearest_rank(provider_visible_ttft, 0.50),
+            "nearest_rank_p95": nearest_rank(provider_visible_ttft, 0.95),
+        },
+        "provider_latency_phase_summary_ms": phase_summary,
+        "input_tokens": {
+            "nearest_rank_p50": nearest_rank(input_tokens, 0.50),
+            "nearest_rank_p95": nearest_rank(input_tokens, 0.95),
+        },
+        "conversation_message_count": {
+            "nearest_rank_p50": nearest_rank(message_counts, 0.50),
+            "nearest_rank_p95": nearest_rank(message_counts, 0.95),
+        },
+        "supplied_tool_schema_count": {
+            "nearest_rank_p50": nearest_rank(tool_schema_counts, 0.50),
+            "nearest_rank_p95": nearest_rank(tool_schema_counts, 0.95),
+        },
+        "reasoning_budget_tokens_observed": reasoning_budgets,
+        "provider_health_at_end": latest_health,
+        "answer_quality": {
+            "pass_count": sum(bool(sample.get("answer_quality_pass")) for sample in successful),
+            "sample_count": len(successful),
+            "scorer": "fixed public-fixture lexical minimum; response text is not retained",
+        },
         "output_bytes": {
             "nearest_rank_p50": nearest_rank(output_sizes, 0.50),
             "nearest_rank_p95": nearest_rank(output_sizes, 0.95),
@@ -434,6 +611,55 @@ def summarize_state(
     }
 
 
+def phase1_disposition(
+    report: dict[str, Any],
+    *,
+    external_closure_permitted: bool,
+    jarvis_controlled_work_complete: bool,
+    product_responsiveness_protected: bool,
+) -> str:
+    """Keep product mitigation separate from the immutable NVIDIA benchmark result."""
+    profiles = report.get("profiles", {})
+    controlled_profiles = {
+        "deterministic": 1,
+        "local": 2,
+    }
+    controlled_evidence_passed = jarvis_controlled_work_complete and all(
+        len(states := profiles.get(name, {}).get("states", [])) == required_count
+        and all(
+            bool(state.get("threshold_pass"))
+            and int(state.get("successful_response_count", 0)) >= MIN_SAMPLES
+            and int(state.get("failure_count", 1)) == 0
+            for state in states
+        )
+        for name, required_count in controlled_profiles.items()
+    )
+    hosted_states = [
+        state
+        for name, profile in profiles.items()
+        if str(name).startswith("hosted-")
+        for state in profile.get("states", [])
+    ]
+    nvidia_evidence_complete = len(hosted_states) == 4 and all(
+        int(state.get("successful_response_count", 0)) >= MIN_SAMPLES
+        and int(state.get("failure_count", 1)) == 0
+        for state in hosted_states
+    )
+    nvidia_passed = nvidia_evidence_complete and all(
+        bool(state.get("threshold_pass")) for state in hosted_states
+    )
+    if controlled_evidence_passed and nvidia_passed:
+        return PHASE1_PASS
+    if (
+        external_closure_permitted
+        and controlled_evidence_passed
+        and product_responsiveness_protected
+        and nvidia_evidence_complete
+    ):
+        return PHASE1_EXTERNAL_LIMITATION
+    return PHASE1_BLOCKED
+
+
 def _local_settings(data_dir: Path, local_model: str) -> Settings:
     return Settings(
         _env_file=None,
@@ -444,12 +670,22 @@ def _local_settings(data_dir: Path, local_model: str) -> Settings:
     )
 
 
-def _hosted_settings(data_dir: Path, hosted_model: str) -> Settings:
+def _hosted_settings(
+    data_dir: Path,
+    hosted_model: str,
+    *,
+    reasoning_budget_tokens: int | None = None,
+) -> Settings:
     try:
         settings = Settings(
             data_dir=data_dir,
             reasoning_model=hosted_model,
             computer_access_enabled=False,
+            **(
+                {"nvidia_reasoning_budget_tokens": reasoning_budget_tokens}
+                if reasoning_budget_tokens is not None
+                else {}
+            ),
         )
     except ValidationError as error:
         raise BenchmarkBlocked(
@@ -735,6 +971,87 @@ async def benchmark_hosted(
     }
 
 
+async def benchmark_nvidia_reasoning_matrix(
+    args: argparse.Namespace,
+    work_dir: Path,
+    pacer: HostedPacer,
+) -> dict[str, Any]:
+    """Compare identical public fixtures without treating variants as acceptance substitutes."""
+    catalog_settings = _hosted_settings(
+        work_dir / "data-nvidia-matrix-catalog",
+        args.hosted_model,
+    )
+    await pacer.wait()
+    await _validate_hosted_catalog(catalog_settings)
+    variants: list[tuple[str, int, ReasoningLevel, Sequence[str]]] = [
+        ("thinking-disabled", 0, ReasoningLevel.NONE, HOSTED_SIMPLE_PROMPTS),
+        *[
+            (f"reasoning-{budget}", budget, ReasoningLevel.DEEP, HOSTED_COMPLEX_PROMPTS)
+            for budget in args.nvidia_reasoning_budgets
+        ],
+    ]
+    results: list[dict[str, Any]] = []
+    for name, budget, reasoning_level, prompts in variants:
+        settings = _hosted_settings(
+            work_dir / f"data-nvidia-matrix-{name}",
+            args.hosted_model,
+            reasoning_budget_tokens=budget if budget else None,
+        )
+        async with await build_runtime(settings) as runtime:
+            warmups = await _warmups(
+                runtime,
+                prompts,
+                f"nvidia-matrix-{name}",
+                args.warmups,
+                requested_role=ModelRole.REASONING,
+                reasoning_level=reasoning_level,
+                expected_provider="nvidia",
+                pacer=pacer,
+            )
+            samples: list[dict[str, Any]] = []
+            for index in range(args.nvidia_matrix_samples):
+                await pacer.wait()
+                record = await run_sample(
+                    runtime,
+                    _fixture(prompts, f"nvidia-matrix-{name}", index),
+                    requested_role=ModelRole.REASONING,
+                    reasoning_level=reasoning_level,
+                    expected_provider="nvidia",
+                )
+                samples.append(record)
+                if (
+                    record["fallback_used"]
+                    or record["rate_limit_remaining"] == 0
+                    or record["failure_code"] == "provider_error"
+                ):
+                    break
+        profile = "hosted-simple" if reasoning_level is ReasoningLevel.NONE else "hosted-complex"
+        summary = summarize_state(profile, "warm-client", samples, warmups=warmups)
+        results.append(
+            {
+                "variant": name,
+                "enable_thinking": reasoning_level is not ReasoningLevel.NONE,
+                "reasoning_budget_tokens": budget,
+                "summary": summary,
+                "complete": (
+                    len(samples) == args.nvidia_matrix_samples and summary["failure_count"] == 0
+                ),
+            }
+        )
+    complete = all(bool(result["complete"]) for result in results)
+    return {
+        "model": catalog_settings.reasoning_model,
+        "sample_target_per_variant": args.nvidia_matrix_samples,
+        "identical_fixture_rotation_within_each_variant": True,
+        "response_content_retained": False,
+        "quality_scorer": "fixed lexical minimum declared in source",
+        "variants": results,
+        "complete": complete,
+        "blocked": not complete,
+        "blocker": None if complete else HOSTED_CAPACITY_STOP,
+    }
+
+
 async def collect_local_model_metadata(local_model: str) -> dict[str, Any]:
     settings = _local_settings(
         _repository_root() / "runtime" / "phase1-metadata-unused",
@@ -843,7 +1160,7 @@ def host_snapshot() -> dict[str, Any]:
 
 async def run(args: argparse.Namespace, work_dir: Path) -> dict[str, Any]:
     report: dict[str, Any] = {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at": datetime.now(UTC).isoformat(),
         "source_git_sha": _command_output(("git", "rev-parse", "HEAD")),
         "fixed_fixture_policy": {
@@ -876,6 +1193,7 @@ async def run(args: argparse.Namespace, work_dir: Path) -> dict[str, Any]:
         "requested_profiles": list(args.profiles),
         "sample_target_per_state": args.samples,
         "profiles": {},
+        "nvidia_reasoning_matrix": None,
         "blockers": [],
     }
     try:
@@ -925,6 +1243,31 @@ async def run(args: argparse.Namespace, work_dir: Path) -> dict[str, Any]:
             }
             report["blockers"].append({"scope": profile, "error": type(error).__name__})
 
+    if args.nvidia_reasoning_matrix:
+        try:
+            matrix = await benchmark_nvidia_reasoning_matrix(args, work_dir, pacer)
+            report["nvidia_reasoning_matrix"] = matrix
+            if matrix.get("blocked"):
+                report["blockers"].append(
+                    {"scope": "nvidia-reasoning-matrix", "error": str(matrix["blocker"])}
+                )
+        except BenchmarkBlocked as error:
+            report["nvidia_reasoning_matrix"] = {
+                "complete": False,
+                "blocked": True,
+                "blocker": str(error),
+            }
+            report["blockers"].append({"scope": "nvidia-reasoning-matrix", "error": str(error)})
+        except Exception as error:
+            report["nvidia_reasoning_matrix"] = {
+                "complete": False,
+                "blocked": True,
+                "blocker": type(error).__name__,
+            }
+            report["blockers"].append(
+                {"scope": "nvidia-reasoning-matrix", "error": type(error).__name__}
+            )
+
     states = [
         state for profile in report["profiles"].values() for state in profile.get("states", [])
     ]
@@ -938,6 +1281,13 @@ async def run(args: argparse.Namespace, work_dir: Path) -> dict[str, Any]:
         and len(states) == report["required_state_count"]
         and all(bool(state["threshold_pass"]) for state in states)
     )
+    report["phase1_disposition"] = phase1_disposition(
+        report,
+        external_closure_permitted=False,
+        jarvis_controlled_work_complete=True,
+        product_responsiveness_protected=True,
+    )
+    report["external_closure_permitted_by_current_playbook"] = False
     return report
 
 

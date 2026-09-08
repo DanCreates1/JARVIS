@@ -108,6 +108,15 @@ class ModelCapability(StrEnum):
     REASONING = "reasoning"
 
 
+class LatencyClass(StrEnum):
+    """User-experience latency envelope; not a provider authorization."""
+
+    SIMPLE_LOCAL = "simple_local"
+    NORMAL_VOICE = "normal_voice"
+    FAST_CLOUD = "fast_cloud"
+    DEEP_REASONING = "deep_reasoning"
+
+
 class SensitivityClass(StrEnum):
     PUBLIC = "public"
     PRIVATE = "private"
@@ -186,6 +195,27 @@ class ModelProfile(CoreModel):
     is_cloud: bool
 
 
+class ProviderLatencyBreakdown(CoreModel):
+    """Provider request milestones measured in milliseconds from request start.
+
+    TCP/TLS markers are absent when a pooled keep-alive connection is reused. DNS is a bounded
+    local resolver probe performed immediately before the HTTP request; it stays distinct from the
+    transport's combined connect timing.
+    """
+
+    request_start_ms: Annotated[float, Field(ge=0)] = 0
+    dns_ms: Annotated[float, Field(ge=0)] | None = None
+    tcp_connect_ms: Annotated[float, Field(ge=0)] | None = None
+    tls_ms: Annotated[float, Field(ge=0)] | None = None
+    request_upload_ms: Annotated[float, Field(ge=0)] | None = None
+    response_headers_ms: Annotated[float, Field(ge=0)] | None = None
+    first_sse_frame_ms: Annotated[float, Field(ge=0)] | None = None
+    first_reasoning_token_ms: Annotated[float, Field(ge=0)] | None = None
+    first_visible_token_ms: Annotated[float, Field(ge=0)] | None = None
+    final_visible_token_ms: Annotated[float, Field(ge=0)] | None = None
+    completion_ms: Annotated[float, Field(ge=0)] | None = None
+
+
 class ProviderUsage(CoreModel):
     provider: Identifier
     model_id: Identifier
@@ -194,6 +224,10 @@ class ProviderUsage(CoreModel):
     latency_ms: Annotated[float, Field(ge=0)] = 0
     estimated_cost_usd: Annotated[float, Field(ge=0)] = 0
     rate_limit_remaining: Annotated[int, Field(ge=0)] | None = None
+    message_count: Annotated[int, Field(ge=0)] | None = None
+    tool_schema_count: Annotated[int, Field(ge=0)] | None = None
+    reasoning_budget_tokens: Annotated[int, Field(ge=0)] | None = None
+    latency: ProviderLatencyBreakdown | None = None
 
 
 class RoutingDecision(CoreModel):
@@ -462,6 +496,7 @@ class AssistantRequest(CoreModel):
     metadata: dict[str, JsonValue] = Field(default_factory=dict)
     requested_model_role: ModelRole | None = None
     reasoning_level: ReasoningLevel | None = None
+    latency_class: LatencyClass | None = None
 
     @field_validator("user_input")
     @classmethod

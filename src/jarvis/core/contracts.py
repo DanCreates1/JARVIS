@@ -10,6 +10,7 @@ from pydantic import BaseModel, JsonValue
 from .models import (
     ContextProjection,
     Conversation,
+    LatencyClass,
     Message,
     ModelRole,
     PolicyDecision,
@@ -54,6 +55,7 @@ class RoutedChatProvider(Protocol):
         tools: Sequence[ToolDefinition],
         requested_role: ModelRole | None = None,
         reasoning_level: ReasoningLevel | None = None,
+        latency_class: LatencyClass | None = None,
     ) -> ProviderResponse: ...
 
 
@@ -76,6 +78,7 @@ class RoutedStreamingChatProvider(Protocol):
         tools: Sequence[ToolDefinition],
         requested_role: ModelRole | None = None,
         reasoning_level: ReasoningLevel | None = None,
+        latency_class: LatencyClass | None = None,
     ) -> AsyncIterator[ProviderStreamFrame]: ...
 
 

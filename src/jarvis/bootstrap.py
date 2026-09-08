@@ -19,11 +19,13 @@ from jarvis.core import (
 from jarvis.llm import (
     GeminiChatProvider,
     GroqChatProvider,
+    LatencyBudgets,
     ModelProvider,
     ModelRouter,
     NvidiaChatProvider,
     OllamaChatProvider,
     PrivacyGate,
+    ProviderHealthTracker,
     RoutingPolicy,
 )
 from jarvis.memory import (
@@ -229,6 +231,16 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
             providers,
             policy=RoutingPolicy(privacy_gate),
             max_cloud_cost_usd=settings.max_cloud_cost_usd,
+            health=ProviderHealthTracker(
+                window_size=settings.provider_health_window_size,
+                degradation_seconds=settings.provider_degradation_seconds,
+            ),
+            latency_budgets=LatencyBudgets(
+                simple_local_ms=settings.simple_local_latency_budget_ms,
+                normal_voice_ms=settings.normal_voice_latency_budget_ms,
+                fast_cloud_ms=settings.fast_cloud_latency_budget_ms,
+                deep_reasoning_ms=settings.deep_reasoning_latency_budget_ms,
+            ),
         )
         if settings.research_enabled:
             research_fetcher = HttpDocumentFetcher()
@@ -284,6 +296,8 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
             policy=tool_policy,
             system_prompt=SYSTEM_PROMPT,
             context_message_limit=settings.context_message_limit,
+            context_recent_message_limit=settings.context_recent_message_limit,
+            context_summary_max_chars=settings.context_summary_max_chars,
             max_tool_iterations=settings.max_tool_iterations,
             memory=memory if settings.memory_retrieval_enabled else None,
             sensitivity_classifier=privacy_gate,

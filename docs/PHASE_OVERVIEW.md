@@ -24,7 +24,7 @@ implementation protocol, acceptance gates, safety boundaries, and completion rep
 | Phase | Scope | Status | Active subphase | Model / reasoning |
 | --- | --- | --- | --- | --- |
 | 0 | Repository baseline | Complete | Continuous audit | `gpt-5.6-sol` / `medium` |
-| 1 | Privacy-aware text core | Blocked external | 1D hosted latency closeout | `gpt-6-astra` / `max` |
+| 1 | Privacy-aware text core | Blocked external | 1D NVIDIA gate plus local-cold revalidation | `gpt-6-astra` / `max` |
 | 2 | Local-first voice | Implemented; closeout pending | 2C authorized device closeout | `gpt-5.6-sol` / `high` |
 | 3 | Controlled computer access | Implemented; closeout pending | 3C authorized live closeout | `gpt-6-astra` / `max` |
 | 4 | Durable memory | Complete | 4A-4C complete | `gpt-6-astra` / `xhigh` aggregate |
@@ -36,19 +36,42 @@ implementation protocol, acceptance gates, safety boundaries, and completion rep
 | 10 | Generic wearables | Not started; lower priority | 10A feasibility/license/contracts | `gpt-5.6-sol` / `high` |
 | 11 | Advanced proactive/multimodal | Not started; long-term | 11A trigger/proactivity policy | `gpt-6-astra` / `ultra` |
 
+## Phase 1 latency disposition
+
+Phase 1 remains `blocked-external`, not complete. Current governance makes the hosted NVIDIA
+numbers a hard provider-specific acceptance gate: simple 1,000/2,500 ms and complex 3,000/7,000 ms
+p50/p95, with 20 successful observations per cold/warm state. It has no external-dependency closure
+status. Adaptive routing therefore improves JARVIS product responsiveness but cannot make that gate
+green.
+
+The evidence categories are deliberately separate:
+
+| Category | Current status |
+| --- | --- |
+| JARVIS product responsiveness | Protected by deterministic Tier 0, local-first Tier 1, responsive cloud Tier 2, and degraded-provider fallback |
+| Local latency | Prior 20/20 cold/warm gate passed; two 2026-09-08 revalidations passed deterministic/warm but cold p50 regressed to 2,383.312 and 2,305.991 ms |
+| Fast-cloud latency | Configuration-driven Groq Tier 2; no replacement measurement is used as NVIDIA evidence |
+| NVIDIA-specific latency | Preserved 80/80 run misses targets; fresh phase-resolved run remained tens of seconds and stopped fail-closed on capacity |
+| Provider-controlled tail | Fresh successful requests spent roughly 42–58 seconds waiting for response headers, then only about 0.1–0.2 seconds to first visible output |
+
+NVIDIA free-endpoint p95 remains above target and is not technically fixed. NVIDIA stays available
+for explicit deep reasoning where latency is acceptable. Revalidate after provider behavior or the
+endpoint changes. Phase 7 may be developed as an independent next milestone because its declared
+dependency is Phase 3/media privacy, but it must not be described as following a completed Phase 1.
+
 ## Recommended order
 
-1. Retry Phase 1 hosted NVIDIA latency gate only when free endpoint tail latency improves; all four
-   hosted states already have 20 successful observations. Retain the passing local, privacy,
-   zero-cost, and independent clean-Windows gates.
+1. Keep Phase 1 formally blocked. Retry the fixed NVIDIA gate only when free-endpoint tail latency
+   improves, and recheck the fresh local-cold regression. Retain all prior evidence rather than
+   replacing it with routed product latency.
 2. With separate authority, repeat Phase 2 live device and Phase 3 live application/device smokes.
 3. Maintain completed Phase 4 memory and the safe local Phase 2/3 baselines.
 4. Maintain completed Phase 5 research and its untrusted-evidence/storage-approval boundary. Phase
    1 NVIDIA latency is an accepted known limitation, but its unchanged formal gate remains
    `blocked-external`.
 5. Maintain completed Phase 6 bounded tasks and its default-off, foreground-only execution boundary.
-6. Add Phase 7 vision and gestures, then phone, server, wearables, and proactive behavior in
-   Phases 8–11.
+6. Phase 7 remains the next independent implementation milestone; start it only while preserving
+   the explicit Phase 1 blocker. Then proceed to Phases 8–11.
 
 Hands-free control is a cross-phase track: Phase 2 detects claps, Phase 7 recognizes hand
 gestures, and Phase 3 alone authorizes and executes the mapped computer action. See

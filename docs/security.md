@@ -68,6 +68,10 @@ tool requests/results, timestamps, and the metadata needed for diagnostics.
 Visible streaming deltas are transient interface events. Persistence occurs only after one
 validated terminal response; cancellation or a mid-stream provider error leaves no partial
 assistant message. Provider fallback is prohibited after the first streamed frame.
+Older conversation turns are reduced locally to a bounded extractive summary containing only
+query-relevant user/assistant text. Its most restrictive sensitivity label is preserved. Durable
+memory projection remains locally selected and bounded. Cloud routes receive only public,
+query-relevant tool schemas; private/unknown schemas and host-owned enum values remain local.
 Logs should default to operational metadata and redact authorization headers,
 tokens, environment values, and private tool results.
 
@@ -181,6 +185,10 @@ deterministic gate scans full candidate disclosure context; sensitive or uncerta
 routes local, and free-tier exhaustion cannot enter paid service.
 HTTP clients use bounded request timeouts and narrowly constructed URLs. An explicit wire-level
 response-size limit is required before JARVIS accepts remote or multimodal provider payloads.
+NVIDIA reuses one bounded process-lifetime connection pool. Operational telemetry records only
+latency milestones, token/message/schema counts, reasoning budget, error class/status, rate-limit
+state, and rolling aggregates. It records no prompt, response, credential, or private tool result.
+Cloud congestion gets no immediate retry; failover can occur only before visible output.
 
 Cloud credentials must come from billing-disabled/free-tier projects and secure process
 injection or an OS credential store. Enable Groq Zero Data Retention, while treating every cloud

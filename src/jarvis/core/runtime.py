@@ -8,6 +8,7 @@ from contextlib import suppress
 
 from pydantic import JsonValue, ValidationError
 
+from .context import reduce_conversation_context
 from .contracts import (
     AuditStore,
     ChatProvider,
@@ -23,6 +24,7 @@ from .contracts import (
 from .models import (
     AssistantRequest,
     Conversation,
+    LatencyClass,
     Message,
     MessageRole,
     ModelRole,
@@ -101,12 +103,21 @@ class AssistantService:
         policy: ToolPolicy,
         system_prompt: str = "",
         context_message_limit: int = 20,
+        context_recent_message_limit: int | None = None,
+        context_summary_max_chars: int = 2_000,
         max_tool_iterations: int = 4,
         memory: MemoryContextPort | None = None,
         sensitivity_classifier: SensitivityClassifier | None = None,
     ) -> None:
         if context_message_limit < 1:
             raise ValueError("context_message_limit must be at least 1")
+        effective_recent_limit = min(8, context_message_limit)
+        if context_recent_message_limit is not None:
+            effective_recent_limit = context_recent_message_limit
+        if not 2 <= effective_recent_limit <= context_message_limit:
+            raise ValueError("recent context limit must be between 2 and context message limit")
+        if context_summary_max_chars < 128:
+            raise ValueError("context summary limit must be at least 128 characters")
         if max_tool_iterations < 1:
             raise ValueError("max_tool_iterations must be at least 1")
 
@@ -134,6 +145,8 @@ class AssistantService:
         }
         self.system_prompt = system_prompt.strip()
         self.context_message_limit = context_message_limit
+        self.context_recent_message_limit = effective_recent_limit
+        self.context_summary_max_chars = context_summary_max_chars
         self.max_tool_iterations = max_tool_iterations
         self.memory = memory
         self.sensitivity_classifier = sensitivity_classifier
@@ -146,6 +159,7 @@ class AssistantService:
         metadata: Mapping[str, JsonValue] | None = None,
         requested_model_role: ModelRole | None = None,
         reasoning_level: ReasoningLevel | None = None,
+        latency_class: LatencyClass | None = None,
     ) -> RuntimeResult:
         """Convenience entrypoint for a single user turn."""
         return await self.run(
@@ -155,6 +169,7 @@ class AssistantService:
                 metadata=dict(metadata or {}),
                 requested_model_role=requested_model_role,
                 reasoning_level=reasoning_level,
+                latency_class=latency_class,
             )
         )
 
@@ -266,12 +281,16 @@ class AssistantService:
             )
             try:
                 response: ProviderResponse | None = None
+                latency_class = request.latency_class
+                if latency_class is None and request.metadata.get("interface") == "voice":
+                    latency_class = LatencyClass.NORMAL_VOICE
                 if isinstance(self.provider, RoutedStreamingChatProvider):
                     provider_stream = self.provider.stream_chat_routed(
                         messages=context,
                         tools=self.tool_definitions,
                         requested_role=request.requested_model_role,
                         reasoning_level=request.reasoning_level,
+                        latency_class=latency_class,
                     )
                 elif isinstance(self.provider, StreamingChatProvider):
                     provider_stream = self.provider.stream_chat(
@@ -319,6 +338,7 @@ class AssistantService:
                             tools=self.tool_definitions,
                             requested_role=request.requested_model_role,
                             reasoning_level=request.reasoning_level,
+                            latency_class=latency_class,
                         )
                     )
                 else:
@@ -803,6 +823,12 @@ class AssistantService:
             raise ValueError("conversation store exceeded the context message limit")
         if any(message.conversation_id != conversation.id for message in recent):
             raise ValueError("conversation store returned a message from another conversation")
+        recent = reduce_conversation_context(
+            recent,
+            recent_limit=self.context_recent_message_limit,
+            summary_max_chars=self.context_summary_max_chars,
+            classify=self._classify,
+        )
         memory_message: Message | None = None
         if self.memory is not None:
             latest_user = next(

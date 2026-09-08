@@ -55,8 +55,10 @@ A turn follows this bounded flow:
 
 1. Accept a validated user message and conversation identifier.
 2. Persist the user message.
-3. Load a bounded context window from the conversation store.
-4. Scan full disclosed context locally, select a role, and ask a configured provider.
+3. Load a bounded context window, retain its recent tail, and locally extract only older turns
+   relevant to the latest request.
+4. Add only relevant approved memory, scan the full candidate disclosure locally, select a tier,
+   and ask a configured provider with only query-relevant public tool schemas on cloud routes.
 5. Forward visible token deltas as typed events; hidden reasoning is never forwarded or stored.
 6. If the response requests a tool, validate its name and arguments, apply the
    tool policy, execute it, and record an audit result.
@@ -68,13 +70,25 @@ bounded. A provider failure must not corrupt a conversation.
 
 ### Provider boundary
 
-`ModelProvider` normalizes NVIDIA, Groq, Gemini, and Ollama wire formats. Ollama NDJSON and NVIDIA
+`ModelProvider` normalizes NVIDIA, Groq, Gemini, and Ollama wire formats. Tier 0 handles deterministic
+tools/direct results (and only tool-owned caches with explicit freshness); Tier 1 is local Ollama;
+Tier 2 is responsive Groq `FAST`/`PRIMARY`; Tier 3 is NVIDIA difficult reasoning. Ollama NDJSON and NVIDIA
 SSE emit genuine visible-token deltas plus one terminal normalized response; Groq/Gemini currently
 emit terminal frames. `ModelRouter`
 owns sensitivity gating, role selection, bounded transient retry, quota/model
 fallback, and zero-cost enforcement. Sensitive or uncertain routes never use a
 cloud provider. Fallback is allowed only before streamed output begins; partial output cannot be
-silently combined with another provider. Profiles expose lifecycle, context, and verified capabilities.
+silently combined with another provider. Cloud providers receive one attempt; congestion does not
+cause an immediate retry storm. Rolling health records TTFT p50/p95, total p50/p95, error rate,
+recent `429`/`5xx`, quota state, and temporary degradation. Automatic deep work deprioritizes
+severely degraded NVIDIA, but explicit NVIDIA requests remain available and never count as a
+provider-specific pass unless NVIDIA itself meets the fixed benchmark. Profiles expose lifecycle,
+context, and verified capabilities.
+
+NVIDIA owns one process-lifetime pooled `httpx.AsyncClient` with explicit connection and keep-alive
+limits. Per-request milestones cover DNS probe, TCP connect, TLS, upload, headers, first SSE frame,
+first reasoning token, first visible token, final visible token, and completion. TCP/TLS are absent
+when a keep-alive connection is reused; telemetry retains no prompt or response text.
 
 Phase 5 research uses separate `SearchProvider`, `DocumentFetcher`, and `DocumentParser` ports.
 The first fetch adapter validates public DNS, connects to the validated IP while retaining the
@@ -184,6 +198,12 @@ idle/listen/transcribe/think/speak/interrupted/error/disabled transitions. Speec
 validated text turn as CLI/API; closing a stream cancels in-flight provider work. Phrase output,
 barge-in, render-reference suppression, device persistence, diagnostics, and text fallback remain
 outside the core assistant.
+
+The router may fail over only before visible provider output. Once output starts, that provider
+owns the response, so TTS never speaks competing answers. Normal voice is latency-classed local
+first. Current voice speaks the single completed response and emits no generic filler; any future
+acknowledgement must be short, natural, and conditional on exceeding the configured normal-voice
+speech-start budget for a genuinely long cloud task.
 
 The concrete default uses local CPU Silero VAD, faster-whisper `base.en` int8, and Windows SAPI.
 openWakeWord ONNX and double-clap foundations emit typed events but continuous listening is hard

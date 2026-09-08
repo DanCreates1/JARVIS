@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import json
+import socket
 from collections import deque
 from collections.abc import AsyncIterator, Mapping, Sequence
+from dataclasses import dataclass, field
 from time import monotonic, perf_counter
 from typing import Any
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 import httpx
@@ -16,6 +19,7 @@ from jarvis.core.models import (
     Message,
     MessageRole,
     ModelProfile,
+    ProviderLatencyBreakdown,
     ProviderResponse,
     ProviderStreamFrame,
     ProviderUsage,
@@ -83,7 +87,18 @@ class NvidiaChatProvider:
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         }
-        self._client = client or httpx.AsyncClient(timeout=timeout_seconds)
+        self._client = client or httpx.AsyncClient(
+            timeout=httpx.Timeout(
+                timeout_seconds,
+                connect=min(timeout_seconds, 10.0),
+                pool=min(timeout_seconds, 5.0),
+            ),
+            limits=httpx.Limits(
+                max_connections=max(2, max_concurrency),
+                max_keepalive_connections=max(1, max_concurrency),
+                keepalive_expiry=60.0,
+            ),
+        )
         self._closed = False
 
     @property
@@ -143,8 +158,11 @@ class NvidiaChatProvider:
             raise RuntimeError("NvidiaChatProvider is closed")
         await self._claim_rate_slot()
         started = perf_counter()
+        latency = _LatencyRecorder(started=started)
         try:
             async with asyncio.timeout(self._timeout_seconds):
+                if self._owns_client:
+                    await self._record_dns(latency)
                 async with (
                     self._concurrency,
                     self._client.stream(
@@ -152,10 +170,20 @@ class NvidiaChatProvider:
                         f"{self._base_url}/chat/completions",
                         json=payload,
                         headers=self._headers,
+                        extensions={"trace": latency.trace},
                     ) as response,
                 ):
+                    latency.mark("response_headers_ms")
                     async for frame in self._consume_stream(
-                        response, enable_thinking=enable_thinking, started=started
+                        response,
+                        enable_thinking=enable_thinking,
+                        started=started,
+                        latency=latency,
+                        message_count=len(messages),
+                        tool_schema_count=len(tools),
+                        reasoning_budget_tokens=(
+                            self._reasoning_budget_tokens if enable_thinking else 0
+                        ),
                     ):
                         yield frame
         except (
@@ -172,6 +200,10 @@ class NvidiaChatProvider:
         *,
         enable_thinking: bool,
         started: float,
+        latency: _LatencyRecorder,
+        message_count: int,
+        tool_schema_count: int,
+        reasoning_budget_tokens: int,
     ) -> AsyncIterator[ProviderStreamFrame]:
         if not response.is_success:
             await response.aread()
@@ -195,6 +227,7 @@ class NvidiaChatProvider:
             data = line[5:].strip()
             if not data:
                 continue
+            latency.mark("first_sse_frame_ms", first_only=True)
             if data == "[DONE]":
                 done_seen = True
                 continue
@@ -210,14 +243,19 @@ class NvidiaChatProvider:
                 delta = choice.get("delta", {})
                 if not isinstance(delta, Mapping):
                     raise ProviderProtocolError("NVIDIA stream delta must be an object")
-                if delta.get("reasoning_content") is not None:
+                reasoning_content = delta.get("reasoning_content")
+                if reasoning_content is not None:
                     separate_reasoning_seen = True
+                    if isinstance(reasoning_content, str) and reasoning_content.strip():
+                        latency.mark("first_reasoning_token_ms", first_only=True)
                 raw_content = delta.get("content")
                 if raw_content is not None and not isinstance(raw_content, str):
                     raise ProviderProtocolError("NVIDIA stream content must be text or null")
                 if raw_content:
                     visible_delta = ""
                     if "</think>" in raw_content:
+                        if raw_content.split("</think>", 1)[0].strip():
+                            latency.mark("first_reasoning_token_ms", first_only=True)
                         visible_delta = raw_content.rsplit("</think>", 1)[1]
                         pending_reasoning = ""
                         reasoning_closed = True
@@ -225,11 +263,14 @@ class NvidiaChatProvider:
                         visible_delta = raw_content
                     else:
                         pending_reasoning += raw_content
+                        latency.mark("first_reasoning_token_ms", first_only=True)
                         if "</think>" in pending_reasoning:
                             visible_delta = pending_reasoning.rsplit("</think>", 1)[1]
                             pending_reasoning = ""
                             reasoning_closed = True
                     if visible_delta:
+                        latency.mark("first_visible_token_ms", first_only=True)
+                        latency.mark("final_visible_token_ms")
                         visible_parts.append(visible_delta)
                         yield ProviderStreamFrame(content_delta=visible_delta)
                 _merge_tool_deltas(tool_fragments, delta.get("tool_calls", []))
@@ -241,11 +282,16 @@ class NvidiaChatProvider:
         content = "".join(visible_parts).strip() or None
         if content is None and not calls:
             raise ProviderProtocolError("NVIDIA stream contained no visible text or tool call")
+        latency.mark("completion_ms")
         usage = _usage(
             usage_raw,
             self.profile,
             (perf_counter() - started) * 1_000,
             response,
+            latency=latency.as_model(),
+            message_count=message_count,
+            tool_schema_count=tool_schema_count,
+            reasoning_budget_tokens=reasoning_budget_tokens,
         )
         yield ProviderStreamFrame(
             response=ProviderResponse(content=content, tool_calls=calls, usage=usage)
@@ -300,6 +346,20 @@ class NvidiaChatProvider:
                     "NVIDIA client-side request cap reached; use local fallback and retry later"
                 )
             self._request_times.append(now)
+
+    async def _record_dns(self, latency: _LatencyRecorder) -> None:
+        parsed = urlsplit(self._base_url)
+        host = parsed.hostname
+        if host is None:
+            return
+        port = parsed.port or 443
+        dns_started = perf_counter()
+        await asyncio.get_running_loop().getaddrinfo(
+            host,
+            port,
+            type=socket.SOCK_STREAM,
+        )
+        latency.values["dns_ms"] = max(0.0, (perf_counter() - dns_started) * 1_000)
 
 
 def _message_payload(message: Message) -> dict[str, object]:
@@ -398,7 +458,15 @@ def _finalize_tool_deltas(fragments: Mapping[int, Mapping[str, str]]) -> tuple[T
 
 
 def _usage(
-    raw: object, profile: ModelProfile, latency_ms: float, response: httpx.Response
+    raw: object,
+    profile: ModelProfile,
+    latency_ms: float,
+    response: httpx.Response,
+    *,
+    latency: ProviderLatencyBreakdown,
+    message_count: int,
+    tool_schema_count: int,
+    reasoning_budget_tokens: int,
 ) -> ProviderUsage:
     values = raw if isinstance(raw, Mapping) else {}
     remaining = response.headers.get("x-ratelimit-remaining-requests")
@@ -414,7 +482,49 @@ def _usage(
         latency_ms=latency_ms,
         estimated_cost_usd=0,
         rate_limit_remaining=parsed_remaining,
+        message_count=message_count,
+        tool_schema_count=tool_schema_count,
+        reasoning_budget_tokens=reasoning_budget_tokens,
+        latency=latency,
     )
+
+
+@dataclass(slots=True)
+class _LatencyRecorder:
+    started: float
+    values: dict[str, float] = field(default_factory=dict)
+
+    def mark(self, name: str, *, first_only: bool = False) -> None:
+        if first_only and name in self.values:
+            return
+        self.values[name] = max(0.0, (perf_counter() - self.started) * 1_000)
+
+    async def trace(self, name: str, _info: Mapping[str, object]) -> None:
+        suffix_to_marker = {
+            "connection.connect_tcp.complete": "tcp_connect_ms",
+            "connection.start_tls.complete": "tls_ms",
+            "send_request_body.complete": "request_upload_ms",
+            "receive_response_headers.complete": "response_headers_ms",
+        }
+        for suffix, marker in suffix_to_marker.items():
+            if name.endswith(suffix):
+                self.mark(marker, first_only=True)
+                return
+
+    def as_model(self) -> ProviderLatencyBreakdown:
+        return ProviderLatencyBreakdown(
+            request_start_ms=0,
+            dns_ms=self.values.get("dns_ms"),
+            tcp_connect_ms=self.values.get("tcp_connect_ms"),
+            tls_ms=self.values.get("tls_ms"),
+            request_upload_ms=self.values.get("request_upload_ms"),
+            response_headers_ms=self.values.get("response_headers_ms"),
+            first_sse_frame_ms=self.values.get("first_sse_frame_ms"),
+            first_reasoning_token_ms=self.values.get("first_reasoning_token_ms"),
+            first_visible_token_ms=self.values.get("first_visible_token_ms"),
+            final_visible_token_ms=self.values.get("final_visible_token_ms"),
+            completion_ms=self.values.get("completion_ms"),
+        )
 
 
 def _json_object(response: httpx.Response, label: str) -> Mapping[str, Any]:

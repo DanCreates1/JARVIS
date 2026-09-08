@@ -149,8 +149,10 @@ class FakeSTT:
 class FakeTTS:
     def __init__(self, *, failure: BaseException | None = None) -> None:
         self.failure = failure
+        self.texts: list[str] = []
 
     async def synthesize(self, *, session_id: str, text: str, cancel: asyncio.Event):
+        self.texts.append(text)
         if self.failure:
             raise self.failure
         yield AudioChunk(
@@ -287,6 +289,20 @@ async def test_push_to_talk_success_preserves_devices_and_local_metadata(tmp_pat
     assert VoiceEventType.AUDIO_CAPTURED in event_types
     assert VoiceEventType.TRANSCRIPT in event_types
     assert VoiceEventType.AUDIO_OUTPUT in event_types
+
+
+@pytest.mark.asyncio
+async def test_voice_speaks_one_owned_answer_without_generic_filler(tmp_path) -> None:
+    tts = FakeTTS()
+    assistant = FakeAssistant(
+        RuntimeResult(status=RuntimeStatus.COMPLETED, reply="Single provider-owned answer.")
+    )
+    session, _store, _output = controller(tmp_path, assistant=assistant, tts=tts)
+
+    result = await session.run_push_to_talk(stop_capture=asyncio.Event())
+
+    assert result.failure is None
+    assert tts.texts == ["Single provider-owned answer."]
 
 
 @pytest.mark.asyncio

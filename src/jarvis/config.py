@@ -75,6 +75,14 @@ class Settings(BaseSettings):
     request_timeout_seconds: float = Field(default=60.0, gt=0, le=600)
     max_provider_response_bytes: int = Field(default=2_000_000, ge=1_024, le=20_000_000)
     context_message_limit: int = Field(default=40, ge=2, le=500)
+    context_recent_message_limit: int = Field(default=8, ge=2, le=40)
+    context_summary_max_chars: int = Field(default=2_000, ge=128, le=20_000)
+    simple_local_latency_budget_ms: int = Field(default=3_000, ge=100, le=120_000)
+    normal_voice_latency_budget_ms: int = Field(default=2_500, ge=100, le=120_000)
+    fast_cloud_latency_budget_ms: int = Field(default=2_500, ge=100, le=120_000)
+    deep_reasoning_latency_budget_ms: int = Field(default=7_000, ge=100, le=600_000)
+    provider_health_window_size: int = Field(default=50, ge=5, le=1_000)
+    provider_degradation_seconds: int = Field(default=120, ge=10, le=3_600)
     max_tool_iterations: int = Field(default=4, ge=1, le=10)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     web_host: str = "127.0.0.1"
@@ -193,6 +201,8 @@ class Settings(BaseSettings):
             raise ValueError(
                 "NVIDIA non-reasoning output limit must not exceed maximum output tokens"
             )
+        if self.context_recent_message_limit > self.context_message_limit:
+            raise ValueError("recent context limit cannot exceed context message limit")
         if (
             self.groq_base_url.scheme != "https"
             or self.gemini_base_url.scheme != "https"
@@ -271,6 +281,14 @@ class Settings(BaseSettings):
             "request_timeout_seconds": self.request_timeout_seconds,
             "max_provider_response_bytes": self.max_provider_response_bytes,
             "context_message_limit": self.context_message_limit,
+            "context_recent_message_limit": self.context_recent_message_limit,
+            "context_summary_max_chars": self.context_summary_max_chars,
+            "simple_local_latency_budget_ms": self.simple_local_latency_budget_ms,
+            "normal_voice_latency_budget_ms": self.normal_voice_latency_budget_ms,
+            "fast_cloud_latency_budget_ms": self.fast_cloud_latency_budget_ms,
+            "deep_reasoning_latency_budget_ms": self.deep_reasoning_latency_budget_ms,
+            "provider_health_window_size": self.provider_health_window_size,
+            "provider_degradation_seconds": self.provider_degradation_seconds,
             "max_tool_iterations": self.max_tool_iterations,
             "web_host": self.web_host,
             "web_port": self.web_port,

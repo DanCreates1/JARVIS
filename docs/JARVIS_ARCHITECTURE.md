@@ -4,9 +4,10 @@ Status: target architecture; implementation remains incremental
 Planning date: 2026-09-08
 Last reconciled with Phase 1-6 implementation: 2026-09-08
 
-Phases 4, 5, and 6 currently satisfy their completion gates. Phase 1 clean-host/bootstrap/repository and
-optimized local latency gates pass, while hosted NVIDIA fixed latency remains an external blocker
-despite complete 20-sample states. Phase 2 and Phase 3 await separately authorized current live
+Phases 4, 5, and 6 currently satisfy their completion gates. Phase 1 clean-host/bootstrap/repository
+and prior optimized-local evidence pass, while hosted NVIDIA fixed latency remains an external
+blocker despite preserved complete 20-sample states. Fresh 2026-09-08 local-cold revalidation also
+missed its p50 target. Phase 2 and Phase 3 await separately authorized current live
 device/effect checks. See `docs/PHASE_OVERVIEW.md`; these status limits do not alter the
 architecture boundaries below.
 
@@ -170,7 +171,9 @@ Latency rules:
 - run wake word and VAD continuously on CPU; do not invoke an LLM for silence;
 - start STT from buffered pre-roll and emit partial transcripts;
 - classify sensitivity locally before any cloud request;
-- retrieve memory concurrently with cloud intent classification only after the turn is classified non-sensitive;
+- summarize older turns locally, retrieve only relevant memory, and disclose neither until the
+  complete candidate context is classified public;
+- send only query-relevant public tool schemas to cloud providers;
 - stream model events immediately, but buffer enough text for stable TTS phrasing;
 - bypass LLM for deterministic commands with validated unambiguous intent;
 - load only a bounded context and retrieval set;
@@ -209,6 +212,11 @@ Implemented Phase 2 choices:
 
 Barge-in is a session-state transition, not another model prompt. New host speech cancels queued TTS and current audio output, preserves already-audible text metadata, marks the previous turn interrupted, and begins a fresh input segment. Echo cancellation or render-reference suppression must prevent JARVIS from interrupting itself.
 
+Provider racing, if added later, is backend-only. The first provider to emit visible content owns
+the turn; no second provider can replace or append a competing spoken answer. Current voice invokes
+one core turn and TTS once, with no generic filler. A future acknowledgement is permitted only for
+a genuinely long cloud task after the configured normal-voice speech-start budget is exceeded.
+
 ## 7. Model routing
 
 Routing begins with a deterministic local privacy and command gate. A cloud model never receives an unclassified turn. Uncertainty is treated as sensitive and stays local.
@@ -240,25 +248,36 @@ Routing output is a logical role and policy, not just a model name:
 }
 ```
 
-Default role mapping:
+Implemented latency tiers and role mapping:
 
-| Role | Default mapping | Policy |
+| Tier / role | Default mapping | Policy |
 | --- | --- | --- |
-| `FAST` | Groq `openai/gpt-oss-20b` | Safe simple requests and safe ambiguous routing; low reasoning where needed |
-| `PRIMARY` | Groq `qwen/qwen3.6-27b` | Safe normal conversation/tool planning; non-thinking by default, thinking for moderate reasoning |
-| `REASONING` | NVIDIA `nvidia/nemotron-3.5-lightning-30b-a3b` | Safe difficult public reasoning, coding, research, long context, and tools |
-| `LOCAL` | Ollama `qwen3:0.6b` | Normal, sensitive/private, offline, and cloud-fallback work; Nemotron Nano remains compatibility-tested |
+| Tier 0 | Deterministic typed tools/direct results | No model; cached results only when owning tool defines safe freshness |
+| Tier 1 / `LOCAL` | Ollama `qwen3:0.6b` | Simple/normal, latency-sensitive, private/unknown, offline, and fallback work |
+| Tier 2 / `FAST`, `PRIMARY` | Groq `openai/gpt-oss-20b`, `qwen/qwen3.6-27b` | Public work exceeding local capability but needing responsive interaction |
+| Tier 3 / `REASONING` | NVIDIA `nvidia/nemotron-3.5-lightning-30b-a3b` | Difficult public reasoning/long work where latency is acceptable |
 
 Routing order:
 
 1. Run the local sensitivity and deterministic-command gate.
 2. Execute recognized deterministic intents through typed tool/policy paths without an LLM when possible.
 3. Route sensitive or uncertain content to `LOCAL`.
-4. Route safe simple or ambiguous intent to `FAST`.
-5. Route safe normal work to non-thinking `PRIMARY`; enable thinking only for moderate reasoning.
-6. Route safe complex or large/multimodal work to `REASONING`.
+4. Route safe simple and normal work to `LOCAL`; explicit latency-sensitive cloud work uses `FAST`.
+5. Route public moderate work exceeding local capability to responsive `PRIMARY`.
+6. Route safe complex or large work to `REASONING` only when deep-task latency is acceptable.
 
-Fallback respects both capabilities and privacy. NVIDIA catalog removal, quota exhaustion, or outage falls back to Ollama. Optional Groq/Gemini roles retain bounded fallback. Sensitive work never falls through to cloud. Provider `429` and catalog mismatch are availability signals, never permission to enter paid service.
+Fallback respects both capabilities and privacy. A cloud provider receives one attempt; JARVIS does
+not aggressively retry congestion. Rolling TTFT p50/p95, completion p50/p95, error rate, recent
+`429`/`5xx`, quota state, and a temporary degradation window influence automatic ordering.
+Severely degraded NVIDIA is deprioritized for automatic deep work but remains explicitly selectable
+for deliberate long reasoning and direct benchmark evidence. Sensitive work never falls through to
+cloud. Fallback ends when visible content begins, preserving one response owner.
+
+NVIDIA uses a process-lifetime pooled `httpx.AsyncClient` with explicit connection/keep-alive
+limits. Telemetry measures DNS, TCP, TLS, request upload, response headers, first SSE frame, first
+reasoning token, first visible token, final visible token, and completion. It also records token,
+message, public-schema, reasoning-budget, failure, and rate-limit counts without prompt/response
+content. Routing around NVIDIA never changes or replaces NVIDIA-specific benchmark results.
 
 Initial cloud credentials belong to free/trial service and the cloud budget is exactly `$0`. All cloud transfer remains external disclosure. NVIDIA trial service is prohibited for sensitive, personal, confidential, credential, file, memory, communication, or device content.
 

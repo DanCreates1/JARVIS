@@ -154,6 +154,34 @@ missing. It must not print environment variables or private data.
 Browser chat listens at `http://127.0.0.1:8765` by default. Phase 1 rejects a
 non-loopback bind because remote authentication is not implemented.
 
+### Latency routing and NVIDIA evidence
+
+Current defaults keep simple/normal/voice-sensitive work local, use configured Groq roles for
+responsive public cloud work, and reserve NVIDIA for difficult public reasoning. Tune UX budgets
+without changing Phase 1 acceptance thresholds:
+
+```dotenv
+JARVIS_CONTEXT_RECENT_MESSAGE_LIMIT=8
+JARVIS_CONTEXT_SUMMARY_MAX_CHARS=2000
+JARVIS_SIMPLE_LOCAL_LATENCY_BUDGET_MS=3000
+JARVIS_NORMAL_VOICE_LATENCY_BUDGET_MS=2500
+JARVIS_FAST_CLOUD_LATENCY_BUDGET_MS=2500
+JARVIS_DEEP_REASONING_LATENCY_BUDGET_MS=7000
+JARVIS_PROVIDER_HEALTH_WINDOW_SIZE=50
+JARVIS_PROVIDER_DEGRADATION_SECONDS=120
+```
+
+These are routing/health budgets, not replacements for fixed Phase 1 p50/p95 gates. Run public
+NVIDIA evidence only with existing free-tier authorization and compiled public fixtures:
+
+```powershell
+uv run python scripts\phase1-benchmark.py --work-dir runtime\phase1-nvidia --profiles hosted-simple hosted-complex --samples 20 --warmups 1 --include-hosted --confirm-public-fixtures --nvidia-reasoning-matrix --nvidia-reasoning-budgets 64 128 256
+```
+
+The report stores fixture hashes and operational metrics, not prompt/response text. Preserve failed
+or incomplete runs. Routing around degraded NVIDIA protects product response time but does not make
+the NVIDIA benchmark pass.
+
 ## Durable memory controls
 
 Phase 4 memory is local, SQLite-backed, and enabled by default. A stable pseudonymous ID derived

@@ -13,6 +13,7 @@ from jarvis.llm.base import (
 )
 from jarvis.llm.gemini import GeminiChatProvider
 from jarvis.llm.groq import GroqChatProvider
+from jarvis.llm.health import LatencyBudgets, ProviderHealthSnapshot, ProviderHealthTracker
 from jarvis.llm.nvidia import NvidiaChatProvider
 from jarvis.llm.ollama import (
     OllamaChatProvider,
@@ -28,6 +29,7 @@ from jarvis.llm.routing import ModelRouter, PrivacyGate, RoutingPolicy
 __all__ = [
     "GeminiChatProvider",
     "GroqChatProvider",
+    "LatencyBudgets",
     "ModelProvider",
     "ModelRouter",
     "NvidiaChatProvider",
@@ -42,6 +44,8 @@ __all__ = [
     "PrivateRouteUnavailableError",
     "ProviderAuthenticationError",
     "ProviderError",
+    "ProviderHealthSnapshot",
+    "ProviderHealthTracker",
     "ProviderModelUnavailableError",
     "ProviderProtocolError",
     "ProviderQuotaError",

@@ -8,6 +8,7 @@ from collections.abc import AsyncIterator, Mapping, Sequence
 from uuid import uuid4
 
 from jarvis.core.models import (
+    LatencyClass,
     Message,
     MessageRole,
     ModelRole,
@@ -30,6 +31,7 @@ from .base import (
     ProviderUnavailableError,
     ZeroCostPolicyError,
 )
+from .health import LatencyBudgets, ProviderHealthSnapshot, ProviderHealthTracker
 
 _PRIVATE_PATTERNS = tuple(
     re.compile(pattern, re.IGNORECASE)
@@ -111,6 +113,7 @@ class RoutingPolicy:
         requested_role: ModelRole | None = None,
         requested_reasoning: ReasoningLevel | None = None,
         forced_sensitivity: SensitivityClass | None = None,
+        latency_class: LatencyClass | None = None,
     ) -> RoutingDecision:
         sensitivity = forced_sensitivity or self.gate.classify(text)
         if sensitivity is not SensitivityClass.PUBLIC:
@@ -123,30 +126,31 @@ class RoutingPolicy:
             reason = f"Explicit safe-content override requested role {role.value}."
         elif (
             requested_reasoning is ReasoningLevel.DEEP
+            or latency_class is LatencyClass.DEEP_REASONING
             or _DEEP_PATTERN.search(text)
             or len(text) > 4_000
         ):
             role = ModelRole.REASONING
             level = ReasoningLevel.DEEP
             reason = "Safe request requires complex or large-context reasoning."
+        elif latency_class is LatencyClass.FAST_CLOUD:
+            role = ModelRole.FAST
+            level = ReasoningLevel.NONE
+            reason = "Safe request explicitly requires the responsive cloud tier."
         elif requested_reasoning is ReasoningLevel.MODERATE or _MODERATE_PATTERN.search(text):
             role = ModelRole.PRIMARY
             level = ReasoningLevel.MODERATE
-            reason = "Safe request requires moderate reasoning."
-        elif len(text) <= 140:
-            role = ModelRole.FAST
-            level = ReasoningLevel.NONE
-            reason = "Safe bounded request can use the fast role."
+            reason = "Safe request exceeds the normal local tier and uses responsive cloud."
         else:
-            role = ModelRole.PRIMARY
+            role = ModelRole.LOCAL
             level = ReasoningLevel.NONE
-            reason = "Safe normal conversation uses the primary non-thinking role."
+            reason = "Safe simple or normal interaction uses the latency-stable local tier."
         return RoutingDecision(
             chosen_role=role,
             reason=reason,
             sensitivity=sensitivity,
             reasoning_level=level,
-            fallback_chain=_fallback_chain(role),
+            fallback_chain=_fallback_chain(role, sensitivity=sensitivity),
             requested_role=requested_role,
         )
 
@@ -160,6 +164,8 @@ class ModelRouter:
         *,
         policy: RoutingPolicy | None = None,
         max_cloud_cost_usd: float = 0,
+        health: ProviderHealthTracker | None = None,
+        latency_budgets: LatencyBudgets | None = None,
     ) -> None:
         if max_cloud_cost_usd != 0:
             raise ValueError("Phase 1 requires max_cloud_cost_usd to equal 0")
@@ -168,6 +174,8 @@ class ModelRouter:
         self.providers = dict(providers)
         self.policy = policy or RoutingPolicy()
         self.max_cloud_cost_usd = max_cloud_cost_usd
+        self.health = health or ProviderHealthTracker()
+        self.latency_budgets = latency_budgets or LatencyBudgets()
 
     async def chat(
         self,
@@ -184,6 +192,7 @@ class ModelRouter:
         tools: Sequence[ToolDefinition],
         requested_role: ModelRole | None = None,
         reasoning_level: ReasoningLevel | None = None,
+        latency_class: LatencyClass | None = None,
     ) -> ProviderResponse:
         response: ProviderResponse | None = None
         async for frame in self.stream_chat_routed(
@@ -191,6 +200,7 @@ class ModelRouter:
             tools=tools,
             requested_role=requested_role,
             reasoning_level=reasoning_level,
+            latency_class=latency_class,
         ):
             if frame.response is not None:
                 response = frame.response
@@ -205,6 +215,7 @@ class ModelRouter:
         tools: Sequence[ToolDefinition],
         requested_role: ModelRole | None = None,
         reasoning_level: ReasoningLevel | None = None,
+        latency_class: LatencyClass | None = None,
     ) -> AsyncIterator[ProviderStreamFrame]:
         latest_user = next(
             (message.content for message in reversed(messages) if message.role is MessageRole.USER),
@@ -233,8 +244,9 @@ class ModelRouter:
             requested_role=requested_role,
             requested_reasoning=reasoning_level,
             forced_sensitivity=forced_sensitivity,
+            latency_class=latency_class,
         )
-        roles = (decision.chosen_role, *decision.fallback_chain)
+        roles = self._ordered_roles(decision, requested_role=requested_role)
         failures: list[str] = []
         for role in roles:
             provider = self.providers.get(role)
@@ -246,13 +258,16 @@ class ModelRouter:
             provider_stream: AsyncIterator[ProviderStreamFrame] | None = None
             first_frame: ProviderStreamFrame | None = None
             last_error: Exception | None = None
-            for attempt in range(2):
+            attempts = 1 if provider.profile.is_cloud else 2
+            budget_ms = self._budget_for_role(role, latency_class=latency_class)
+            for attempt in range(attempts):
                 try:
                     provider_stream = provider.stream_chat(
                         messages=messages,
                         tools=_tools_for_provider(
                             tools,
                             is_cloud=provider.profile.is_cloud,
+                            query=latest_user,
                         ),
                         reasoning_level=decision.reasoning_level.value,
                     )
@@ -264,7 +279,12 @@ class ModelRouter:
                     )
                 except Exception as exc:
                     last_error = exc
-                if not _is_retryable(last_error) or attempt == 1:
+                    self.health.record_failure(
+                        _provider_key(provider),
+                        exc,
+                        budget_ms=budget_ms,
+                    )
+                if not _is_retryable(last_error) or attempt == attempts - 1:
                     break
             if provider_stream is None or first_frame is None:
                 assert last_error is not None
@@ -285,30 +305,48 @@ class ModelRouter:
             yield ProviderStreamFrame(routing=actual_decision)
             terminal_seen = False
             current_frame: ProviderStreamFrame | None = first_frame
-            while current_frame is not None:
-                if current_frame.response is not None:
-                    if terminal_seen:
-                        raise ProviderProtocolError(
-                            "Provider stream returned multiple terminal responses"
+            try:
+                while current_frame is not None:
+                    if current_frame.response is not None:
+                        if terminal_seen:
+                            raise ProviderProtocolError(
+                                "Provider stream returned multiple terminal responses"
+                            )
+                        terminal_seen = True
+                        response = current_frame.response
+                        if (
+                            response.usage
+                            and response.usage.estimated_cost_usd > self.max_cloud_cost_usd
+                        ):
+                            raise ZeroCostPolicyError("Provider usage violates zero-dollar budget")
+                        self.health.record_success(
+                            _provider_key(provider),
+                            response.usage,
+                            budget_ms=budget_ms,
                         )
-                    terminal_seen = True
-                    response = current_frame.response
-                    if (
-                        response.usage
-                        and response.usage.estimated_cost_usd > self.max_cloud_cost_usd
-                    ):
-                        raise ZeroCostPolicyError("Provider usage violates zero-dollar budget")
-                    yield ProviderStreamFrame(
-                        response=response.model_copy(update={"routing": actual_decision})
-                    )
-                else:
-                    yield current_frame
-                try:
+                        yield ProviderStreamFrame(
+                            response=response.model_copy(update={"routing": actual_decision})
+                        )
+                    else:
+                        yield current_frame
                     current_frame = ProviderStreamFrame.model_validate(await anext(provider_stream))
-                except StopAsyncIteration:
-                    current_frame = None
+            except StopAsyncIteration:
+                current_frame = None
+            except Exception as exc:
+                self.health.record_failure(
+                    _provider_key(provider),
+                    exc,
+                    budget_ms=budget_ms,
+                )
+                raise
             if not terminal_seen:
-                raise ProviderProtocolError("Provider stream ended without a terminal response")
+                error = ProviderProtocolError("Provider stream ended without a terminal response")
+                self.health.record_failure(
+                    _provider_key(provider),
+                    error,
+                    budget_ms=budget_ms,
+                )
+                raise error
             return
 
         if decision.sensitivity is not SensitivityClass.PUBLIC:
@@ -336,6 +374,48 @@ class ModelRouter:
             except Exception:
                 results[role] = False
         return results
+
+    def health_snapshot(self) -> dict[ModelRole, ProviderHealthSnapshot]:
+        return {
+            role: self.health.snapshot(
+                _provider_key(provider), budget_ms=self._budget_for_role(role)
+            )
+            for role, provider in self.providers.items()
+        }
+
+    def _budget_for_role(
+        self,
+        role: ModelRole,
+        *,
+        latency_class: LatencyClass | None = None,
+    ) -> float:
+        if role is ModelRole.REASONING:
+            return self.latency_budgets.deep_reasoning_ms
+        if latency_class is LatencyClass.NORMAL_VOICE:
+            return self.latency_budgets.normal_voice_ms
+        if role in {ModelRole.FAST, ModelRole.PRIMARY}:
+            return self.latency_budgets.fast_cloud_ms
+        return self.latency_budgets.simple_local_ms
+
+    def _ordered_roles(
+        self,
+        decision: RoutingDecision,
+        *,
+        requested_role: ModelRole | None,
+    ) -> tuple[ModelRole, ...]:
+        normal = (decision.chosen_role, *decision.fallback_chain)
+        if decision.chosen_role is not ModelRole.REASONING or requested_role is not None:
+            return normal
+        provider = self.providers.get(ModelRole.REASONING)
+        if provider is None:
+            return normal
+        health = self.health.snapshot(
+            _provider_key(provider),
+            budget_ms=self.latency_budgets.deep_reasoning_ms,
+        )
+        if not health.degraded:
+            return normal
+        return tuple(dict.fromkeys((*decision.fallback_chain, ModelRole.REASONING)))
 
     async def close(self) -> None:
         seen: set[int] = set()
@@ -396,21 +476,51 @@ def _tools_for_provider(
     tools: Sequence[ToolDefinition],
     *,
     is_cloud: bool,
+    query: str,
 ) -> tuple[ToolDefinition, ...]:
     """Keep private/unknown tool schemas and host-owned enum values local."""
     if not is_cloud:
         return tuple(tools)
-    return tuple(tool for tool in tools if tool.sensitivity is SensitivityClass.PUBLIC)
+    query_tokens = _relevance_tokens(query)
+    return tuple(
+        tool
+        for tool in tools
+        if tool.sensitivity is SensitivityClass.PUBLIC
+        and bool(query_tokens & _relevance_tokens(f"{tool.name} {tool.description}"))
+    )
 
 
-def _fallback_chain(role: ModelRole) -> tuple[ModelRole, ...]:
+def _fallback_chain(
+    role: ModelRole,
+    *,
+    sensitivity: SensitivityClass,
+) -> tuple[ModelRole, ...]:
     if role is ModelRole.REASONING:
         return (ModelRole.PRIMARY, ModelRole.LOCAL)
     if role is ModelRole.PRIMARY:
         return (ModelRole.FAST, ModelRole.LOCAL)
     if role is ModelRole.FAST:
         return (ModelRole.LOCAL,)
+    if role is ModelRole.LOCAL and sensitivity is SensitivityClass.PUBLIC:
+        return (ModelRole.FAST, ModelRole.PRIMARY)
     return ()
+
+
+_RELEVANCE_STOPWORDS = frozenset(
+    {"a", "an", "and", "for", "get", "in", "is", "of", "on", "or", "the", "to"}
+)
+
+
+def _relevance_tokens(text: str) -> frozenset[str]:
+    return frozenset(
+        token
+        for token in re.findall(r"[a-z0-9]+", text.casefold())
+        if len(token) >= 2 and token not in _RELEVANCE_STOPWORDS
+    )
+
+
+def _provider_key(provider: ModelProvider) -> str:
+    return f"{provider.profile.provider}:{provider.profile.model_id}"
 
 
 def _is_retryable(error: Exception) -> bool:

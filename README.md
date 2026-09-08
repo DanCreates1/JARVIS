@@ -11,10 +11,11 @@ runtime databases, logs, generated media, and secrets do not belong in Git.
 
 ## Current verification status
 
-As of 2026-09-07, Phases 4–6 are complete. Phase 1 genuine Ollama/NVIDIA token streaming and the
-optimized local latency gate pass; Phase 1 remains blocked only by fixed hosted NVIDIA latency
-gates. All four hosted states have 20 successful public-fixture observations, but measured p50/p95
-still exceed one or both fixed targets. Clean-Windows bootstrap and exact repository quality gates
+As of 2026-09-08, Phases 4–6 are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
+optimized local latency evidence pass; Phase 1 remains formally blocked by fixed hosted NVIDIA
+latency gates. The preserved 20/20 NVIDIA states still miss one or both targets. Fresh instrumented
+requests place the long delay before response headers, while adaptive routing protects normal
+product interaction without representing NVIDIA as faster. Clean-Windows bootstrap and repository gates
 pass on an independent fresh GitHub Windows runner. Phases 2 and 3 pass current safe local gates but
 still require separately authorized current real-device/application smokes. See
 [Phase Overview](docs/PHASE_OVERVIEW.md) and the phase reports for exact evidence. No threshold or
@@ -30,7 +31,12 @@ The supported text vertical slice can:
 - stream visible Ollama/NVIDIA token deltas through CLI and browser SSE while persisting only the
   validated final assistant message;
 - send one non-interactive message;
-- route safe simple, normal, and difficult work across logical model roles;
+- route deterministic/direct work at Tier 0, simple/normal work to local Tier 1, responsive public
+  cloud work to Tier 2, and latency-tolerant difficult public reasoning to NVIDIA Tier 3;
+- reduce cloud prefill with local relevant-turn summaries, relevant approved memory, and
+  query-relevant public tool schemas;
+- track rolling provider TTFT, completion latency, failures, `429`/`5xx`, quota, and temporary
+  degradation without retaining prompt or response content;
 - keep credentials, files, memory, communications, personal data, and uncertain content local;
 - fall back on quota, model removal, or outage without entering paid service;
 - persist and explicitly delete conversations and basic memory records; and
@@ -124,10 +130,10 @@ Task execution is disabled by default. See [Bounded Tasks](docs/BOUNDED_TASKS.md
 
 | Role | Target default | Use |
 | --- | --- | --- |
-| `FAST` | Groq `openai/gpt-oss-20b` | Safe simple requests and safe ambiguous intent |
-| `PRIMARY` | Groq preview `qwen/qwen3.6-27b` | Safe normal conversation and tool planning |
-| `REASONING` | NVIDIA `nvidia/nemotron-3.5-lightning-30b-a3b` | Safe difficult public reasoning, coding, research, long context, and tools |
-| `LOCAL` | Ollama `qwen3:0.6b` | Normal/private requests, offline operation, cloud fallback |
+| `Tier 0` | Deterministic tools/direct results | Commands and direct actions needing no model; cache use only where an owning tool defines safe freshness |
+| `Tier 1 / LOCAL` | Ollama `qwen3:0.6b` | Simple/normal, latency-sensitive, private, uncertain, and offline work |
+| `Tier 2 / FAST, PRIMARY` | Groq `openai/gpt-oss-20b`, `qwen/qwen3.6-27b` | Public work exceeding local capability but needing responsive interaction |
+| `Tier 3 / REASONING` | NVIDIA `nvidia/nemotron-3.5-lightning-30b-a3b` | Difficult public reasoning and long-running work where latency is acceptable |
 
 A deterministic local gate must classify sensitivity before any cloud request.
 Initial cloud spend is hard-capped at `$0`; quota exhaustion, outage, or model
@@ -135,6 +141,13 @@ retirement falls back to another free/local role or returns a capacity error.
 NVIDIA trial APIs must never receive sensitive, confidential, or personal content;
 the local privacy gate keeps that work on Ollama. Model IDs and access are checked
 against live provider catalogs at startup.
+
+NVIDIA uses one process-lifetime pooled `httpx.AsyncClient`, one concurrent request, no aggressive
+cloud retry, and phase-resolved request telemetry. When its rolling tail latency is severely
+degraded, automatic deep-reasoning routes temporarily try responsive alternatives first. An
+explicit NVIDIA role request remains available for deliberate deep work and provider-specific
+benchmarking. Once any provider emits visible output, fallback stops; voice therefore receives one
+provider-owned answer and no competing provider speech. Current voice emits no generic filler.
 
 All mappings are configuration-driven. Without confirmed free-tier credentials,
 cloud roles remain disabled and every request uses local Ollama. `jarvis doctor`
@@ -266,6 +279,14 @@ The main settings are:
 | `JARVIS_NVIDIA_REASONING_BUDGET_TOKENS` | `256` | Hosted hidden-reasoning budget when thinking is enabled |
 | `JARVIS_NVIDIA_MAX_REQUESTS_PER_MINUTE` | `30` | Conservative local request guard; account cap is shown in NVIDIA UI |
 | `JARVIS_NVIDIA_MAX_CONCURRENCY` | `1` | Maximum simultaneous NVIDIA requests |
+| `JARVIS_CONTEXT_RECENT_MESSAGE_LIMIT` | `8` | Recent messages retained verbatim before local relevant-turn summarization |
+| `JARVIS_CONTEXT_SUMMARY_MAX_CHARS` | `2000` | Bound for local extractive older-turn summary |
+| `JARVIS_SIMPLE_LOCAL_LATENCY_BUDGET_MS` | `3000` | Simple local routing/health budget |
+| `JARVIS_NORMAL_VOICE_LATENCY_BUDGET_MS` | `2500` | Normal voice response budget |
+| `JARVIS_FAST_CLOUD_LATENCY_BUDGET_MS` | `2500` | Responsive cloud routing/health budget |
+| `JARVIS_DEEP_REASONING_LATENCY_BUDGET_MS` | `7000` | Latency-tolerant reasoning budget |
+| `JARVIS_PROVIDER_HEALTH_WINDOW_SIZE` | `50` | Bounded rolling provider observations |
+| `JARVIS_PROVIDER_DEGRADATION_SECONDS` | `120` | Temporary provider-degradation interval |
 | `JARVIS_CLOUD_POLICY` | `privacy_aware` | Use cloud only after local public-content classification |
 | `JARVIS_MAX_CLOUD_COST_USD` | `0` | Hard Phase 1 budget; any other value is rejected |
 | `JARVIS_WEB_HOST` | `127.0.0.1` | Browser/API bind; Phase 1 rejects non-loopback hosts |

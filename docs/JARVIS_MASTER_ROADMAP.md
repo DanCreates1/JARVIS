@@ -73,10 +73,10 @@ The laptop has 16 GB RAM and an RTX 2050 with 4 GB VRAM. It can provide private/
 
 | Role | Configured default | Verified status and capabilities | Intended use |
 | --- | --- | --- | --- |
-| `FAST` | Groq `openai/gpt-oss-20b` | Production; about 1,000 tokens/s; 131,072-token context; tools, reasoning, JSON object/schema modes; no parallel tool calls | Safe simple requests and safe ambiguous intent classification |
-| `PRIMARY` | Groq `qwen/qwen3.6-27b` | Preview; about 500 tokens/s; 131,072-token context; text/image input, tools, parallel tool calls, JSON mode, vision, thinking/non-thinking modes | Safe normal conversation and tool planning; non-thinking by default |
-| `REASONING` | NVIDIA `nvidia/nemotron-3.5-lightning-30b-a3b` | Hosted free endpoint; 1,000,000-token context; text, tools, and thinking | Safe complex public reasoning, coding, research, and large documents |
-| `LOCAL` | Ollama `qwen3:0.6b` | Installed 522,653,767-byte Q4_K_M model; tools and thinking; 4,096-token active context | Normal, sensitive/private, offline, and cloud-failure fallback |
+| `FAST` | Groq `openai/gpt-oss-20b` | Production; about 1,000 tokens/s; 131,072-token context; tools, reasoning, JSON object/schema modes; no parallel tool calls | Tier 2 responsive public cloud work |
+| `PRIMARY` | Groq `qwen/qwen3.6-27b` | Preview; about 500 tokens/s; 131,072-token context; text/image input, tools, parallel tool calls, JSON mode, vision, thinking/non-thinking modes | Tier 2 moderate public work exceeding local capability |
+| `REASONING` | NVIDIA `nvidia/nemotron-3.5-lightning-30b-a3b` | Hosted free endpoint; 1,000,000-token context; text, tools, and thinking | Tier 3 difficult public work where latency is acceptable |
+| `LOCAL` | Ollama `qwen3:0.6b` | Installed 522,653,767-byte Q4_K_M model; tools and thinking; 4,096-token active context | Tier 1 simple/normal, latency-sensitive, sensitive/private, uncertain, and offline work |
 
 The provider registry owns these roles. Model IDs occur in configuration and provider-catalog metadata, never in orchestration logic. NVIDIA, Groq, and Gemini remain replaceable adapters with startup catalog checks and tested fallback.
 
@@ -105,17 +105,19 @@ their key and mandatory free-tier/data-term confirmations are configured.
 1. A deterministic local gate classifies sensitivity and obvious command intent before any cloud request.
 2. A recognized deterministic command goes directly to its typed tool path; a model is not required merely to authorize or execute it.
 3. Sensitive, personal, credential, file, memory, communication, and device context routes to `LOCAL`.
-4. Safe simple work and safe ambiguous intent classification route to `FAST`.
-5. Safe normal conversation and tool planning route to `PRIMARY` with Qwen reasoning disabled.
-6. Moderate reasoning may reuse `PRIMARY` with thinking enabled.
-7. Safe difficult reasoning, coding, research, huge context, or multimodal work routes to `REASONING`.
+4. Safe simple/normal and latency-sensitive interaction routes to Tier 1 `LOCAL`.
+5. Public work exceeding local capability but requiring responsiveness uses Tier 2 `FAST`/`PRIMARY`.
+6. Safe difficult reasoning or long work where latency is acceptable uses Tier 3 `REASONING`.
+7. Severe rolling NVIDIA tail latency temporarily deprioritizes automatic Tier 3 selection; explicit
+   NVIDIA requests remain available and retain separate benchmark evidence.
 
 The initial privacy gate is never a cloud model. A user may force a stricter local route but cannot force policy to disclose sensitive data. Model selection never authorizes an action: computer control, files, power, applications, and communications still require deterministic policy and any applicable trusted approval.
 
 Fallback is capability- and privacy-aware:
 
 - unavailable, retired, or quota-exhausted Qwen falls back to bounded GPT-OSS work and then local Ollama;
-- unavailable or quota-exhausted NVIDIA falls back to local Ollama or a clear capacity error;
+- unavailable, quota-exhausted, or severely degraded NVIDIA is attempted only once and falls back
+  before visible output to responsive cloud/local capacity or a clear capacity error;
 - sensitive work fails privately when local inference is unavailable and never silently crosses to cloud;
 - HTTP `429`, provider outage, or catalog mismatch triggers fallback, not paid execution.
 
@@ -226,7 +228,7 @@ The checks in `PHASE_0_REBUILD_PLAN.md` pass. For current repository, existing c
 
 ### Phase 1 — JARVIS core and first text vertical slice (Medium; implemented 2026-08-20)
 
-**Status (2026-09-05)**
+**Status (2026-09-08)**
 
 Blocked external for formal closeout. Genuine Ollama/NVIDIA streaming, deterministic routing,
 privacy/failure suites, optimized Qwen3 local cold/warm latency, and clean-Windows/repository gates
@@ -235,6 +237,13 @@ states with zero failures. Visible TTFT p50/p95 was 2,076.445/4,304.367 ms simpl
 1,179.622/37,975.215 ms simple warm, 2,172.771/11,608.523 ms complex cold, and
 3,607.162/10,243.188 ms complex warm. Fixed hosted latency targets remain unmet; sample count no
 longer blocks. Gates remain unchanged.
+
+Adaptive routing, pooled NVIDIA transport, local context/tool reduction, rolling provider health,
+and phase-resolved telemetry now protect the product path. Fresh NVIDIA simple-cold evidence
+recorded 4 successes/1 failure at 42,754.940/58,327.901 ms visible p50/p95 before the run stopped
+fail-closed; most delay occurred before response headers. Two fresh deterministic and local-warm
+gates passed, while local verified-cold p50 regressed to 2,383.312 and 2,305.991 ms. NVIDIA remains technically unfixed.
+The playbook has no completed-with-external-limitation state, so Phase 1 remains blocked.
 
 **Goal**  
 A useful text JARVIS with swappable providers, deterministic local privacy routing, zero-cost cloud roles, local fallback, personality, persistence, safe tools, and measurable behavior.
@@ -645,7 +654,9 @@ Local sensitivity/command gate → Ollama Nemotron 3 Nano 4B `LOCAL` for normal/
 
 ### Next implementation milestone
 
-**Phase 7: vision and gestures.** Phases 4–6 are complete. Preserve Phase 3 exact authority and
+**Phase 7: vision and gestures.** Phases 4–6 are complete. Phase 1 remains explicitly
+`blocked-external`; Phase 7 is an independent next milestone, not evidence that Phase 1 completed.
+Preserve Phase 3 exact authority and
 Phase 6 bounded scheduling while adding local perception, explicit capture indicators, calibrated
 typed gesture intents, and fixed accuracy/latency/privacy gates.
 

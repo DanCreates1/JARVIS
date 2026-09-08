@@ -2,6 +2,7 @@
 
 Status: recommended defaults for staged implementation  
 Planning date: 2026-08-20
+Last updated: 2026-09-08
 
 These are architectural defaults, not permanent vendor commitments. Revisit a decision when representative benchmarks or security requirements contradict its assumptions.
 
@@ -91,7 +92,7 @@ Yes; HTTP is an adapter over the application service and internal event models.
 ## TD-004 — Hybrid, role-based model routing
 
 **Decision**  
-Configure provider-neutral `FAST`, `PRIMARY`, `REASONING`, and `LOCAL` roles. A deterministic local gate classifies sensitivity and obvious commands before cloud use. Difficult public work can use NVIDIA; normal, sensitive, uncertain, offline, or cloud-failed work uses Ollama in the active setup. Optional Groq/Gemini roles remain supported. Initial cloud spend is hard-capped at `$0`.
+Configure provider-neutral `FAST`, `PRIMARY`, `REASONING`, and `LOCAL` roles. A deterministic local gate classifies sensitivity and obvious commands before cloud use. Tier 0 handles deterministic/direct work, Tier 1 local handles simple/normal and latency-sensitive work, Tier 2 Groq handles responsive public work exceeding local capability, and Tier 3 NVIDIA handles difficult public work where latency is acceptable. Sensitive, uncertain, offline, or cloud-failed work uses Ollama. Initial cloud spend is hard-capped at `$0`.
 
 **Reason**  
 RTX 2050 4 GB/16 GB RAM cannot deliver consistently strong large-model reasoning at JARVIS latency. Hosted inference improves responsiveness, but private JARVIS context cannot be disclosed indiscriminately and free capacity is not guaranteed.
@@ -545,6 +546,40 @@ the only effect authority; research remains untrusted evidence.
 Yes. Planner and persistence adapters may change after measured need. Immutable validated authority,
 hard budgets, exact approval binding, idempotency, effect checkpointing, no blind replay, explicit
 execution, host isolation, and ordered audit remain required.
+
+## TD-025 — Health-aware latency tiers without provider benchmark substitution
+
+**Decision**
+
+Use local/direct Tier 0–1 paths for normal responsiveness, configured Groq Tier 2 for responsive
+public work exceeding local capability, and NVIDIA Tier 3 only for difficult public work where
+latency is acceptable. Reduce cloud prefill locally, reuse bounded process-lifetime HTTP transport,
+track content-free rolling health, and deprioritize severely degraded NVIDIA for automatic routes.
+Do not retry a congested cloud provider immediately. Stop failover when visible output begins.
+
+Keep NVIDIA-specific benchmark evidence separate. The preserved 20/20 states remain failed against
+their fixed targets. Fresh 2026-09-08 tracing places tens of seconds before response headers. This
+supports an external queue/tail limitation but does not mark NVIDIA fixed.
+
+**Reason**
+
+Product interaction can remain usable without pretending a free endpoint has an SLA it does not
+meet. Separation prevents routing success from corrupting provider evaluation, while one response
+owner prevents mixed text or competing speech.
+
+**Alternatives considered / why rejected**
+
+- Lower acceptance thresholds: changes governance after evidence and creates a false pass.
+- Substitute Groq/local samples for NVIDIA: answers a different benchmark.
+- Race providers through speech: risks contradictory audible answers and wasted quota.
+- Repeated NVIDIA retries: worsens congestion and latency under a zero-cost quota.
+- Send full history/all schemas: increases prefill and disclosure without demonstrated value.
+
+**Replaceable later?**
+
+Yes. Providers, health thresholds, and local summarization may change through configuration and
+measured evaluation. Privacy classification, zero spend, separate provider evidence, one visible
+response owner, and unchanged acceptance provenance remain mandatory.
 
 ## Review triggers
 
