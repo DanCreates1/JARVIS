@@ -22,6 +22,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+vision = [
+  "opencv-python-headless>=5.0.0.93,<6",
+  "pillow>=12.3,<13",
+]
 voice = [
   "faster-whisper>=1.2.1,<2",
   "numpy>=1.26,<3",
@@ -90,6 +94,8 @@ module = [
   "aiosqlite.*",
   "faster_whisper.*",
   "openwakeword.*",
+  "cv2.*",
+  "PIL.*",
   "respx.*",
   "silero_vad.*",
   "sounddevice.*",

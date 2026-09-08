@@ -217,6 +217,33 @@ the turn; no second provider can replace or append a competing spoken answer. Cu
 one core turn and TTS once, with no generic filler. A future acknowledgement is permitted only for
 a genuinely long cloud task after the configured normal-voice speech-start budget is exceeded.
 
+### Phase 7A vision capture boundary
+
+Phase 7A adds a provider-neutral capture controller, not a recognition pipeline. An exact request
+binds camera or screen source ID, purpose, region, RGB24 format, FPS, frame count, duration,
+per-frame timeout, and ephemeral retention. Both the process-start host gate and persistent local
+software control must be enabled; capture still begins only from an explicit foreground command.
+
+```mermaid
+flowchart LR
+    CLI[Explicit foreground command] --> Gates[Host gate + persistent control]
+    Gates --> Indicator[Visible capture indicator]
+    Indicator --> Worker[Isolated native capture worker]
+    Worker --> Frame[Owned ephemeral RGB frame]
+    Frame --> Consumer[Bounded consumer]
+    Consumer --> Zero[Immediate buffer clearing]
+    Zero --> Close[Close worker, then clear indicator]
+```
+
+OpenCV camera and Pillow screen adapters run in short-lived child processes over private pipes.
+Workers inherit no JARVIS/provider credentials and write no media. Indicator activation precedes
+source open; source close precedes indicator clear. Kill, cancellation, stale/malformed frames,
+source loss, timeout, settings uncertainty, or consumer failure stops the session and clears owned
+buffers. Only one session is allowed. No listener starts at boot.
+
+Gesture/landmark recognition, calibration, mappings, OCR, biometrics, cloud vision, retention, and
+Phase 3 action proposals remain outside 7A. Capture produces no authority.
+
 ## 7. Model routing
 
 Routing begins with a deterministic local privacy and command gate. A cloud model never receives an unclassified turn. Uncertainty is treated as sensitive and stays local.
@@ -510,6 +537,8 @@ Trust boundaries:
 6. Network boundary: loopback by default, explicit authenticated remote gateway.
 7. Provider boundary: redact/minimize outbound data; privacy label controls cloud use.
 8. Persistence boundary: encryption/OS access, retention, backup, deletion.
+9. Media-capture boundary: exact foreground request, dual gates, visible indicator, isolated
+   worker, ephemeral buffer clearing, and no action authority.
 
 Detailed controls are in `SECURITY_MODEL.md`.
 
@@ -570,6 +599,8 @@ Use structured logs and OpenTelemetry-compatible concepts, but avoid an observab
 - Security: injection, SSRF/rebinding, hostile documents, traversal, argument confusion, replay,
   stale approval, cross-host/device isolation, auth/rate limits.
 - Voice: fixed audio corpus, WER, endpoint latency, false wake/reject, echo and barge-in.
+- Vision capture: dual-gate denial, indicator/open ordering, source loss, stale/malformed frames,
+  limits, cancellation/kill, restart state, zeroed buffers, and camera-independent fakes.
 - Memory/research: golden retrieval, citations, provenance, contradiction, freshness, correction,
   retention, and transitive deletion.
 - Failure: provider outage, partial tool effects, corrupt response, full disk, database lock, device/network loss.

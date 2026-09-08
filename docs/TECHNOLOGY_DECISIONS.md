@@ -29,7 +29,7 @@ These are architectural defaults, not permanent vendor commitments. Revisit a de
 | VAD | Silero VAD on CPU | WebRTC VAD | Adopted in Phase 2 behind a provider port |
 | Wake word | openWakeWord ONNX foundation; always-listening disabled | Porcupine, microWakeWord | Local Windows support; pretrained model is non-commercially licensed |
 | TTS | Windows SAPI behind provider port | Piper, cloud neural TTS | Local, built-in, cancellable baseline without bundling GPL runtime |
-| Vision/gesture | MediaPipe Hand Landmarker + OpenCV capture | YOLO/custom classifier | Fast landmarks; temporal classifier remains project-owned |
+| Vision/gesture | Phase 7A: OpenCV/Pillow isolated capture; Phase 7B candidate: MediaPipe Hand Landmarker | YOLO/custom classifier | Privacy boundary first; temporal classifier remains project-owned |
 | Remote access | Tailscale/private network + TLS + app authentication | Public reverse proxy, custom VPN | Default-deny device connectivity; avoids direct public exposure |
 | Web/control panel | Responsive web UI/PWA after local API | Native desktop/mobile first | One client across laptop and phone |
 | Observability | Structured events and OpenTelemetry-compatible fields | Full hosted stack | Measurable without premature infrastructure |
@@ -323,16 +323,24 @@ Yes. Planner/model implementations can change under persisted task/event contrac
 ## TD-015 — MediaPipe/OpenCV fast vision path
 
 **Decision**  
-Use OpenCV for bounded capture/preprocessing and MediaPipe Hand Landmarker for hand landmarks. Project-owned temporal logic maps landmarks to configurable gesture intents.
+Use optional OpenCV for bounded camera capture and Pillow for exact Windows screen-region capture.
+Run native capture in a short-lived isolated worker behind owned contracts. MediaPipe Hand
+Landmarker remains the Phase 7B candidate; project-owned temporal logic would map landmarks to
+configurable gesture intents.
 
 **Reason**  
-Simple gestures need low-latency CV, not a multimodal LLM. Landmark output permits customization and confidence/debounce.
+The Phase 7A privacy boundary must exist before a detector. Simple gestures need low-latency CV,
+not a multimodal LLM. Landmark output permits customization and confidence/debounce. Current
+OpenCV 4.5+ is Apache-2.0, its Python wrapper is MIT, packaged FFmpeg components are LGPL-2.1, and
+Pillow is MIT-CMU. MediaPipe is Apache-2.0, but its Tasks usage metrics require an informed-consent
+decision before adoption.
 
 **Alternatives considered / why rejected**
 
 - Multimodal model per frame: slow, expensive, and unnecessary.
 - Permanently hardcoded gesture/action pairs: unsafe and inflexible.
 - Custom detector training first: no dataset or demonstrated need.
+- MediaPipe in 7A: recognition is out of scope and telemetry consent is unresolved.
 
 **Replaceable later?**  
 Yes. Vision providers emit normalized observations; mapping remains separate.

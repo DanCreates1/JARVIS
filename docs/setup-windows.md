@@ -293,6 +293,34 @@ diagnostics. See the [ASUS FX506H manual](https://dlcdnets.asus.com/pub/ASUS/Gam
 Wake-word and acoustic always-listening settings are intentionally fixed to `false`. Do not bypass
 them. Phase 2 ships detectors and evaluation evidence, not an always-on service.
 
+## Optional bounded vision capture
+
+Vision dependencies are locked but excluded from the base environment:
+
+```powershell
+uv sync --locked --extra vision
+uv run jarvis vision status
+uv run jarvis vision doctor
+```
+
+These inspection commands do not open a camera or read the screen. Capture requires both a
+process-start host gate and persistent software control, plus an explicit foreground command:
+
+```powershell
+uv run jarvis vision enable
+# Set JARVIS_VISION_CAPTURE_ENABLED=true, then start a new foreground process.
+uv run jarvis vision capture --source camera --source-id camera:0 --x 0 --y 0 --width 640 --height 480 --fps 10 --frames 1 --duration-ms 1000
+uv run jarvis vision disable
+```
+
+Use exact coordinates with `--source screen --source-id screen:desktop` for screen-region capture.
+Frames are immediately discarded and never printed or saved. Before any live test, close private
+windows, confirm Windows **Settings > Privacy & security > Camera > Let desktop apps access your
+camera**, and verify the webcam shutter/indicator. `vision disable` is the persistent software kill
+path; the physical shutter and Windows privacy control remain independent.
+
+No continuous listener or recognition starts. See [Vision Capture Privacy Boundary](VISION_CAPTURE.md).
+
 ## Optional controlled computer access
 
 Phase 3 is default-disabled and requires two reviewed gates. Start by creating only a disabled

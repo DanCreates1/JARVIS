@@ -1,8 +1,9 @@
 # Hands-Free Control Plan
 
 Updated: 2026-08-22  
-Status: Phase 2 double-clap detector and Phase 3 closed typed proposal mappings implemented;
-continuous audio/camera listeners and gesture recognition remain disabled/unimplemented
+Status: Phase 2 double-clap detector, Phase 3 closed typed proposal mappings, and Phase 7A bounded
+capture/privacy contracts implemented; continuous audio/camera listeners and gesture recognition
+remain disabled/unimplemented
 
 ## Goal
 
@@ -56,6 +57,11 @@ proposal mappings. The dormant gesture mappings are covered with synthetic inten
 are absent unless individually enabled in host policy. A production consumer calls only
 `ActionCoordinator.propose` with `ApprovalSource.HANDS_FREE`; trusted review and one-use broker
 execution remain separate.
+
+Phase 7A now provides dual-gated, foreground-only, visible, exact-region camera/screen capture with
+ephemeral cleared buffers and no action authority. It provides no hand detector, gesture intent,
+mapping, calibration, or continuous listener. MediaPipe evaluation begins only in Phase 7B after
+the capture privacy boundary receives authorized live-device closeout.
 
 ## Safety requirements
 

@@ -5,6 +5,20 @@ Hosted-model strategy verified: 2026-08-20
 Method: lightweight Windows CIM/PnP queries, installed-command checks, Phase 1/2 benchmarks, and
 Phase 3 read-only capability probes plus disposable controlled-root benchmark
 
+## Phase 7A capture-boundary update — 2026-09-08
+
+- The healthy `USB2.0 HD UVC WebCam` remains the candidate camera on the audited ASUS TUF Gaming
+  F15. No real camera or screen pixels were read because current live-capture authority was not
+  granted.
+- Locked optional imports passed with `opencv-python-headless` 5.0.0.93, Pillow 12.3.0, and their
+  resolved NumPy dependency on Python 3.11.16. The ordinary base environment remains independent
+  of these packages.
+- The fixed fake benchmark completed 200 one-frame sessions at 0.180 ms p50 and 0.229 ms p95, with
+  zero leaked live buffers. One hundred denial/abuse scenarios produced zero violations.
+- Native adapters use bounded 15 FPS / 300-frame / 30-second / 1,000 ms maximums and a 1920 x 1080
+  maximum region. Live camera/screen latency and device-loss evidence remain pending separate
+  bounded authorization.
+
 ## Phase 1 adaptive-routing revalidation — 2026-09-08
 
 - A fresh deterministic/local run preserved 20/20 successes: deterministic 7.871/9.200 ms and
@@ -212,6 +226,10 @@ The implemented profile keeps Silero VAD, faster-whisper, openWakeWord, and Wind
 CPU. The discrete GPU remains available to Ollama. Cloud speech is not configured. Use the
 integrated GPU for display where possible; future vision fast paths should use MediaPipe/OpenCV and
 bounded frame rates, with multimodal LLM calls on demand rather than continuously.
+
+Phase 7A adopted only the OpenCV/Pillow capture boundary. MediaPipe and all continuous landmark or
+gesture processing remain deferred pending Phase 7B accuracy, CPU, privacy, and telemetry-consent
+review.
 
 ### Phase 2 measured voice results — 2026-08-22
 

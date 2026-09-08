@@ -1,4 +1,4 @@
-"""Terminal interfaces for text and explicit local push-to-talk JARVIS."""
+"""Terminal interfaces for text, explicit voice, vision, and controlled JARVIS features."""
 
 from __future__ import annotations
 
@@ -72,6 +72,12 @@ voice_app = typer.Typer(
     no_args_is_help=True,
 )
 app.add_typer(voice_app, name="voice")
+vision_app = typer.Typer(
+    name="vision",
+    help="Default-off local camera/screen capture controls and diagnostics.",
+    no_args_is_help=True,
+)
+app.add_typer(vision_app, name="vision")
 computer_app = typer.Typer(
     name="computer",
     help="Controlled access policy, proposals, trusted approvals, receipts, and audit.",
@@ -2017,6 +2023,160 @@ def _render_diagnostics(report: DiagnosticReport) -> None:
         console.print("[bold green]JARVIS is ready.[/]")
     else:
         console.print("[bold red]JARVIS needs attention before chat can run.[/]")
+
+
+@vision_app.command("status")
+def vision_status() -> None:
+    """Show both capture gates without opening a source."""
+    from jarvis.vision.settings_store import VisionSettingsError, VisionSettingsFile
+
+    settings = _load_settings()
+    try:
+        control = VisionSettingsFile(settings.vision_settings_path).load_control()
+    except VisionSettingsError:
+        console.print("[bold red]Vision control settings invalid.[/] Capture fails closed.")
+        raise typer.Exit(code=1) from None
+    table = Table(title="JARVIS vision capture state")
+    table.add_column("Gate")
+    table.add_column("State")
+    table.add_column("Meaning")
+    table.add_row(
+        "Host configuration",
+        "enabled" if settings.vision_capture_enabled else "disabled",
+        "JARVIS_VISION_CAPTURE_ENABLED",
+    )
+    table.add_row(
+        "Software control",
+        "enabled" if control.enabled else "disabled",
+        "Persistent user kill control",
+    )
+    table.add_row("Capture", "inactive", "No background listener or persisted active state")
+    console.print(table)
+
+
+@vision_app.command("enable")
+def vision_enable() -> None:
+    """Enable explicit foreground capture; this never starts a listener."""
+    from jarvis.vision.models import CaptureControl
+    from jarvis.vision.settings_store import VisionSettingsFile
+
+    settings = _load_settings()
+    VisionSettingsFile(settings.vision_settings_path).save_control(
+        CaptureControl(enabled=True, updated_at=datetime.now(UTC))
+    )
+    if settings.vision_capture_enabled:
+        console.print(
+            "[bold green]Foreground vision capture enabled.[/] "
+            "A separate explicit capture command and visible indicator remain required."
+        )
+    else:
+        console.print(
+            "[bold yellow]User control enabled, host gate remains disabled.[/] "
+            "Set JARVIS_VISION_CAPTURE_ENABLED=true only for an explicit local session."
+        )
+
+
+@vision_app.command("disable")
+def vision_disable() -> None:
+    """Persist the software kill state; active controllers poll and stop."""
+    from jarvis.vision.models import CaptureControl
+    from jarvis.vision.settings_store import VisionSettingsFile
+
+    settings = _load_settings()
+    VisionSettingsFile(settings.vision_settings_path).save_control(
+        CaptureControl(enabled=False, updated_at=datetime.now(UTC))
+    )
+    console.print("[bold yellow]Vision capture kill switch enabled.[/] No new source may open.")
+
+
+@vision_app.command("doctor")
+def vision_doctor() -> None:
+    """Check capture dependencies and privacy gates without reading pixels."""
+    from jarvis.vision.diagnostics import run_vision_diagnostics
+
+    report = run_vision_diagnostics(_load_settings())
+    _render_diagnostics(report)
+    if not report.ok:
+        raise typer.Exit(code=1)
+
+
+@vision_app.command("capture")
+def vision_capture(
+    source: Annotated[str, typer.Option("--source", help="camera or screen")],
+    purpose: Annotated[
+        str,
+        typer.Option(
+            "--purpose",
+            help="diagnostic, gesture_calibration, gesture_input, or screen_analysis",
+        ),
+    ] = "diagnostic",
+    source_id: Annotated[
+        str | None,
+        typer.Option("--source-id", help="camera:<index> or screen:desktop"),
+    ] = None,
+    x: Annotated[int, typer.Option("--x")] = 0,
+    y: Annotated[int, typer.Option("--y")] = 0,
+    width: Annotated[int, typer.Option("--width")] = 640,
+    height: Annotated[int, typer.Option("--height")] = 480,
+    fps: Annotated[float, typer.Option("--fps")] = 10,
+    frames: Annotated[int, typer.Option("--frames")] = 1,
+    duration_ms: Annotated[int, typer.Option("--duration-ms")] = 1_000,
+) -> None:
+    """Read and immediately discard one bounded local foreground capture."""
+    from jarvis.vision.bootstrap import build_vision_capture
+    from jarvis.vision.models import (
+        CaptureError,
+        CapturePurpose,
+        CaptureRegion,
+        CaptureRequest,
+        CaptureSource,
+    )
+
+    settings = _load_settings()
+    try:
+        selected_source = CaptureSource(source)
+        selected_purpose = CapturePurpose(purpose)
+        request = CaptureRequest(
+            source=selected_source,
+            source_id=(
+                source_id
+                or ("camera:0" if selected_source is CaptureSource.CAMERA else "screen:desktop")
+            ),
+            purpose=selected_purpose,
+            region=CaptureRegion(x=x, y=y, width=width, height=height),
+            requested_fps=fps,
+            max_frames=frames,
+            max_duration_ms=duration_ms,
+        )
+    except (ValueError, ValidationError) as exc:
+        console.print(f"[bold red]Invalid capture envelope.[/] {exc}")
+        raise typer.Exit(code=2) from None
+
+    async def run() -> None:
+        components = build_vision_capture(settings)
+
+        async def discard(_frame: object) -> None:
+            return None
+
+        try:
+            result = await components.controller.run(request, consumer=discard)
+        finally:
+            await components.close()
+        console.print(
+            "[bold green]Bounded capture complete.[/] "
+            f"frames={result.frames_delivered} bytes={result.bytes_delivered} "
+            f"duration_ms={result.duration_ms:.3f} stop={result.stop_reason.value}; "
+            "pixels discarded"
+        )
+
+    try:
+        asyncio.run(run())
+    except CaptureError as exc:
+        console.print(f"[bold red]Capture blocked.[/] {exc.code.value}: {exc}")
+        raise typer.Exit(code=1) from None
+    except KeyboardInterrupt:
+        console.print("[bold yellow]Capture cancelled; source closed and pixels discarded.[/]")
+        raise typer.Exit(code=130) from None
 
 
 @app.command()

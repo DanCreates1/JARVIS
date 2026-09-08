@@ -107,6 +107,7 @@ def test_safe_summary_contains_only_declared_diagnostics(tmp_path: Path) -> None
         "task_max_tool_calls",
         "task_max_cost_usd",
         "task_max_concurrency",
+        "vision_capture_enabled",
         "voice_always_listening_enabled",
         "voice_acoustic_always_listening_enabled",
         "voice_sample_rate_hz",
@@ -127,6 +128,13 @@ def test_phase_three_computer_access_is_disabled_by_default(tmp_path: Path) -> N
     assert settings.computer_access_enabled is False
     assert settings.computer_access_policy_path == tmp_path / "computer-access.json"
     assert settings.computer_controlled_root == tmp_path / "controlled-files"
+
+
+def test_phase_seven_capture_is_disabled_by_default(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path, _env_file=None)
+
+    assert settings.vision_capture_enabled is False
+    assert settings.vision_settings_path == tmp_path / "vision-settings.json"
 
 
 def test_research_defaults_are_zero_cost_bounded_and_https_only(tmp_path: Path) -> None:

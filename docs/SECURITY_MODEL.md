@@ -340,6 +340,10 @@ Data minimization:
 - explicit push-to-talk shows `MIC ON`; a separately persisted software kill state is polled during
   capture and output, while physical mute remains independent host control;
 - camera/screen capture requires explicit active state and visible indicator;
+- Phase 7A also requires two default-off gates, an exact foreground request, a bounded region,
+  ephemeral-only retention, one active session, and immediate controller-owned buffer clearing;
+- native camera/screen access runs in a short-lived worker with a fixed non-secret environment;
+  timeout, cancellation, source loss, protocol error, or control uncertainty kills the worker;
 - no raw camera/audio persistence without purpose, retention, and approval;
 - memories are candidates until policy/host confirmation commits them;
 - extraction, tool, import, and derived content is untrusted provenance; confidence never grants
@@ -361,6 +365,8 @@ Host controls:
 - configure retention by data class;
 - purge derived FTS/embedding/cache data transitively;
 - disable cloud, audio retention, camera, remote access, individual devices/tools.
+- inspect capture gates without opening a source and persistently disable new/current vision
+  capture with `jarvis vision disable`.
 - inspect the selected model role/provider, routing reason, privacy label, fallback, quota state, and estimated cost for each cloud-routed turn.
 
 Phase 4 partitions every memory operation by a pseudonymous local user/device host ID. A request
@@ -466,6 +472,8 @@ Required automated suites:
 - zero-spend enforcement, free-tier exhaustion, provider outage, and preview-model removal;
 - transitive memory deletion and retention;
 - wake-word/camera kill switch state.
+- camera/screen default denial, exact-region/source enforcement, indicator-before-open ordering,
+  stale/malformed-frame rejection, frame zeroing, and worker secret-environment stripping.
 
 Release gate for a side-effecting tool:
 

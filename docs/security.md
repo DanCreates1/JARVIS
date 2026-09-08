@@ -163,6 +163,26 @@ limits, and Windows-specific uncertainty after cancellation of an in-flight nati
 - Render-reference suppression and explicit output cancellation limit self-trigger and barge-in;
   endpoint/model failures return a typed error and preserve text fallback.
 
+## Vision capture privacy and safety
+
+- Camera/screen capture is default-off and requires both `JARVIS_VISION_CAPTURE_ENABLED=true` and
+  persistent `jarvis vision enable`, followed by an explicit foreground command.
+- Requests bind an allowlisted source ID, purpose, exact non-empty region, RGB24 format, FPS,
+  frame-count, duration, timeout, and ephemeral retention. Hard limits reject unbounded or hidden
+  capture and avoid a full-desktop default.
+- `JARVIS CAPTURE ACTIVE` is displayed before source open. Source close occurs before
+  `JARVIS CAPTURE OFF`; indicator uncertainty denies capture.
+- Native capture runs in a short-lived child process with no inherited JARVIS/provider secrets.
+  Frame data crosses private pipes only and is never written, logged, hashed, or printed.
+- Controller-owned byte buffers are cleared after every consumer call, including failure.
+  Timeout, cancellation, kill, control corruption/change, source loss, and stale/malformed data
+  fail closed.
+- One foreground session is allowed. No startup camera probe, background listener, retained image,
+  OCR, face/biometric processing, cloud vision, gesture mapping, approval, or action execution is
+  present in Phase 7A.
+
+See [Vision Capture Privacy Boundary](VISION_CAPTURE.md) for operator controls and recovery.
+
 ## Secrets
 
 - Never commit `.env`, tokens, passwords, cookies, private keys, certificates,

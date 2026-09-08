@@ -156,6 +156,8 @@ async def run_diagnostics(
 
     checks.append(_bounded_task_check(settings))
 
+    checks.append(_vision_capture_check(settings))
+
     provider: DiagnosticProvider | None = None
     try:
         provider = provider_factory(settings)
@@ -372,5 +374,38 @@ def _bounded_task_check(settings: Settings) -> DiagnosticCheck:
             f"{settings.task_max_wall_seconds:g}s wall time, {settings.task_max_retries} retries, "
             f"{settings.task_max_tool_calls} tool calls, {settings.task_max_concurrency} "
             f"read-only workers, and ${settings.task_max_cost_usd:g} cloud cost."
+        ),
+    )
+
+
+def _vision_capture_check(settings: Settings) -> DiagnosticCheck:
+    if not settings.vision_capture_enabled:
+        return DiagnosticCheck(
+            name="vision capture",
+            status=DiagnosticStatus.PASS,
+            detail="Vision host gate is disabled; no camera/screen source can open.",
+        )
+    from jarvis.vision.settings_store import VisionSettingsError, VisionSettingsFile
+
+    try:
+        control = VisionSettingsFile(settings.vision_settings_path).load_control()
+        if find_spec("cv2") is None or find_spec("PIL.ImageGrab") is None:
+            raise ModuleNotFoundError
+    except (VisionSettingsError, ModuleNotFoundError):
+        return DiagnosticCheck(
+            name="vision capture",
+            status=DiagnosticStatus.FAIL,
+            detail="Enabled vision capture lacks valid controls or optional local dependencies.",
+            remediation=(
+                "Disable JARVIS_VISION_CAPTURE_ENABLED or run "
+                "`uv sync --locked --extra vision` and repair vision settings."
+            ),
+        )
+    return DiagnosticCheck(
+        name="vision capture",
+        status=DiagnosticStatus.PASS,
+        detail=(
+            "Vision host gate is enabled; user control is "
+            f"{'enabled' if control.enabled else 'disabled'}, and no background listener exists."
         ),
     )

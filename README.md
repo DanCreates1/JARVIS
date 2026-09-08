@@ -1,6 +1,6 @@
 # JARVIS
 
-JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–6 implement a
+JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–6 and the Phase 7A capture boundary implement a
 local deterministic privacy gate, configurable NVIDIA/Groq/Gemini/Ollama roles,
 zero-cost fallback routing, durable SQLite state, audited read-only tools, CLI,
 loopback browser chat, local push-to-talk speech, opt-in controlled Windows actions, bounded cited
@@ -15,7 +15,8 @@ As of 2026-09-08, Phases 4–6 are complete. Phase 1 genuine Ollama/NVIDIA token
 optimized local latency evidence pass; Phase 1 remains formally blocked by fixed hosted NVIDIA
 latency gates. The preserved 20/20 NVIDIA states still miss one or both targets. Fresh instrumented
 requests place the long delay before response headers, while adaptive routing protects normal
-product interaction without representing NVIDIA as faster. Clean-Windows bootstrap and repository gates
+product interaction without representing NVIDIA as faster. Phase 7A's safe implementation and synthetic
+privacy gates pass; authorized current camera/screen closeout remains pending. Clean-Windows bootstrap and repository gates
 pass on an independent fresh GitHub Windows runner. Phases 2 and 3 pass current safe local gates but
 still require separately authorized current real-device/application smokes. See
 [Phase Overview](docs/PHASE_OVERVIEW.md) and the phase reports for exact evidence. No threshold or
@@ -125,6 +126,22 @@ Planning and bounded tasks add:
 - CLI lifecycle/export/deletion controls plus loopback preview/inspection/pause/cancel endpoints.
 
 Task execution is disabled by default. See [Bounded Tasks](docs/BOUNDED_TASKS.md).
+
+## Implemented Phase 7A
+
+The optional local capture boundary adds:
+
+- strict camera/screen-region requests with exact source, purpose, region, RGB24 format, FPS,
+  frame-count, duration, timeout, and ephemeral-only retention;
+- dual default-off controls, a foreground-only command, visible indicator-before-open ordering,
+  one-session concurrency, cancellation, and a persistent software kill switch;
+- isolated OpenCV camera and Pillow screen workers that receive no JARVIS/provider secrets;
+- immediate controller-owned frame-buffer clearing with no images, hashes, thumbnails, OCR, or
+  pixel values stored or logged; and
+- camera-independent fakes, privacy abuse tests, diagnostics, and a fixed boundary benchmark.
+
+Gesture recognition, MediaPipe, continuous listeners, cloud vision, retention, and action authority
+remain absent. See [Vision Capture Privacy Boundary](docs/VISION_CAPTURE.md).
 
 ## Model strategy
 
@@ -243,6 +260,17 @@ uv run jarvis voice disable
 Raw microphone PCM stays in memory for the bounded turn and is discarded. `voice disable` is the
 software kill command; text chat keeps working.
 
+Install and inspect optional vision capture without opening a source:
+
+```powershell
+uv sync --locked --extra vision
+uv run jarvis vision status
+uv run jarvis vision doctor
+```
+
+Capture remains unavailable until both the environment gate and persistent software control are
+explicitly enabled. Read the privacy guide before running `jarvis vision capture`.
+
 If `uv` is not installed and Windows Package Manager is available, installation
 can be requested explicitly:
 
@@ -302,6 +330,7 @@ The main settings are:
 | `JARVIS_VOICE_BARGE_IN_ENABLED` | `true` | Stop speech output when new host speech is detected |
 | `JARVIS_VOICE_ALWAYS_LISTENING_ENABLED` | `false` | Hard-disabled; `true` is rejected by configuration |
 | `JARVIS_VOICE_ACOUSTIC_ALWAYS_LISTENING_ENABLED` | `false` | Hard-disabled; `true` is rejected by configuration |
+| `JARVIS_VISION_CAPTURE_ENABLED` | `false` | Host gate for explicit foreground bounded capture; persistent `jarvis vision enable` is also required |
 
 To enable NVIDIA, set `JARVIS_NVIDIA_API_KEY` (or NVIDIA's sample-code alias
 `NVIDIA_API_KEY`), `JARVIS_NVIDIA_FREE_TIER_CONFIRMED=true`, and
@@ -332,6 +361,9 @@ uv sync --locked
 For voice development, use `uv sync --locked --extra voice` after the base quality script; a plain
 sync intentionally restores the lightweight text-only environment.
 
+For vision-capture development, use `uv sync --locked --extra vision`; a plain sync also removes
+this optional extra.
+
 Formatting changes are opt-in:
 
 ```powershell
@@ -349,6 +381,8 @@ always performs secret scanning.
 - [Phase 5 research completion evidence](docs/phase-reports/PHASE_5_COMPLETION.md)
 - [Phase 6 planning completion evidence](docs/phase-reports/PHASE_6_COMPLETION.md)
 - [Phase 6 bounded task operator guide](docs/BOUNDED_TASKS.md)
+- [Phase 7A vision capture privacy boundary](docs/VISION_CAPTURE.md)
+- [Phase 7 progress evidence](docs/phase-reports/PHASE_7_PROGRESS.md)
 - [Codex phase execution playbook](docs/CODEX_PHASE_PLAYBOOK.md)
 - [External repository comparison](docs/EXTERNAL_REPOSITORY_COMPARISON.md)
 - [Hands-free control plan](docs/HANDS_FREE_CONTROL.md)

@@ -445,6 +445,13 @@ Supported multi-step tasks resume safely after restart, never exceed configured 
 
 ### Phase 7 — Vision and gestures (Large)
 
+**Current status (2026-09-08)**
+Phase 7A capture/privacy/contracts are implemented with dual default-off gates, exact bounded
+camera/screen-region requests, visible state, isolated native workers, ephemeral cleared buffers,
+kill/cancel controls, camera-independent tests, and fixed synthetic benchmarks. Authorized current
+live camera and screen-region closeout remains pending. Gesture/landmark recognition and every
+later deliverable remain unimplemented; Phase 7 is not complete.
+
 **Goal**  
 Low-latency perception and configurable gestures, escalating to multimodal models only when needed.
 

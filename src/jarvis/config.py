@@ -105,6 +105,7 @@ class Settings(BaseSettings):
     task_max_tool_calls: int = Field(default=100, ge=0, le=1_000)
     task_max_cost_usd: float = Field(default=0, ge=0, le=0)
     task_max_concurrency: int = Field(default=4, ge=1, le=4)
+    vision_capture_enabled: bool = False
     voice_always_listening_enabled: Literal[False] = False
     voice_acoustic_always_listening_enabled: Literal[False] = False
     voice_sample_rate_hz: Literal[16_000] = 16_000
@@ -221,6 +222,10 @@ class Settings(BaseSettings):
         return self.data_dir / "voice-settings.json"
 
     @property
+    def vision_settings_path(self) -> Path:
+        return self.data_dir / "vision-settings.json"
+
+    @property
     def computer_access_policy_path(self) -> Path:
         return self.data_dir / "computer-access.json"
 
@@ -310,6 +315,7 @@ class Settings(BaseSettings):
             "task_max_tool_calls": self.task_max_tool_calls,
             "task_max_cost_usd": self.task_max_cost_usd,
             "task_max_concurrency": self.task_max_concurrency,
+            "vision_capture_enabled": self.vision_capture_enabled,
             "computer_access_policy_path": str(self.computer_access_policy_path),
             "voice_always_listening_enabled": self.voice_always_listening_enabled,
             "voice_acoustic_always_listening_enabled": (
