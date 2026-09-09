@@ -31,6 +31,8 @@ from jarvis.computer.hands_free import (
     HandsFreeMediaPlayPauseProposal,
     HandsFreeMediaPreviousTrackIntent,
     HandsFreeMediaPreviousTrackProposal,
+    HandsFreeMuteToggleIntent,
+    HandsFreeMuteToggleProposal,
     HandsFreeProposalGate,
     HandsFreeRequest,
     HandsFreeVolumeDownIntent,
@@ -92,6 +94,7 @@ def all_mappings() -> HandsFreeMappingsPolicy:
     return HandsFreeMappingsPolicy(
         volume_step=True,
         media_play_pause=True,
+        mute_toggle=True,
         media_track_navigation=True,
         cancel_session=True,
     )
@@ -185,6 +188,12 @@ def test_dormant_mappings_are_absent_by_default(tmp_path: Path) -> None:
             HandsFreeMediaPlayPauseProposal,
             "control_media",
             {"operation": MediaOperation.PLAY_PAUSE},
+        ),
+        (
+            HandsFreeMuteToggleIntent,
+            HandsFreeMuteToggleProposal,
+            "control_media",
+            {"operation": MediaOperation.MUTE_TOGGLE},
         ),
         (
             HandsFreeMediaPreviousTrackIntent,

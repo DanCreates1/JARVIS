@@ -1,10 +1,10 @@
 # Hands-Free Control Plan
 
-Updated: 2026-08-22  
+Updated: 2026-09-09
 Status: Phase 2 double-clap detector, Phase 3 closed typed proposal mappings, Phase 7A bounded
-capture/privacy contracts, and Phase 7B provider-neutral temporal gesture core implemented;
-continuous audio/camera listeners, a real hand-landmark detector, and gesture-to-action integration
-remain disabled/unimplemented
+capture/privacy contracts, Phase 7B provider-neutral temporal gesture core, and Phase 7C default-off
+observation-to-intent bridge implemented; continuous audio/camera listeners, a real hand-landmark
+detector, and live gesture/action evaluation remain blocked
 
 ## Goal
 
@@ -19,10 +19,11 @@ Phase 3 permission policy remains the only path from intent to action.
 | Double clap | `launch_app_group` for only `hands_free_app_group` | Phase 2 detector and synthetic gate tests exist; continuous listening remains off | Existing configured app-group compatibility |
 | Clockwise/counter-clockwise gesture | `set_master_volume` at current rounded percentage plus/minus exactly 5, clamped to 0-100 | Mapping verified with injected read-only volume state; no gesture detector | Off |
 | Open-palm gesture | `control_media` with exact `play_pause` operation | Mapping verified synthetically; no gesture detector | Off |
+| Pinch gesture | `control_media` with exact `mute_toggle` operation | Phase 7C bridge and mapping verified synthetically; no gesture detector; mute readback not claimed | Off |
 | Swipe-left/right gesture | `control_media` with exact `previous_track`/`next_track` operation | Mapping verified synthetically; browser-tab navigation is deferred | Off |
 | Cancel gesture | Session-scoped no-authority cancel directive | Mapping and cross-session denial verified synthetically; no gesture detector | Off |
 
-Mute, browser-tab navigation, desktop/app switching, and gesture approval are not Phase 3
+Microphone mute, browser-tab navigation, desktop/app switching, and gesture approval are not Phase 3
 mappings. Detector input has no action-ID, path, operation, or numeric-delta field. Every emitted
 action proposal remains Level 1 and represents neither approval nor execution authority.
 
@@ -42,8 +43,9 @@ action proposal remains Level 1 and represents neither approval nor execution au
 1. Phase 2 adds local clap/event detection through the audio pipeline.
 2. Phase 7 adds local hand landmarks, temporal gesture recognition, calibration, confidence,
    debounce, and camera-state enforcement.
-3. Detector adapters may emit only the closed typed values `launch_app_group`, `volume_up`,
-   `volume_down`, `media_play_pause`, `media_previous_track`, `media_next_track`, or `cancel`.
+3. The Phase 7C bridge may emit only the closed typed values `volume_up`, `volume_down`,
+   `media_play_pause`, `mute_toggle`, or `cancel`; existing Phase 3 contracts also retain dormant
+   `media_previous_track`/`media_next_track` and Phase 2 `launch_app_group` inputs.
 4. Phase 3 resolves that intent through an allowlisted action mapping and permission broker.
 5. Execution emits an audit record and verifies the postcondition when possible.
 
@@ -62,11 +64,13 @@ execution remain separate.
 Phase 7A now provides dual-gated, foreground-only, visible, exact-region camera/screen capture with
 ephemeral cleared buffers and no action authority. It provides no hand detector, gesture intent,
 mapping, calibration, or continuous listener. Its authorized live-device closeout passed;
-Phase 7B now provides local-only 21-landmark contracts, aggregate calibration thresholds, and
+Phase 7B provides local-only 21-landmark contracts, aggregate calibration thresholds, and
 debounced/cooldown/re-arm temporal recognition for fist, palm, pinch, and both finger-roll
-directions. Synthetic accuracy/false-trigger/latency gates pass. It emits content-free gesture
-observations only and has no Phase 3 proposal or execution path. A real detector and live evaluation
-remain blocked pending the current MediaPipe telemetry/terms decision and separate capture authority.
+directions. Phase 7C maps those content-free observations through an immutable closed table into the
+existing Phase 3 proposal gate. All action families remain default-off; every proposal is Level 1,
+requires trusted review, and reaches only `ActionCoordinator.propose`. Fist cancel creates no action
+authority. Synthetic mapping/abuse gates pass. A real detector and live evaluation remain blocked
+pending the MediaPipe telemetry/terms decision and separate capture/effect authority.
 
 ## Safety requirements
 

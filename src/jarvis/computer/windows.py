@@ -1383,6 +1383,7 @@ class MediaKey(IntEnum):
     NEXT_TRACK = 0xB0
     STOP = 0xB2
     PLAY_PAUSE = 0xB3
+    VOLUME_MUTE = 0xAD
 
 
 @dataclass(frozen=True, slots=True)

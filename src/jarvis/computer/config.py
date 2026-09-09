@@ -105,10 +105,11 @@ class PrinterPolicy(ComputerConfigModel):
 
 
 class HandsFreeMappingsPolicy(ComputerConfigModel):
-    """Closed opt-ins for dormant Phase 3 gesture-to-proposal mappings."""
+    """Closed opt-ins for Phase 3 hands-free proposal mappings."""
 
     volume_step: bool = False
     media_play_pause: bool = False
+    mute_toggle: bool = False
     media_track_navigation: bool = False
     cancel_session: bool = False
 

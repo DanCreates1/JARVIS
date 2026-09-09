@@ -325,9 +325,10 @@ Yes. Planner/model implementations can change under persisted task/event contrac
 **Decision**  
 Use optional OpenCV for bounded camera capture and Pillow for exact Windows screen-region capture.
 Run native capture in a short-lived isolated worker behind owned contracts. Phase 7B owns the
-landmark, calibration, and temporal gesture logic. MediaPipe Hand Landmarker remains only a
-candidate; no detector is adopted until its current metrics/consent boundary is explicitly accepted
-or a reviewed no-telemetry model replaces it.
+landmark, calibration, and temporal gesture logic. Phase 7C uses an immutable default-off bridge
+into the existing Phase 3 Level 1 proposal gate; it adds no detector dependency. MediaPipe Hand
+Landmarker remains only a candidate; no detector is adopted until its current metrics/consent
+boundary is explicitly accepted or a reviewed no-telemetry model replaces it.
 
 **Reason**  
 The Phase 7A privacy boundary must exist before a detector. Simple gestures need low-latency CV,

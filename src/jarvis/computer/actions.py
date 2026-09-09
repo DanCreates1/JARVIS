@@ -224,6 +224,7 @@ class MediaOperation(StrEnum):
     NEXT_TRACK = "next_track"
     STOP = "stop"
     PLAY_PAUSE = "play_pause"
+    MUTE_TOGGLE = "mute_toggle"
 
 
 _MEDIA_KEYS = {
@@ -231,6 +232,7 @@ _MEDIA_KEYS = {
     MediaOperation.NEXT_TRACK: MediaKey.NEXT_TRACK,
     MediaOperation.STOP: MediaKey.STOP,
     MediaOperation.PLAY_PAUSE: MediaKey.PLAY_PAUSE,
+    MediaOperation.MUTE_TOGGLE: MediaKey.VOLUME_MUTE,
 }
 
 

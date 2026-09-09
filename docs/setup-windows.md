@@ -326,6 +326,11 @@ gesture command. Do not install MediaPipe as an undocumented workaround: current
 terms describe outbound Google metrics/metadata and informed-consent duties. Resolve that owner
 decision first; see [Local Gesture Recognition](GESTURE_RECOGNITION.md).
 
+Phase 7C adds no dependency or listener. Its bridge exists only when a foreground gesture pipeline
+is explicitly composed. The computer policy keeps `volume_step`, `media_play_pause`, `mute_toggle`,
+`media_track_navigation`, and `cancel_session` false by default. Enabling a flag permits only a
+reviewable Level 1 proposal; it does not enable capture, approve a grant, or execute an action.
+
 ## Optional controlled computer access
 
 Phase 3 is default-disabled and requires two reviewed gates. Start by creating only a disabled

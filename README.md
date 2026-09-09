@@ -11,13 +11,14 @@ runtime databases, logs, generated media, and secrets do not belong in Git.
 
 ## Current verification status
 
-As of 2026-09-08, Phases 4–6 are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
+As of 2026-09-09, Phases 4–6 are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
 optimized local latency evidence pass; Phase 1 remains formally blocked by fixed hosted NVIDIA
 latency gates. The preserved 20/20 NVIDIA states still miss one or both targets. Fresh instrumented
 requests place the long delay before response headers, while adaptive routing protects normal
 product interaction without representing NVIDIA as faster. Phase 7A's implementation, synthetic
-privacy gates, and bounded current camera/screen closeout pass. Clean-Windows bootstrap and repository gates
-pass on an independent fresh GitHub Windows runner. Phases 2 and 3 pass current safe local gates but
+privacy gates, and bounded current camera/screen closeout pass. Phase 7C's default-off synthetic
+gesture-to-proposal boundary also passes; detector/live soak remains blocked. Clean-Windows bootstrap
+and repository gates pass on an independent fresh GitHub Windows runner. Phases 2 and 3 pass current safe local gates but
 still require separately authorized current real-device/application smokes. See
 [Phase Overview](docs/PHASE_OVERVIEW.md) and the phase reports for exact evidence. No threshold or
 privacy/authority gate is waived by implementation status.
@@ -140,12 +141,14 @@ The optional local capture boundary adds:
   pixel values stored or logged; and
 - camera-independent fakes, privacy abuse tests, diagnostics, and a fixed boundary benchmark.
 
-Phase 7B now adds a provider-neutral landmark/gesture core with calibrated thresholds, static-pose
-debounce, roll-motion consistency, cooldown, release/re-arm, and strict uncertainty denial. It has
-no live detector, camera listener, mapping, or action path. Current MediaPipe adoption is blocked
-pending an explicit owner decision because its API terms describe Google metrics transmission and
-informed-consent duties. See [Vision Capture Privacy Boundary](docs/VISION_CAPTURE.md) and
-[Local Gesture Recognition](docs/GESTURE_RECOGNITION.md).
+Phase 7B adds a provider-neutral landmark/gesture core with calibrated thresholds, static-pose
+debounce, roll-motion consistency, cooldown, release/re-arm, and strict uncertainty denial. Phase
+7C adds an exact default-off bridge from content-free gesture observations to Phase 3 Level 1
+proposals: fist cancel, palm play/pause, pinch mute-toggle, and finger-roll 5% volume steps. It
+cannot approve or execute an action. No live detector or camera listener ships. MediaPipe adoption
+remains blocked pending an explicit owner decision because its API terms describe Google metrics
+transmission and informed-consent duties. See [Vision Capture Privacy Boundary](docs/VISION_CAPTURE.md)
+and [Local Gesture Recognition](docs/GESTURE_RECOGNITION.md).
 
 ## Model strategy
 

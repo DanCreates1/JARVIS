@@ -1,7 +1,7 @@
 """Fail-closed Phase 3 gate from acoustic intent data to low-risk proposals.
 
 This module cannot approve or execute an action. It accepts the fixed Phase 2
-double-clap shape plus default-off synthetic Phase 3 gesture contracts. It can
+double-clap shape plus default-off Phase 3 gesture contracts. It can
 emit only closed Level 1 proposals, or a session-scoped no-authority cancel
 directive. A trusted caller must still canonicalize, review, approve, and
 dispatch every action proposal through the Phase 3 permission broker.
@@ -75,17 +75,18 @@ class _GateModel(CoreModel):
 
 
 class HandsFreeSignalSource(StrEnum):
-    """Phase 3 source vocabulary; no gesture detector is implemented here."""
+    """Phase 3 source vocabulary."""
 
     GESTURE = "gesture"
 
 
 class HandsFreeGestureIntentType(StrEnum):
-    """Closed dormant gesture vocabulary owned by the Phase 3 mapping layer."""
+    """Closed gesture vocabulary owned by the Phase 3 mapping layer."""
 
     VOLUME_UP = "volume_up"
     VOLUME_DOWN = "volume_down"
     MEDIA_PLAY_PAUSE = "media_play_pause"
+    MUTE_TOGGLE = "mute_toggle"
     MEDIA_PREVIOUS_TRACK = "media_previous_track"
     MEDIA_NEXT_TRACK = "media_next_track"
     CANCEL = "cancel"
@@ -113,6 +114,10 @@ class HandsFreeMediaPlayPauseIntent(_HandsFreeGestureIntentBase):
     )
 
 
+class HandsFreeMuteToggleIntent(_HandsFreeGestureIntentBase):
+    intent: Literal[HandsFreeGestureIntentType.MUTE_TOGGLE] = HandsFreeGestureIntentType.MUTE_TOGGLE
+
+
 class HandsFreeMediaPreviousTrackIntent(_HandsFreeGestureIntentBase):
     intent: Literal[HandsFreeGestureIntentType.MEDIA_PREVIOUS_TRACK] = (
         HandsFreeGestureIntentType.MEDIA_PREVIOUS_TRACK
@@ -133,6 +138,7 @@ HandsFreeGestureIntent: TypeAlias = (
     HandsFreeVolumeUpIntent
     | HandsFreeVolumeDownIntent
     | HandsFreeMediaPlayPauseIntent
+    | HandsFreeMuteToggleIntent
     | HandsFreeMediaPreviousTrackIntent
     | HandsFreeMediaNextTrackIntent
     | HandsFreeCancelIntent
@@ -238,6 +244,19 @@ class HandsFreeMediaPlayPauseProposal(_HandsFreeProposalBase):
         return self
 
 
+class HandsFreeMuteToggleProposal(_HandsFreeProposalBase):
+    source: Literal[HandsFreeSignalSource.GESTURE] = HandsFreeSignalSource.GESTURE
+    intent: Literal[HandsFreeGestureIntentType.MUTE_TOGGLE] = HandsFreeGestureIntentType.MUTE_TOGGLE
+    action_id: Literal["control_media"] = "control_media"
+    arguments: MediaControlArguments
+
+    @model_validator(mode="after")
+    def bind_operation(self) -> Self:
+        if self.arguments.operation is not MediaOperation.MUTE_TOGGLE:
+            raise ValueError("mute-toggle proposal requires mute_toggle operation")
+        return self
+
+
 class HandsFreeMediaPreviousTrackProposal(_HandsFreeProposalBase):
     source: Literal[HandsFreeSignalSource.GESTURE] = HandsFreeSignalSource.GESTURE
     intent: Literal[HandsFreeGestureIntentType.MEDIA_PREVIOUS_TRACK] = (
@@ -273,6 +292,7 @@ HandsFreeActionProposal: TypeAlias = Annotated[
     | HandsFreeVolumeUpProposal
     | HandsFreeVolumeDownProposal
     | HandsFreeMediaPlayPauseProposal
+    | HandsFreeMuteToggleProposal
     | HandsFreeMediaPreviousTrackProposal
     | HandsFreeMediaNextTrackProposal,
     Field(discriminator="intent"),
@@ -635,6 +655,7 @@ class HandsFreeProposalGate:
                     HandsFreeGestureIntentType.VOLUME_UP.value: mappings.volume_step,
                     HandsFreeGestureIntentType.VOLUME_DOWN.value: mappings.volume_step,
                     HandsFreeGestureIntentType.MEDIA_PLAY_PAUSE.value: mappings.media_play_pause,
+                    HandsFreeGestureIntentType.MUTE_TOGGLE.value: mappings.mute_toggle,
                     HandsFreeGestureIntentType.MEDIA_PREVIOUS_TRACK.value: (
                         mappings.media_track_navigation
                     ),
@@ -771,6 +792,11 @@ class HandsFreeProposalGate:
                     **common,
                     arguments=MediaControlArguments(operation=MediaOperation.PLAY_PAUSE),
                 )
+            elif intent_value == HandsFreeGestureIntentType.MUTE_TOGGLE.value:
+                proposal = HandsFreeMuteToggleProposal(
+                    **common,
+                    arguments=MediaControlArguments(operation=MediaOperation.MUTE_TOGGLE),
+                )
             elif intent_value == HandsFreeGestureIntentType.MEDIA_PREVIOUS_TRACK.value:
                 proposal = HandsFreeMediaPreviousTrackProposal(
                     **common,
@@ -873,6 +899,7 @@ class HandsFreeCoordinatorProposalConsumer:
         HandsFreeVolumeUpProposal,
         HandsFreeVolumeDownProposal,
         HandsFreeMediaPlayPauseProposal,
+        HandsFreeMuteToggleProposal,
         HandsFreeMediaPreviousTrackProposal,
         HandsFreeMediaNextTrackProposal,
     )

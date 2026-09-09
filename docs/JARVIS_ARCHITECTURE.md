@@ -266,6 +266,22 @@ No concrete detector ships yet. Current MediaPipe Tasks terms state that metrics
 sent to Google and informed-consent handling is the application owner's responsibility. Detector
 adoption therefore remains behind a separate owner privacy/legal decision.
 
+### Phase 7C gesture-to-intent boundary
+
+Phase 7C adds one foreground adapter from a revalidated content-free `GestureObservation` to the
+existing Phase 3 hands-free gate. Its immutable mapping is fist to session cancel, palm to media
+play/pause, pinch to the fixed Windows volume-mute key, and clockwise/counter-clockwise finger roll
+to one clamped 5% volume step. Mapping configuration persists only as default-false action-family
+flags in the host-owned computer policy.
+
+The adapter derives a replay nonce from content-free event/session metadata. Phase 3 then rechecks
+actor, active source session, policy epoch, freshness, confidence, replay, rate, and fixed Level 1
+scope. It records the sanitized decision before calling a proposal callback. The only production
+consumer calls `ActionCoordinator.propose`; trusted review, exact one-use grant issuance, broker
+execution, and postcondition handling remain separate. Fist cancel permanently closes only its
+bound gate session and creates no proposal or grant. No capture, thread, listener, background task,
+approval, or execution starts from constructing the bridge.
+
 ## 7. Model routing
 
 Routing begins with a deterministic local privacy and command gate. A cloud model never receives an unclassified turn. Uncertainty is treated as sensitive and stays local.

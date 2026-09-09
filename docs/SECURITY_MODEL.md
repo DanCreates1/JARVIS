@@ -348,6 +348,11 @@ Data minimization:
   calibration thresholds and content-free gesture observations may leave a frame consumer;
 - one-hand, confidence, freshness, ordering, debounce, release, cooldown, and motion-consistency
   checks make uncertainty/conflict/replay a no-event result; gesture confidence grants no authority;
+- Phase 7C revalidates the content-free observation, applies only an immutable fist/palm/pinch/roll
+  mapping, and enters the existing actor/session/freshness/replay/rate-limited Phase 3 gate;
+- every mapped action family is default-off and Level 1 only; the bridge cannot encode arguments,
+  approve, issue grants, call the broker, or start capture/background work; fist cancel creates no
+  authority;
 - no current detector is adopted while MediaPipe's metrics/metadata disclosure and informed-consent
   boundary remains undecided;
 - no raw camera/audio persistence without purpose, retention, and approval;

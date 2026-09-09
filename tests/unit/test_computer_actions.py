@@ -359,6 +359,28 @@ async def test_media_partial_input_is_postcondition_mismatch() -> None:
     assert (await handler.verify(action, effect)).status is PostconditionStatus.MISMATCH
 
 
+@pytest.mark.asyncio
+async def test_media_mute_toggle_uses_only_fixed_volume_mute_key() -> None:
+    keys: list[MediaKey] = []
+
+    def send(key: MediaKey) -> MediaInputResult:
+        keys.append(key)
+        return MediaInputResult(
+            key=key,
+            requested_count=2,
+            accepted_count=2,
+            last_error=None,
+        )
+
+    handler = MediaControlHandler(send_input=send)
+    prepared = handler.prepare(MediaControlArguments(operation=MediaOperation.MUTE_TOGGLE))
+    action = canonical_action(handler.definition, prepared, key="media-mute-toggle")
+    effect = await handler.execute(action)
+
+    assert keys == [MediaKey.VOLUME_MUTE]
+    assert effect.result["operation"] == "mute_toggle"
+
+
 @WINDOWS_ONLY
 @pytest.mark.asyncio
 async def test_reversible_move_binds_precondition_verifies_and_rolls_back(tmp_path: Path) -> None:

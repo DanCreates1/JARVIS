@@ -43,7 +43,7 @@ nonce, idempotency key, and expiry.
 | `get_local_printer_status` | 0 | Enrolled printer aliases only | Queue discovery/status; no job. |
 | `launch_application` | 1 | Enrolled `.exe`, SHA-256, file identity, and fixed argv | Running image identity checked; no automatic termination. |
 | `launch_app_group` | 1 | Ordered group of at most eight enrolled apps | Every launched image checked; partial launch is explicit and not auto-terminated. |
-| `control_media` | 1 | One fixed previous/next/stop/play-pause key pair | Verifies Windows accepted both inputs; playback state is not observable. No retry. |
+| `control_media` | 1 | One fixed previous/next/stop/play-pause/volume-mute key pair | Verifies Windows accepted both inputs; playback or mute state is not observable. No retry. |
 | `set_master_volume` | 1 | Absolute integer 0–100% | Core Audio readback; guarded restoration of prior scalar/mute state. |
 | `set_clipboard_text` | 2 | Exact bounded Unicode text | Hash/length readback; a nonempty prior clipboard must expose materialized `CF_UNICODETEXT`, otherwise replacement is refused to prevent lossy rollback. |
 | `move_controlled_file` | 2 | One file, same volume, no overwrite, controlled root only | File ID/hash/path revalidation; guarded rename rollback. |
@@ -60,12 +60,14 @@ All tools declare a schema, risk, approval rule, timeout of at most 30 seconds, 
 | Phase 2 double clap | `launch_app_group` with only the configured `hands_free_app_group` | Double-clap detector exists; continuous listening remains disabled. |
 | `volume_up` / `volume_down` | `set_master_volume` from injected current state, exactly +/-5 percentage points, clamped to 0-100 | Synthetic mapping tests only; default off. |
 | `media_play_pause` | `control_media` with `play_pause` | Synthetic mapping tests only; default off. |
+| `mute_toggle` | `control_media` with the fixed Windows volume-mute key | Phase 7C maps pinch synthetically; default off; mute state is not observable through `SendInput`. |
 | `media_previous_track` / `media_next_track` | `control_media` with track navigation only | Synthetic mapping tests only; default off; browser-tab navigation deferred. |
 | `cancel` | Bound-session cancel directive with no action, approval, or grant | Synthetic mapping tests only; default off. |
 
 The Phase 3 mapping contract has no detector-supplied action ID, path, media operation, or numeric
-delta. It applies actor, source, source-session, freshness, confidence, replay, rate, and permission
-checks before producing a proposal. The production consumer can call only
+delta. Phase 7C fixes fist/palm/pinch/roll observations to cancel/play-pause/mute-toggle/volume-step
+intents before this boundary. It applies actor, source, source-session, freshness, confidence,
+replay, rate, and permission checks before producing a proposal. The production consumer can call only
 `ActionCoordinator.propose` with `ApprovalSource.HANDS_FREE`; it has no review or execute method.
 No audio or camera listener starts when this mapping layer is constructed.
 
@@ -88,9 +90,9 @@ targets you own:
   `browser_application` ID.
 - `printers`: stable aliases mapped to exact Windows queue names. Sensitive printing remains false.
 - `hands_free_app_group`: optional existing double-clap mapping to one configured app group.
-- `hands_free_mappings`: four closed, default-false opt-ins for 5% volume steps, media
-  play/pause, media track navigation, and bound-session cancel. These flags do not install or start
-  a gesture detector.
+- `hands_free_mappings`: five closed, default-false action-family opt-ins for 5% volume steps, media
+  play/pause, mute toggle, media track navigation, and bound-session cancel. These flags do not
+  install or start a gesture detector.
 - `controlled_root`: the dedicated child directory created beneath the JARVIS data directory. The
   loader rejects another root, a symlink, or a reparse redirect.
 - `maximum_permission_level`: `1` or `2`. Values `3` and `4` are rejected in Phase 3.

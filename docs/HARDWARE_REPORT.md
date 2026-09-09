@@ -235,6 +235,12 @@ CPU, lighting, skin-tone, background, or thermal result. MediaPipe is not instal
 terms describe outbound metrics/metadata and informed-consent duties. Detector/live evaluation
 remains pending owner direction and separate capture authority.
 
+Phase 7C adds no model or device load. Its synthetic observation-to-Phase-3 gate ran 10,000 measured
+evaluations at 0.1319/0.1421 ms p50/p95 with 1.621 MiB RSS growth, zero wrong mappings, direct
+effects, or authority escalation. A 36,000-event negative/replay/storm gate produced zero effects
+and only one rate-bounded proposal; bound-session cancel stopped later proposals. Detector,
+frame-to-proposal, CPU/GPU, thermal, false-activation, and 30-minute live results remain unmeasured.
+
 ### Phase 2 measured voice results — 2026-08-22
 
 | Measurement | Result |

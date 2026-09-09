@@ -1,8 +1,8 @@
-# Phase 7B Local Gesture Recognition
+# Phase 7B/7C Local Gesture Recognition
 
-Status: provider-neutral core implemented; detector adoption and live evaluation blocked pending
-owner privacy/consent decision  
-Updated: 2026-09-08
+Status: provider-neutral core and default-off Phase 3 bridge implemented; detector adoption and
+live evaluation blocked pending owner privacy/consent decision
+Updated: 2026-09-09
 
 ## Current capability
 
@@ -29,8 +29,18 @@ explicit 7A frame -> local landmark detector port -> ephemeral landmark frame
                   -> temporal recognizer -> content-free gesture observation
 ```
 
-The pipeline ends there. Phase 7B has no import or call path to Phase 3 mappings, proposals,
-approvals, or execution. Gesture-to-intent mapping remains Phase 7C.
+Phase 7B ends there and retains no Phase 3 import. Phase 7C supplies a separate computer-layer sink:
+
+```text
+closed_fist -> cancel                 open_palm -> media_play_pause
+pinch -> mute_toggle                  clockwise roll -> volume_up
+counter-clockwise roll -> volume_down
+```
+
+The sink revalidates the observation, supplies no detector-controlled arguments, and enters the
+existing Phase 3 actor/session/freshness/confidence/replay/rate gate. Host policy flags remain
+default false. A proposal stays Level 1 and requires trusted review; mapping never approves or
+executes. Fist cancel closes only the bound session and creates no action authority.
 
 ## Calibration and privacy
 
@@ -87,6 +97,18 @@ Current safe-core result: 1,000 sequences, 100 positive sequences per gesture, m
 recall 1.00; 36,000 negative frames/one simulated hour, zero false activations; 10,000 classifier
 frames, p50 0.0119 ms, p95 0.0138 ms, 0.316 MiB RSS growth. These prove deterministic state-machine
 behavior only. They do not measure camera robustness or detector accuracy.
+
+Phase 7C synthetic gate:
+
+```powershell
+uv run python scripts/phase7c-intent-benchmark.py `
+  --output runtime/phase7c-intent-<unique>/benchmark.json
+```
+
+Current result: 10,000 observation-to-gate evaluations at 0.1319/0.1421 ms p50/p95 with 1.621 MiB
+RSS growth, zero wrong mappings, direct effects, or authority escalations; 36,000 negative/storm/
+replay events produced one rate-bounded proposal and zero direct effects; universal cancel produced
+no later proposal. This is synthetic policy-path evidence, not a live gesture/action claim.
 
 Live completion still needs a separately authorized exact protocol covering lighting, distance,
 left/right hands, mirrored/unmirrored input, partial occlusion, backgrounds, similar movement,
