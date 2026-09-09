@@ -15,8 +15,8 @@ As of 2026-09-08, Phases 4–6 are complete. Phase 1 genuine Ollama/NVIDIA token
 optimized local latency evidence pass; Phase 1 remains formally blocked by fixed hosted NVIDIA
 latency gates. The preserved 20/20 NVIDIA states still miss one or both targets. Fresh instrumented
 requests place the long delay before response headers, while adaptive routing protects normal
-product interaction without representing NVIDIA as faster. Phase 7A's safe implementation and synthetic
-privacy gates pass; authorized current camera/screen closeout remains pending. Clean-Windows bootstrap and repository gates
+product interaction without representing NVIDIA as faster. Phase 7A's implementation, synthetic
+privacy gates, and bounded current camera/screen closeout pass. Clean-Windows bootstrap and repository gates
 pass on an independent fresh GitHub Windows runner. Phases 2 and 3 pass current safe local gates but
 still require separately authorized current real-device/application smokes. See
 [Phase Overview](docs/PHASE_OVERVIEW.md) and the phase reports for exact evidence. No threshold or

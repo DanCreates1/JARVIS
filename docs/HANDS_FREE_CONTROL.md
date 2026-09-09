@@ -60,8 +60,8 @@ execution remain separate.
 
 Phase 7A now provides dual-gated, foreground-only, visible, exact-region camera/screen capture with
 ephemeral cleared buffers and no action authority. It provides no hand detector, gesture intent,
-mapping, calibration, or continuous listener. MediaPipe evaluation begins only in Phase 7B after
-the capture privacy boundary receives authorized live-device closeout.
+mapping, calibration, or continuous listener. Its authorized live-device closeout passed;
+MediaPipe evaluation may begin only in a separate Phase 7B session.
 
 ## Safety requirements
 

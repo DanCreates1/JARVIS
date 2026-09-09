@@ -30,7 +30,7 @@ implementation protocol, acceptance gates, safety boundaries, and completion rep
 | 4 | Durable memory | Complete | 4A-4C complete | `gpt-6-astra` / `xhigh` aggregate |
 | 5 | Research | Complete | 5A-5C complete | `gpt-6-astra` / `xhigh` aggregate |
 | 6 | Bounded tasks | Complete | 6A-6C complete | `gpt-6-astra` / `ultra` aggregate |
-| 7 | Vision and gestures | 7A implemented; closeout pending | 7A authorized live capture closeout | `gpt-6-astra` / `xhigh` |
+| 7 | Vision and gestures | 7A complete | 7B gestures/calibration | `gpt-5.6-sol` / `high` |
 | 8 | Secure phone/PWA | Loopback foundation only | 8A API/identity/enrollment | `gpt-6-astra` / `ultra` |
 | 9 | Dedicated server migration | Not started | 9A topology/protocol/identity | `gpt-6-astra` / `ultra` |
 | 10 | Generic wearables | Not started; lower priority | 10A feasibility/license/contracts | `gpt-5.6-sol` / `high` |
@@ -70,9 +70,9 @@ dependency is Phase 3/media privacy, but it must not be described as following a
    1 NVIDIA latency is an accepted known limitation, but its unchanged formal gate remains
    `blocked-external`.
 5. Maintain completed Phase 6 bounded tasks and its default-off, foreground-only execution boundary.
-6. Close Phase 7A with separately authorized bounded camera and screen-region smokes. Do not begin
-   7B recognition until 7A's device/privacy closeout is recorded. Preserve the explicit Phase 1
-   blocker, then continue Phase 7 before Phases 8–11.
+6. Phase 7A is complete. Begin 7B gesture/calibration only as a separate session with fixed
+   dataset, precision/recall/latency/resource targets. Preserve the explicit Phase 1 blocker, then
+   continue Phase 7 before Phases 8–11.
 
 Hands-free control is a cross-phase track: Phase 2 detects claps, Phase 7 recognizes hand
 gestures, and Phase 3 alone authorizes and executes the mapped computer action. See

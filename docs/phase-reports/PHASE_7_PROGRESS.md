@@ -1,9 +1,9 @@
 # Phase 7 Vision and Gestures Progress Report
 
-Status: `implemented-closeout-pending`  
+Status: `in-progress` — Phase 7A complete; 7B/7C not started
 Started: 2026-09-08  
 Updated: 2026-09-08  
-Active subphase: Phase 7A — capture/privacy/contracts  
+Completed subphase: Phase 7A — capture/privacy/contracts
 Recommended Codex model: `gpt-6-astra`  
 Recommended reasoning: `xhigh` for 7A (`max` for aggregate Phase 7)  
 Session start / five-hour stop: 2026-09-08 14:37 EDT / 2026-09-08 19:37 EDT
@@ -110,15 +110,15 @@ controls. Phase 7A does not recognize gestures, retain media, call cloud vision,
   environment, status/control/doctor/capture CLI, and non-capturing main diagnostics.
 - Evidence: adapter protocol/error/source tests and CLI/diagnostic suites; optional locked imports
   passed on the target host without opening a source.
-- Remaining: authorized live camera/screen smoke.
+- Remaining: none for 7A.
 
 ### Milestone 4 — Benchmark, documentation, release gates, and handoff
 
-- Status: safe implementation complete; live closeout pending
+- Status: complete
 - Changes: fixed benchmark and operator/privacy, setup, architecture, security, hands-free,
   hardware, technology, roadmap, status, and report documentation.
 - Evidence: 200-session p95 0.229 ms; 100 abuse scenarios; no violations or leaked buffers.
-- Remaining: separately authorized live camera/screen closeout.
+- Remaining: none for 7A.
 
 ## Decisions
 
@@ -152,6 +152,12 @@ Final repository release gate
 uv lock/sync, Ruff format/lint, strict mypy, pip-audit, Gitleaks, and git diff --check passed
 752 passed, 2 skipped; 85.04% total coverage
 main doctor and vision doctor passed with both capture gates disabled; neither opened a source
+
+Authorized bounded live closeout
+camera:0, diagnostic, RGB24, region 0,0,640x480: 1 frame, 921600 bytes, 2781 ms
+screen:desktop, diagnostic, RGB24, region 0,0,640x480: 1 frame, 921600 bytes, 515 ms
+Both runs: active indicator before capture, off after source close, stop=frame_limit, pixels discarded
+Postcondition: host gate disabled, persistent software control disabled, capture inactive
 ```
 
 ## Benchmarks
@@ -163,6 +169,7 @@ main doctor and vision doctor passed with both capture gates disabled; neither o
 - Errors/failures: zero leaks, zero privacy violations.
 - Hardware/runtime/model/device versions: baseline above; no model/provider used by Phase 7A
 - Relevant settings: one frame, ephemeral RGB24; hard limits fixed in acceptance above.
+- Live closeout: one camera and one screen-region frame; no retained media or content output.
 
 ## Security and privacy
 
@@ -177,9 +184,7 @@ main doctor and vision doctor passed with both capture gates disabled; neither o
 
 ## Blockers
 
-- Safe implementation is complete. One real camera and one exact 640 x 480 screen-region smoke
-  require separately explicit bounded live-test authorization before execution. Until then, 7A
-  remains `implemented-closeout-pending` and 7B does not begin.
+- None for Phase 7A. Phase 7B/7C have separate scope and acceptance gates.
 
 ## Known limits and deferred scope
 
@@ -195,9 +200,9 @@ main doctor and vision doctor passed with both capture gates disabled; neither o
 
 ## Final handoff
 
-- Final status: implemented-closeout-pending
+- Final status: Phase 7A complete; aggregate Phase 7 remains in progress.
 - Files changed: vision contracts/controller/settings/indicator/adapters/worker/fakes/diagnostics,
   configuration/CLI/lock/tests/benchmark, and listed operator/governance documentation.
-- Next recommended phase: authorize bounded 7A live closeout, then begin 7B separately.
-- Commit/push status: safe Phase 7A paths are prepared under standing repository authorization;
-  unrelated `.codex_finish_jarvis_cleanup.ps1` remains excluded.
+- Next recommended phase: begin Phase 7B gestures/calibration in a separate session.
+- Commit/push status: implementation commit `ea2ef54` is on `origin/main`; this closeout update uses
+  standing repository authorization. Unrelated `.codex_finish_jarvis_cleanup.ps1` remains excluded.

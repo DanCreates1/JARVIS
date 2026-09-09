@@ -1,7 +1,7 @@
 # Vision Capture Privacy Boundary
 
 Updated: 2026-09-08  
-Status: Phase 7A implemented; authorized live-device closeout pending
+Status: Phase 7A complete
 
 Phase 7A provides explicit, bounded camera and screen-region capture. It does not recognize
 gestures, retain images, call a cloud vision service, inspect pixels with a model, or authorize a
@@ -93,3 +93,11 @@ Phase 7B because gesture/landmark processing is outside 7A and its Tasks telemet
 informed-consent decision before adoption.
 
 No third-party source code or model artifact is copied into this repository.
+
+## Closeout evidence
+
+On 2026-09-08, the audited Windows host completed exactly one `camera:0` frame and one
+`screen:desktop` frame, each at `(0,0)` with a 640 x 480 RGB24 region. Both displayed the active
+indicator before capture and the off indicator after source close, delivered 921,600 bytes, and
+discarded the pixels. Camera duration was 2,781 ms; screen duration was 515 ms. The persistent
+software control and host gate were then verified disabled, with no active session.

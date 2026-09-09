@@ -7,17 +7,17 @@ Phase 3 read-only capability probes plus disposable controlled-root benchmark
 
 ## Phase 7A capture-boundary update — 2026-09-08
 
-- The healthy `USB2.0 HD UVC WebCam` remains the candidate camera on the audited ASUS TUF Gaming
-  F15. No real camera or screen pixels were read because current live-capture authority was not
-  granted.
+- The healthy `USB2.0 HD UVC WebCam` completed one authorized 640 x 480 RGB24 frame at `(0,0)` in
+  2,781 ms. One authorized `screen:desktop` 640 x 480 region at `(0,0)` completed in 515 ms. Each
+  delivered 921,600 bytes, showed active/off indicator transitions, and discarded all pixels.
 - Locked optional imports passed with `opencv-python-headless` 5.0.0.93, Pillow 12.3.0, and their
   resolved NumPy dependency on Python 3.11.16. The ordinary base environment remains independent
   of these packages.
 - The fixed fake benchmark completed 200 one-frame sessions at 0.180 ms p50 and 0.229 ms p95, with
   zero leaked live buffers. One hundred denial/abuse scenarios produced zero violations.
 - Native adapters use bounded 15 FPS / 300-frame / 30-second / 1,000 ms maximums and a 1920 x 1080
-  maximum region. Live camera/screen latency and device-loss evidence remain pending separate
-  bounded authorization.
+  maximum region. After live closeout, the host gate and persistent software control were both
+  verified disabled with no active session.
 
 ## Phase 1 adaptive-routing revalidation — 2026-09-08
 
