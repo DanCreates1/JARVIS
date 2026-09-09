@@ -183,6 +183,13 @@ limits, and Windows-specific uncertainty after cancellation of an in-flight nati
 
 See [Vision Capture Privacy Boundary](VISION_CAPTURE.md) for operator controls and recovery.
 
+Phase 7B adds only local landmark/gesture contracts and deterministic temporal logic. Landmark
+features are ephemeral; calibration retains only aggregate dimensionless thresholds. The recognizer
+requires one fresh ordered confident hand and otherwise emits nothing. Its event schema has no
+action, argument, approval, permission, or tool fields. No detector package, model, camera listener,
+or Phase 3 integration is active. Current MediaPipe adoption is blocked because its API terms
+describe outbound Google metrics/metadata and informed-consent duties.
+
 ## Secrets
 
 - Never commit `.env`, tokens, passwords, cookies, private keys, certificates,

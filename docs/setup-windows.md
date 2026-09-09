@@ -321,6 +321,11 @@ path; the physical shutter and Windows privacy control remain independent.
 
 No continuous listener or recognition starts. See [Vision Capture Privacy Boundary](VISION_CAPTURE.md).
 
+The Phase 7B gesture core adds no package to the `vision` extra and exposes no live calibration or
+gesture command. Do not install MediaPipe as an undocumented workaround: current MediaPipe API
+terms describe outbound Google metrics/metadata and informed-consent duties. Resolve that owner
+decision first; see [Local Gesture Recognition](GESTURE_RECOGNITION.md).
+
 ## Optional controlled computer access
 
 Phase 3 is default-disabled and requires two reviewed gates. Start by creating only a disabled

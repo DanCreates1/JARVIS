@@ -227,9 +227,13 @@ CPU. The discrete GPU remains available to Ollama. Cloud speech is not configure
 integrated GPU for display where possible; future vision fast paths should use MediaPipe/OpenCV and
 bounded frame rates, with multimodal LLM calls on demand rather than continuously.
 
-Phase 7A adopted only the OpenCV/Pillow capture boundary. MediaPipe and all continuous landmark or
-gesture processing remain deferred pending Phase 7B accuracy, CPU, privacy, and telemetry-consent
-review.
+Phase 7A adopted only the OpenCV/Pillow capture boundary. Phase 7B's provider-neutral temporal core
+passes its synthetic gate on this host: 1,000 sequences at 1.00 macro precision/recall, 36,000
+negative frames with zero false activations, and 10,000 classifier frames at 0.0119/0.0138 ms
+p50/p95 with 0.316 MiB RSS growth. This excludes detector time and proves no real camera accuracy,
+CPU, lighting, skin-tone, background, or thermal result. MediaPipe is not installed because current
+terms describe outbound metrics/metadata and informed-consent duties. Detector/live evaluation
+remains pending owner direction and separate capture authority.
 
 ### Phase 2 measured voice results — 2026-08-22
 

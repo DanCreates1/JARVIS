@@ -244,6 +244,28 @@ buffers. Only one session is allowed. No listener starts at boot.
 Gesture/landmark recognition, calibration, mappings, OCR, biometrics, cloud vision, retention, and
 Phase 3 action proposals remain outside 7A. Capture produces no authority.
 
+### Phase 7B local gesture core
+
+Phase 7B consumes one controller-owned ephemeral frame through a provider-neutral landmark detector
+port. A strict landmark frame contains zero, one, or two hands; each hand has exactly 21 normalized
+local landmarks, handedness, and confidence. Per-frame landmarks are never persisted or logged.
+Only aggregate dimensionless calibration thresholds may survive as a profile; current code does not
+expose profile persistence or a live calibration UI.
+
+The deterministic temporal recognizer requires one fresh, ordered, confident hand. It classifies
+fist, palm, and pinch only after consecutive-frame debounce. Finger roll requires bounded angular
+motion, stable radius, and directional consistency. Cooldown plus observed release prevents held
+pose storms. No-hand, multiple hands, conflicts, low confidence, stale/replayed/out-of-order frames,
+drops, malformed geometry, and unknown poses emit nothing. Restart/reset clears all temporal state.
+
+Its output is a content-free typed gesture observation containing no action, arguments, permission,
+approval, or tool fields. Phase 7C may later map that observation to a closed typed intent; Phase 3
+alone may propose and execute an allowed action.
+
+No concrete detector ships yet. Current MediaPipe Tasks terms state that metrics and metadata are
+sent to Google and informed-consent handling is the application owner's responsibility. Detector
+adoption therefore remains behind a separate owner privacy/legal decision.
+
 ## 7. Model routing
 
 Routing begins with a deterministic local privacy and command gate. A cloud model never receives an unclassified turn. Uncertainty is treated as sensitive and stays local.

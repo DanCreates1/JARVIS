@@ -140,8 +140,12 @@ The optional local capture boundary adds:
   pixel values stored or logged; and
 - camera-independent fakes, privacy abuse tests, diagnostics, and a fixed boundary benchmark.
 
-Gesture recognition, MediaPipe, continuous listeners, cloud vision, retention, and action authority
-remain absent. See [Vision Capture Privacy Boundary](docs/VISION_CAPTURE.md).
+Phase 7B now adds a provider-neutral landmark/gesture core with calibrated thresholds, static-pose
+debounce, roll-motion consistency, cooldown, release/re-arm, and strict uncertainty denial. It has
+no live detector, camera listener, mapping, or action path. Current MediaPipe adoption is blocked
+pending an explicit owner decision because its API terms describe Google metrics transmission and
+informed-consent duties. See [Vision Capture Privacy Boundary](docs/VISION_CAPTURE.md) and
+[Local Gesture Recognition](docs/GESTURE_RECOGNITION.md).
 
 ## Model strategy
 
@@ -382,6 +386,8 @@ always performs secret scanning.
 - [Phase 6 planning completion evidence](docs/phase-reports/PHASE_6_COMPLETION.md)
 - [Phase 6 bounded task operator guide](docs/BOUNDED_TASKS.md)
 - [Phase 7A vision capture privacy boundary](docs/VISION_CAPTURE.md)
+- [Phase 7B local gesture core](docs/GESTURE_RECOGNITION.md)
+- [Phase 7B synthetic dataset card](docs/PHASE_7B_DATASET_CARD.md)
 - [Phase 7 progress evidence](docs/phase-reports/PHASE_7_PROGRESS.md)
 - [Codex phase execution playbook](docs/CODEX_PHASE_PLAYBOOK.md)
 - [External repository comparison](docs/EXTERNAL_REPOSITORY_COMPARISON.md)

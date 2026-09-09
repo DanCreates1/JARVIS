@@ -89,8 +89,11 @@ Phase 7A adopts optional [`opencv-python-headless`](https://pypi.org/project/ope
 [Apache-2.0](https://opencv.org/license/); the Python wrapper is MIT and its wheels include
 LGPL-2.1 FFmpeg components. Pillow is MIT-CMU. JARVIS installs only one OpenCV package and uses no
 OpenCV GUI window. [MediaPipe](https://github.com/google-ai-edge/mediapipe) remains deferred to
-Phase 7B because gesture/landmark processing is outside 7A and its Tasks telemetry requires an
-informed-consent decision before adoption.
+Phase 7B because gesture/landmark processing is outside 7A. Phase 7B's owned temporal core is now
+implemented without MediaPipe. Current MediaPipe API terms state that Solution/Tasks APIs contact
+Google servers and send performance/utilization/application/input/system metadata, with informed
+consent duties for the app owner. JARVIS does not install or initialize it without an explicit owner
+decision. See [Local Gesture Recognition](GESTURE_RECOGNITION.md).
 
 No third-party source code or model artifact is copied into this repository.
 

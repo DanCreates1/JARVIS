@@ -1,8 +1,9 @@
 # Hands-Free Control Plan
 
 Updated: 2026-08-22  
-Status: Phase 2 double-clap detector, Phase 3 closed typed proposal mappings, and Phase 7A bounded
-capture/privacy contracts implemented; continuous audio/camera listeners and gesture recognition
+Status: Phase 2 double-clap detector, Phase 3 closed typed proposal mappings, Phase 7A bounded
+capture/privacy contracts, and Phase 7B provider-neutral temporal gesture core implemented;
+continuous audio/camera listeners, a real hand-landmark detector, and gesture-to-action integration
 remain disabled/unimplemented
 
 ## Goal
@@ -61,7 +62,11 @@ execution remain separate.
 Phase 7A now provides dual-gated, foreground-only, visible, exact-region camera/screen capture with
 ephemeral cleared buffers and no action authority. It provides no hand detector, gesture intent,
 mapping, calibration, or continuous listener. Its authorized live-device closeout passed;
-MediaPipe evaluation may begin only in a separate Phase 7B session.
+Phase 7B now provides local-only 21-landmark contracts, aggregate calibration thresholds, and
+debounced/cooldown/re-arm temporal recognition for fist, palm, pinch, and both finger-roll
+directions. Synthetic accuracy/false-trigger/latency gates pass. It emits content-free gesture
+observations only and has no Phase 3 proposal or execution path. A real detector and live evaluation
+remain blocked pending the current MediaPipe telemetry/terms decision and separate capture authority.
 
 ## Safety requirements
 

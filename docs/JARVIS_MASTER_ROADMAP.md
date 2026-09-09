@@ -449,8 +449,12 @@ Supported multi-step tasks resume safely after restart, never exceed configured 
 Phase 7A capture/privacy/contracts are complete with dual default-off gates, exact bounded
 camera/screen-region requests, visible state, isolated native workers, ephemeral cleared buffers,
 kill/cancel controls, camera-independent tests, fixed synthetic benchmarks, and bounded current
-camera/screen live evidence. Both controls were restored disabled after closeout. Gesture/landmark
-recognition and every later deliverable remain unimplemented; Phase 7 is not complete.
+camera/screen live evidence. Both controls were restored disabled after closeout. Phase 7B now has
+owned local landmark contracts, privacy-minimal calibration, deterministic temporal recognition for
+fist/palm/pinch/finger-roll, strict uncertainty denial, fakes, and fixed synthetic gates. A real
+detector is not adopted: current MediaPipe terms describe Google metrics transmission and informed
+consent. Live detector evaluation and every 7C mapping/action deliverable remain incomplete; Phase
+7 is not complete.
 
 **Goal**  
 Low-latency perception and configurable gestures, escalating to multimodal models only when needed.

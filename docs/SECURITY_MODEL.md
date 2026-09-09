@@ -344,6 +344,12 @@ Data minimization:
   ephemeral-only retention, one active session, and immediate controller-owned buffer clearing;
 - native camera/screen access runs in a short-lived worker with a fixed non-secret environment;
   timeout, cancellation, source loss, protocol error, or control uncertainty kills the worker;
+- Phase 7B landmarks and motion windows remain local/ephemeral; only aggregate dimensionless
+  calibration thresholds and content-free gesture observations may leave a frame consumer;
+- one-hand, confidence, freshness, ordering, debounce, release, cooldown, and motion-consistency
+  checks make uncertainty/conflict/replay a no-event result; gesture confidence grants no authority;
+- no current detector is adopted while MediaPipe's metrics/metadata disclosure and informed-consent
+  boundary remains undecided;
 - no raw camera/audio persistence without purpose, retention, and approval;
 - memories are candidates until policy/host confirmation commits them;
 - extraction, tool, import, and derived content is untrusted provenance; confidence never grants
