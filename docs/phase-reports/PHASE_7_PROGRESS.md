@@ -1,20 +1,20 @@
 # Phase 7 Vision and Gestures Progress Report
 
-Status: `in-progress` — Phase 7A complete; Phase 7B initiated; 7C not started
+Status: `in-progress` — Phase 7A complete; Phase 7B safe core complete; Phase 7C implemented-closeout-pending
 Started: 2026-09-08  
-Updated: 2026-09-08  
-Active subphase: Phase 7B — temporal gestures/calibration
-Completed subphase: Phase 7A — capture/privacy/contracts
-Recommended Codex model: `gpt-5.6-sol` for 7B (`gpt-6-astra` for aggregate Phase 7)
-Recommended reasoning: `high` for 7B (`max` for aggregate Phase 7)
-Session start / five-hour stop: 2026-09-08 21:05 EDT / 2026-09-09 02:05 EDT
+Updated: 2026-09-09
+Active subphase: Phase 7C — implemented-closeout-pending on detector/live soak
+Completed subphase: Phase 7A — capture/privacy/contracts; Phase 7B provider-neutral safe core
+Recommended Codex model: `gpt-6-astra`
+Recommended reasoning: `max`
+Session start / five-hour stop: 2026-09-09 09:50 EDT / 2026-09-09 14:50 EDT
 
 ## Objective
 
-Add provider-neutral local hand landmarks, temporal fist/palm/pinch/finger-roll recognition,
-confidence/debounce/cooldown controls, and privacy-minimal calibration on the completed 7A capture
-boundary. Phase 7B emits gesture observations only. It does not map gestures to intents, propose or
-execute tools, approve work, retain pixels/landmark sequences, identify people, or use cloud vision.
+Connect content-free Phase 7B gesture observations to the existing closed Phase 3 hands-free intent
+and proposal boundary. Mapping remains host-owned, default-off, Level 1 only, rate-limited,
+replay-protected, audited, and unable to approve or execute work. Aggregate Phase 7 cannot close
+until the blocked real detector, diverse live evaluation, and 30-minute target soak pass.
 
 ## Baseline
 
@@ -50,9 +50,106 @@ execute tools, approve work, retain pixels/landmark sequences, identify people, 
   performance/utilization metrics to Google and makes the application owner responsible for
   informed consent. JARVIS therefore does not install, initialize, or adopt current MediaPipe until
   the owner explicitly accepts that disclosure/consent boundary or selects a reviewed no-telemetry
-  candidate. Sources: [Python guide](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker/python),
-  [repository/privacy notice](https://github.com/google-ai-edge/mediapipe), and
+  candidate. Revalidated 2026-09-09 against the April 7, 2026 terms. Sources:
+  [Python guide](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker/python),
+  [MediaPipe API terms](https://developers.google.com/edge/mediapipe/legal/tos), and
   [license](https://github.com/google-ai-edge/mediapipe/blob/master/LICENSE).
+
+## Phase 7C initiation baseline
+
+- Git/working tree: `main` at `e57441e`, equal to `origin/main`; unrelated untracked
+  `.codex_finish_jarvis_cleanup.ps1` remains untouched and excluded.
+- Prerequisites: 7A capture boundary and 7B provider-neutral recognizer core pass synthetic gates.
+  The concrete detector, diverse real-human evaluation, and target soak remain blocked, so 7C may
+  ship only default-off synthetic integration and cannot complete aggregate Phase 7.
+- Existing Phase 3 boundary: closed gesture-intent models, freshness/confidence/session/replay/rate
+  gate, default-off policy flags, sanitized decision sink, Level 1 proposals, and coordinator-only
+  proposal consumer exist. No Phase 7 observation-to-intent bridge or pinch/mute mapping exists.
+- Authority remains withheld for live camera capture and real volume/media effects. No live device
+  or OS action will run in this subphase without separate exact authorization.
+
+## Phase 7C acceptance checklist
+
+### Functional and integration
+
+- [x] Exact closed mapping is `closed_fist -> cancel`, `open_palm -> media_play_pause`,
+  `pinch -> mute_toggle`, `finger_roll_clockwise -> volume_up`, and
+  `finger_roll_counterclockwise -> volume_down`; detector data cannot supply an action ID,
+  operation, path, argument, delta, permission level, approval, or grant.
+- [x] Mapping is persisted only through host-owned default-off computer-policy action-family flags;
+  all action proposals remain fixed Level 1 with trusted review required.
+- [x] One foreground sink bridges a fresh content-free `GestureObservation` to the existing Phase 3
+  gate. It starts no capture, thread, listener, broker execution, or background task.
+- [x] Pinch mute uses one reviewed typed Phase 3 action and exact broker revalidation; cancel remains
+  session-scoped and creates no proposal, approval, grant, or action authority.
+
+### Failure, abuse, privacy, and recovery
+
+- [x] Unknown/malformed mappings, stale/future/low-confidence/conflicting events, session mismatch,
+  event/nonce replay, rate storms, policy disable/change, audit failure, cancellation, expired
+  proposal, non-Level-1 registry target, and coordinator denial fail closed with zero direct effect.
+- [x] Mapping and sink reset/recreation preserve replay/session boundaries where the configured
+  replay store does; disabling capture or computer policy prevents downstream work.
+- [x] Audit remains content-free. Pixels, landmarks, body geometry, raw detector output, arguments,
+  actor secrets, approval data, and grants never enter gesture mapping records.
+
+### Fixed quantitative targets
+
+- [x] At least 10,000 synthetic observation-to-gate evaluations report warm p50/p95 with p95 <= 5
+  ms, zero wrong mappings, zero direct effects, zero authority escalation, and bounded memory growth
+  <= 25 MiB.
+- [x] At least 36,000 synthetic negative/storm/replay/session events yield zero direct effects and
+  no more than the configured proposal rate; universal cancel stops later session proposals.
+- [ ] Required live closeout: 30-minute target camera/detector/mapping soak reports frame-to-proposal
+  p50/p95 <= 75/150 ms, <= 0.1 false activations/hour, zero action storms, zero unauthorized
+  effects, and bounded CPU/RAM/thermal behavior. This remains blocked with the 7B detector gate.
+
+### Documentation and release
+
+- [x] Hands-free, controlled-access, architecture, security, setup/configuration, roadmap, overview,
+  hardware, rollback, and progress evidence match shipped default-off behavior.
+- [x] Focused mapping/integration/security tests and benchmark pass; complete lock/sync/format/lint/
+  type/test/vulnerability/secret/diff/doctor gates pass before commit/push.
+
+## Phase 7C milestones
+
+### Milestone 1 — Baseline, threat model, mapping contract, and fixed gates
+
+- Status: complete
+- Changes: required references and current implementation read; prerequisite/blocker state
+  reconciled; exact closed mappings, authority boundary, synthetic metrics, and live closeout gates
+  frozen before implementation.
+- Evidence: 7A and 7B safe-core evidence above; Git baseline `e57441e`; both capture gates disabled.
+- Remaining: implement the closed bridge and pinch/mute action without enabling runtime authority.
+
+### Milestone 2 — Closed observation-to-intent mapping and Phase 3 bridge
+
+- Status: complete
+- Changes: immutable exact mapper, same-snapshot event nonce, foreground gate sink, default-off mute
+  policy family, fixed `VK_VOLUME_MUTE` action, and coordinator-only proposal integration.
+- Evidence: 92 focused Phase 3/7C tests pass; all five mappings reach only fixed Level 1 proposal or
+  bound-session cancel shapes; pinch reaches the coordinator as pending with zero input injection.
+- Remaining: none for the safe local implementation.
+
+### Milestone 3 — Adversarial integration, documentation, and release gates
+
+- Status: complete for safe local scope
+- Changes: adversarial tests, fixed benchmark, and operator/architecture/security/setup/status
+  documentation implemented.
+- Evidence: 10,000 mappings at 0.1319/0.1421 ms p50/p95 and 1.621 MiB RSS growth; 36,000 negative/
+  replay/storm/session events; zero wrong mappings, direct effects, or authority escalations.
+- Evidence: complete gate passes: 792 passed, 2 skipped, 85.34% coverage; lock/sync, Ruff, strict
+  mypy, pip-audit, Gitleaks, diff check, and main doctor pass.
+- Remaining: detector/live Milestone 4 only; preserve blocker without a false completion claim.
+
+### Milestone 4 — Real detector/action soak and aggregate closeout
+
+- Status: blocked-external
+- Changes: none.
+- Evidence: MediaPipe disclosure/consent decision and exact live camera/effect authority remain
+  absent.
+- Remaining: candidate adoption, diverse real-target detector validation, and authorized 30-minute
+  integrated soak. Aggregate Phase 7 stays `in-progress` until these pass.
 
 ## Phase 7B acceptance checklist
 
@@ -259,7 +356,15 @@ execute tools, approve work, retain pixels/landmark sequences, identify people, 
 - Reason: neither configuration nor stale persisted state alone may activate a privacy-sensitive
   device.
 - Alternatives: implicit camera probing, startup capture, and background listeners are excluded.
-- Reversible later: Phase 7C may add an explicit foreground gesture session after 7B evaluation.
+- Reversible later: a reviewed detector may compose the Phase 7C sink inside an explicit foreground
+  gesture session after live 7B evaluation.
+
+- Decision: make Phase 7C an immutable observation-to-intent bridge into the existing Phase 3 gate.
+- Reason: detector output must never choose actions, arguments, permission, approval, or execution.
+- Alternatives: configurable detector-supplied operations, direct broker calls, and automatic grants
+  are excluded.
+- Reversible later: host-owned policy may add separately reviewed closed action families without
+  weakening the gate or changing the detector contract.
 
 ## Verification evidence
 
@@ -291,9 +396,39 @@ synthetic corpus: 1,000 sequences; macro/per-gesture precision and recall 1.00
 negative soak: 36,000 frames / one simulated hour; zero false activations/actions
 classifier: 10,000 frames; p50 0.0119 ms; p95 0.0138 ms; RSS growth 0.316 MiB
 MediaPipe package/model not installed or initialized; no camera capture performed
+
+Phase 7C safe-integration verification on 2026-09-09
+92 focused Phase 3/7C tests passed
+Ruff format/lint and strict mypy across 108 source files passed
+mapping gate: 10,000 observations; p50 0.1319 ms; p95 0.1421 ms; RSS growth 1.621 MiB
+negative gate: 36,000 stale/low-confidence/session/replay events; one rate-bounded proposal
+zero wrong mappings, direct effects, authority escalations, or post-cancel proposals
+main doctor passed with computer access and vision capture disabled
+MediaPipe April 7, 2026 terms revalidated; detector remains unadopted
+complete suite: 792 passed, 2 skipped, 85.34% coverage; one known Starlette/httpx deprecation warning
+uv lock/sync, pip-audit, Gitleaks, and git diff --check passed
 ```
 
 ## Benchmarks
+
+### Phase 7C safe integration
+
+- Samples: 1,000 warm-up plus 10,000 measured observation-to-gate evaluations; 36,000 negative,
+  replay, storm, and session-boundary events.
+- Cold/warm: warm deterministic Pydantic mapping and Phase 3 policy path; no detector, camera,
+  coordinator execution, broker execution, or Windows input time included.
+- p50: 0.1319 ms/evaluation.
+- p95: 0.1421 ms/evaluation against fixed <= 5 ms target.
+- Errors/failures: zero wrong mappings, direct effects, authority escalations, and post-cancel
+  proposals; 1.621 MiB RSS growth against <= 25 MiB; one permitted rate-bounded proposal among the
+  36,000-event gate.
+- Hardware/runtime/model/device versions: Windows build 26200, Python 3.11.16, target laptop above;
+  no model/provider/device used.
+- Relevant settings: all five action-family policy flags enabled only inside the synthetic harness,
+  fixed Level 1, 1-second benchmark rate limit, 2-second freshness, one bound source session.
+  Evidence: `runtime/phase7c-intent-03/benchmark.json` (ignored local aggregate output).
+- Limit: safe policy-path evidence only; no detector accuracy, camera, human usability, thermal, or
+  real action claim.
 
 ### Phase 7B safe core
 
@@ -333,10 +468,16 @@ MediaPipe package/model not installed or initialized; no camera capture performe
 - Data boundaries: local-only, ephemeral frame ownership; no cloud, persistence, or action authority.
 - Phase 7B adds ephemeral normalized landmark frames and aggregate calibration thresholds only;
   emitted gesture events have no mapping, action, argument, approval, permission, or tool fields.
-- Permissions/approvals: explicit local capture controls only; Phase 3 grants remain separate.
+- Phase 7C revalidates an observation snapshot, derives a content-free replay nonce, maps only the
+  five fixed fist/palm/pinch/roll shapes, and passes them through actor/session/freshness/confidence/
+  replay/rate/Level-1 checks. Invalid, stale, future, conflicting, replayed, disabled, expired,
+  unauditable, cancelled, or non-Level-1 paths fail closed.
+- Permissions/approvals: explicit local capture controls only; Phase 7C may create only an unapproved
+  proposal or bound-session cancel. Trusted review, one-use grants, and Phase 3 execution remain
+  separate.
 - Audit/retention/deletion: content-free session metrics only; no retained media exists to export or
   delete.
-- Secret scan: Gitleaks 8.30.1 scanned 18 commits / about 3.17 MB; no leaks found.
+- Secret scan: Gitleaks 8.30.1 scanned 28 commits / about 3.40 MB; no leaks found.
 
 ## Blockers
 
@@ -346,12 +487,15 @@ MediaPipe package/model not installed or initialized; no camera capture performe
   telemetry disclosure or new material term is accepted by this initiation request.
 - Phase 7B live/recorded camera evaluation and the 30-minute target soak require separate explicit
   bounded capture authorization after the detector candidate and exact test protocol are fixed.
+- Phase 7C safe implementation and synthetic gates pass, but its required detector-to-mapping live
+  proof remains `implemented-closeout-pending` behind the same candidate decision plus exact camera
+  and minimal media/volume-effect authorization. Aggregate Phase 7 remains `in-progress`.
 
 ## Known limits and deferred scope
 
-- Gesture mapping, Phase 3 proposals/actions, OCR/object/scene understanding, multimodal model
-  disclosure, and retained media remain deferred to 7C or later. MediaPipe adoption remains
-  undecided because of current telemetry/consent behavior.
+- Real detector integration, real-human gesture quality, live proposals/actions, OCR/object/scene
+  understanding, multimodal model disclosure, and retained media remain deferred. MediaPipe
+  adoption remains undecided because of current telemetry/consent behavior.
 
 ## Recovery and rollback
 
@@ -361,14 +505,13 @@ MediaPipe package/model not installed or initialized; no camera capture performe
 
 ## Final handoff
 
-- Final status: Phase 7A complete; Phase 7B safe core implemented; detector/live acceptance blocked;
-  aggregate Phase 7 remains in progress.
-- Files changed this session: gesture contracts/features/calibration/recognizer/fake/pipeline,
-  deterministic benchmark/tests, dataset/operator guides, and affected architecture/security/setup/
-  hardware/technology/roadmap/status documentation.
+- Final status: Phase 7A complete; Phase 7B safe core complete; Phase 7C safe implementation and
+  synthetic gates pass but live closeout is blocked; aggregate Phase 7 remains in progress.
+- Files changed this session: closed gesture bridge, mute-toggle Phase 3 action/policy mapping,
+  synthetic benchmark/tests, and affected architecture/security/setup/hardware/technology/roadmap/
+  status documentation.
 - Next recommended work: owner selects MediaPipe-with-metrics or a reviewed no-telemetry candidate;
-  then implement the adapter and request exact live evaluation authority. Phase 7C remains out of
-  scope.
-- Commit/push status: Phase 7B safe-core implementation `efbde55` is on `origin/main`; this report
-  closeout uses standing safe-source commit/push authorization. Unrelated
+  then implement the adapter and authorize the exact diverse 30-minute detector/mapping/action soak.
+- Commit/push status: Phase 7C implementation commit `6e4342f`; report closeout committed immediately
+  after it and both pushed to `origin/main` under standing safe-source authorization. Unrelated
   `.codex_finish_jarvis_cleanup.ps1` remains excluded.
