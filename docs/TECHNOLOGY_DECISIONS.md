@@ -2,7 +2,7 @@
 
 Status: recommended defaults for staged implementation  
 Planning date: 2026-08-20
-Last updated: 2026-09-08
+Last updated: 2026-09-10
 
 These are architectural defaults, not permanent vendor commitments. Revisit a decision when representative benchmarks or security requirements contradict its assumptions.
 
@@ -30,7 +30,7 @@ These are architectural defaults, not permanent vendor commitments. Revisit a de
 | Wake word | openWakeWord ONNX foundation; always-listening disabled | Porcupine, microWakeWord | Local Windows support; pretrained model is non-commercially licensed |
 | TTS | Windows SAPI behind provider port | Piper, cloud neural TTS | Local, built-in, cancellable baseline without bundling GPL runtime |
 | Vision/gesture | OpenCV/Pillow isolated capture; pinned OpenCV Zoo ONNX palm/hand pose; owned temporal core | MediaPipe Tasks, multimodal model per frame | Local DNN avoids Tasks runtime telemetry and per-frame cloud cost |
-| Remote access | Tailscale/private network + TLS + app authentication | Public reverse proxy, custom VPN | Default-deny device connectivity; avoids direct public exposure |
+| Remote access | Loopback-first Ed25519 device identity + hashed sessions; later Tailscale/TLS | Shared API key, bearer-only auth, public port | Per-device proof, scope, replay defense, rotation, and revocation before exposure |
 | Web/control panel | Responsive web UI/PWA after local API | Native desktop/mobile first | One client across laptop and phone |
 | Observability | Structured events and OpenTelemetry-compatible fields | Full hosted stack | Measurable without premature infrastructure |
 | CI/security | GitHub Actions, Ruff, mypy, pytest, pip-audit, Gitleaks | Larger platforms | Already present, adequate for current scale |
@@ -596,6 +596,38 @@ owner prevents mixed text or competing speech.
 Yes. Providers, health thresholds, and local summarization may change through configuration and
 measured evaluation. Privacy classification, zero spend, separate provider evidence, one visible
 response owner, and unchanged acceptance provenance remain mandatory.
+
+## TD-026 — Ed25519 device proof plus hashed short-lived sessions
+
+**Decision**
+
+Implement Phase 8A with unique client-owned Ed25519 keys, locally authorized one-use enrollment,
+15-minute opaque sessions stored only by SHA-256 digest, and signed protected requests. Bind the
+canonical signature to method, authority, raw request target, body digest, date, nonce, audience,
+device, key version, and token digest. Persist replay, lifecycle, and sanitized audit state in
+SQLite migration 009. Rotation proves possession of current and new keys and revokes all sessions.
+Keep networking loopback-only until the separate TLS/private-network phase.
+
+**Reason**
+
+Per-device asymmetric proof avoids a shared secret and makes a stolen bearer token insufficient by
+itself. Fixed device/session scope, durable nonce use, expiry, rotation, and immediate local
+revocation establish the authority boundary before any phone UI or network deployment.
+
+**Alternatives considered / why rejected**
+
+- Shared HMAC/API key: shared blast radius and no reliable device-specific recovery.
+- Bearer-only session: token theft supplies authority without device-key proof.
+- WebAuthn/OIDC immediately: browser-facing authentication is Phase 8B and does not replace device
+  scope, replay, expiry, or revocation.
+- Non-loopback listener now: TLS, firewall/private-network policy, external scan, and real-device
+  validation require separate Phase 8D review.
+
+**Replaceable later?**
+
+Yes. WebAuthn, passkey, OIDC, hardware-backed key, and distributed-store adapters may be added.
+Unique device identity, proof of possession, exact scope/audience, expiry, replay protection,
+rotation, revocation, secret-free audit, and loopback-safe defaults remain required.
 
 ## Review triggers
 

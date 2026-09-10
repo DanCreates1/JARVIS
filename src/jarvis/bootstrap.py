@@ -45,6 +45,7 @@ from jarvis.planning import (
     TaskScheduler,
     ValueTaskHandler,
 )
+from jarvis.remote import RemoteIdentityService, SQLiteRemoteIdentityStore
 from jarvis.research import (
     BoundedResearchOrchestrator,
     ExtractiveResearchSynthesizer,
@@ -90,6 +91,8 @@ class RuntimeComponents:
     memory_host_id: str | None = None
     task_store: SQLiteTaskStore | None = None
     tasks: TaskScheduler | None = None
+    remote_store: SQLiteRemoteIdentityStore | None = None
+    remote_identity: RemoteIdentityService | None = None
 
     async def close(self) -> None:
         try:
@@ -99,25 +102,29 @@ class RuntimeComponents:
                 await self.task_store.close()
         finally:
             try:
-                await self.provider.close()
+                if self.remote_store is not None:
+                    await self.remote_store.close()
             finally:
                 try:
-                    if self.research is not None:
-                        await self.research.close()
+                    await self.provider.close()
                 finally:
                     try:
-                        if self.computer is not None:
-                            await self.computer.close()
+                        if self.research is not None:
+                            await self.research.close()
                     finally:
                         try:
-                            if self.research_store is not None:
-                                await self.research_store.close()
+                            if self.computer is not None:
+                                await self.computer.close()
                         finally:
                             try:
-                                if self.memory_store is not None:
-                                    await self.memory_store.close()
+                                if self.research_store is not None:
+                                    await self.research_store.close()
                             finally:
-                                await self.store.close()
+                                try:
+                                    if self.memory_store is not None:
+                                        await self.memory_store.close()
+                                finally:
+                                    await self.store.close()
 
     async def __aenter__(self) -> RuntimeComponents:
         return self
@@ -137,24 +144,29 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
     memory_store = SQLiteMemoryStore(settings.database_path)
     research_store = SQLiteResearchStore(settings.database_path)
     task_store = SQLiteTaskStore(settings.database_path)
+    remote_store = SQLiteRemoteIdentityStore(settings.database_path)
     try:
         await store.initialize()
         await memory_store.initialize()
         await research_store.initialize()
         await task_store.initialize()
+        await remote_store.initialize()
         memory_host_id = local_memory_host_id()
         memory = MemoryManager(memory_store, host_id=memory_host_id)
     except BaseException:
         try:
-            await task_store.close()
+            await remote_store.close()
         finally:
             try:
-                await research_store.close()
+                await task_store.close()
             finally:
                 try:
-                    await memory_store.close()
+                    await research_store.close()
                 finally:
-                    await store.close()
+                    try:
+                        await memory_store.close()
+                    finally:
+                        await store.close()
         raise
     provider: ModelRouter | None = None
     computer: ComputerRuntimeComponents | None = None
@@ -344,12 +356,15 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
                     await task_store.close()
             finally:
                 try:
-                    await research_store.close()
+                    await remote_store.close()
                 finally:
                     try:
-                        await memory_store.close()
+                        await research_store.close()
                     finally:
-                        await store.close()
+                        try:
+                            await memory_store.close()
+                        finally:
+                            await store.close()
         raise
     assert provider is not None
     return RuntimeComponents(
@@ -362,6 +377,8 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
         memory_host_id=memory_host_id,
         task_store=task_store,
         tasks=tasks,
+        remote_store=remote_store,
+        remote_identity=RemoteIdentityService(remote_store),
         provider=provider,
         service=service,
         computer=computer,

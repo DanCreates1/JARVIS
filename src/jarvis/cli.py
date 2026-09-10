@@ -102,6 +102,12 @@ task_app = typer.Typer(
     no_args_is_help=True,
 )
 app.add_typer(task_app, name="task")
+remote_app = typer.Typer(
+    name="remote",
+    help="Trusted-local device enrollment, inventory, revocation, and identity audit.",
+    no_args_is_help=True,
+)
+app.add_typer(remote_app, name="remote")
 console = Console(highlight=False, legacy_windows=False)
 
 
@@ -121,6 +127,179 @@ def _load_settings() -> Settings:
         raise typer.Exit(code=2) from None
     configure_logging(settings.log_level)
     return settings
+
+
+@remote_app.command("enroll")
+def remote_enroll(
+    display_name: Annotated[str, typer.Argument(help="Human-readable device name.")],
+    device_type: Annotated[
+        str,
+        typer.Option("--type", help="phone, browser, laptop, wearable, or service"),
+    ] = "phone",
+    scope: Annotated[
+        list[str] | None,
+        typer.Option("--scope", help="Repeat for each exact approved Phase 8A scope."),
+    ] = None,
+    risk_ceiling: Annotated[
+        int,
+        typer.Option("--risk-ceiling", min=0, max=2, help="Maximum device risk class."),
+    ] = 0,
+) -> None:
+    """Create one short-lived enrollment challenge from this trusted local terminal."""
+    from jarvis.remote import (
+        DeviceType,
+        RemoteIdentityService,
+        RemoteScope,
+        SQLiteRemoteIdentityStore,
+    )
+
+    settings = _load_settings()
+    try:
+        selected_type = DeviceType(device_type)
+        selected_scopes = tuple(RemoteScope(value) for value in (scope or ()))
+        if not selected_scopes:
+            raise ValueError("at least one --scope is required")
+    except ValueError as exc:
+        console.print(f"[bold red]Invalid enrollment request.[/] {exc}")
+        raise typer.Exit(code=2) from None
+
+    async def run() -> None:
+        store = SQLiteRemoteIdentityStore(settings.database_path)
+        try:
+            await store.initialize()
+            ticket = await RemoteIdentityService(store).create_enrollment(
+                host_id=local_memory_host_id(),
+                display_name=display_name,
+                device_type=selected_type,
+                approved_scopes=selected_scopes,
+                risk_ceiling=risk_ceiling,
+            )
+        finally:
+            await store.close()
+        console.print(ticket.model_dump_json(indent=2))
+        console.print(
+            "[bold yellow]Enrollment challenge shown once.[/] Transfer privately; "
+            "it expires in 5 minutes. Device must prove possession of its Ed25519 private key."
+        )
+
+    asyncio.run(run())
+
+
+@remote_app.command("devices")
+def remote_devices() -> None:
+    """List this host's enrolled device metadata without keys, tokens, or private content."""
+    from jarvis.remote import RemoteIdentityService, SQLiteRemoteIdentityStore
+
+    settings = _load_settings()
+
+    async def run() -> None:
+        store = SQLiteRemoteIdentityStore(settings.database_path)
+        try:
+            await store.initialize()
+            devices = await RemoteIdentityService(store).list_devices(
+                host_id=local_memory_host_id()
+            )
+        finally:
+            await store.close()
+        table = Table(title="JARVIS enrolled devices")
+        table.add_column("Device ID")
+        table.add_column("Name")
+        table.add_column("Type")
+        table.add_column("State")
+        table.add_column("Key")
+        table.add_column("Scopes")
+        for device in devices:
+            table.add_row(
+                device.id,
+                device.display_name,
+                device.device_type.value,
+                device.state.value,
+                f"v{device.key_version}:{device.key_fingerprint[:12]}",
+                ", ".join(scope.value for scope in device.approved_scopes),
+            )
+        console.print(table)
+
+    asyncio.run(run())
+
+
+@remote_app.command("revoke")
+def remote_revoke(
+    device_id: Annotated[str, typer.Argument(help="Exact device ID to revoke.")],
+    confirm_device_id: Annotated[
+        str,
+        typer.Option("--confirm-device-id", help="Must exactly match the device ID."),
+    ],
+) -> None:
+    """Immediately revoke one device and all its sessions from this trusted local terminal."""
+    from jarvis.remote import RemoteIdentityService, SQLiteRemoteIdentityStore
+
+    if confirm_device_id != device_id:
+        console.print("[bold red]Revocation confirmation does not match device ID.[/]")
+        raise typer.Exit(code=2)
+    settings = _load_settings()
+
+    async def run() -> bool:
+        store = SQLiteRemoteIdentityStore(settings.database_path)
+        try:
+            await store.initialize()
+            return await RemoteIdentityService(store).revoke_device(
+                host_id=local_memory_host_id(),
+                device_id=device_id,
+            )
+        finally:
+            await store.close()
+
+    if not asyncio.run(run()):
+        console.print("[bold red]Active device not found.[/]")
+        raise typer.Exit(code=1)
+    console.print("[bold green]Device and all sessions revoked.[/]")
+
+
+@remote_app.command("audit")
+def remote_audit(
+    device_id: Annotated[str, typer.Argument(help="Exact enrolled device ID.")],
+    after: Annotated[int, typer.Option("--after", min=0)] = 0,
+    limit: Annotated[int, typer.Option("--limit", min=1, max=500)] = 100,
+) -> None:
+    """Show content-free lifecycle events for one device owned by this host."""
+    from jarvis.remote import RemoteAuditEvent, SQLiteRemoteIdentityStore
+
+    settings = _load_settings()
+
+    async def run() -> tuple[RemoteAuditEvent, ...] | None:
+        store = SQLiteRemoteIdentityStore(settings.database_path)
+        try:
+            await store.initialize()
+            devices = await store.list_devices(host_id=local_memory_host_id())
+            if device_id not in {device.id for device in devices}:
+                return None
+            return await store.list_audit_events(
+                device_id=device_id,
+                after_sequence=after,
+                limit=limit,
+            )
+        finally:
+            await store.close()
+
+    events = asyncio.run(run())
+    if events is None:
+        console.print("[bold red]Device not found.[/]")
+        raise typer.Exit(code=1)
+    table = Table(title="JARVIS remote identity audit")
+    table.add_column("Seq", justify="right")
+    table.add_column("Time")
+    table.add_column("Event")
+    table.add_column("Outcome")
+    table.add_column("Reason")
+    for event in events:
+        table.add_row(
+            str(event.sequence),
+            event.created_at.isoformat(),
+            event.event_type,
+            event.outcome.value,
+            event.reason_code,
+        )
+    console.print(table)
 
 
 @task_app.command("create")

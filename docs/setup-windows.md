@@ -403,6 +403,37 @@ Use pause/resume/cancel and explicit reconciliation as documented in
 [Bounded Tasks](BOUNDED_TASKS.md). Return `JARVIS_TASK_EXECUTION_ENABLED=false` to restore safe
 default. `jarvis doctor` reports current execution state and host ceilings.
 
+## Phase 8A remote identity administration
+
+Phase 8A remains local-only. Keep `JARVIS_WEB_HOST=127.0.0.1`; do not add a firewall exception,
+port forward, reverse proxy, or Tailscale Serve rule. Network/TLS deployment is Phase 8D.
+
+From a trusted local PowerShell terminal, create an exact five-minute enrollment grant:
+
+```powershell
+uv run jarvis remote enroll "My phone" `
+  --type phone `
+  --scope identity.read `
+  --scope events.read `
+  --scope session.revoke `
+  --scope key.rotate
+```
+
+The challenge prints once. Transfer it privately to client software that generated its own Ed25519
+key. Never place the challenge or private key in Git, logs, model context, or browser local storage.
+
+Inspect and recover from the local host:
+
+```powershell
+uv run jarvis remote devices
+uv run jarvis remote audit DEVICE_ID --after 0 --limit 100
+uv run jarvis remote revoke DEVICE_ID --confirm-device-id DEVICE_ID
+uv run jarvis doctor
+```
+
+Revocation immediately disables the device and every session. Full protocol/client requirements
+are in [Remote Identity and API Boundary](REMOTE_ACCESS.md).
+
 ## Optional free-tier cloud roles
 
 Local Ollama works without cloud credentials. To activate Groq, inject a key from

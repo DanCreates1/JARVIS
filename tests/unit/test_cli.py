@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sqlite3
 from datetime import UTC, datetime, timedelta
 from io import StringIO
 from pathlib import Path
@@ -93,6 +94,59 @@ def test_version_command(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert result.exit_code == 0
     assert output.getvalue().strip() == "JARVIS 0.1.0"
+
+
+def test_remote_enrollment_cli_requires_scope_and_persists_only_challenge_digest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = capture_console(monkeypatch)
+    data_dir = tmp_path / "remote-cli"
+    monkeypatch.setenv("JARVIS_DATA_DIR", str(data_dir))
+    runner = CliRunner()
+
+    missing_scope = runner.invoke(cli.app, ["remote", "enroll", "Phone"])
+    assert missing_scope.exit_code == 2
+    assert "at least one --scope is required" in output.getvalue()
+
+    output.seek(0)
+    output.truncate(0)
+    enrolled = runner.invoke(
+        cli.app,
+        ["remote", "enroll", "Phone", "--scope", "identity.read"],
+    )
+    assert enrolled.exit_code == 0
+    text = output.getvalue()
+    assert '"challenge"' in text and "expires in 5 minutes" in text
+    challenge_line = next(line for line in text.splitlines() if '"challenge"' in line)
+    challenge = challenge_line.split('"')[3]
+    with sqlite3.connect(data_dir / "jarvis.db") as connection:
+        stored = connection.execute(
+            "SELECT challenge_sha256, scopes_json FROM remote_enrollments"
+        ).fetchone()
+    assert stored is not None
+    assert stored[0] != challenge and len(stored[0]) == 64
+    assert json.loads(stored[1]) == ["identity.read"]
+
+    output.seek(0)
+    output.truncate(0)
+    listed = runner.invoke(cli.app, ["remote", "devices"])
+    assert listed.exit_code == 0
+    assert "JARVIS enrolled devices" in output.getvalue()
+
+    output.seek(0)
+    output.truncate(0)
+    mismatch = runner.invoke(
+        cli.app,
+        [
+            "remote",
+            "revoke",
+            "device:missing",
+            "--confirm-device-id",
+            "device:other",
+        ],
+    )
+    assert mismatch.exit_code == 2
+    assert "confirmation does not match" in output.getvalue()
 
 
 def test_phase6_task_cli_preview_list_show_default_off_and_delete(

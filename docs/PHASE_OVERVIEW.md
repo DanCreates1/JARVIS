@@ -1,6 +1,6 @@
 # JARVIS Phase Overview
 
-Updated: 2026-09-09
+Updated: 2026-09-10
 
 This is the concise execution view of the master roadmap. Status describes implemented code,
 not just design work. Model/reasoning values are Codex execution recommendations, not JARVIS
@@ -31,7 +31,7 @@ implementation protocol, acceptance gates, safety boundaries, and completion rep
 | 5 | Research | Complete | 5A-5C complete | `gpt-6-astra` / `xhigh` aggregate |
 | 6 | Bounded tasks | Complete | 6A-6C complete | `gpt-6-astra` / `ultra` aggregate |
 | 7 | Vision and gestures | Complete | 7A-7C complete | `gpt-6-astra` / `max` |
-| 8 | Secure phone/PWA | Loopback foundation only | 8A API/identity/enrollment | `gpt-6-astra` / `ultra` |
+| 8 | Secure phone/PWA | 8A complete; phase in progress | 8B trusted web/API hardening | `gpt-6-astra` / `ultra` |
 | 9 | Dedicated server migration | Not started | 9A topology/protocol/identity | `gpt-6-astra` / `ultra` |
 | 10 | Generic wearables | Not started; lower priority | 10A feasibility/license/contracts | `gpt-5.6-sol` / `high` |
 | 11 | Advanced proactive/multimodal | Not started; long-term | 11A trigger/proactivity policy | `gpt-6-astra` / `ultra` |
@@ -73,6 +73,9 @@ dependency is Phase 3/media privacy, but it must not be described as following a
 6. Maintain completed Phase 7 capture, local detection/gesture, and default-off Phase 3 mapping
    boundaries. Keep model downloads explicit, capture foreground-only, and all action authority in
    Phase 3. Preserve the explicit Phase 1 blocker.
+7. Maintain completed Phase 8A device identity, request signing, replay, scope, rotation, and local
+   revocation boundaries. Next implement Phase 8B trusted browser/API hardening without enabling a
+   non-loopback listener; TLS/private-network and real-phone work remain Phase 8D.
 
 Hands-free control is a cross-phase track: Phase 2 detects claps, Phase 7 recognizes hand
 gestures, and Phase 3 alone authorizes and executes the mapped computer action. See

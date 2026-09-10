@@ -23,6 +23,8 @@ from jarvis.llm import (
     OllamaChatProvider,
 )
 from jarvis.memory import SQLiteConversationStore
+from jarvis.memory.identity import local_memory_host_id
+from jarvis.remote import SQLiteRemoteIdentityStore
 from jarvis.research import FetchedDocument, SandboxedDocumentParser
 
 
@@ -158,6 +160,8 @@ async def run_diagnostics(
 
     checks.append(_vision_capture_check(settings))
 
+    checks.append(await _remote_identity_check(settings))
+
     provider: DiagnosticProvider | None = None
     try:
         provider = provider_factory(settings)
@@ -286,6 +290,31 @@ async def run_diagnostics(
             await cloud_provider.close()
 
     return DiagnosticReport(checks=tuple(checks))
+
+
+async def _remote_identity_check(settings: Settings) -> DiagnosticCheck:
+    store = SQLiteRemoteIdentityStore(settings.database_path)
+    try:
+        await store.initialize()
+        devices = await store.list_devices(host_id=local_memory_host_id())
+    except Exception:
+        return DiagnosticCheck(
+            name="remote API identity",
+            status=DiagnosticStatus.FAIL,
+            detail="Remote identity migration or store validation failed.",
+            remediation="Keep the listener on loopback; check database permissions and migrations.",
+        )
+    finally:
+        await store.close()
+    active_count = sum(device.state.value == "active" for device in devices)
+    return DiagnosticCheck(
+        name="remote API identity",
+        status=DiagnosticStatus.PASS,
+        detail=(
+            f"Versioned device authentication is available with {active_count} active device(s); "
+            f"web listener remains loopback-only at {settings.web_host}:{settings.web_port}."
+        ),
+    )
 
 
 def _computer_access_check(settings: Settings) -> DiagnosticCheck:

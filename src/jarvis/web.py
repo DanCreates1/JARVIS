@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal, Self
 
 from fastapi import FastAPI, HTTPException, Path, Query, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from jarvis.bootstrap import RuntimeComponents, build_runtime
@@ -25,6 +26,17 @@ from jarvis.memory import (
     explicit_provenance,
 )
 from jarvis.planning import TaskNotFoundError, TaskPlanProposal, TaskStateError, TaskStatus
+from jarvis.remote import (
+    EnrollmentCompletion,
+    KeyRotationRequest,
+    RemoteAuthenticationError,
+    RemoteIdentityContext,
+    RemoteIdentityService,
+    RemoteScope,
+    RemoteStateError,
+    SessionRequest,
+    SignedRequest,
+)
 from jarvis.research import (
     ResearchInterface,
     ResearchNotFoundError,
@@ -36,6 +48,16 @@ from jarvis.research import (
 )
 
 RuntimeFactory = Callable[[Settings], Awaitable[RuntimeComponents]]
+_REMOTE_TOKEN_PATTERN = re.compile(r"^[A-Za-z0-9_-]{43,128}$")
+_MAX_REMOTE_BODY_BYTES = 1_048_576
+_REMOTE_HEADER_NAMES = (
+    "x-jarvis-audience",
+    "x-jarvis-date",
+    "x-jarvis-device",
+    "x-jarvis-key-version",
+    "x-jarvis-nonce",
+    "x-jarvis-signature",
+)
 
 
 class ChatInput(BaseModel):
@@ -119,7 +141,7 @@ def create_app(
         finally:
             await components.close()
 
-    app = FastAPI(title="JARVIS Phase 1", version="1", lifespan=lifespan)
+    app = FastAPI(title="JARVIS API", version="1.0", lifespan=lifespan)
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next: Any) -> Any:
@@ -132,6 +154,37 @@ def create_app(
             "connect-src 'self'; frame-ancestors 'none'"
         )
         return response
+
+    @app.middleware("http")
+    async def remote_v1_authentication(request: Request, call_next: Any) -> Any:
+        public_route, required_scope = _remote_scope_for_request(request.method, request.url.path)
+        if request.url.path.startswith("/api/v1/"):
+            try:
+                body = await request.body()
+                if len(body) > _MAX_REMOTE_BODY_BYTES:
+                    return _remote_error(413, "Remote request body too large")
+                if public_route:
+                    return await call_next(request)
+                service = _remote_identity(request)
+                token = _bearer_token(request)
+                signed_request, signature = _signed_remote_request(
+                    request,
+                    body=body,
+                    session_token=token,
+                )
+                context = await service.authenticate_request(
+                    request=signed_request,
+                    signature=signature,
+                    required_scope=required_scope,
+                )
+                request.state.remote_identity = context
+            except RemoteAuthenticationError:
+                return _remote_error(401, "Remote authentication failed", authenticate=True)
+            except RemoteStateError:
+                return _remote_error(403, "Remote scope denied")
+            except (UnicodeError, ValueError):
+                return _remote_error(400, "Malformed remote authentication headers")
+        return await call_next(request)
 
     @app.get("/", response_class=HTMLResponse)
     async def index() -> str:
@@ -147,6 +200,87 @@ def create_app(
             "roles": [role.value for role in runtime.provider.providers],
             "task_execution_enabled": runtime.settings.task_execution_enabled,
         }
+
+    @app.post("/api/v1/enrollments/complete", status_code=201)
+    async def complete_remote_enrollment(
+        payload: EnrollmentCompletion, request: Request
+    ) -> dict[str, object]:
+        try:
+            device = await _remote_identity(request).complete_enrollment(payload)
+        except RemoteAuthenticationError:
+            raise HTTPException(
+                status_code=401, detail="Enrollment authentication failed"
+            ) from None
+        return device.model_dump(mode="json")
+
+    @app.post("/api/v1/sessions", status_code=201)
+    async def create_remote_session(payload: SessionRequest, request: Request) -> dict[str, object]:
+        try:
+            signed_request, signature = _signed_remote_request(
+                request,
+                body=await request.body(),
+                session_token=None,
+            )
+            credential = await _remote_identity(request).create_session(
+                request=signed_request,
+                signature=signature,
+                payload=payload,
+            )
+        except RemoteAuthenticationError:
+            raise HTTPException(status_code=401, detail="Remote authentication failed") from None
+        except RemoteStateError:
+            raise HTTPException(status_code=403, detail="Remote scope denied") from None
+        except (UnicodeError, ValueError):
+            raise HTTPException(
+                status_code=400, detail="Malformed remote authentication headers"
+            ) from None
+        return credential.model_dump(mode="json")
+
+    @app.get("/api/v1/identity")
+    async def get_remote_identity(request: Request) -> dict[str, object]:
+        try:
+            device = await _remote_identity(request).get_current_device(_remote_context(request))
+        except RemoteStateError:
+            raise HTTPException(status_code=403, detail="Remote scope denied") from None
+        return device.model_dump(mode="json")
+
+    @app.get("/api/v1/events")
+    async def list_remote_identity_events(
+        request: Request,
+        after: Annotated[int, Query(ge=0)] = 0,
+        limit: Annotated[int, Query(ge=1, le=500)] = 100,
+    ) -> list[dict[str, object]]:
+        try:
+            events = await _remote_identity(request).list_device_events(
+                context=_remote_context(request),
+                after_sequence=after,
+                limit=limit,
+            )
+        except RemoteStateError:
+            raise HTTPException(status_code=403, detail="Remote scope denied") from None
+        return [event.model_dump(mode="json") for event in events]
+
+    @app.delete("/api/v1/sessions/current")
+    async def revoke_current_remote_session(request: Request) -> dict[str, bool]:
+        revoked = await _remote_identity(request).revoke_current_session(_remote_context(request))
+        if not revoked:
+            raise HTTPException(status_code=409, detail="Session already changed")
+        return {"revoked": True}
+
+    @app.post("/api/v1/device/key")
+    async def rotate_remote_device_key(
+        payload: KeyRotationRequest, request: Request
+    ) -> dict[str, object]:
+        try:
+            device = await _remote_identity(request).rotate_key(
+                context=_remote_context(request),
+                payload=payload,
+            )
+        except RemoteAuthenticationError:
+            raise HTTPException(status_code=401, detail="Remote authentication failed") from None
+        except RemoteStateError:
+            raise HTTPException(status_code=409, detail="Remote key rotation rejected") from None
+        return device.model_dump(mode="json")
 
     @app.post("/api/chat")
     async def chat(payload: ChatInput, request: Request) -> dict[str, object]:
@@ -592,6 +726,113 @@ def create_app(
 
 def _runtime(request: Request) -> RuntimeComponents:
     return request.app.state.runtime  # type: ignore[no-any-return]
+
+
+def _remote_identity(request: Request) -> RemoteIdentityService:
+    service = _runtime(request).remote_identity
+    if service is None:
+        raise HTTPException(status_code=503, detail="Remote identity is unavailable")
+    return service
+
+
+def _remote_context(request: Request) -> RemoteIdentityContext:
+    context = getattr(request.state, "remote_identity", None)
+    if not isinstance(context, RemoteIdentityContext):
+        raise HTTPException(status_code=401, detail="Remote authentication failed")
+    return context
+
+
+def _remote_scope_for_request(method: str, path: str) -> tuple[bool, RemoteScope | None]:
+    if (method, path) in {
+        ("POST", "/api/v1/enrollments/complete"),
+        ("POST", "/api/v1/sessions"),
+    }:
+        return True, None
+    return False, {
+        "/api/v1/identity": RemoteScope.IDENTITY_READ,
+        "/api/v1/events": RemoteScope.EVENTS_READ,
+        "/api/v1/sessions/current": RemoteScope.SESSION_REVOKE,
+        "/api/v1/device/key": RemoteScope.KEY_ROTATE,
+    }.get(path)
+
+
+def _bearer_token(request: Request) -> str:
+    try:
+        authorization = _single_header(request, "authorization")
+    except ValueError:
+        raise RemoteAuthenticationError("missing_session_token") from None
+    if not authorization.startswith("Bearer "):
+        raise RemoteAuthenticationError("invalid_token_type")
+    token = authorization.removeprefix("Bearer ")
+    if _REMOTE_TOKEN_PATTERN.fullmatch(token) is None:
+        raise RemoteAuthenticationError("invalid_session")
+    return token
+
+
+def _signed_remote_request(
+    request: Request,
+    *,
+    body: bytes,
+    session_token: str | None,
+) -> tuple[SignedRequest, str]:
+    if len(body) > _MAX_REMOTE_BODY_BYTES:
+        raise ValueError("remote request body exceeds 1 MiB")
+    headers = {name: _single_header(request, name) for name in _REMOTE_HEADER_NAMES}
+    try:
+        timestamp = datetime.fromisoformat(headers["x-jarvis-date"].replace("Z", "+00:00"))
+        key_version = int(headers["x-jarvis-key-version"])
+        raw_path = request.scope.get("raw_path", request.url.path.encode("ascii"))
+        raw_query = request.scope.get("query_string", b"")
+        if not isinstance(raw_path, bytes) or not isinstance(raw_query, bytes):
+            raise ValueError("invalid ASGI raw request target")
+        signed = SignedRequest(
+            method=request.method,
+            authority=_single_header(request, "host"),
+            path=raw_path.decode("ascii"),
+            query=raw_query.decode("ascii"),
+            body=body,
+            device_id=headers["x-jarvis-device"],
+            key_version=key_version,
+            audience=headers["x-jarvis-audience"],
+            timestamp=timestamp,
+            nonce=headers["x-jarvis-nonce"],
+            session_token=session_token,
+        )
+    except (OverflowError, TypeError) as exc:
+        raise ValueError("invalid remote authentication headers") from exc
+    return signed, headers["x-jarvis-signature"]
+
+
+def _single_header(request: Request, name: str) -> str:
+    encoded_name = name.encode("ascii")
+    raw_headers: object = request.scope.get("headers", ())
+    if not isinstance(raw_headers, (list, tuple)):
+        raise ValueError("invalid ASGI headers")
+    values: list[bytes] = []
+    for item in raw_headers:
+        if (
+            not isinstance(item, tuple)
+            or len(item) != 2
+            or not isinstance(item[0], bytes)
+            or not isinstance(item[1], bytes)
+        ):
+            raise ValueError("invalid ASGI header")
+        if item[0].lower() == encoded_name:
+            values.append(item[1])
+    if len(values) != 1:
+        raise ValueError(f"exactly one {name} header is required")
+    return values[0].decode("ascii")
+
+
+def _remote_error(status_code: int, detail: str, *, authenticate: bool = False) -> JSONResponse:
+    headers = {
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+    }
+    if authenticate:
+        headers["WWW-Authenticate"] = 'Bearer realm="jarvis-api"'
+    return JSONResponse(status_code=status_code, content={"detail": detail}, headers=headers)
 
 
 def _assistant_request(payload: ChatInput) -> AssistantRequest:

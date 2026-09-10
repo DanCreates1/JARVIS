@@ -1,17 +1,18 @@
 # JARVIS
 
-JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–6 and the Phase 7 vision stack implement a
+JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–7 and Phase 8A implement a
 local deterministic privacy gate, configurable NVIDIA/Groq/Gemini/Ollama roles,
 zero-cost fallback routing, durable SQLite state, audited read-only tools, CLI,
 loopback browser chat, local push-to-talk speech, opt-in controlled Windows actions, bounded cited
-public research, and durable budgeted task graphs. Sensitive and uncertain work remains local.
+public research, durable budgeted task graphs, and a loopback-only authenticated device identity
+API. Sensitive and uncertain work remains local.
 
 This repository is the source of truth for the project. Local model weights,
 runtime databases, logs, generated media, and secrets do not belong in Git.
 
 ## Current verification status
 
-As of 2026-09-09, Phases 4–6 are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
+As of 2026-09-10, Phases 4–7 and Phase 8A are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
 optimized local latency evidence pass; Phase 1 remains formally blocked by fixed hosted NVIDIA
 latency gates. The preserved 20/20 NVIDIA states still miss one or both targets. Fresh instrumented
 requests place the long delay before response headers, while adaptive routing protects normal
@@ -156,6 +157,24 @@ p95 7.734 ms, frame-to-proposal pipeline p50/p95 6.907/7.757 ms, average CPU 7.9
 growth, and zero false activations, proposals, authority violations, retained media, cloud calls,
 or OS effects. Public HaGRID examples supplied the diverse real-image matrix; fixture pixels remain
 outside Git.
+
+## Implemented Phase 8A
+
+The remote identity foundation adds:
+
+- a versioned `/api/v1` identity contract while every listener remains loopback-only;
+- locally authorized, five-minute one-use enrollment for unique Ed25519 device keys;
+- 15-minute opaque sessions stored only by token digest and bound to device, key version, audience,
+  and exact scopes;
+- signed-request coverage for method, authority, raw path/query, body digest, time, nonce, audience,
+  device, key version, and token digest, with atomic restart-safe replay rejection;
+- proof-of-possession key rotation, immediate local device/session revocation, and sanitized bounded
+  lifecycle audit; and
+- trusted-local CLI inventory, audit, enrollment, and lost-device recovery.
+
+Phase 8A opens no remote port and ships no phone/PWA client. Trusted browser hardening, PWA flows,
+TLS/private-network deployment, and real-phone validation remain Phase 8B-8D. See
+[Remote Identity and API Boundary](docs/REMOTE_ACCESS.md).
 
 ## Model strategy
 

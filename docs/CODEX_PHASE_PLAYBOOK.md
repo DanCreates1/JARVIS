@@ -209,10 +209,10 @@ Audited 2026-09-08 at `96143e7` before this rewrite: Python 3.11 modular monolit
 included `uv 0.12.5`, Git 2.55.0, Gitleaks 8.30.1, and Node 24.20.0. Bare `python` resolved only to
 the disabled Windows Store alias; repository commands use `uv run`.
 
-Actual status: Phase 1 has an external hosted-latency blocker and a fresh local-cold revalidation
-miss; Phases 2-3 are implemented with
-current authorized live effects pending; Phases 4-6 are complete; Phase 7 onward is not implemented;
-Phase 8 has only a loopback browser foundation. No root license exists, so copying external code is
+Actual status, reconciled 2026-09-10: Phase 1 has an external hosted-latency blocker and a fresh
+local-cold revalidation miss; Phases 2-3 are implemented with current authorized live effects
+pending; Phases 4-7 are complete; Phase 8A remote identity is complete while Phase 8B-8D remain;
+Phase 9 onward is not implemented. No root license exists, so copying external code is
 blocked on an owner licensing decision. No external code was copied. See
 [External Repository Comparison](EXTERNAL_REPOSITORY_COMPARISON.md).
 
@@ -578,7 +578,7 @@ insufficient.
 ## 14. Phase 8 — Secure phone/PWA access
 
 Recommended execution: **`gpt-6-astra`, `ultra`**
-Baseline status: **foundations only (loopback web UI exists)**  
+Baseline status: **8A complete; 8B-8D not started (listener remains loopback-only)**  
 Prerequisites: stable internal API/events; Phase 3 permissions; device identity model
 
 ### Read first
@@ -863,7 +863,7 @@ reasoning, and rationale. Universal requirements still apply.
   Q: mapping -> broker fakes -> adversarial -> live -> gates. T: stale/conflict/storm/replay/expiry/
   false/cancel. SP: execution recheck. M: hands-free/controlled/overview/report. A/E: fixed metrics
   without escalation/storm; 30-minute soak. N: 1. R: `gpt-6-astra` `max`, perception meets effects.
-- **8A API/identity/enrollment (`not-started`)** — O/S/D: versioned API/events and device key/
+- **8A API/identity/enrollment (`complete`)** — O/S/D: versioned API/events and device key/
   session secure storage/rotate/revoke/replay/audit. P: Phase 1/3 and current crypto/TLS docs. X:
   exposure. Q: threat -> contracts -> lifecycle -> middleware -> abuse. T: token type/audience/
   device, expiry/revoke/rotate/nonce/skew/restart. SP: cover method/authority/path/query/body/date/

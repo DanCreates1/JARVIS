@@ -2,7 +2,7 @@
 
 Status: required controls and security architecture  
 Planning date: 2026-08-20
-Last reconciled with Phase 1–5 implementation: 2026-09-07
+Last reconciled with Phase 1-8A implementation: 2026-09-10
 
 Current implementation retains these fail-closed controls. The clean-Windows bootstrap and exact
 repository CI gate now pass independently; remaining Phase 1–3 blockers are latency/provider
@@ -330,6 +330,28 @@ Remote default:
 
 Tailscale membership does not equal JARVIS approval. A tailnet device still needs application enrollment and scoped capability. Use scoped OAuth/trust credentials for any Tailscale automation rather than long-lived broad API tokens.
 
+Phase 8A implements the application identity boundary while retaining loopback-only networking:
+
+- enrollment starts only from a trusted local CLI and fixes exact device type, scope, risk ceiling,
+  five-minute expiry, and one-use challenge;
+- the client proves possession of a unique Ed25519 private key; the server persists only the public
+  key/fingerprint and never sends credential material to a model;
+- 15-minute opaque session tokens are returned once and persisted only as SHA-256 digests;
+- every protected request also proves device-key possession over method, authority, raw path/query,
+  body digest, time, nonce, audience, device ID, key version, and session-token digest;
+- a 60-second skew window and atomic durable nonce consumption reject stale, concurrent, and
+  post-restart replay;
+- request authority is the intersection of device and session scopes; device audit is restricted to
+  the authenticated device;
+- key rotation requires current-key authentication and new-key proof, then revokes old sessions;
+  trusted-local device revocation immediately revokes every session;
+- lifecycle/denial audit omits tokens, challenges, signatures, public keys, request bodies, and
+  private content; denial retention is bounded per identity.
+
+Phase 8A does not authorize a non-loopback listener. TLS/private-network deployment, firewall
+policy, rate limiting, trusted browser cookies/origin defenses, PWA behavior, and real-phone testing
+remain explicit Phase 8B-8D work. See `docs/REMOTE_ACCESS.md`.
+
 ## 14. Memory, research, audio, and vision privacy
 
 Data minimization:
@@ -387,8 +409,9 @@ cannot select another host scope, and not-found behavior avoids cross-host exist
 Corrections supersede old facts while retaining lineage and append-only event evidence. Deletion
 physically removes canonical content, FTS rows, provenance, conflicts, and sole-source derivations;
 minimal tombstones retain no deleted content or content hash. Exports are explicit local files,
-created exclusively without overwrite. The host ID is an isolation key, not remote authentication;
-authenticated multi-device identity remains Phase 8 scope.
+created exclusively without overwrite. The host ID remains an isolation key, not authentication.
+Phase 8A maps each authenticated remote device back to that fixed host scope; later clients cannot
+choose a different host ID.
 
 Phase 5 applies the same local host partition to research sources, FTS results, citations, claims,
 conflicts, mutations, exports, and deletion. Cross-host references fail as not found. Source text

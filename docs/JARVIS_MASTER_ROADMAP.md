@@ -484,6 +484,14 @@ Configured gestures hit accuracy/latency targets and cannot invoke actions above
 
 ### Phase 8 — Secure phone/PWA access (Large)
 
+**Current implementation (2026-09-10)**  
+Phase 8A is complete: additive device/enrollment/session/audit persistence, unique Ed25519 device
+proof, short-lived hashed sessions, signed `/api/v1` identity requests, atomic replay defense,
+strict device/session scopes, proof-of-possession rotation, immediate local revocation, diagnostics,
+CLI recovery, and abuse/performance tests. The listener remains loopback-only. Trusted browser/API
+hardening (8B), PWA/client transport (8C), and TLS/private-network plus real-phone validation (8D)
+remain incomplete; Phase 8 overall is not complete.
+
 **Goal**  
 Use JARVIS away from laptop without a public unauthenticated API.
 

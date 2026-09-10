@@ -2,9 +2,9 @@
 
 Status: target architecture; implementation remains incremental  
 Planning date: 2026-09-08
-Last reconciled with Phase 1-6 implementation: 2026-09-08
+Last reconciled with Phase 1-8A implementation: 2026-09-10
 
-Phases 4, 5, and 6 currently satisfy their completion gates. Phase 1 clean-host/bootstrap/repository
+Phases 4-7 and Phase 8A currently satisfy their completion gates. Phase 1 clean-host/bootstrap/repository
 and prior optimized-local evidence pass, while hosted NVIDIA fixed latency remains an external
 blocker despite preserved complete 20-sample states. Fresh 2026-09-08 local-cold revalidation also
 missed its p50 target. Phase 2 and Phase 3 await separately authorized current live
@@ -544,6 +544,21 @@ Device record:
 - declared and attested capabilities;
 - scoped permissions and risk ceiling;
 - enrollment, last-seen, credential expiry, status, and revocation state.
+
+Phase 8A implements this registry in additive SQLite migration 009 and adds an owned `/api/v1`
+identity surface. A trusted local command creates a five-minute, single-use enrollment record with
+fixed scopes and risk ceiling. The client proves possession of a unique Ed25519 private key; only
+its public key/fingerprint is stored. A directly signed request issues a 15-minute opaque session,
+with only the token digest retained. Protected requests require both that token and a device
+signature over method, authority, raw path/query, body digest, UTC date, nonce, audience, device,
+key version, and token digest. Atomic durable nonce consumption prevents concurrent and restarted
+replay. Rotation proves current and new key possession, increments key version, and revokes old
+sessions; trusted-local device revocation revokes all sessions immediately.
+
+The implemented v1 surface is intentionally identity-only: enrollment completion, session issue,
+current identity, current-device audit events, current-session logout, and key rotation. It adds no
+chat/task/action capability. Denial/lifecycle audit is sanitized and device-scoped. See
+`docs/REMOTE_ACCESS.md` and ADR 0002.
 
 Remote access defaults to Tailscale/private networking with deny-by-default grants, plus JARVIS application authentication. Private networking is not sufficient authorization. Use TLS, per-device credentials, session expiry, replay protection, rate limits, and revocation. Do not expose Ollama, the privilege broker, or an unauthenticated JARVIS port to the public Internet.
 
