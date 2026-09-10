@@ -6,6 +6,7 @@ import os
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import AliasChoices, AnyHttpUrl, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -87,6 +88,10 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     web_host: str = "127.0.0.1"
     web_port: int = Field(default=8765, ge=1, le=65535)
+    trusted_browser_origins: tuple[str, ...] = ()
+    remote_public_requests_per_minute: int = Field(default=20, ge=1, le=1_000)
+    remote_authenticated_requests_per_minute: int = Field(default=240, ge=1, le=10_000)
+    remote_rate_limit_entries: int = Field(default=4_096, ge=128, le=100_000)
     computer_access_enabled: bool = False
     memory_retrieval_enabled: bool = True
     research_enabled: bool = True
@@ -170,6 +175,37 @@ class Settings(BaseSettings):
         if normalized not in _LOOPBACK_HOSTS:
             raise ValueError("Phase 1 browser chat must bind to a loopback host")
         return normalized
+
+    @field_validator("trusted_browser_origins")
+    @classmethod
+    def validate_trusted_browser_origins(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        normalized: list[str] = []
+        for raw in value:
+            origin = raw.strip()
+            parsed = urlsplit(origin)
+            if (
+                parsed.scheme != "https"
+                or not parsed.hostname
+                or parsed.username is not None
+                or parsed.password is not None
+                or parsed.path not in {"", "/"}
+                or parsed.query
+                or parsed.fragment
+            ):
+                raise ValueError("trusted browser origins must be exact HTTPS origins")
+            try:
+                port = parsed.port
+            except ValueError as exc:
+                raise ValueError("trusted browser origins must use valid ports") from exc
+            hostname = parsed.hostname.lower()
+            canonical_host = f"[{hostname}]" if ":" in hostname else hostname
+            canonical = f"https://{canonical_host}"
+            if port is not None and port != 443:
+                canonical += f":{port}"
+            normalized.append(canonical)
+        if len(normalized) != len(set(normalized)):
+            raise ValueError("trusted browser origins must be unique")
+        return tuple(sorted(normalized))
 
     @model_validator(mode="after")
     def require_explicit_remote_opt_in(self) -> Settings:
@@ -301,6 +337,12 @@ class Settings(BaseSettings):
             "max_tool_iterations": self.max_tool_iterations,
             "web_host": self.web_host,
             "web_port": self.web_port,
+            "trusted_browser_origins": ",".join(self.trusted_browser_origins),
+            "remote_public_requests_per_minute": self.remote_public_requests_per_minute,
+            "remote_authenticated_requests_per_minute": (
+                self.remote_authenticated_requests_per_minute
+            ),
+            "remote_rate_limit_entries": self.remote_rate_limit_entries,
             "computer_access_enabled": self.computer_access_enabled,
             "memory_retrieval_enabled": self.memory_retrieval_enabled,
             "research_enabled": self.research_enabled,

@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import re
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-from typing import Annotated, Any, Literal, Self
+from http.cookies import CookieError, SimpleCookie
+from typing import Annotated, Any, Literal, Self, cast
 
-from fastapi import FastAPI, HTTPException, Path, Query, Request
+from fastapi import FastAPI, HTTPException, Path, Query, Request, Response
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -27,12 +31,16 @@ from jarvis.memory import (
 )
 from jarvis.planning import TaskNotFoundError, TaskPlanProposal, TaskStateError, TaskStatus
 from jarvis.remote import (
+    BrowserOriginError,
+    BrowserOriginPolicy,
     EnrollmentCompletion,
+    FixedWindowRateLimiter,
     KeyRotationRequest,
     RemoteAuthenticationError,
     RemoteIdentityContext,
     RemoteIdentityService,
     RemoteScope,
+    RemoteSessionKind,
     RemoteStateError,
     SessionRequest,
     SignedRequest,
@@ -50,6 +58,13 @@ from jarvis.research import (
 RuntimeFactory = Callable[[Settings], Awaitable[RuntimeComponents]]
 _REMOTE_TOKEN_PATTERN = re.compile(r"^[A-Za-z0-9_-]{43,128}$")
 _MAX_REMOTE_BODY_BYTES = 1_048_576
+_MAX_REMOTE_HEADER_BYTES = 32_768
+_MAX_REMOTE_HEADERS = 100
+_MAX_REMOTE_PATH_BYTES = 2_048
+_MAX_REMOTE_QUERY_BYTES = 8_192
+_BROWSER_SESSION_COOKIE = "__Host-jarvis-session"
+_CSRF_HEADER = "x-jarvis-csrf"
+_UNSAFE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 _REMOTE_HEADER_NAMES = (
     "x-jarvis-audience",
     "x-jarvis-date",
@@ -142,17 +157,16 @@ def create_app(
             await components.close()
 
     app = FastAPI(title="JARVIS API", version="1.0", lifespan=lifespan)
+    origin_policy = BrowserOriginPolicy(configured.trusted_browser_origins)
+    rate_limiter = FixedWindowRateLimiter(max_entries=configured.remote_rate_limit_entries)
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next: Any) -> Any:
         response = await call_next(request)
-        response.headers["Cache-Control"] = "no-store"
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; "
-            "connect-src 'self'; frame-ancestors 'none'"
-        )
+        _apply_security_headers(response, api_only=request.url.path.startswith("/api/"))
+        trusted_origin = getattr(request.state, "trusted_origin", None)
+        if isinstance(trusted_origin, str):
+            _apply_cors_headers(response, trusted_origin)
         return response
 
     @app.middleware("http")
@@ -160,28 +174,74 @@ def create_app(
         public_route, required_scope = _remote_scope_for_request(request.method, request.url.path)
         if request.url.path.startswith("/api/v1/"):
             try:
-                body = await request.body()
-                if len(body) > _MAX_REMOTE_BODY_BYTES:
-                    return _remote_error(413, "Remote request body too large")
+                _validate_remote_request_shape(request)
+                origins = _header_values(request, "origin")
+                if request.method == "OPTIONS":
+                    trusted_origin = origin_policy.require(origins)
+                    _validate_preflight(request)
+                    decision = rate_limiter.check(
+                        f"preflight:{_client_key(request)}",
+                        limit=configured.remote_public_requests_per_minute,
+                    )
+                    if not decision.allowed:
+                        return _remote_rate_error(decision.retry_after_seconds)
+                    response = Response(status_code=204)
+                    _apply_cors_headers(response, trusted_origin, preflight=True)
+                    _apply_security_headers(response, api_only=True)
+                    return response
+                body = await _read_bounded_remote_body(request)
+                browser_token = _browser_cookie_token(request)
+                if browser_token is not None and _header_values(request, "authorization"):
+                    return _remote_error(400, "Ambiguous remote authentication")
+                rate_kind = "public" if public_route else "authenticated"
+                rate_key = f"{rate_kind}:{_client_key(request)}:{_identity_rate_key(request, browser_token)}"
+                limit = (
+                    configured.remote_public_requests_per_minute
+                    if public_route
+                    else configured.remote_authenticated_requests_per_minute
+                )
+                for key in (f"{rate_kind}:ip:{_client_key(request)}", rate_key):
+                    decision = rate_limiter.check(key, limit=limit)
+                    if not decision.allowed:
+                        return _remote_rate_error(decision.retry_after_seconds)
+                if request.url.path == "/api/v1/browser/sessions":
+                    request.state.trusted_origin = origin_policy.require(origins)
                 if public_route:
                     return await call_next(request)
                 service = _remote_identity(request)
-                token = _bearer_token(request)
-                signed_request, signature = _signed_remote_request(
-                    request,
-                    body=body,
-                    session_token=token,
-                )
-                context = await service.authenticate_request(
-                    request=signed_request,
-                    signature=signature,
-                    required_scope=required_scope,
-                )
+                if browser_token is not None:
+                    request.state.trusted_origin = origin_policy.require(origins)
+                    csrf_token = _csrf_token(request) if request.method in _UNSAFE_METHODS else None
+                    context = await service.authenticate_browser_session(
+                        cookie_token=browser_token,
+                        csrf_token=csrf_token,
+                        require_csrf=request.method in _UNSAFE_METHODS,
+                        required_scope=required_scope,
+                    )
+                else:
+                    optional_origin = origin_policy.optional(origins)
+                    if optional_origin is not None:
+                        request.state.trusted_origin = optional_origin
+                    token = _bearer_token(request)
+                    signed_request, signature = _signed_remote_request(
+                        request,
+                        body=body,
+                        session_token=token,
+                    )
+                    context = await service.authenticate_request(
+                        request=signed_request,
+                        signature=signature,
+                        required_scope=required_scope,
+                    )
                 request.state.remote_identity = context
             except RemoteAuthenticationError:
                 return _remote_error(401, "Remote authentication failed", authenticate=True)
             except RemoteStateError:
                 return _remote_error(403, "Remote scope denied")
+            except BrowserOriginError:
+                return _remote_error(403, "Browser origin denied")
+            except RemoteBodyTooLargeError:
+                return _remote_error(413, "Remote request body too large")
             except (UnicodeError, ValueError):
                 return _remote_error(400, "Malformed remote authentication headers")
         return await call_next(request)
@@ -236,6 +296,53 @@ def create_app(
             ) from None
         return credential.model_dump(mode="json")
 
+    @app.post("/api/v1/browser/sessions", status_code=201)
+    async def create_browser_session(
+        payload: SessionRequest, request: Request, response: Response
+    ) -> dict[str, object]:
+        try:
+            signed_request, signature = _signed_remote_request(
+                request,
+                body=await request.body(),
+                session_token=None,
+            )
+            credential = await _remote_identity(request).create_browser_session(
+                request=signed_request,
+                signature=signature,
+                payload=payload,
+            )
+        except RemoteAuthenticationError:
+            raise HTTPException(status_code=401, detail="Remote authentication failed") from None
+        except RemoteStateError:
+            raise HTTPException(status_code=403, detail="Remote scope denied") from None
+        except (UnicodeError, ValueError):
+            raise HTTPException(
+                status_code=400, detail="Malformed remote authentication headers"
+            ) from None
+        response.set_cookie(
+            key=_BROWSER_SESSION_COOKIE,
+            value=credential.cookie_token,
+            secure=True,
+            httponly=True,
+            samesite="strict",
+            path="/",
+            expires=credential.expires_at,
+        )
+        return cast(
+            dict[str, object],
+            jsonable_encoder(
+                {
+                    "session_id": credential.session_id,
+                    "csrf_token": credential.csrf_token,
+                    "device_id": credential.device_id,
+                    "key_version": credential.key_version,
+                    "audience": credential.audience,
+                    "scopes": credential.scopes,
+                    "expires_at": credential.expires_at,
+                },
+            ),
+        )
+
     @app.get("/api/v1/identity")
     async def get_remote_identity(request: Request) -> dict[str, object]:
         try:
@@ -261,10 +368,20 @@ def create_app(
         return [event.model_dump(mode="json") for event in events]
 
     @app.delete("/api/v1/sessions/current")
-    async def revoke_current_remote_session(request: Request) -> dict[str, bool]:
+    async def revoke_current_remote_session(
+        request: Request, response: Response
+    ) -> dict[str, bool]:
         revoked = await _remote_identity(request).revoke_current_session(_remote_context(request))
         if not revoked:
             raise HTTPException(status_code=409, detail="Session already changed")
+        if _remote_context(request).session_kind is RemoteSessionKind.BROWSER:
+            response.delete_cookie(
+                key=_BROWSER_SESSION_COOKIE,
+                path="/",
+                secure=True,
+                httponly=True,
+                samesite="strict",
+            )
         return {"revoked": True}
 
     @app.post("/api/v1/device/key")
@@ -746,6 +863,7 @@ def _remote_scope_for_request(method: str, path: str) -> tuple[bool, RemoteScope
     if (method, path) in {
         ("POST", "/api/v1/enrollments/complete"),
         ("POST", "/api/v1/sessions"),
+        ("POST", "/api/v1/browser/sessions"),
     }:
         return True, None
     return False, {
@@ -754,6 +872,183 @@ def _remote_scope_for_request(method: str, path: str) -> tuple[bool, RemoteScope
         "/api/v1/sessions/current": RemoteScope.SESSION_REVOKE,
         "/api/v1/device/key": RemoteScope.KEY_ROTATE,
     }.get(path)
+
+
+def _validate_remote_request_shape(request: Request) -> None:
+    raw_headers = request.scope.get("headers", ())
+    raw_path = request.scope.get("raw_path", b"")
+    raw_query = request.scope.get("query_string", b"")
+    if not isinstance(raw_headers, (list, tuple)) or len(raw_headers) > _MAX_REMOTE_HEADERS:
+        raise ValueError("remote header count exceeded")
+    if not isinstance(raw_query, bytes) or len(raw_query) > _MAX_REMOTE_QUERY_BYTES:
+        raise ValueError("remote query size exceeded")
+    if not isinstance(raw_path, bytes) or len(raw_path) > _MAX_REMOTE_PATH_BYTES:
+        raise ValueError("remote path size exceeded")
+    total = 0
+    for item in raw_headers:
+        if (
+            not isinstance(item, tuple)
+            or len(item) != 2
+            or not isinstance(item[0], bytes)
+            or not isinstance(item[1], bytes)
+        ):
+            raise ValueError("invalid ASGI header")
+        total += len(item[0]) + len(item[1])
+    if total > _MAX_REMOTE_HEADER_BYTES:
+        raise ValueError("remote header size exceeded")
+    content_lengths = _header_values(request, "content-length")
+    if len(content_lengths) > 1:
+        raise ValueError("duplicate content length")
+    if content_lengths:
+        try:
+            content_length = int(content_lengths[0])
+        except ValueError as exc:
+            raise ValueError("invalid content length") from exc
+        if content_length < 0:
+            raise ValueError("invalid content length")
+        if content_length > _MAX_REMOTE_BODY_BYTES:
+            raise RemoteBodyTooLargeError
+
+
+class RemoteBodyTooLargeError(ValueError):
+    pass
+
+
+async def _read_bounded_remote_body(request: Request) -> bytes:
+    chunks: list[bytes] = []
+    total = 0
+    async for chunk in request.stream():
+        total += len(chunk)
+        if total > _MAX_REMOTE_BODY_BYTES:
+            raise RemoteBodyTooLargeError
+        chunks.append(chunk)
+    body = b"".join(chunks)
+    request._body = body
+    return body
+
+
+def _header_values(request: Request, name: str) -> tuple[str, ...]:
+    encoded = name.encode("ascii")
+    raw_headers = request.scope.get("headers", ())
+    if not isinstance(raw_headers, (list, tuple)):
+        raise ValueError("invalid ASGI headers")
+    return tuple(
+        item[1].decode("ascii")
+        for item in raw_headers
+        if isinstance(item, tuple) and len(item) == 2 and item[0].lower() == encoded
+    )
+
+
+def _browser_cookie_token(request: Request) -> str | None:
+    cookie_values = _header_values(request, "cookie")
+    if not cookie_values:
+        return None
+    if len(cookie_values) != 1:
+        raise ValueError("duplicate cookie headers")
+    occurrences = sum(
+        1
+        for part in cookie_values[0].split(";")
+        if part.strip().partition("=")[0] == _BROWSER_SESSION_COOKIE
+    )
+    if occurrences == 0:
+        return None
+    if occurrences != 1:
+        raise ValueError("duplicate browser session cookie")
+    parsed = SimpleCookie()
+    try:
+        parsed.load(cookie_values[0])
+    except CookieError as exc:
+        raise ValueError("invalid browser session cookie") from exc
+    morsel = parsed.get(_BROWSER_SESSION_COOKIE)
+    if morsel is None or _REMOTE_TOKEN_PATTERN.fullmatch(morsel.value) is None:
+        raise ValueError("invalid browser session cookie")
+    return morsel.value
+
+
+def _csrf_token(request: Request) -> str | None:
+    values = _header_values(request, _CSRF_HEADER)
+    return values[0] if len(values) == 1 else None
+
+
+def _client_key(request: Request) -> str:
+    client = request.client
+    return "unknown" if client is None else client.host
+
+
+def _identity_rate_key(request: Request, browser_token: str | None) -> str:
+    if browser_token is not None:
+        return hashlib.sha256(browser_token.encode("ascii")).hexdigest()[:24]
+    values = _header_values(request, "x-jarvis-device")
+    return values[0][:200] if len(values) == 1 else "anonymous"
+
+
+def _validate_preflight(request: Request) -> None:
+    methods = _header_values(request, "access-control-request-method")
+    if len(methods) != 1 or methods[0] not in {"GET", "POST", "DELETE"}:
+        raise ValueError("preflight method denied")
+    requested_headers = _header_values(request, "access-control-request-headers")
+    if len(requested_headers) > 1:
+        raise ValueError("duplicate preflight headers")
+    if requested_headers:
+        allowed = {
+            "content-type",
+            _CSRF_HEADER,
+            "x-jarvis-audience",
+            "x-jarvis-date",
+            "x-jarvis-device",
+            "x-jarvis-key-version",
+            "x-jarvis-nonce",
+            "x-jarvis-signature",
+        }
+        supplied = {
+            item.strip().lower() for item in requested_headers[0].split(",") if item.strip()
+        }
+        if not supplied.issubset(allowed):
+            raise ValueError("preflight header denied")
+
+
+def _apply_cors_headers(response: Response, origin: str, *, preflight: bool = False) -> None:
+    response.headers["Access-Control-Allow-Origin"] = origin
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Vary"] = "Origin"
+    if preflight:
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE"
+        response.headers["Access-Control-Allow-Headers"] = (
+            "Content-Type, X-Jarvis-CSRF, X-Jarvis-Audience, X-Jarvis-Date, "
+            "X-Jarvis-Device, X-Jarvis-Key-Version, X-Jarvis-Nonce, X-Jarvis-Signature"
+        )
+        response.headers["Access-Control-Max-Age"] = "600"
+
+
+def _apply_security_headers(response: Response, *, api_only: bool) -> None:
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000"
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+        if api_only
+        else _legacy_page_csp()
+    )
+
+
+def _legacy_page_csp() -> str:
+    hashes: list[str] = []
+    for tag in ("style", "script"):
+        match = re.search(rf"<{tag}>(.*?)</{tag}>", _CHAT_HTML, flags=re.DOTALL)
+        if match is None:
+            raise RuntimeError(f"legacy page is missing inline {tag}")
+        digest = base64.b64encode(hashlib.sha256(match.group(1).encode()).digest()).decode()
+        hashes.append(f"'sha256-{digest}'")
+    return (
+        "default-src 'none'; "
+        f"style-src {hashes[0]}; script-src {hashes[1]}; connect-src 'self'; "
+        "frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+    )
 
 
 def _bearer_token(request: Request) -> str:
@@ -825,14 +1120,17 @@ def _single_header(request: Request, name: str) -> str:
 
 
 def _remote_error(status_code: int, detail: str, *, authenticate: bool = False) -> JSONResponse:
-    headers = {
-        "Cache-Control": "no-store",
-        "X-Content-Type-Options": "nosniff",
-        "X-Frame-Options": "DENY",
-    }
+    response = JSONResponse(status_code=status_code, content={"detail": detail})
+    _apply_security_headers(response, api_only=True)
     if authenticate:
-        headers["WWW-Authenticate"] = 'Bearer realm="jarvis-api"'
-    return JSONResponse(status_code=status_code, content={"detail": detail}, headers=headers)
+        response.headers["WWW-Authenticate"] = 'Bearer realm="jarvis-api"'
+    return response
+
+
+def _remote_rate_error(retry_after_seconds: int) -> JSONResponse:
+    response = _remote_error(429, "Remote request rate exceeded")
+    response.headers["Retry-After"] = str(retry_after_seconds)
+    return response
 
 
 def _assistant_request(payload: ChatInput) -> AssistantRequest:

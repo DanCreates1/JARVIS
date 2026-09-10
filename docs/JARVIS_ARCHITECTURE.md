@@ -560,6 +560,14 @@ current identity, current-device audit events, current-session logout, and key r
 chat/task/action capability. Denial/lifecycle audit is sanitized and device-scoped. See
 `docs/REMOTE_ACCESS.md` and ADR 0002.
 
+Phase 8B adds a second, non-interchangeable browser session kind. Fresh signed proof from an
+enrolled phone/browser issues a host-only `Secure`/`HttpOnly`/`SameSite=Strict` cookie and a
+separate CSRF value; SQLite persists only their digests. Every cookie request requires an exact
+configured HTTPS origin and unsafe methods require CSRF proof. Strict CORS/CSP/security headers,
+bounded streamed input, and bounded per-IP plus identity rate limits wrap `/api/v1`. Remote
+approval can bind only exact recent Level 0-1 browser identity/action state; Levels 2-4 stay on the
+trusted local host. No remote action route or non-loopback listener is added.
+
 Remote access defaults to Tailscale/private networking with deny-by-default grants, plus JARVIS application authentication. Private networking is not sufficient authorization. Use TLS, per-device credentials, session expiry, replay protection, rate limits, and revocation. Do not expose Ollama, the privilege broker, or an unauthenticated JARVIS port to the public Internet.
 
 ## 12. Security boundaries

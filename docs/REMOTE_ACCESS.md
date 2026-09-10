@@ -1,8 +1,9 @@
-# Phase 8A remote identity and API boundary
+# Phase 8A-8B remote identity and trusted browser boundary
 
-Phase 8A supplies the authenticated identity foundation for later phone/PWA work. It does not
-enable remote networking. JARVIS still refuses non-loopback web binding; TLS, private-network
-deployment, browser hardening, the PWA, and real-phone validation remain Phase 8B-8D.
+Phase 8A supplies device identity. Phase 8B adds trusted browser sessions, origin/CSRF/CORS/CSP,
+bounded request/rate policy, and low-risk remote approval rules. Neither subphase enables remote
+networking. JARVIS still refuses non-loopback web binding; the PWA, TLS/private-network deployment,
+and real-phone validation remain Phase 8C-8D.
 
 ## Security properties
 
@@ -60,6 +61,7 @@ device again with a new key if access should return.
 | --- | --- | --- | --- |
 | `POST /api/v1/enrollments/complete` | enrollment challenge + key proof | local grant fixed at challenge creation | device metadata |
 | `POST /api/v1/sessions` | signed request, no bearer token | requested scopes must be a device-scope subset | one-time bearer token |
+| `POST /api/v1/browser/sessions` | signed request plus exact configured HTTPS `Origin` | requested scopes include `browser.session` and remain a device-scope subset | host-only secure cookie plus one-time in-memory CSRF token |
 | `GET /api/v1/identity` | bearer token + signed request | `identity.read` | current device metadata |
 | `GET /api/v1/events?after=N&limit=N` | bearer token + signed request | `events.read` | current-device audit only |
 | `DELETE /api/v1/sessions/current` | bearer token + signed request | `session.revoke` | current-session revocation |
@@ -82,9 +84,47 @@ Clients must sign the exact bytes sent. Path and query are not normalized; JSON 
 the body digest. The maximum authenticated body is 1 MiB. Authentication errors are deliberately
 generic over HTTP to avoid identity and token oracles.
 
+## Phase 8B browser boundary
+
+Browser bootstrap is disabled by default because `JARVIS_TRUSTED_BROWSER_ORIGINS` defaults to an
+empty JSON array. Configure only exact reviewed HTTPS origins; HTTP, wildcard, `null`, credentialed,
+path, query, fragment, duplicate, and suffix-confused origins are rejected. Phase 8D owns the real
+private-network hostname and TLS deployment. Configuration alone does not open a listener.
+
+An enrolled phone/browser requests a session with a signed
+`POST /api/v1/browser/sessions`. Its enrolled scopes must include `browser.session`; add
+`approval.review` only if that device may display exact low-risk approval prompts. The response:
+
+- sets `__Host-jarvis-session` with `Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/`, no `Domain`,
+  and the existing 15-minute session expiry;
+- returns the CSRF token once in JSON for memory-only client use; and
+- persists only SHA-256 digests of both values and marks the row as a browser session.
+
+Cookie-authenticated requests require the exact configured `Origin`. `POST`, `PUT`, `PATCH`, and
+`DELETE` additionally require exactly one `X-Jarvis-CSRF` value. Signed API tokens and browser
+cookies are different session types and cannot be exchanged. Logout clears the cookie and revokes
+the durable session. Device revocation or key rotation invalidates browser sessions immediately;
+restart preserves valid session state and denial audit.
+
+Strict CORS returns credentials only for an exact trusted origin and never uses `*`. Preflight
+permits only fixed v1 methods and headers. API CSP is `default-src 'none'`; the legacy loopback page
+uses fixed SHA-256 hashes for existing inline style/script, not `unsafe-inline`. All API responses
+add no-store/no-cache, no-sniff, deny-frame, no-referrer, restrictive permissions, same-origin
+opener, and HSTS headers.
+
+Fixed request ceilings are 100 headers, 32 KiB total header bytes, 2 KiB raw path, 8 KiB raw query,
+and 1 MiB streamed body. Default fixed-window limits are 20 public and 240 authenticated requests
+per minute per client IP, with a second bounded identity key and 4,096 maximum limiter entries.
+
+Remote approval is not chat text. `RemoteBrowserApprovalSurface` accepts only a trusted
+cookie-authenticated identity carrying `approval.review`, recent enrolled-device authentication,
+the same host/device/session and capabilities as the canonical Phase 3 action, the exact displayed
+fingerprint phrase, and a permission level within the enrolled device risk ceiling. Levels 2-4
+always require exact trusted local-host approval. Phase 8B adds no remote action execution route.
+
 ## Operations and limits
 
-- Keep `JARVIS_WEB_HOST=127.0.0.1`. Phase 8A creates no firewall rule, certificate, Tailscale grant,
+- Keep `JARVIS_WEB_HOST=127.0.0.1`. Phase 8A-8B create no firewall rule, certificate, Tailscale grant,
   public listener, or background listener.
 - Run `uv run jarvis doctor` to verify the identity database and confirm the loopback listener
   configuration.
@@ -97,8 +137,6 @@ generic over HTTP to avoid identity and token oracles.
 
 ## Deferred Phase 8 work
 
-- Phase 8B: trusted browser authentication/cookies, CSRF, CORS, CSP, rate limits, and remote approval
-  policy.
 - Phase 8C: installable PWA, conversation/task transport, reconnect/resume, offline shell, and
   notification controls.
 - Phase 8D: reviewed TLS/private-network deployment, firewall/Tailscale policy, external listener

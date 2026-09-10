@@ -307,12 +307,18 @@ async def _remote_identity_check(settings: Settings) -> DiagnosticCheck:
     finally:
         await store.close()
     active_count = sum(device.state.value == "active" for device in devices)
+    browser_detail = (
+        f"{len(settings.trusted_browser_origins)} exact HTTPS browser origin(s) configured"
+        if settings.trusted_browser_origins
+        else "browser cookie bootstrap disabled until an exact HTTPS origin is configured"
+    )
     return DiagnosticCheck(
         name="remote API identity",
         status=DiagnosticStatus.PASS,
         detail=(
             f"Versioned device authentication is available with {active_count} active device(s); "
-            f"web listener remains loopback-only at {settings.web_host}:{settings.web_port}."
+            f"{browser_detail}; web listener remains loopback-only at "
+            f"{settings.web_host}:{settings.web_port}."
         ),
     )
 

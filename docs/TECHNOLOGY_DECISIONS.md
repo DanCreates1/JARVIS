@@ -629,6 +629,40 @@ Yes. WebAuthn, passkey, OIDC, hardware-backed key, and distributed-store adapter
 Unique device identity, proof of possession, exact scope/audience, expiry, replay protection,
 rotation, revocation, secret-free audit, and loopback-safe defaults remain required.
 
+## TD-027 — Type-separated browser cookie sessions and local sensitive approval
+
+**Decision**
+
+Bootstrap browser sessions only with fresh Phase 8A device signatures and an exact configured HTTPS
+origin. Store browser cookie and CSRF digests in migration 010; emit a host-only `Secure`,
+`HttpOnly`, `SameSite=Strict` cookie and return CSRF material once for memory-only use. Reject
+session-type exchange, require Origin on all cookie requests and CSRF on unsafe methods, apply
+strict CORS/CSP/request/rate ceilings, and keep Levels 2-4 approval on the trusted local host.
+
+**Reason**
+
+Browsers need an HttpOnly credential that JavaScript cannot read, while CSRF and origin binding
+prevent ambient-cookie authorization from another site. Separate session kinds prevent a stolen
+cookie from becoming a native API bearer. Local escalation preserves Phase 3's stronger boundary
+for meaningful, sensitive, destructive, and administrative effects.
+
+**Alternatives considered / why rejected**
+
+- Browser `localStorage` bearer: exposed to script compromise and lacks HttpOnly protection.
+- Shared CSRF cookie alone: ambient cookies remain forgeable without an independently supplied
+  request value and exact origin.
+- Wildcard/reflected CORS: allows origin confusion with credentials.
+- Remote approval through Level 2: exceeds current trusted-phone evidence and Phase 3 local
+  approval posture.
+- WebAuthn/passkey now: remains a compatible future step-up adapter, but does not replace enrolled
+  device scope, cookie/CSRF, expiry, or revocation.
+
+**Replaceable later?**
+
+Yes. A passkey/OIDC step-up or distributed session store can replace bootstrap/storage adapter.
+Exact origin, type separation, secure-cookie/CSRF handling, bounded input/rates, device scope,
+revocation, audit, and local sensitive approval remain invariants.
+
 ## Review triggers
 
 Re-open a decision when any occurs:

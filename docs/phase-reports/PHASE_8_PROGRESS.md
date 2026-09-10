@@ -3,33 +3,62 @@
 Status: `in-progress`  
 Started: 2026-09-09  
 Updated: 2026-09-10  
-Active subphase: Phase 8B — trusted approval/web hardening  
+Active subphase: Phase 8C — PWA/reconnect transport (next)
 Recommended Codex model: `gpt-6-astra`  
 Recommended reasoning: `ultra`  
-Session start / five-hour stop: 2026-09-09T23:33:32-04:00 / 2026-09-10T04:33:32-04:00
+Phase 8B session / five-hour stop: 2026-09-10T06:27:00-04:00 / 2026-09-10T11:27:00-04:00
 
 ## Objective
 
-Ship the deny-by-default Phase 8A identity boundary: versioned API/event contracts, unique
-asymmetric device identities, locally authorized one-time enrollment, device-bound short-lived
-sessions, proof-of-possession key rotation, immediate revocation, replay protection, scoped
-authorization, durable sanitized audit, and restart-safe recovery. Keep every listener loopback-only;
-TLS/private-network deployment and phone/PWA UI remain later Phase 8 subphases.
+Build Phase 8B's deny-by-default trusted browser and approval boundary on the completed Phase 8A
+device identity foundation. Add durable browser sessions, secure cookie and CSRF/origin controls,
+strict CORS/CSP and bounded request/rate policy, and a remote approval surface that preserves exact
+Phase 3 authority while forcing sensitive work back to the local host. Keep every listener
+loopback-only; TLS/private-network deployment and phone/PWA UI remain later Phase 8 subphases.
 
 ## Baseline
 
-- Git branch/HEAD: `main` at `b9fa115`; local HEAD equals `origin/main`.
+- Git branch/HEAD at 8B start: `main` at `79f8738`; local HEAD equalled `origin/main`.
 - Worktree state and preserved unrelated changes: untracked `.codex_finish_jarvis_cleanup.ps1`
   belongs to the user and remains untouched.
 - Relevant installed software/hardware/provider state: Python 3.11 project managed by `uv 0.12.5`;
-  FastAPI loopback server; Git 2.55.0; Gitleaks 8.30.1; Node 24.20.0. No remote listener or remote
-  identity dependency is configured.
-- Existing tests and failures: Phase 7 closeout reports 808 passed, 2 skipped, 85.34% coverage.
-  Current Phase 8A targeted and release gates remain to be run.
+  FastAPI loopback server; Git 2.55.0; Gitleaks 8.30.1; Node 24.20.0. No remote listener is
+  configured; trusted browser origins default empty.
+- Existing tests and failures: Phase 8A closeout reported 827 passed, 2 skipped, 85.14% coverage.
+  No Phase 8B baseline product failure was observed.
 - Prior phase evidence: Phase 3 broker is complete except separately authorized live-effect
   revalidation. Phase 7 is complete. Existing web API refuses non-loopback binding.
 
 ## Acceptance checklist
+
+### Phase 8B
+
+- [x] Signed enrolled-device bootstrap issues only a durable, short-lived browser session.
+- [x] Browser session cookie is `Secure`, `HttpOnly`, `SameSite=Strict`, host-only, and cleared on
+  logout; CSRF material is separately bound by digest and never persisted in plaintext.
+- [x] Exact configured HTTPS origin is required for browser bootstrap and every cookie-authenticated
+  request; unsafe methods additionally require exact CSRF header proof.
+- [x] Strict CORS has no wildcard or credential reflection; disallowed/null/duplicate origins fail
+  closed and preflight is bounded.
+- [x] API responses use strict CSP, anti-framing, no-sniff, referrer, permissions, HSTS, and
+  no-store headers without breaking the legacy loopback-only page.
+- [x] Header, query, body, and request-rate ceilings fail closed with generic responses and bounded
+  in-memory limiter state.
+- [x] Signed-API and browser session types are non-interchangeable; theft, CSRF, origin confusion,
+  spoofing, expiry, rotation, revocation, restart, and concurrent-limit tests pass.
+- [x] Remote approval binds exact host/device/session/action fingerprint and capabilities; Level 0-1
+  may use an eligible enrolled device, while Levels 2-4 require the trusted local host and cannot be
+  approved remotely.
+- [x] Browser/auth/approval audit is content-free and contains no token, cookie, CSRF value,
+  signature, public key, request body, action arguments, or private content.
+- [x] Fixed abuse/performance thresholds, full release gates, documentation, recovery, and status
+  evidence pass.
+
+Frozen Phase 8B benchmark thresholds: 10,000 valid browser authentications and 10,000 invalid-CSRF
+attempts; valid p95 <= 10 ms; zero valid failures; zero false accepts; RSS growth <= 50 MiB; browser
+denial audit remains bounded by Phase 8A's per-device retention ceiling.
+
+### Phase 8A (complete baseline)
 
 - [x] Versioned owned API and event subscription contracts expose only explicit scopes.
 - [x] Unique Ed25519 device public keys; no shared API key or stored device private key.
@@ -49,6 +78,38 @@ TLS/private-network deployment and phone/PWA UI remain later Phase 8 subphases.
 - [x] Full release, vulnerability, secret, Git, and doctor gates pass.
 
 ## Milestones
+
+### Phase 8B Milestone 1 — Browser threat model and contracts
+
+- Status: complete
+- Changes: typed browser credential/session-kind contracts, strict origin policy, frozen request and
+  rate ceilings, exact remote approval rules, and pre-tuning benchmark thresholds.
+- Evidence: unit tests cover origin confusion, limiter reset/bounds, configuration validation, exact
+  fingerprint approval, risk ceiling, recent authentication, scope, session, and local escalation.
+
+### Phase 8B Milestone 2 — Durable browser authentication
+
+- Status: complete
+- Changes: migration 010, signed browser bootstrap, type-separated cookie authentication, CSRF
+  digest, expiry/revocation/rotation/restart behavior, and content-free audit.
+- Evidence: integration/security tests verify digest-only persistence, restart, wrong-session-type,
+  wrong device type/scope, stolen token, CSRF, device revocation, and secure cookie attributes.
+
+### Phase 8B Milestone 3 — Web/API hardening and trusted approval
+
+- Status: complete
+- Changes: exact origin/CORS/preflight policy, hashed CSP, browser security headers, streamed body
+  ceiling, bounded per-IP/identity limiter, diagnostics, and exact remote approval surface.
+- Evidence: browser tests cover allowed/denied/null origins, cookie-without-origin denial, CSRF,
+  CORS non-wildcard behavior, header/query/body/rate limits, logout, and no remote action route.
+
+### Phase 8B Milestone 4 — Abuse/performance/recovery closeout
+
+- Status: complete
+- Changes: 20,000-case browser/CSRF benchmark, complete threat/recovery/configuration docs, patched
+  audit environment dependency, and current repository status.
+- Evidence: 844 passed, 2 skipped, 85.11% coverage; benchmark passed; dependency and secret scans
+  clean; doctor confirms browser bootstrap disabled by default and listener loopback-only.
 
 ### Milestone 1 — Threat model and owned contracts
 
@@ -92,7 +153,7 @@ TLS/private-network deployment and phone/PWA UI remain later Phase 8 subphases.
 - Reason: unique asymmetric device identity avoids shared secrets; signed requests remain bound to
   the enrolled key while session tokens are never stored in plaintext.
 - Alternatives: shared HMAC API keys rejected; full WebAuthn/OIDC and browser passkeys belong with
-  the Phase 8B trusted web surface.
+  a future step-up adapter.
 - Reversible later: owned identity/request contracts allow a WebAuthn/OIDC credential adapter
   without weakening device, audience, scope, replay, or revocation checks.
 
@@ -104,16 +165,17 @@ TLS/private-network deployment and phone/PWA UI remain later Phase 8 subphases.
 ## Verification evidence
 
 ```text
-ruff format --check .: 254 files formatted
-ruff check src tests scripts: passed
-mypy src: 115 source files, no issues
-targeted Phase 8A/CLI/diagnostic suite: 44 passed
-full pytest: 827 passed, 2 skipped, 85.14% coverage
+ruff format --check .: 261 files formatted
+ruff check .: passed
+mypy src: 117 source files, no issues
+targeted Phase 8A-8B suite: 35 passed
+full pytest: 844 passed, 2 skipped, 85.11% coverage
 uv lock --check: 119 packages resolved
-pip-audit: no known vulnerabilities
-gitleaks: 31 commits / ~3.56 MB scanned, no leaks
+pip-audit: no known vulnerabilities; setuptools 84.0.0 explicitly present in dev audit environment
+gitleaks: 32 commits / ~3.72 MB scanned, no leaks
 git diff --check: passed
-jarvis doctor: ready; remote API identity PASS; loopback 127.0.0.1:8765
+jarvis doctor: ready; browser cookie bootstrap disabled without exact HTTPS origin; loopback
+127.0.0.1:8765
 ```
 
 ## Benchmarks
@@ -130,6 +192,17 @@ jarvis doctor: ready; remote API identity PASS; loopback 127.0.0.1:8765
 - Relevant settings: 15-minute session TTL, 5-minute enrollment TTL, 60-second clock skew,
   audience `jarvis-api`, exact known scopes; thresholds fixed before implementation.
 
+Phase 8B browser benchmark:
+
+- Samples: 10,000 valid cookie authentications and 10,000 invalid-CSRF attempts.
+- p50: valid 0.6099 ms; abuse 0.9484 ms.
+- p95: valid 1.0132 ms against <= 10 ms; abuse 1.3695 ms.
+- Errors/failures: 0 valid failures; 0 false accepts.
+- Resource/storage: 6.055 MiB RSS growth against <= 50 MiB; 1,048,576-byte SQLite database;
+  exactly 1,000 retained device denial events against <= 1,000.
+- Runtime/device: Windows laptop, Python 3.11.16, synthetic Ed25519 browser fixture; local warm
+  verification, with restart behavior tested separately.
+
 ## Security and privacy
 
 - Threats tested: replay, concurrent replay, restart replay, stolen token without matching device key,
@@ -142,31 +215,47 @@ jarvis doctor: ready; remote API identity PASS; loopback 127.0.0.1:8765
 - Audit/retention/deletion: update-protected lifecycle audit; denial events capped at 1,000 per
   device/enrollment; expired nonces removed during atomic consumption; token/challenge plaintext is
   never persisted.
-- Secret scan: Gitleaks passed across 31 commits and the worktree.
+- Secret scan: Gitleaks passed across 32 commits and the worktree.
+
+Phase 8B additions:
+
+- Threats tested: cookie theft/type confusion, missing/wrong/duplicate CSRF, missing/null/hostile or
+  suffix-confused Origin, wildcard/reflected CORS, malicious header/path/query/body size, brute-rate
+  exhaustion, session restart/revocation, wrong device type/scope, stale remote authentication,
+  cross-session approval, capability loss, risk-ceiling breach, and Level 2-4 remote approval.
+- Data boundaries: cookie and CSRF plaintext returned once only; digest-only persistence; limiter
+  uses client IP plus truncated device ID or cookie digest, never plaintext cookie/body/action data.
+- Permissions/approvals: `approval.review` is explicit; exact phrase/fingerprint and same trusted
+  identity required; Level 2-4 stay local; no remote execution route exists.
+- Browser bootstrap default: disabled until exact HTTPS origin configuration; listener still
+  loopback-only.
 
 ## Blockers
 
-- None for safe local Phase 8A implementation. Real phone, TLS, private-network deployment, and
+- None for safe local Phase 8A-8B implementation. Real phone, TLS, private-network deployment, and
   non-loopback exposure require later Phase 8D authority and are not attempted.
 
 ## Known limits and deferred scope
 
-- Passkey/OIDC host authentication, browser cookies, trusted remote approvals, CSRF/CORS/CSP/rate
-  hardening: Phase 8B.
+- Passkey/OIDC step-up remains optional future hardening; current browser bootstrap uses the enrolled
+  device signature and a five-minute recent-auth window for low-risk approval only.
 - PWA client, reconnect/resume, offline shell, notifications: Phase 8C.
 - TLS/private topology, firewall/Tailscale deployment, real phone enrollment/revocation and scan:
   Phase 8D.
 
 ## Recovery and rollback
 
-- Keep `JARVIS_WEB_HOST=127.0.0.1`. Revoke a device to invalidate all sessions. Remove the Phase 8A
-  API composition wiring to return to local legacy API; existing Phase 1–7 schemas remain intact.
+- Keep `JARVIS_WEB_HOST=127.0.0.1` and `JARVIS_TRUSTED_BROWSER_ORIGINS=[]` to disable browser
+  bootstrap. Revoke a device to invalidate all API/browser sessions. Existing migration 010 is
+  additive; rollback disables routes/configuration rather than deleting durable identity data.
 
 ## Final handoff
 
-- Final status: Phase 8A complete; Phase 8 overall remains in progress.
-- Files changed: remote identity package, migration, runtime/web/CLI/diagnostics integration, tests,
-  benchmark, lock/dependency records, ADR, API/recovery/security/architecture/setup/status docs.
-- Next recommended phase: Phase 8B trusted approval/web hardening.
+- Final status: Phase 8A-8B complete; Phase 8 overall remains in progress.
+- Files changed: browser identity/policy contracts, migration 010, remote store/service, web
+  middleware/routes, configuration/diagnostics, approval surface, tests, benchmark, dependency
+  audit records, ADR, API/recovery/security/architecture/setup/status docs.
+- Next recommended phase: Phase 8C PWA, product transport, reconnect/resume, offline shell, and
+  notification controls.
 - Commit/push status: standing repository authorization applies after final review; exact commit is
   reported at handoff.

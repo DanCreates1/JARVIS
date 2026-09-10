@@ -20,6 +20,7 @@ from jarvis.remote.models import (
     RemoteAuditEvent,
     RemoteAuditOutcome,
     RemoteScope,
+    RemoteSessionKind,
 )
 
 _MAX_DENIAL_AUDIT_EVENTS = 1_000
@@ -55,6 +56,8 @@ class StoredSession:
     created_at: datetime
     expires_at: datetime
     revoked_at: datetime | None
+    session_kind: RemoteSessionKind
+    csrf_token_sha256: str | None
 
 
 class SQLiteRemoteIdentityStore:
@@ -263,6 +266,8 @@ class SQLiteRemoteIdentityStore:
         scopes: tuple[RemoteScope, ...],
         created_at: datetime,
         expires_at: datetime,
+        session_kind: RemoteSessionKind = RemoteSessionKind.SIGNED_API,
+        csrf_token_sha256: str | None = None,
     ) -> None:
         async with self._operation_lock:
             connection = await self._get_connection()
@@ -287,8 +292,9 @@ class SQLiteRemoteIdentityStore:
                     """
                     INSERT INTO remote_sessions (
                         id, token_sha256, device_id, key_version, audience, scopes_json,
-                        created_at, expires_at, last_seen_at, revoked_at, revoke_reason
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL)
+                        created_at, expires_at, last_seen_at, revoked_at, revoke_reason,
+                        session_kind, csrf_token_sha256
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?)
                     """,
                     (
                         session_id,
@@ -299,13 +305,19 @@ class SQLiteRemoteIdentityStore:
                         _dump_scopes(scopes),
                         _timestamp(created_at),
                         _timestamp(expires_at),
+                        session_kind.value,
+                        csrf_token_sha256,
                     ),
                 )
                 await self._insert_audit(
                     connection,
                     event_type="session.created",
                     outcome=RemoteAuditOutcome.SUCCEEDED,
-                    reason_code="device_signature_verified",
+                    reason_code=(
+                        "browser_device_signature_verified"
+                        if session_kind is RemoteSessionKind.BROWSER
+                        else "device_signature_verified"
+                    ),
                     device_id=device.id,
                     session_id=session_id,
                     created_at=created_at,
@@ -323,6 +335,31 @@ class SQLiteRemoteIdentityStore:
             ) as cursor:
                 row = await cursor.fetchone()
         return None if row is None else _stored_session(row)
+
+    async def touch_session(self, *, session_id: str, device_id: str, seen_at: datetime) -> bool:
+        async with self._operation_lock:
+            connection = await self._get_connection()
+            await connection.execute("BEGIN IMMEDIATE")
+            try:
+                cursor = await connection.execute(
+                    """
+                    UPDATE remote_sessions SET last_seen_at = ?
+                    WHERE id = ? AND device_id = ? AND revoked_at IS NULL AND expires_at > ?
+                    """,
+                    (_timestamp(seen_at), session_id, device_id, _timestamp(seen_at)),
+                )
+                if cursor.rowcount != 1:
+                    await connection.rollback()
+                    return False
+                await connection.execute(
+                    "UPDATE remote_devices SET last_seen_at = ? WHERE id = ?",
+                    (_timestamp(seen_at), device_id),
+                )
+                await connection.commit()
+                return True
+            except BaseException:
+                await connection.rollback()
+                raise
 
     async def consume_nonce(
         self,
@@ -687,6 +724,10 @@ def _stored_session(row: aiosqlite.Row) -> StoredSession:
         expires_at=datetime.fromisoformat(row["expires_at"]),
         revoked_at=(
             None if row["revoked_at"] is None else datetime.fromisoformat(row["revoked_at"])
+        ),
+        session_kind=RemoteSessionKind(row["session_kind"]),
+        csrf_token_sha256=(
+            None if row["csrf_token_sha256"] is None else str(row["csrf_token_sha256"])
         ),
     )
 

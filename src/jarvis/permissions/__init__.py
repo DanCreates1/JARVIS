@@ -50,6 +50,7 @@ from .sqlite_store import (
     SQLiteActionStore,
 )
 from .trusted_cli import LocalCliApprovalSurface, approval_phrase, render_approval_summary
+from .trusted_remote import RemoteBrowserApprovalSurface
 
 __all__ = [
     "ActionAuditEvent",
@@ -93,6 +94,7 @@ __all__ = [
     "PostconditionEvidence",
     "PostconditionStatus",
     "PrivilegeBroker",
+    "RemoteBrowserApprovalSurface",
     "RollbackReceipt",
     "RollbackStatus",
     "SQLiteActionStore",

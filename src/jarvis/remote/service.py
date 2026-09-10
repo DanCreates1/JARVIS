@@ -7,12 +7,14 @@ import hashlib
 import secrets
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from typing import Never
 from uuid import uuid4
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from jarvis.remote.models import (
+    BrowserSessionCredential,
     DeviceRecord,
     DeviceState,
     DeviceType,
@@ -22,6 +24,7 @@ from jarvis.remote.models import (
     RemoteAuditEvent,
     RemoteIdentityContext,
     RemoteScope,
+    RemoteSessionKind,
     SessionCredential,
     SessionRequest,
 )
@@ -212,12 +215,76 @@ class RemoteIdentityService:
                     scopes=scopes,
                     created_at=now,
                     expires_at=expires_at,
+                    session_kind=RemoteSessionKind.SIGNED_API,
                 )
             except RuntimeError:
                 raise RemoteAuthenticationError("device_changed") from None
             return SessionCredential(
                 session_id=session_id,
                 token=token,
+                device_id=device.record.id,
+                key_version=device.record.key_version,
+                audience=payload.audience,
+                scopes=scopes,
+                expires_at=expires_at,
+            )
+
+    async def create_browser_session(
+        self,
+        *,
+        request: SignedRequest,
+        signature: str,
+        payload: SessionRequest,
+    ) -> BrowserSessionCredential:
+        """Issue a durable cookie session after fresh enrolled-device proof."""
+        if request.session_token is not None:
+            raise RemoteAuthenticationError("unexpected_session_token")
+        async with self._operation_lock:
+            device = await self._authenticate_device_signature(
+                request=request,
+                signature=signature,
+                session_id=None,
+            )
+            if device.record.device_type not in {DeviceType.PHONE, DeviceType.BROWSER}:
+                await self._store.append_denial(
+                    reason_code="browser_device_type_denied",
+                    device_id=device.record.id,
+                    created_at=self._now(),
+                )
+                raise RemoteStateError("browser_device_type_denied", "browser device required")
+            requested = frozenset(payload.requested_scopes)
+            approved = frozenset(device.record.approved_scopes)
+            if RemoteScope.BROWSER_SESSION not in requested or not requested.issubset(approved):
+                await self._store.append_denial(
+                    reason_code="scope_expansion",
+                    device_id=device.record.id,
+                    created_at=self._now(),
+                )
+                raise RemoteStateError("scope_expansion", "requested scope exceeds device scope")
+            now = self._now()
+            cookie_token = secrets.token_urlsafe(32)
+            csrf_token = secrets.token_urlsafe(32)
+            session_id = f"session:{uuid4()}"
+            scopes = tuple(sorted(requested, key=str))
+            expires_at = min(now + self._session_ttl, device.record.credential_expires_at)
+            try:
+                await self._store.create_session(
+                    session_id=session_id,
+                    token_sha256=_sha256_hex(cookie_token.encode("ascii")),
+                    device=device.record,
+                    audience=payload.audience,
+                    scopes=scopes,
+                    created_at=now,
+                    expires_at=expires_at,
+                    session_kind=RemoteSessionKind.BROWSER,
+                    csrf_token_sha256=_sha256_hex(csrf_token.encode("ascii")),
+                )
+            except RuntimeError:
+                raise RemoteAuthenticationError("device_changed") from None
+            return BrowserSessionCredential(
+                session_id=session_id,
+                cookie_token=cookie_token,
+                csrf_token=csrf_token,
                 device_id=device.record.id,
                 key_version=device.record.key_version,
                 audience=payload.audience,
@@ -240,6 +307,13 @@ class RemoteIdentityService:
             session = await self._store.get_session_by_token_sha256(token_sha256)
             if session is None:
                 raise RemoteAuthenticationError("invalid_session")
+            if session.session_kind is not RemoteSessionKind.SIGNED_API:
+                await self._deny(
+                    "invalid_session_type",
+                    device_id=session.device_id,
+                    session_id=session.id,
+                    created_at=now,
+                )
             if session.device_id != request.device_id:
                 await self._deny(
                     "session_device_mismatch",
@@ -297,6 +371,103 @@ class RemoteIdentityService:
                 key_version=device.record.key_version,
                 audience=session.audience,
                 scopes=frozenset(effective_scopes),
+                session_kind=RemoteSessionKind.SIGNED_API,
+                risk_ceiling=device.record.risk_ceiling,
+                authenticated_at=session.created_at,
+            )
+
+    async def authenticate_browser_session(
+        self,
+        *,
+        cookie_token: str,
+        csrf_token: str | None = None,
+        require_csrf: bool = False,
+        required_scope: RemoteScope | None = None,
+    ) -> RemoteIdentityContext:
+        """Authenticate host-only cookie state; unsafe requests also prove CSRF state."""
+        async with self._operation_lock:
+            now = self._now()
+            session = await self._store.get_session_by_token_sha256(
+                _sha256_hex(cookie_token.encode("ascii"))
+            )
+            if session is None:
+                raise RemoteAuthenticationError("invalid_browser_session")
+            if session.session_kind is not RemoteSessionKind.BROWSER:
+                await self._deny(
+                    "invalid_session_type",
+                    device_id=session.device_id,
+                    session_id=session.id,
+                    created_at=now,
+                )
+            if session.revoked_at is not None:
+                await self._deny(
+                    "session_revoked",
+                    device_id=session.device_id,
+                    session_id=session.id,
+                    created_at=now,
+                )
+            if session.expires_at <= now:
+                await self._deny(
+                    "session_expired",
+                    device_id=session.device_id,
+                    session_id=session.id,
+                    created_at=now,
+                )
+            if session.audience != REQUEST_AUDIENCE:
+                await self._deny(
+                    "wrong_audience",
+                    device_id=session.device_id,
+                    session_id=session.id,
+                    created_at=now,
+                )
+            if require_csrf:
+                supplied = "" if csrf_token is None else _sha256_hex(csrf_token.encode("ascii"))
+                expected = session.csrf_token_sha256 or ""
+                if not supplied or not secrets.compare_digest(supplied, expected):
+                    await self._deny(
+                        "csrf_failed",
+                        device_id=session.device_id,
+                        session_id=session.id,
+                        created_at=now,
+                    )
+            device = await self._store.get_device(session.device_id)
+            if (
+                device is None
+                or device.record.state is not DeviceState.ACTIVE
+                or device.record.credential_expires_at <= now
+                or device.record.key_version != session.key_version
+            ):
+                await self._deny(
+                    "device_changed",
+                    device_id=session.device_id,
+                    session_id=session.id,
+                    created_at=now,
+                )
+            effective_scopes = frozenset(session.scopes).intersection(device.record.approved_scopes)
+            if required_scope is not None and required_scope not in effective_scopes:
+                await self._store.append_denial(
+                    reason_code="scope_denied",
+                    device_id=device.record.id,
+                    session_id=session.id,
+                    created_at=now,
+                )
+                raise RemoteStateError("scope_denied", "remote scope is required")
+            if not await self._store.touch_session(
+                session_id=session.id,
+                device_id=device.record.id,
+                seen_at=now,
+            ):
+                raise RemoteAuthenticationError("session_changed")
+            return RemoteIdentityContext(
+                host_id=device.record.host_id,
+                device_id=device.record.id,
+                session_id=session.id,
+                key_version=device.record.key_version,
+                audience=session.audience,
+                scopes=frozenset(effective_scopes),
+                session_kind=RemoteSessionKind.BROWSER,
+                risk_ceiling=device.record.risk_ceiling,
+                authenticated_at=session.created_at,
             )
 
     async def rotate_key(
@@ -460,7 +631,7 @@ class RemoteIdentityService:
         created_at: datetime,
         device_id: str | None = None,
         session_id: str | None = None,
-    ) -> None:
+    ) -> Never:
         await self._store.append_denial(
             reason_code=reason_code,
             device_id=device_id,

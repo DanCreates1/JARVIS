@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -30,6 +30,13 @@ class RemoteScope(StrEnum):
     EVENTS_READ = "events.read"
     SESSION_REVOKE = "session.revoke"
     KEY_ROTATE = "key.rotate"
+    BROWSER_SESSION = "browser.session"
+    APPROVAL_REVIEW = "approval.review"
+
+
+class RemoteSessionKind(StrEnum):
+    SIGNED_API = "signed_api"
+    BROWSER = "browser"
 
 
 class RemoteAuditOutcome(StrEnum):
@@ -118,6 +125,21 @@ class SessionCredential(BaseModel):
     expires_at: datetime
 
 
+class BrowserSessionCredential(BaseModel):
+    """One-time browser secrets. Only their SHA-256 digests are persisted."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    session_id: str = Field(pattern=_IDENTIFIER_PATTERN)
+    cookie_token: str = Field(min_length=43, max_length=128, pattern=_BASE64URL_PATTERN)
+    csrf_token: str = Field(min_length=43, max_length=128, pattern=_BASE64URL_PATTERN)
+    device_id: str = Field(pattern=_IDENTIFIER_PATTERN)
+    key_version: int = Field(ge=1)
+    audience: str = Field(pattern=r"^jarvis-api$")
+    scopes: tuple[RemoteScope, ...]
+    expires_at: datetime
+
+
 class KeyRotationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -134,6 +156,18 @@ class RemoteIdentityContext(BaseModel):
     key_version: int = Field(ge=1)
     audience: str = Field(pattern=r"^jarvis-api$")
     scopes: frozenset[RemoteScope]
+    session_kind: RemoteSessionKind = RemoteSessionKind.SIGNED_API
+    risk_ceiling: int = Field(default=0, ge=0, le=2)
+    authenticated_at: datetime | None = None
+
+    @field_validator("authenticated_at")
+    @classmethod
+    def require_aware_authentication_time(cls, value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("authenticated_at must include a timezone")
+        return value.astimezone(UTC)
 
 
 class RemoteAuditEvent(BaseModel):

@@ -348,9 +348,16 @@ Phase 8A implements the application identity boundary while retaining loopback-o
 - lifecycle/denial audit omits tokens, challenges, signatures, public keys, request bodies, and
   private content; denial retention is bounded per identity.
 
-Phase 8A does not authorize a non-loopback listener. TLS/private-network deployment, firewall
-policy, rate limiting, trusted browser cookies/origin defenses, PWA behavior, and real-phone testing
-remain explicit Phase 8B-8D work. See `docs/REMOTE_ACCESS.md`.
+Phase 8B adds type-separated durable browser sessions, digest-only secure-cookie/CSRF state, exact
+HTTPS origin enforcement, strict credentialed CORS and CSP, bounded streamed request shapes,
+bounded per-IP/identity rate limits, and content-free denials. Cookie theft cannot become a signed
+API session. Remote approval requires the exact recent enrolled browser identity, action
+fingerprint phrase, capabilities, and device risk ceiling; Levels 2-4 require the trusted local
+host. No remote action execution route exists.
+
+Phase 8A-8B do not authorize a non-loopback listener. TLS/private-network deployment, firewall
+policy, PWA behavior, and real-phone testing remain explicit Phase 8C-8D work. See
+`docs/REMOTE_ACCESS.md`.
 
 ## 14. Memory, research, audio, and vision privacy
 

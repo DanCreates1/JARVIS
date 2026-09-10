@@ -434,6 +434,38 @@ uv run jarvis doctor
 Revocation immediately disables the device and every session. Full protocol/client requirements
 are in [Remote Identity and API Boundary](REMOTE_ACCESS.md).
 
+## Phase 8B trusted browser configuration
+
+Browser session bootstrap remains deny-by-default. Do not configure an origin until an exact HTTPS
+origin exists. Phase 8D owns TLS/private-network deployment and any firewall/Tailscale change.
+
+For local integration tests or a later reviewed gateway, use a JSON array of exact origins:
+
+```powershell
+$env:JARVIS_TRUSTED_BROWSER_ORIGINS = '["https://jarvis.example.internal"]'
+$env:JARVIS_REMOTE_PUBLIC_REQUESTS_PER_MINUTE = '20'
+$env:JARVIS_REMOTE_AUTHENTICATED_REQUESTS_PER_MINUTE = '240'
+$env:JARVIS_REMOTE_RATE_LIMIT_ENTRIES = '4096'
+uv run jarvis doctor
+```
+
+Enroll a browser-capable device only from the trusted local terminal. Add `approval.review` only
+when the device may show exact low-risk prompts:
+
+```powershell
+uv run jarvis remote enroll "My browser" `
+  --type browser `
+  --scope browser.session `
+  --scope identity.read `
+  --scope session.revoke `
+  --scope approval.review `
+  --risk-ceiling 1
+```
+
+Private keys belong in platform secure storage, never `localStorage`, IndexedDB plaintext, Git,
+logs, model context, or URLs. Keep returned CSRF value only in memory. Close/rebootstrap after
+reload; local device revocation is the lost-device recovery path.
+
 ## Optional free-tier cloud roles
 
 Local Ollama works without cloud credentials. To activate Groq, inject a key from
