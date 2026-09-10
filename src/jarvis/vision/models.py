@@ -67,6 +67,7 @@ class CaptureRequest(CoreModel):
     purpose: CapturePurpose
     region: CaptureRegion
     requested_fps: Annotated[float, Field(ge=1, le=MAX_CAPTURE_FPS)] = 10.0
+    camera_exposure: Annotated[int, Field(ge=-13, le=0)] | None = None
     max_frames: Annotated[int, Field(ge=1, le=MAX_CAPTURE_FRAMES)] = 1
     max_duration_ms: Annotated[int, Field(ge=100, le=MAX_CAPTURE_MILLISECONDS)] = 1_000
     open_timeout_ms: Annotated[int, Field(ge=100, le=5_000)] = 3_000
@@ -88,8 +89,11 @@ class CaptureRequest(CoreModel):
                 raise ValueError("camera index must be an integer from 0 through 31")
             if self.region.x < 0 or self.region.y < 0:
                 raise ValueError("camera regions cannot use negative coordinates")
-        elif self.source_id != "screen:desktop":
-            raise ValueError("screen capture currently requires source_id='screen:desktop'")
+        else:
+            if self.source_id != "screen:desktop":
+                raise ValueError("screen capture currently requires source_id='screen:desktop'")
+            if self.camera_exposure is not None:
+                raise ValueError("camera exposure is valid only for camera capture")
         theoretical_frames = math.ceil(self.requested_fps * (self.max_duration_ms / 1_000))
         if theoretical_frames < 1:
             raise ValueError("capture envelope cannot produce a frame")

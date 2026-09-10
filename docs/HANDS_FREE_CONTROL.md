@@ -1,10 +1,9 @@
 # Hands-Free Control Plan
 
 Updated: 2026-09-09
-Status: Phase 2 double-clap detector, Phase 3 closed typed proposal mappings, Phase 7A bounded
-capture/privacy contracts, Phase 7B provider-neutral temporal gesture core, and Phase 7C default-off
-observation-to-intent bridge implemented; continuous audio/camera listeners, a real hand-landmark
-detector, and live gesture/action evaluation remain blocked
+Status: Phase 2 double-clap detector, Phase 3 closed typed proposal mappings, and the Phase 7 local
+OpenCV DNN detector/temporal/default-off proposal path are complete; continuous audio/camera
+listeners remain absent
 
 ## Goal
 
@@ -17,11 +16,11 @@ Phase 3 permission policy remains the only path from intent to action.
 | Input contract | Phase 3 typed result | Current state | Default |
 | --- | --- | --- | --- |
 | Double clap | `launch_app_group` for only `hands_free_app_group` | Phase 2 detector and synthetic gate tests exist; continuous listening remains off | Existing configured app-group compatibility |
-| Clockwise/counter-clockwise gesture | `set_master_volume` at current rounded percentage plus/minus exactly 5, clamped to 0-100 | Mapping verified with injected read-only volume state; no gesture detector | Off |
-| Open-palm gesture | `control_media` with exact `play_pause` operation | Mapping verified synthetically; no gesture detector | Off |
-| Pinch gesture | `control_media` with exact `mute_toggle` operation | Phase 7C bridge and mapping verified synthetically; no gesture detector; mute readback not claimed | Off |
+| Clockwise/counter-clockwise gesture | `set_master_volume` at current rounded percentage plus/minus exactly 5, clamped to 0-100 | Local detector and mapping implemented; execution remains separately reviewed | Off |
+| Open-palm gesture | `control_media` with exact `play_pause` operation | Local detector and mapping implemented; execution remains separately reviewed | Off |
+| Pinch gesture | `control_media` with exact `mute_toggle` operation | Local detector and mapping implemented; mute readback not claimed | Off |
 | Swipe-left/right gesture | `control_media` with exact `previous_track`/`next_track` operation | Mapping verified synthetically; browser-tab navigation is deferred | Off |
-| Cancel gesture | Session-scoped no-authority cancel directive | Mapping and cross-session denial verified synthetically; no gesture detector | Off |
+| Cancel gesture | Session-scoped no-authority cancel directive | Local detector/mapping implemented; cross-session denial verified | Off |
 
 Microphone mute, browser-tab navigation, desktop/app switching, and gesture approval are not Phase 3
 mappings. Detector input has no action-ID, path, operation, or numeric-delta field. Every emitted
@@ -61,16 +60,15 @@ are absent unless individually enabled in host policy. A production consumer cal
 `ActionCoordinator.propose` with `ApprovalSource.HANDS_FREE`; trusted review and one-use broker
 execution remain separate.
 
-Phase 7A now provides dual-gated, foreground-only, visible, exact-region camera/screen capture with
-ephemeral cleared buffers and no action authority. It provides no hand detector, gesture intent,
-mapping, calibration, or continuous listener. Its authorized live-device closeout passed;
-Phase 7B provides local-only 21-landmark contracts, aggregate calibration thresholds, and
+Phase 7A provides dual-gated, foreground-only, visible, exact-region camera/screen capture with
+ephemeral cleared buffers and no action authority. Phase 7B adds a pinned, checksum-verified local
+OpenCV DNN detector, 21-landmark contracts, aggregate calibration thresholds, and
 debounced/cooldown/re-arm temporal recognition for fist, palm, pinch, and both finger-roll
 directions. Phase 7C maps those content-free observations through an immutable closed table into the
 existing Phase 3 proposal gate. All action families remain default-off; every proposal is Level 1,
 requires trusted review, and reaches only `ActionCoordinator.propose`. Fist cancel creates no action
-authority. Synthetic mapping/abuse gates pass. A real detector and live evaluation remain blocked
-pending the MediaPipe telemetry/terms decision and separate capture/effect authority.
+authority. Synthetic mapping/abuse gates, diverse public real-image evaluation, and the 30-minute
+target camera/detector/mapping soak pass. No MediaPipe Tasks runtime or detector telemetry is used.
 
 ## Safety requirements
 

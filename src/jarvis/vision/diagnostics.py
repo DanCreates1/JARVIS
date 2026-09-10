@@ -1,4 +1,4 @@
-"""Non-capturing Phase 7A dependency and privacy diagnostics."""
+"""Non-capturing Phase 7 dependency, model, and privacy diagnostics."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from importlib.util import find_spec
 
 from jarvis.config import Settings
 from jarvis.diagnostics import DiagnosticCheck, DiagnosticReport, DiagnosticStatus
+from jarvis.gestures.model_store import VISION_MODELS, verify_model
 
 from .settings_store import VisionSettingsError, VisionSettingsFile
 
@@ -34,7 +35,7 @@ def run_vision_diagnostics(
             status=DiagnosticStatus.PASS,
             detail=(
                 "Only explicit foreground, RGB24, bounded, local, ephemeral capture is modeled; "
-                "cloud disclosure, biometrics, retention, recognition, and actions are absent."
+                "recognition stays local and action execution remains outside the vision boundary."
             ),
         ),
     ]
@@ -54,6 +55,21 @@ def run_vision_diagnostics(
                     if available
                     else "Install with `uv sync --locked --extra vision`; this does not capture."
                 ),
+            )
+        )
+    for model in VISION_MODELS:
+        path = settings.vision_model_dir / model.filename
+        verified = verify_model(path, model)
+        checks.append(
+            DiagnosticCheck(
+                name=model.name,
+                status=DiagnosticStatus.PASS if verified else DiagnosticStatus.FAIL,
+                detail=(
+                    "Pinned private-runtime model checksum verified."
+                    if verified
+                    else "Pinned private-runtime model is missing or invalid."
+                ),
+                remediation=None if verified else "Run `uv run jarvis vision setup` explicitly.",
             )
         )
     try:

@@ -93,6 +93,19 @@ def test_feature_extraction_separates_fixture_poses_and_degenerate_geometry() ->
         extract_features(HandObservation.model_validate(broken))
 
 
+def test_feature_ratios_ignore_model_depth_scale() -> None:
+    flat = hand("pinch")
+    with_depth = flat.model_dump()
+    for index, landmark in enumerate(with_depth["landmarks"]):
+        landmark["z"] = float(index - 10) * 0.15
+
+    flat_features = extract_features(flat)
+    depth_features = extract_features(HandObservation.model_validate(with_depth))
+    assert depth_features.pinch_ratio == pytest.approx(flat_features.pinch_ratio)
+    assert depth_features.extension_ratios == pytest.approx(flat_features.extension_ratios)
+    assert GestureCalibrationProfile().pinch_ratio_threshold == 0.70
+
+
 def test_calibrator_derives_aggregate_thresholds_and_resets() -> None:
     calibrator = GestureCalibrator(minimum_samples_per_pose=3, maximum_samples_per_pose=4)
     for _ in range(3):

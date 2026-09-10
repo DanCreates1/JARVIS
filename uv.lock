@@ -559,6 +559,8 @@ voice = [
 [package.dev-dependencies]
 dev = [
     { name = "mypy" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "pip-audit" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -592,6 +594,7 @@ provides-extras = ["vision", "voice"]
 [package.metadata.requires-dev]
 dev = [
     { name = "mypy", specifier = ">=1.13,<2" },
+    { name = "numpy", specifier = ">=1.26,<3" },
     { name = "pip-audit", specifier = ">=2.7,<3" },
     { name = "pytest", specifier = ">=8.3,<10" },
     { name = "pytest-asyncio", specifier = ">=0.24,<2" },

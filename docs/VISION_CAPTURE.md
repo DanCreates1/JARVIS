@@ -1,16 +1,16 @@
 # Vision Capture Privacy Boundary
 
-Updated: 2026-09-08  
-Status: Phase 7A complete
+Updated: 2026-09-09
+Status: Phase 7 complete; capture remains explicit, foreground-only, and default-off
 
-Phase 7A provides explicit, bounded camera and screen-region capture. It does not recognize
-gestures, retain images, call a cloud vision service, inspect pixels with a model, or authorize a
-computer action.
+Phase 7A provides explicit, bounded camera and screen-region capture. Phase 7B may consume an
+explicit camera frame with a local detector. Neither path retains images, calls a cloud vision
+service, or authorizes a computer action.
 
 ## Privacy contract
 
 Every request binds an exact source and stable source ID, purpose, non-empty region, RGB24 pixel
-format, frame rate, frame count, duration, frame timeout, and `ephemeral` retention. Current hard
+format, frame rate, optional bounded camera exposure, frame count, duration, frame timeout, and `ephemeral` retention. Current hard
 ceilings are 15 FPS, 300 frames, 30 seconds, a 1,000 ms per-frame timeout, and a 1920 x 1080 region.
 Camera IDs are `camera:0` through `camera:31`; the only screen ID is `screen:desktop`.
 
@@ -34,12 +34,14 @@ counts, timings, and stop/failure reason.
 
 ```powershell
 uv sync --locked --extra vision
+uv run jarvis vision setup
 uv run jarvis vision status
 uv run jarvis vision doctor
 ```
 
-`vision doctor` imports the OpenCV and Pillow adapters and checks gates/settings. It does not open
-a camera or read the screen.
+`vision setup` explicitly downloads two pinned, checksum-verified OpenCV Zoo ONNX files to private
+application data. `vision doctor` imports adapters and checks gates, settings, and model checksums.
+Neither command opens a camera or reads the screen.
 
 ## Explicit bounded capture
 
@@ -50,6 +52,8 @@ windows, and use the webcam shutter or Windows camera privacy control as an inde
 uv run jarvis vision enable
 # Set JARVIS_VISION_CAPTURE_ENABLED=true, then start a new foreground process.
 uv run jarvis vision capture --source camera --source-id camera:0 --x 0 --y 0 --width 640 --height 480 --fps 10 --frames 1 --duration-ms 1000
+# Optional local gesture recognition, still bounded and non-executing:
+uv run jarvis vision gestures --source-id camera:0 --width 640 --height 480 --fps 10 --frames 300 --duration-ms 30000
 uv run jarvis vision disable
 ```
 
@@ -84,16 +88,13 @@ Those OS indicators are independent of the JARVIS terminal indicator.
 Screen-region capture has no equivalent hardware light, so exact coordinates and foreground use
 are mandatory.
 
-Phase 7A adopts optional [`opencv-python-headless`](https://pypi.org/project/opencv-python-headless/)
+Phase 7 adopts optional [`opencv-python-headless`](https://pypi.org/project/opencv-python-headless/)
 5.x and [Pillow](https://pypi.org/project/pillow/) 12.x packages. OpenCV 4.5 and later is
 [Apache-2.0](https://opencv.org/license/); the Python wrapper is MIT and its wheels include
 LGPL-2.1 FFmpeg components. Pillow is MIT-CMU. JARVIS installs only one OpenCV package and uses no
-OpenCV GUI window. [MediaPipe](https://github.com/google-ai-edge/mediapipe) remains deferred to
-Phase 7B because gesture/landmark processing is outside 7A. Phase 7B's owned temporal core is now
-implemented without MediaPipe. Current MediaPipe API terms state that Solution/Tasks APIs contact
-Google servers and send performance/utilization/application/input/system metadata, with informed
-consent duties for the app owner. JARVIS does not install or initialize it without an explicit owner
-decision. See [Local Gesture Recognition](GESTURE_RECOGNITION.md).
+OpenCV GUI window. Phase 7B uses pinned OpenCV Zoo palm and hand-pose ONNX models through OpenCV DNN;
+the model directories are Apache-2.0. MediaPipe Tasks is not installed or initialized. See [Local
+Gesture Recognition](GESTURE_RECOGNITION.md).
 
 No third-party source code or model artifact is copied into this repository.
 
@@ -104,3 +105,10 @@ On 2026-09-08, the audited Windows host completed exactly one `camera:0` frame a
 indicator before capture and the off indicator after source close, delivered 921,600 bytes, and
 discarded the pixels. Camera duration was 2,781 ms; screen duration was 515 ms. The persistent
 software control and host gate were then verified disabled, with no active session.
+
+On 2026-09-09, the same `camera:0` completed a 1,800.25-second local, ephemeral, non-effecting
+detector-to-proposal soak: 17,891 frames, 9.938 FPS, detector p95 7.734 ms, pipeline p50/p95
+6.907/7.757 ms, 7.999% average total CPU, and 12.19 MiB RSS growth. It produced no gesture event,
+proposal, authority violation, OS effect, retained frame/landmark, or cloud request. The physical
+stream was effectively black, so this result is classified as no-hand/resource evidence; approved
+public real-human images supplied the separate diversity matrix. Controls were restored disabled.

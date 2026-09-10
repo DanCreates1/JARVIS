@@ -8,6 +8,7 @@ from jarvis.vision.fakes import FakeCaptureSettings
 
 def test_vision_diagnostics_do_not_capture_and_report_dual_gates(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     monkeypatch.setattr("jarvis.vision.diagnostics.find_spec", lambda _name: object())
+    monkeypatch.setattr("jarvis.vision.diagnostics.verify_model", lambda *_args: True)
     settings = Settings(data_dir=tmp_path, vision_capture_enabled=False)
 
     report = run_vision_diagnostics(
@@ -36,12 +37,15 @@ def test_vision_diagnostics_missing_dependencies_fail_without_opening(
     failures = [check for check in report.checks if check.status is DiagnosticStatus.FAIL]
     assert {check.name for check in failures} == {
         "OpenCV camera adapter",
+        "OpenCV Zoo MP hand-pose estimator",
+        "OpenCV Zoo MP palm detector",
         "Pillow screen adapter",
     }
 
 
 def test_vision_diagnostics_invalid_store_fails_closed(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     monkeypatch.setattr("jarvis.vision.diagnostics.find_spec", lambda _name: object())
+    monkeypatch.setattr("jarvis.vision.diagnostics.verify_model", lambda *_args: True)
 
     class BrokenStore:
         def load_control(self):  # type: ignore[no-untyped-def]
@@ -64,6 +68,7 @@ def test_vision_diagnostics_handles_missing_parent_package(tmp_path, monkeypatch
         return object()
 
     monkeypatch.setattr("jarvis.vision.diagnostics.find_spec", missing_parent)
+    monkeypatch.setattr("jarvis.vision.diagnostics.verify_model", lambda *_args: True)
 
     report = run_vision_diagnostics(
         Settings(data_dir=tmp_path),

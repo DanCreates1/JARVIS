@@ -20,6 +20,11 @@ from jarvis.research.models import FetchedDocument, ParsedDocument, ResearchErro
 
 _MAX_EXTRACTED_CHARACTERS = 500_000
 _MAX_WORKER_OUTPUT_BYTES = 1_100_000
+_PARSER_BOOTSTRAP = (
+    "import json,runpy,sys;"
+    "sys.path[:0]=json.loads(sys.argv[1]);"
+    "runpy.run_path(sys.argv[2],run_name='__main__')"
+)
 _IGNORED_ELEMENTS = frozenset(
     {"script", "style", "template", "noscript", "svg", "nav", "aside", "footer", "header"}
 )
@@ -72,7 +77,16 @@ class SandboxedDocumentParser:
         try:
             with tempfile.TemporaryDirectory(prefix="jarvis-research-parser-") as working_dir:
                 completed = subprocess.run(
-                    [sys.executable, "-I", "-X", "utf8", str(self._worker_path)],
+                    [
+                        sys.executable,
+                        "-I",
+                        "-X",
+                        "utf8",
+                        "-c",
+                        _PARSER_BOOTSTRAP,
+                        json.dumps(_isolated_import_roots(), separators=(",", ":")),
+                        str(self._worker_path),
+                    ],
                     input=request,
                     capture_output=True,
                     cwd=working_dir,
@@ -166,6 +180,21 @@ class UntrustedDocumentParser:
             ResearchErrorCode.UNSUPPORTED_CONTENT,
             f"research parser does not support {document.media_type}",
         )
+
+
+def _isolated_import_roots() -> list[str]:
+    roots: list[str] = []
+    for entry in sys.path:
+        if not entry:
+            continue
+        try:
+            path = Path(entry).resolve(strict=True)
+        except OSError:
+            continue
+        value = str(path)
+        if value not in roots:
+            roots.append(value)
+    return roots
 
 
 class _ResearchHtmlParser(HTMLParser):

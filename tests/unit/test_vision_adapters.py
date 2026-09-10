@@ -9,7 +9,11 @@ from types import SimpleNamespace
 import pytest
 
 from jarvis.vision import _capture_worker
-from jarvis.vision.adapters import IsolatedWindowsFrameSource, _sanitized_environment
+from jarvis.vision.adapters import (
+    IsolatedWindowsFrameSource,
+    _sanitized_environment,
+    _worker_import_roots,
+)
 from jarvis.vision.indicator import TerminalCaptureIndicator
 from jarvis.vision.models import (
     CaptureError,
@@ -22,7 +26,11 @@ from jarvis.vision.models import (
 )
 
 
-def _request(source: CaptureSource = CaptureSource.CAMERA) -> CaptureRequest:
+def _request(
+    source: CaptureSource = CaptureSource.CAMERA,
+    *,
+    camera_exposure: int | None = None,
+) -> CaptureRequest:
     return CaptureRequest(
         source=source,
         source_id="camera:0" if source is CaptureSource.CAMERA else "screen:desktop",
@@ -32,6 +40,7 @@ def _request(source: CaptureSource = CaptureSource.CAMERA) -> CaptureRequest:
             else CapturePurpose.SCREEN_ANALYSIS
         ),
         region=CaptureRegion(x=0, y=0, width=2, height=2),
+        camera_exposure=camera_exposure,
     )
 
 
@@ -121,6 +130,9 @@ async def test_isolated_source_protocol_returns_ephemeral_frame(monkeypatch) -> 
     assert child_env["PATH"] == "safe-path"
     assert "JARVIS_NVIDIA_API_KEY" not in child_env
     assert "OTHER_TOKEN" not in child_env
+    assert call["args"][1:3] == ("-I", "-c")  # type: ignore[index]
+    worker_roots = json.loads(call["args"][4])  # type: ignore[index]
+    assert worker_roots == _worker_import_roots()
 
 
 @pytest.mark.asyncio
@@ -225,7 +237,11 @@ def test_worker_camera_adapter_crops_and_converts(monkeypatch) -> None:  # type:
         CAP_PROP_FRAME_WIDTH = 2
         CAP_PROP_FRAME_HEIGHT = 3
         CAP_PROP_BUFFERSIZE = 4
-        COLOR_BGR2RGB = 5
+        CAP_PROP_FPS = 5
+        COLOR_BGR2RGB = 6
+        CAP_PROP_FOURCC = 7
+        CAP_PROP_AUTO_EXPOSURE = 9
+        CAP_PROP_EXPOSURE = 10
 
         @staticmethod
         def VideoCapture(index: int, backend: int) -> Camera:
@@ -233,12 +249,17 @@ def test_worker_camera_adapter_crops_and_converts(monkeypatch) -> None:  # type:
             return camera
 
         @staticmethod
+        def VideoWriter_fourcc(*letters: str) -> int:
+            assert letters == ("M", "J", "P", "G")
+            return 8
+
+        @staticmethod
         def cvtColor(image, conversion):  # type: ignore[no-untyped-def]
-            assert conversion == 5
+            assert conversion == 6
             return image
 
     monkeypatch.setattr(_capture_worker.importlib, "import_module", lambda _name: CV2)
-    source = _capture_worker._WorkerSource(_request())
+    source = _capture_worker._WorkerSource(_request(camera_exposure=-4))
 
     source.open()
     pixels, _, _ = source.capture()
@@ -246,7 +267,15 @@ def test_worker_camera_adapter_crops_and_converts(monkeypatch) -> None:  # type:
 
     assert pixels == b"r" * 12
     assert camera.released
-    assert camera.settings == [(2, 2), (3, 2), (4, 1)]
+    assert camera.settings == [
+        (7, 8),
+        (2, 2),
+        (3, 2),
+        (5, 30.0),
+        (9, 0.25),
+        (10, -4),
+        (4, 1),
+    ]
 
 
 def test_sanitized_environment_is_allowlist_not_name_filter() -> None:

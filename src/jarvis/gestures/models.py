@@ -96,7 +96,7 @@ class GestureCalibrationProfile(CoreModel):
     mirrored_input: bool = True
     min_tracking_confidence: Annotated[float, Field(ge=0.8, le=1)] = 0.85
     min_handedness_confidence: Annotated[float, Field(ge=0.8, le=1)] = 0.85
-    pinch_ratio_threshold: Annotated[float, Field(ge=0.05, le=0.8)] = 0.32
+    pinch_ratio_threshold: Annotated[float, Field(ge=0.05, le=0.8)] = 0.70
     finger_extension_ratio_threshold: Annotated[float, Field(ge=1.01, le=2)] = 1.12
     finger_curl_ratio_threshold: Annotated[float, Field(ge=0.2, le=0.99)] = 0.92
     debounce_frames: Annotated[int, Field(ge=2, le=10)] = 3

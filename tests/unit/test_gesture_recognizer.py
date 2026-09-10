@@ -4,7 +4,7 @@ from datetime import timedelta
 
 import pytest
 
-from jarvis.gestures.models import GestureKind, GestureObservation, Handedness
+from jarvis.gestures.models import GestureKind, GestureObservation, Handedness, HandObservation
 from jarvis.gestures.recognizer import TemporalGestureRecognizer
 from tests.unit.gesture_fixtures import BASE_TIME, frame, gesture_profile, hand
 
@@ -37,6 +37,30 @@ def test_static_gesture_requires_debounce_and_emits_closed_observation(
     assert event.event_id == "gesture-12345678"
     assert event.local_only is True
     assert recognizer.consume(frame(4, hand(pose))) is None
+
+
+def test_pinch_allows_bent_index_but_rejects_one_finger_similar_pose() -> None:
+    realistic = hand("pinch").model_dump()
+    realistic["landmarks"][8].update({"x": 0.34, "y": 0.42})
+    realistic["landmarks"][4].update({"x": 0.35, "y": 0.43})
+    pinch = HandObservation.model_validate(realistic)
+    recognizer = TemporalGestureRecognizer(
+        gesture_profile(), now=lambda: BASE_TIME + timedelta(milliseconds=500)
+    )
+    assert recognizer.consume(frame(1, pinch)) is None
+    assert recognizer.consume(frame(2, pinch)) is None
+    event = recognizer.consume(frame(3, pinch))
+    assert event is not None
+    assert event.gesture is GestureKind.PINCH
+
+    similar = hand("fist").model_dump()
+    similar["landmarks"][18].update({"x": 0.67, "y": 0.38})
+    similar["landmarks"][20].update({"x": 0.67, "y": 0.14})
+    similar["landmarks"][4].update(similar["landmarks"][8])
+    one_finger = HandObservation.model_validate(similar)
+    recognizer.reset()
+    for sequence in range(4, 7):
+        assert recognizer.consume(frame(sequence, one_finger)) is None
 
 
 def test_hold_never_repeats_until_release_and_cooldown() -> None:

@@ -445,17 +445,18 @@ Supported multi-step tasks resume safely after restart, never exceed configured 
 
 ### Phase 7 — Vision and gestures (Large)
 
-**Current status (2026-09-09)**
+**Current status (2026-09-09): Complete.**
 Phase 7A capture/privacy/contracts are complete with dual default-off gates, exact bounded
 camera/screen-region requests, visible state, isolated native workers, ephemeral cleared buffers,
 kill/cancel controls, camera-independent tests, fixed synthetic benchmarks, and bounded current
 camera/screen live evidence. Both controls were restored disabled after closeout. Phase 7B now has
 owned local landmark contracts, privacy-minimal calibration, deterministic temporal recognition for
-fist/palm/pinch/finger-roll, strict uncertainty denial, fakes, and fixed synthetic gates. A real
-detector is not adopted: current MediaPipe terms describe Google metrics transmission and informed
-consent. Phase 7C now provides the closed default-off observation-to-Phase-3 bridge plus synthetic
-mapping, rate, replay, cancel, and authority gates. Live detector evaluation and integrated action
-soak remain incomplete; Phase 7 is not complete.
+fist/palm/pinch/finger-roll, strict uncertainty denial, fakes, fixed synthetic gates, and a pinned
+checksum-verified OpenCV Zoo ONNX detector. MediaPipe Tasks is not used. Phase 7C provides the
+closed default-off observation-to-Phase-3 bridge plus mapping, rate, replay, cancel, and authority
+gates. The diverse public real-image matrix and 30-minute target camera/detector/mapping soak pass
+with no retained media, direct effects, authority escalation, or action storm. See the Phase 7
+completion report for exact metrics and the documented pinch robustness limitation.
 
 **Goal**  
 Low-latency perception and configurable gestures, escalating to multimodal models only when needed.
@@ -463,7 +464,7 @@ Low-latency perception and configurable gestures, escalating to multimodal model
 **Deliverables**
 
 - Camera/screenshot capability adapters with visible capture state and retention policy.
-- MediaPipe Hand Landmarker candidate plus OpenCV capture/preprocessing.
+- Pinned OpenCV Zoo palm/hand-pose ONNX models plus OpenCV capture/preprocessing.
 - Temporal gesture classifier, confidence/debounce, user calibration, configurable mappings.
 - Finger-roll volume control, palm/fist media and cancel gestures, and optional navigation gestures.
 - OCR/object/scene fast paths and separate expensive vision-model path.

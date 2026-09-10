@@ -1,6 +1,6 @@
 # JARVIS
 
-JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–6 and the Phase 7A capture boundary implement a
+JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–6 and the Phase 7 vision stack implement a
 local deterministic privacy gate, configurable NVIDIA/Groq/Gemini/Ollama roles,
 zero-cost fallback routing, durable SQLite state, audited read-only tools, CLI,
 loopback browser chat, local push-to-talk speech, opt-in controlled Windows actions, bounded cited
@@ -16,8 +16,9 @@ optimized local latency evidence pass; Phase 1 remains formally blocked by fixed
 latency gates. The preserved 20/20 NVIDIA states still miss one or both targets. Fresh instrumented
 requests place the long delay before response headers, while adaptive routing protects normal
 product interaction without representing NVIDIA as faster. Phase 7A's implementation, synthetic
-privacy gates, and bounded current camera/screen closeout pass. Phase 7C's default-off synthetic
-gesture-to-proposal boundary also passes; detector/live soak remains blocked. Clean-Windows bootstrap
+privacy gates, and bounded current camera/screen closeout pass. Phase 7 is complete with a pinned
+local OpenCV DNN hand detector, diverse public real-image evaluation, a passing 30-minute target
+camera soak, and Phase 7C's default-off gesture-to-proposal boundary. Clean-Windows bootstrap
 and repository gates pass on an independent fresh GitHub Windows runner. Phases 2 and 3 pass current safe local gates but
 still require separately authorized current real-device/application smokes. See
 [Phase Overview](docs/PHASE_OVERVIEW.md) and the phase reports for exact evidence. No threshold or
@@ -128,7 +129,7 @@ Planning and bounded tasks add:
 
 Task execution is disabled by default. See [Bounded Tasks](docs/BOUNDED_TASKS.md).
 
-## Implemented Phase 7A
+## Implemented Phase 7
 
 The optional local capture boundary adds:
 
@@ -141,14 +142,20 @@ The optional local capture boundary adds:
   pixel values stored or logged; and
 - camera-independent fakes, privacy abuse tests, diagnostics, and a fixed boundary benchmark.
 
-Phase 7B adds a provider-neutral landmark/gesture core with calibrated thresholds, static-pose
+Phase 7B adds a pinned, checksum-verified OpenCV Zoo ONNX palm/hand-pose detector behind the
+provider-neutral landmark/gesture core, with calibrated thresholds, static-pose
 debounce, roll-motion consistency, cooldown, release/re-arm, and strict uncertainty denial. Phase
 7C adds an exact default-off bridge from content-free gesture observations to Phase 3 Level 1
 proposals: fist cancel, palm play/pause, pinch mute-toggle, and finger-roll 5% volume steps. It
-cannot approve or execute an action. No live detector or camera listener ships. MediaPipe adoption
-remains blocked pending an explicit owner decision because its API terms describe Google metrics
-transmission and informed-consent duties. See [Vision Capture Privacy Boundary](docs/VISION_CAPTURE.md)
+cannot approve or execute an action. Detection is explicit foreground-only; no camera listener
+ships. MediaPipe Tasks is not used, avoiding its runtime metrics/consent boundary. See [Vision Capture Privacy Boundary](docs/VISION_CAPTURE.md)
 and [Local Gesture Recognition](docs/GESTURE_RECOGNITION.md).
+
+Final target evidence: 17,891 ephemeral camera frames over 1,800.25 seconds at 9.938 FPS, detector
+p95 7.734 ms, frame-to-proposal pipeline p50/p95 6.907/7.757 ms, average CPU 7.999%, 12.19 MiB RSS
+growth, and zero false activations, proposals, authority violations, retained media, cloud calls,
+or OS effects. Public HaGRID examples supplied the diverse real-image matrix; fixture pixels remain
+outside Git.
 
 ## Model strategy
 
@@ -271,12 +278,15 @@ Install and inspect optional vision capture without opening a source:
 
 ```powershell
 uv sync --locked --extra vision
+uv run jarvis vision setup
 uv run jarvis vision status
 uv run jarvis vision doctor
 ```
 
 Capture remains unavailable until both the environment gate and persistent software control are
-explicitly enabled. Read the privacy guide before running `jarvis vision capture`.
+explicitly enabled. `vision setup` downloads two pinned, checksum-verified ONNX files into private
+application data; it never opens a source. Read the privacy guide before running `jarvis vision
+capture` or `jarvis vision gestures`.
 
 If `uv` is not installed and Windows Package Manager is available, installation
 can be requested explicitly:
@@ -391,7 +401,7 @@ always performs secret scanning.
 - [Phase 7A vision capture privacy boundary](docs/VISION_CAPTURE.md)
 - [Phase 7B local gesture core](docs/GESTURE_RECOGNITION.md)
 - [Phase 7B synthetic dataset card](docs/PHASE_7B_DATASET_CARD.md)
-- [Phase 7 progress evidence](docs/phase-reports/PHASE_7_PROGRESS.md)
+- [Phase 7 completion evidence](docs/phase-reports/PHASE_7_COMPLETION.md)
 - [Codex phase execution playbook](docs/CODEX_PHASE_PLAYBOOK.md)
 - [External repository comparison](docs/EXTERNAL_REPOSITORY_COMPARISON.md)
 - [Hands-free control plan](docs/HANDS_FREE_CONTROL.md)

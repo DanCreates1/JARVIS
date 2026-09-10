@@ -40,6 +40,7 @@ jarvis = "jarvis.cli:app"
 [dependency-groups]
 dev = [
   "mypy>=1.13,<2",
+  "numpy>=1.26,<3",
   "pip-audit>=2.7,<3",
   "pytest>=8.3,<10",
   "pytest-asyncio>=0.24,<2",

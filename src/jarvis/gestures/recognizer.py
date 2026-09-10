@@ -180,7 +180,9 @@ class TemporalGestureRecognizer:
         extended = features.extended(self.profile)
         curled = features.curled(self.profile)
         base_confidence = min(hand.tracking_confidence, hand.handedness_confidence)
-        if extended[0] and features.pinch_ratio <= self.profile.pinch_ratio_threshold:
+        # A real thumb/index pinch bends the index chain; require two other visibly
+        # extended fingers so a fist or a one-finger/rock pose cannot become mute.
+        if features.pinch_ratio <= self.profile.pinch_ratio_threshold and sum(extended) >= 2:
             return _Candidate(GestureKind.PINCH, base_confidence)
         if all(extended) and features.pinch_ratio > self.profile.pinch_ratio_threshold:
             return _Candidate(GestureKind.OPEN_PALM, base_confidence)

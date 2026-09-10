@@ -13,6 +13,7 @@ from .models import (
     LandmarkFrame,
     NormalizedLandmark,
 )
+from .opencv_detector import OpenCVDNNHandLandmarkDetector
 from .recognizer import TemporalGestureRecognizer
 
 __all__ = [
@@ -28,5 +29,6 @@ __all__ = [
     "LandmarkFailureCode",
     "LandmarkFrame",
     "NormalizedLandmark",
+    "OpenCVDNNHandLandmarkDetector",
     "TemporalGestureRecognizer",
 ]

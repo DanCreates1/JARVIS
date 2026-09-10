@@ -259,12 +259,13 @@ pose storms. No-hand, multiple hands, conflicts, low confidence, stale/replayed/
 drops, malformed geometry, and unknown poses emit nothing. Restart/reset clears all temporal state.
 
 Its output is a content-free typed gesture observation containing no action, arguments, permission,
-approval, or tool fields. Phase 7C may later map that observation to a closed typed intent; Phase 3
+approval, or tool fields. Phase 7C maps that observation to a closed typed intent; Phase 3
 alone may propose and execute an allowed action.
 
-No concrete detector ships yet. Current MediaPipe Tasks terms state that metrics and metadata are
-sent to Google and informed-consent handling is the application owner's responsibility. Detector
-adoption therefore remains behind a separate owner privacy/legal decision.
+The concrete detector runs the pinned OpenCV Zoo palm and hand-pose ONNX models through local
+OpenCV DNN. Explicit setup verifies SHA-256 before install outside Git; detection never downloads or
+contacts a service. Its isolated camera worker receives explicit parent import roots under Python
+isolated mode but no JARVIS/provider environment values. MediaPipe Tasks is not used.
 
 ### Phase 7C gesture-to-intent boundary
 

@@ -46,6 +46,9 @@ def test_capture_request_is_explicit_local_ephemeral_and_bounded() -> None:
         _request(max_duration_ms=30_001)
     with pytest.raises(ValidationError):
         _request(frame_timeout_ms=1_001)
+    assert _request(camera_exposure=-4).camera_exposure == -4
+    with pytest.raises(ValidationError):
+        _request(camera_exposure=-14)
 
 
 @pytest.mark.parametrize("source_id", ["0", "camera:-1", "camera:32", "camera:one"])
@@ -64,6 +67,12 @@ def test_screen_requires_explicit_desktop_source_and_region() -> None:
     assert screen.region.x == -100
     with pytest.raises(ValidationError):
         _request(source=CaptureSource.SCREEN, source_id="screen:all")
+    with pytest.raises(ValidationError):
+        _request(
+            source=CaptureSource.SCREEN,
+            source_id="screen:desktop",
+            camera_exposure=-4,
+        )
     with pytest.raises(ValidationError):
         _request(region=CaptureRegion(x=-1, y=0, width=2, height=2))
 

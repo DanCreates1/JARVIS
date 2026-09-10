@@ -10,6 +10,7 @@ import sys
 from asyncio.subprocess import Process
 from collections.abc import Mapping
 from contextlib import suppress
+from pathlib import Path
 from typing import Any
 
 from .models import (
@@ -22,6 +23,11 @@ from .models import (
 )
 
 _MAX_HEADER_BYTES = 8 * 1_024
+_WORKER_BOOTSTRAP = (
+    "import json,runpy,sys;"
+    "sys.path[:0]=json.loads(sys.argv[1]);"
+    "runpy.run_module('jarvis.vision._capture_worker',run_name='__main__')"
+)
 _SAFE_ENVIRONMENT_NAMES = frozenset(
     {
         "ALLUSERSPROFILE",
@@ -71,8 +77,10 @@ class IsolatedWindowsFrameSource:
         try:
             process = await asyncio.create_subprocess_exec(
                 self.python_executable,
-                "-m",
-                "jarvis.vision._capture_worker",
+                "-I",
+                "-c",
+                _WORKER_BOOTSTRAP,
+                json.dumps(_worker_import_roots(), separators=(",", ":")),
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.DEVNULL,
@@ -237,3 +245,19 @@ def _sanitized_environment(source: Mapping[str, str]) -> dict[str, str]:
     safe["PYTHONIOENCODING"] = "utf-8"
     safe["PYTHONUTF8"] = "1"
     return safe
+
+
+def _worker_import_roots() -> list[str]:
+    """Pass existing absolute parent roots explicitly; isolated mode ignores PYTHONPATH."""
+    roots: list[str] = []
+    for entry in sys.path:
+        if not entry:
+            continue
+        try:
+            path = Path(entry).resolve(strict=True)
+        except OSError:
+            continue
+        value = str(path)
+        if value not in roots:
+            roots.append(value)
+    return roots

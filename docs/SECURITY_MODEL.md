@@ -346,6 +346,8 @@ Data minimization:
   timeout, cancellation, source loss, protocol error, or control uncertainty kills the worker;
 - Phase 7B landmarks and motion windows remain local/ephemeral; only aggregate dimensionless
   calibration thresholds and content-free gesture observations may leave a frame consumer;
+- Phase 7B model setup is explicit, bounded, revision-pinned, SHA-256 verified, and stored outside
+  Git; OpenCV DNN inference makes no network call and retains no pixels or landmarks;
 - one-hand, confidence, freshness, ordering, debounce, release, cooldown, and motion-consistency
   checks make uncertainty/conflict/replay a no-event result; gesture confidence grants no authority;
 - Phase 7C revalidates the content-free observation, applies only an immutable fist/palm/pinch/roll
@@ -353,8 +355,8 @@ Data minimization:
 - every mapped action family is default-off and Level 1 only; the bridge cannot encode arguments,
   approve, issue grants, call the broker, or start capture/background work; fist cancel creates no
   authority;
-- no current detector is adopted while MediaPipe's metrics/metadata disclosure and informed-consent
-  boundary remains undecided;
+- MediaPipe Tasks is not installed or initialized; the shipped OpenCV DNN path has no Tasks-runtime
+  metrics/metadata disclosure;
 - no raw camera/audio persistence without purpose, retention, and approval;
 - memories are candidates until policy/host confirmation commits them;
 - extraction, tool, import, and derived content is untrusted provenance; confidence never grants

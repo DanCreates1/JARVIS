@@ -227,19 +227,26 @@ CPU. The discrete GPU remains available to Ollama. Cloud speech is not configure
 integrated GPU for display where possible; future vision fast paths should use MediaPipe/OpenCV and
 bounded frame rates, with multimodal LLM calls on demand rather than continuously.
 
-Phase 7A adopted only the OpenCV/Pillow capture boundary. Phase 7B's provider-neutral temporal core
+Phase 7A adopted the OpenCV/Pillow capture boundary. Phase 7B's provider-neutral temporal core
 passes its synthetic gate on this host: 1,000 sequences at 1.00 macro precision/recall, 36,000
 negative frames with zero false activations, and 10,000 classifier frames at 0.0119/0.0138 ms
 p50/p95 with 0.316 MiB RSS growth. This excludes detector time and proves no real camera accuracy,
-CPU, lighting, skin-tone, background, or thermal result. MediaPipe is not installed because current
-terms describe outbound metrics/metadata and informed-consent duties. Detector/live evaluation
-remains pending owner direction and separate capture authority.
+CPU, lighting, skin-tone, background, or thermal result. Phase 7B now uses pinned OpenCV Zoo ONNX
+palm/hand-pose models through local OpenCV DNN; MediaPipe Tasks is not installed. A 640x480 target
+smoke with explicit exposure `-4` delivered 9.88 processed FPS, detector p95 7.80 ms, pipeline p95
+7.82 ms, 7.37% average total CPU, and 9.09 MiB RSS growth. The final 30-minute soak delivered
+17,891 frames at 9.938 FPS with detector p95 7.734 ms, pipeline p50/p95 6.907/7.757 ms, 7.999%
+average total CPU, 12.19 MiB RSS growth, and zero false activations, proposals, effects, or resource
+gate failures. The source was effectively black and therefore proves no-hand performance/resource
+behavior only; diverse real-image coverage comes from approved public HaGRID examples.
 
 Phase 7C adds no model or device load. Its synthetic observation-to-Phase-3 gate ran 10,000 measured
 evaluations at 0.1319/0.1421 ms p50/p95 with 1.621 MiB RSS growth, zero wrong mappings, direct
 effects, or authority escalation. A 36,000-event negative/replay/storm gate produced zero effects
-and only one rate-bounded proposal; bound-session cancel stopped later proposals. Detector,
-frame-to-proposal, CPU/GPU, thermal, false-activation, and 30-minute live results remain unmeasured.
+and only one rate-bounded proposal; bound-session cancel stopped later proposals. The integrated
+target soak above covers detector-to-proposal latency, CPU/RAM stability, and false activation
+behavior. GPU was not required. Windows exposed no reliable thermal sensor, so bounded CPU and
+stable throughput/RSS are the recorded thermal proxies.
 
 ### Phase 2 measured voice results — 2026-08-22
 

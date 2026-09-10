@@ -34,6 +34,10 @@ class _WorkerSource:
             try:
                 camera = self._cv2.VideoCapture(index, backend)
                 camera.set(
+                    self._cv2.CAP_PROP_FOURCC,
+                    self._cv2.VideoWriter_fourcc(*"MJPG"),
+                )
+                camera.set(
                     self._cv2.CAP_PROP_FRAME_WIDTH,
                     self.request.region.x + self.request.region.width,
                 )
@@ -41,6 +45,12 @@ class _WorkerSource:
                     self._cv2.CAP_PROP_FRAME_HEIGHT,
                     self.request.region.y + self.request.region.height,
                 )
+                # Ask the device for a responsive stream; controller still enforces
+                # the lower user-visible delivery rate and frame/duration bounds.
+                camera.set(self._cv2.CAP_PROP_FPS, max(30.0, self.request.requested_fps))
+                if self.request.camera_exposure is not None:
+                    camera.set(self._cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
+                    camera.set(self._cv2.CAP_PROP_EXPOSURE, self.request.camera_exposure)
                 camera.set(self._cv2.CAP_PROP_BUFFERSIZE, 1)
             except Exception as exc:
                 raise RuntimeError("source_unavailable") from exc

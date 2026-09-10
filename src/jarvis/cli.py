@@ -2100,6 +2100,27 @@ def vision_doctor() -> None:
         raise typer.Exit(code=1)
 
 
+@vision_app.command("setup")
+def vision_setup() -> None:
+    """Download pinned local hand models into private runtime storage."""
+    from jarvis.gestures.model_store import VisionModelError, install_vision_models
+
+    settings = _load_settings()
+    console.print("Downloading pinned local OpenCV hand models to private runtime storage...")
+    try:
+        paths = install_vision_models(settings.vision_model_dir)
+    except VisionModelError:
+        console.print(
+            "[bold red]Local vision model setup failed.[/] "
+            "Check network, disk space, and model integrity."
+        )
+        raise typer.Exit(code=1) from None
+    console.print(
+        "[bold green]Local hand models ready.[/] "
+        f"verified={len(paths)} directory={settings.vision_model_dir}"
+    )
+
+
 @vision_app.command("capture")
 def vision_capture(
     source: Annotated[str, typer.Option("--source", help="camera or screen")],
@@ -2119,6 +2140,10 @@ def vision_capture(
     width: Annotated[int, typer.Option("--width")] = 640,
     height: Annotated[int, typer.Option("--height")] = 480,
     fps: Annotated[float, typer.Option("--fps")] = 10,
+    exposure: Annotated[
+        int | None,
+        typer.Option("--exposure", help="Optional DirectShow manual exposure from -13 through 0"),
+    ] = None,
     frames: Annotated[int, typer.Option("--frames")] = 1,
     duration_ms: Annotated[int, typer.Option("--duration-ms")] = 1_000,
 ) -> None:
@@ -2145,6 +2170,7 @@ def vision_capture(
             purpose=selected_purpose,
             region=CaptureRegion(x=x, y=y, width=width, height=height),
             requested_fps=fps,
+            camera_exposure=exposure,
             max_frames=frames,
             max_duration_ms=duration_ms,
         )
@@ -2176,6 +2202,97 @@ def vision_capture(
         raise typer.Exit(code=1) from None
     except KeyboardInterrupt:
         console.print("[bold yellow]Capture cancelled; source closed and pixels discarded.[/]")
+        raise typer.Exit(code=130) from None
+
+
+@vision_app.command("gestures")
+def vision_gestures(
+    source_id: Annotated[str, typer.Option("--source-id")] = "camera:0",
+    width: Annotated[int, typer.Option("--width")] = 640,
+    height: Annotated[int, typer.Option("--height")] = 480,
+    fps: Annotated[float, typer.Option("--fps")] = 10,
+    exposure: Annotated[
+        int | None,
+        typer.Option("--exposure", help="Optional DirectShow manual exposure from -13 through 0"),
+    ] = None,
+    frames: Annotated[int, typer.Option("--frames")] = 300,
+    duration_ms: Annotated[int, typer.Option("--duration-ms")] = 30_000,
+) -> None:
+    """Run one bounded local detector session; emit gesture names, never actions."""
+    from jarvis.gestures.models import LandmarkError
+    from jarvis.gestures.opencv_detector import OpenCVDNNHandLandmarkDetector
+    from jarvis.gestures.pipeline import GestureFrameProcessor
+    from jarvis.gestures.recognizer import TemporalGestureRecognizer
+    from jarvis.vision.bootstrap import build_vision_capture
+    from jarvis.vision.models import (
+        CaptureError,
+        CapturePurpose,
+        CaptureRegion,
+        CaptureRequest,
+        CaptureSource,
+    )
+
+    settings = _load_settings()
+    try:
+        request = CaptureRequest(
+            source=CaptureSource.CAMERA,
+            source_id=source_id,
+            purpose=CapturePurpose.GESTURE_INPUT,
+            region=CaptureRegion(x=0, y=0, width=width, height=height),
+            requested_fps=fps,
+            camera_exposure=exposure,
+            max_frames=frames,
+            max_duration_ms=duration_ms,
+        )
+    except (ValueError, ValidationError) as exc:
+        console.print(f"[bold red]Invalid gesture envelope.[/] {exc}")
+        raise typer.Exit(code=2) from None
+
+    async def run() -> None:
+        components = build_vision_capture(settings)
+        detector = OpenCVDNNHandLandmarkDetector(settings.vision_model_dir)
+        event_count = 0
+
+        async def show_event(event: object) -> None:
+            nonlocal event_count
+            from jarvis.gestures.models import GestureObservation
+
+            if not isinstance(event, GestureObservation):
+                raise TypeError("gesture sink received an invalid event")
+            event_count += 1
+            console.print(
+                f"[bold cyan]Gesture:[/] {event.gesture.value} "
+                f"confidence={event.confidence:.3f} hand={event.handedness.value}"
+            )
+
+        processor = GestureFrameProcessor(
+            detector=detector,
+            recognizer=TemporalGestureRecognizer(),
+            sink=show_event,
+        )
+        try:
+            result = await components.controller.run(request, consumer=processor)
+        finally:
+            await processor.close()
+            await components.close()
+        console.print(
+            "[bold green]Bounded local gesture session complete.[/] "
+            f"frames={result.frames_delivered} events={event_count} "
+            f"duration_ms={result.duration_ms:.3f}; pixels and landmarks discarded; "
+            "no action proposed or executed"
+        )
+
+    try:
+        asyncio.run(run())
+    except (CaptureError, LandmarkError) as exc:
+        code = getattr(exc, "code", "failed")
+        value = getattr(code, "value", str(code))
+        console.print(f"[bold red]Gesture session blocked.[/] {value}: {exc}")
+        raise typer.Exit(code=1) from None
+    except KeyboardInterrupt:
+        console.print(
+            "[bold yellow]Gesture session cancelled; camera closed and buffers cleared.[/]"
+        )
         raise typer.Exit(code=130) from None
 
 

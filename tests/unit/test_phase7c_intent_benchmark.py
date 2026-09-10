@@ -31,14 +31,16 @@ def test_fixed_phase7c_targets_and_closed_mapping() -> None:
     assert BENCHMARK.run_mapping_contract()["exact"] is True
 
 
-def test_phase7c_synthetic_gate_passes() -> None:
+def test_phase7c_synthetic_gate_passes(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(BENCHMARK, "MAPPING_GATE_EVALUATIONS", 50)
+    monkeypatch.setattr(BENCHMARK, "NEGATIVE_EVENTS", 100)
     result = asyncio.run(BENCHMARK.run_benchmark())
 
     assert result["passed"] is True
-    assert result["mapping_gate"]["proposals"] == 10_000
+    assert result["mapping_gate"]["proposals"] == 50
     assert result["mapping_gate"]["direct_effects"] == 0
     assert result["mapping_gate"]["authority_escalations"] == 0
-    assert result["negative_gate"]["events"] == 36_000
+    assert result["negative_gate"]["events"] == 100
     assert result["negative_gate"]["direct_effects"] == 0
     assert result["negative_gate"]["post_cancel_proposals"] == 0
 

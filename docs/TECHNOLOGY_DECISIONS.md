@@ -29,7 +29,7 @@ These are architectural defaults, not permanent vendor commitments. Revisit a de
 | VAD | Silero VAD on CPU | WebRTC VAD | Adopted in Phase 2 behind a provider port |
 | Wake word | openWakeWord ONNX foundation; always-listening disabled | Porcupine, microWakeWord | Local Windows support; pretrained model is non-commercially licensed |
 | TTS | Windows SAPI behind provider port | Piper, cloud neural TTS | Local, built-in, cancellable baseline without bundling GPL runtime |
-| Vision/gesture | Phase 7A OpenCV/Pillow isolated capture; Phase 7B owned temporal core; detector undecided | MediaPipe Hand Landmarker, reviewed no-telemetry model | Current MediaPipe metrics/consent terms block silent adoption |
+| Vision/gesture | OpenCV/Pillow isolated capture; pinned OpenCV Zoo ONNX palm/hand pose; owned temporal core | MediaPipe Tasks, multimodal model per frame | Local DNN avoids Tasks runtime telemetry and per-frame cloud cost |
 | Remote access | Tailscale/private network + TLS + app authentication | Public reverse proxy, custom VPN | Default-deny device connectivity; avoids direct public exposure |
 | Web/control panel | Responsive web UI/PWA after local API | Native desktop/mobile first | One client across laptop and phone |
 | Observability | Structured events and OpenTelemetry-compatible fields | Full hosted stack | Measurable without premature infrastructure |
@@ -326,23 +326,29 @@ Yes. Planner/model implementations can change under persisted task/event contrac
 Use optional OpenCV for bounded camera capture and Pillow for exact Windows screen-region capture.
 Run native capture in a short-lived isolated worker behind owned contracts. Phase 7B owns the
 landmark, calibration, and temporal gesture logic. Phase 7C uses an immutable default-off bridge
-into the existing Phase 3 Level 1 proposal gate; it adds no detector dependency. MediaPipe Hand
-Landmarker remains only a candidate; no detector is adopted until its current metrics/consent
-boundary is explicitly accepted or a reviewed no-telemetry model replaces it.
+into the existing Phase 3 Level 1 proposal gate. Phase 7B uses the pinned OpenCV Zoo February 2023
+palm and hand-pose ONNX models through OpenCV DNN; explicit setup bounds size, verifies SHA-256, and
+stores models outside Git. MediaPipe Tasks is not used.
 
 **Reason**  
 The Phase 7A privacy boundary must exist before a detector. Simple gestures need low-latency CV,
 not a multimodal LLM. Landmark output permits customization and confidence/debounce. Current
 OpenCV 4.5+ is Apache-2.0, its Python wrapper is MIT, packaged FFmpeg components are LGPL-2.1, and
-Pillow is MIT-CMU. MediaPipe is Apache-2.0, but its Tasks usage metrics require an informed-consent
-decision before adoption.
+Pillow is MIT-CMU. OpenCV Zoo and both selected model directories are Apache-2.0. Local OpenCV DNN
+inference has no provider runtime or telemetry path.
+
+Target evidence confirms the decision: the final 30-minute 640x480/10 FPS camera soak sustained
+9.938 processed FPS with 7.734 ms detector p95, 7.999% average total CPU, 12.19 MiB RSS growth, and
+no false activation, proposal, effect, retained media, or cloud request. Approved public HaGRID
+examples separately cover diverse real-human conditions; transformed pinch misses fail closed and
+remain a documented calibration/usability limitation.
 
 **Alternatives considered / why rejected**
 
 - Multimodal model per frame: slow, expensive, and unnecessary.
 - Permanently hardcoded gesture/action pairs: unsafe and inflexible.
 - Custom detector training first: no dataset or demonstrated need.
-- MediaPipe in 7A: recognition is out of scope and telemetry consent is unresolved.
+- MediaPipe Tasks: unnecessary runtime metrics/consent boundary for this local DNN path.
 
 **Replaceable later?**  
 Yes. Vision providers emit normalized observations; mapping remains separate.

@@ -86,4 +86,6 @@ def extract_features(observation: HandObservation) -> GestureFeatures:
 
 
 def _distance(left: NormalizedLandmark, right: NormalizedLandmark) -> float:
-    return math.sqrt((left.x - right.x) ** 2 + (left.y - right.y) ** 2 + (left.z - right.z) ** 2)
+    # Screen gestures are defined in normalized image space. Model-relative depth
+    # is intentionally excluded: its scale is not comparable to normalized x/y.
+    return math.hypot(left.x - right.x, left.y - right.y)

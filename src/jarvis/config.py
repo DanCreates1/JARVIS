@@ -242,6 +242,10 @@ class Settings(BaseSettings):
         return self.data_dir / "models" / "wake-word"
 
     @property
+    def vision_model_dir(self) -> Path:
+        return self.data_dir / "models" / "vision"
+
+    @property
     def ollama_chat_url(self) -> str:
         return f"{str(self.ollama_base_url).rstrip('/')}/api/chat"
 

@@ -30,7 +30,7 @@ implementation protocol, acceptance gates, safety boundaries, and completion rep
 | 4 | Durable memory | Complete | 4A-4C complete | `gpt-6-astra` / `xhigh` aggregate |
 | 5 | Research | Complete | 5A-5C complete | `gpt-6-astra` / `xhigh` aggregate |
 | 6 | Bounded tasks | Complete | 6A-6C complete | `gpt-6-astra` / `ultra` aggregate |
-| 7 | Vision and gestures | 7A complete; 7B safe core complete; 7C implemented-closeout-pending; detector/live blocked | Detector decision and integrated target evaluation | `gpt-6-astra` / `max` |
+| 7 | Vision and gestures | Complete | 7A-7C complete | `gpt-6-astra` / `max` |
 | 8 | Secure phone/PWA | Loopback foundation only | 8A API/identity/enrollment | `gpt-6-astra` / `ultra` |
 | 9 | Dedicated server migration | Not started | 9A topology/protocol/identity | `gpt-6-astra` / `ultra` |
 | 10 | Generic wearables | Not started; lower priority | 10A feasibility/license/contracts | `gpt-5.6-sol` / `high` |
@@ -70,10 +70,9 @@ dependency is Phase 3/media privacy, but it must not be described as following a
    1 NVIDIA latency is an accepted known limitation, but its unchanged formal gate remains
    `blocked-external`.
 5. Maintain completed Phase 6 bounded tasks and its default-off, foreground-only execution boundary.
-6. Phase 7A is complete. Phase 7B's provider-neutral landmark/calibration/temporal core and Phase
-   7C's default-off closed Phase 3 mapping pass synthetic gates. Resolve the current MediaPipe
-   telemetry/terms decision or select a reviewed no-telemetry detector, then authorize the exact
-   live target evaluation. Preserve the explicit Phase 1 blocker.
+6. Maintain completed Phase 7 capture, local detection/gesture, and default-off Phase 3 mapping
+   boundaries. Keep model downloads explicit, capture foreground-only, and all action authority in
+   Phase 3. Preserve the explicit Phase 1 blocker.
 
 Hands-free control is a cross-phase track: Phase 2 detects claps, Phase 7 recognizes hand
 gestures, and Phase 3 alone authorizes and executes the mapped computer action. See

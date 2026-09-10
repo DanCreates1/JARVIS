@@ -183,12 +183,13 @@ limits, and Windows-specific uncertainty after cancellation of an in-flight nati
 
 See [Vision Capture Privacy Boundary](VISION_CAPTURE.md) for operator controls and recovery.
 
-Phase 7B adds only local landmark/gesture contracts and deterministic temporal logic. Landmark
-features are ephemeral; calibration retains only aggregate dimensionless thresholds. The recognizer
+Phase 7B adds pinned OpenCV Zoo palm/hand-pose ONNX models through local OpenCV DNN plus owned
+landmark/gesture contracts and deterministic temporal logic. Model setup is explicit, bounded,
+revision-pinned, SHA-256 verified, and stored outside Git. Landmark features are ephemeral; calibration retains only aggregate dimensionless thresholds. The recognizer
 requires one fresh ordered confident hand and otherwise emits nothing. Its event schema has no
-action, argument, approval, permission, or tool fields. No detector package, model, camera listener,
-or Phase 3 integration is active. Current MediaPipe adoption is blocked because its API terms
-describe outbound Google metrics/metadata and informed-consent duties.
+action, argument, approval, permission, or tool fields. No camera listener exists. Phase 7C may feed
+only this content-free event through the default-off Phase 3 proposal gate. MediaPipe Tasks is not
+installed or initialized; detection makes no network request.
 
 ## Secrets
 

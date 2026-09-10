@@ -299,6 +299,7 @@ Vision dependencies are locked but excluded from the base environment:
 
 ```powershell
 uv sync --locked --extra vision
+uv run jarvis vision setup
 uv run jarvis vision status
 uv run jarvis vision doctor
 ```
@@ -310,6 +311,7 @@ process-start host gate and persistent software control, plus an explicit foregr
 uv run jarvis vision enable
 # Set JARVIS_VISION_CAPTURE_ENABLED=true, then start a new foreground process.
 uv run jarvis vision capture --source camera --source-id camera:0 --x 0 --y 0 --width 640 --height 480 --fps 10 --frames 1 --duration-ms 1000
+uv run jarvis vision gestures --source-id camera:0 --width 640 --height 480 --fps 10 --frames 300 --duration-ms 30000
 uv run jarvis vision disable
 ```
 
@@ -319,14 +321,13 @@ windows, confirm Windows **Settings > Privacy & security > Camera > Let desktop 
 camera**, and verify the webcam shutter/indicator. `vision disable` is the persistent software kill
 path; the physical shutter and Windows privacy control remain independent.
 
-No continuous listener or recognition starts. See [Vision Capture Privacy Boundary](VISION_CAPTURE.md).
+No continuous listener starts. `vision setup` is the only model-download path and never opens a
+source. The bounded `vision gestures` command processes locally, prints only content-free events,
+clears pixels/landmarks, and proposes or executes nothing. Use optional `--exposure -4` only when a
+reviewed camera cannot sustain 10 FPS under automatic exposure. See [Vision Capture Privacy
+Boundary](VISION_CAPTURE.md) and [Local Gesture Recognition](GESTURE_RECOGNITION.md).
 
-The Phase 7B gesture core adds no package to the `vision` extra and exposes no live calibration or
-gesture command. Do not install MediaPipe as an undocumented workaround: current MediaPipe API
-terms describe outbound Google metrics/metadata and informed-consent duties. Resolve that owner
-decision first; see [Local Gesture Recognition](GESTURE_RECOGNITION.md).
-
-Phase 7C adds no dependency or listener. Its bridge exists only when a foreground gesture pipeline
+Phase 7C adds no listener. Its bridge exists only when a foreground gesture pipeline
 is explicitly composed. The computer policy keeps `volume_step`, `media_play_pause`, `mute_toggle`,
 `media_track_navigation`, and `cancel_session` false by default. Enabling a flag permits only a
 reviewable Level 1 proposal; it does not enable capture, approve a grant, or execute an action.
