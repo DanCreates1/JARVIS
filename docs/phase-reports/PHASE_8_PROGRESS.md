@@ -178,6 +178,12 @@ jarvis doctor: ready; browser cookie bootstrap disabled without exact HTTPS orig
 127.0.0.1:8765
 ```
 
+Revalidated 2026-09-10 at `eb53075`: the full suite again passed with 844 tests, 2 skips, and
+85.11% coverage; Ruff, mypy, pip-audit, Gitleaks, `git diff --check`, and `jarvis doctor` passed.
+The repeated 20,000-case Phase 8B benchmark had zero valid failures and zero false accepts, valid
+p50/p95 0.6849/0.9487 ms, abuse p50/p95 1.2314/2.4253 ms, 5.703 MiB RSS growth, and exactly 1,000
+retained denial events.
+
 ## Benchmarks
 
 - Samples: 10,000 valid signed requests and 10,000 invalid-signature abuse requests.
@@ -257,5 +263,5 @@ Phase 8B additions:
   audit records, ADR, API/recovery/security/architecture/setup/status docs.
 - Next recommended phase: Phase 8C PWA, product transport, reconnect/resume, offline shell, and
   notification controls.
-- Commit/push status: standing repository authorization applies after final review; exact commit is
-  reported at handoff.
+- Phase 8B implementation commit: `eb53075`, synchronized with `origin/main` before this
+  documentation-only revalidation.

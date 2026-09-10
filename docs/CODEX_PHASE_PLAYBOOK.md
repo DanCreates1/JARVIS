@@ -869,7 +869,7 @@ reasoning, and rationale. Universal requirements still apply.
   device, expiry/revoke/rotate/nonce/skew/restart. SP: cover method/authority/path/query/body/date/
   nonce where signed; no secrets in model/log. M: ADR/API/recovery/report. A/E: strict request/
   subscription scope. N: 1. R: `gpt-6-astra` `ultra`, remote identity.
-- **8B Trusted approval/web hardening (`not-started`)** — O/S/D: device/session/action decisions,
+- **8B Trusted approval/web hardening (`complete`)** — O/S/D: device/session/action decisions,
   atomic winner, effect preview, CSRF/CORS/CSP/cookie/body/rate controls. P: 8A/Phase 3. X: local-
   required bypass. Q: matrix -> execution recheck -> API/UI -> abuse. T: stale/race/cross-device/
   origin/CSRF/XSS/oversize/confused deputy/audit. SP: required audience; empty scope denies; owner
