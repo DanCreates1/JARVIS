@@ -355,8 +355,24 @@ API session. Remote approval requires the exact recent enrolled browser identity
 fingerprint phrase, capabilities, and device risk ceiling; Levels 2-4 require the trusted local
 host. No remote action execution route exists.
 
-Phase 8A-8B do not authorize a non-loopback listener. TLS/private-network deployment, firewall
-policy, PWA behavior, and real-phone testing remain explicit Phase 8C-8D work. See
+Phase 8C adds separate `client.chat`, `client.tasks.read`, and `client.status.read` scopes. Desired
+event topics require both `events.read` and the matching product scope. Every subscription is bound
+to exact host/device/browser-session identity, expires no later than that session, and is limited to
+256 events/256 KiB per subscription, four subscriptions per session, and 64 process-wide. Private
+payloads are held only in process memory.
+Monotonic cursors reject gaps, stale buffers, cross-session reads, and zombie reuse. Server restart
+drops buffers and requires safe resubscription from durable product state.
+
+The PWA service worker may cache only fixed `/app/` shell assets. API responses, credentials,
+messages, tasks, identifiers, notification content, and offline effects are prohibited from Cache
+Storage. The browser private key is non-exportable and lives in dedicated IndexedDB; CSRF is
+memory-only. Notifications are explicit opt-in and generic. Online logout revokes the session,
+clears server buffers/cookie/site data, and erases client key/cursors/cache/service worker. Remote
+voice, push subscriptions, task execution, computer actions, approvals, and offline mutation queues
+remain unavailable.
+
+Phase 8A-8C do not authorize a non-loopback listener. TLS/private-network deployment, firewall
+policy, and real-phone testing remain explicit Phase 8D work. See
 `docs/REMOTE_ACCESS.md`.
 
 ## 14. Memory, research, audio, and vision privacy

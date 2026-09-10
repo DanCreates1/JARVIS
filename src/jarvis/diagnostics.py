@@ -160,6 +160,8 @@ async def run_diagnostics(
 
     checks.append(_vision_capture_check(settings))
 
+    checks.append(_pwa_shell_check())
+
     checks.append(await _remote_identity_check(settings))
 
     provider: DiagnosticProvider | None = None
@@ -319,6 +321,41 @@ async def _remote_identity_check(settings: Settings) -> DiagnosticCheck:
             f"Versioned device authentication is available with {active_count} active device(s); "
             f"{browser_detail}; web listener remains loopback-only at "
             f"{settings.web_host}:{settings.web_port}."
+        ),
+    )
+
+
+def _pwa_shell_check() -> DiagnosticCheck:
+    root = Path(__file__).with_name("pwa")
+    required = {
+        "index.html",
+        "app.css",
+        "app.js",
+        "sw.js",
+        "manifest.webmanifest",
+        "icon.svg",
+    }
+    try:
+        present = {path.name for path in root.iterdir() if path.is_file()}
+        size = sum((root / name).stat().st_size for name in required if name in present)
+    except OSError:
+        present = set()
+        size = 0
+    missing = sorted(required - present)
+    if missing or size > 250 * 1024:
+        detail = "PWA shell assets are missing or exceed the fixed 250 KiB ceiling."
+        return DiagnosticCheck(
+            name="private PWA shell",
+            status=DiagnosticStatus.FAIL,
+            detail=detail,
+            remediation="Reinstall the locked JARVIS package; keep the web listener on loopback.",
+        )
+    return DiagnosticCheck(
+        name="private PWA shell",
+        status=DiagnosticStatus.PASS,
+        detail=(
+            f"Offline-safe shell is packaged at /app/ ({size} bytes); API/user content is "
+            "excluded from its cache; listener remains loopback-only."
         ),
     )
 

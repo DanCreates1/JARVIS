@@ -374,6 +374,7 @@ class RemoteIdentityService:
                 session_kind=RemoteSessionKind.SIGNED_API,
                 risk_ceiling=device.record.risk_ceiling,
                 authenticated_at=session.created_at,
+                expires_at=session.expires_at,
             )
 
     async def authenticate_browser_session(
@@ -468,6 +469,7 @@ class RemoteIdentityService:
                 session_kind=RemoteSessionKind.BROWSER,
                 risk_ceiling=device.record.risk_ceiling,
                 authenticated_at=session.created_at,
+                expires_at=session.expires_at,
             )
 
     async def rotate_key(

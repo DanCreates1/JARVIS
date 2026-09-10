@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07111f">
+  <meta name="color-scheme" content="dark">
+  <title>JARVIS</title>
+  <link rel="manifest" href="/app/manifest.webmanifest">
+  <link rel="icon" href="/app/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/app/app.css">
+  <script src="/app/app.js" type="module"></script>
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">PRIVATE CLIENT</p>
+      <h1>JARVIS</h1>
+    </div>
+    <output id="connection" class="status" aria-live="polite">Offline shell</output>
+  </header>
+
+  <main>
+    <section id="setup" class="panel" aria-labelledby="setup-title">
+      <h2 id="setup-title">Device access</h2>
+      <p>Paste one unexpired enrollment ticket created on trusted host. Private key stays non-exportable in this browser.</p>
+      <label for="ticket">Enrollment ticket JSON</label>
+      <textarea id="ticket" rows="5" spellcheck="false" autocomplete="off"></textarea>
+      <div class="actions">
+        <button id="enroll" type="button">Enroll device</button>
+        <button id="connect" type="button" class="secondary">Connect existing device</button>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="chat-title">
+      <div class="section-head">
+        <h2 id="chat-title">Conversation</h2>
+        <button id="notify" type="button" class="quiet" disabled>Enable notifications</button>
+      </div>
+      <div id="log" class="log" role="log" aria-live="polite" aria-relevant="additions"></div>
+      <form id="chat">
+        <label class="sr-only" for="message">Message</label>
+        <textarea id="message" rows="2" maxlength="100000" placeholder="Ask JARVIS" disabled></textarea>
+        <button id="send" type="submit" disabled>Send</button>
+      </form>
+      <p class="hint">Offline messages are never queued. Remote voice remains disabled until secure deployment validation.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="tasks-title">
+      <div class="section-head">
+        <h2 id="tasks-title">Task status</h2>
+        <button id="refresh-tasks" type="button" class="quiet" disabled>Refresh</button>
+      </div>
+      <ul id="tasks"><li>No authenticated status.</li></ul>
+    </section>
+
+    <section class="panel device" aria-labelledby="device-title">
+      <h2 id="device-title">Device</h2>
+      <dl id="device-status"><div><dt>State</dt><dd>Offline</dd></div></dl>
+      <button id="logout" type="button" class="danger" disabled>Logout and erase this device</button>
+    </section>
+  </main>
+
+  <div id="notice" class="notice" role="status" aria-live="assertive"></div>
+</body>
+</html>

@@ -491,8 +491,10 @@ strict device/session scopes, proof-of-possession rotation, immediate local revo
 CLI recovery, and abuse/performance tests. The listener remains loopback-only. Phase 8B is
 complete: type-separated durable browser sessions, secure host-only cookies,
 CSRF/origin/CORS/CSP controls, bounded request/rate policy, and exact low-risk remote approval with
-Levels 2-4 forced local. PWA/client transport (8C), and TLS/private-network plus real-phone
-validation (8D) remain incomplete; Phase 8 overall is not complete.
+Levels 2-4 forced local. Phase 8C is complete: installable offline-safe PWA shell, non-exportable
+browser keys, scoped status/task/chat APIs, idempotent chat requests, session-owned bounded SSE
+subscriptions/cursors, generic opt-in notifications, and logout cleanup. TLS/private-network plus
+real-phone validation (8D) remains incomplete; Phase 8 overall is not complete.
 
 **Goal**  
 Use JARVIS away from laptop without a public unauthenticated API.

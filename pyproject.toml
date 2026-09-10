@@ -52,7 +52,15 @@ dev = [
 ]
 
 [tool.hatch.build]
-include = ["src/jarvis/**/*.py", "src/jarvis/**/*.sql"]
+include = [
+  "src/jarvis/**/*.py",
+  "src/jarvis/**/*.sql",
+  "src/jarvis/**/*.html",
+  "src/jarvis/**/*.css",
+  "src/jarvis/**/*.js",
+  "src/jarvis/**/*.svg",
+  "src/jarvis/**/*.webmanifest",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/jarvis"]

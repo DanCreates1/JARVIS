@@ -568,6 +568,21 @@ bounded streamed input, and bounded per-IP plus identity rate limits wrap `/api/
 approval can bind only exact recent Level 0-1 browser identity/action state; Levels 2-4 stay on the
 trusted local host. No remote action route or non-loopback listener is added.
 
+Phase 8C adds a static PWA shell and a process-local private event transport behind the same
+browser boundary. The shell service worker owns only a fixed five-file `/app/` cache; `/api/*` and
+user data are never cache candidates. Web Crypto creates a non-exportable Ed25519 private key in a
+dedicated IndexedDB store and exports only its public half for Phase 8A enrollment. CSRF remains in
+page memory; cursors/subscription IDs are tab-scoped and contain no payload.
+
+The product surface uses separate `client.chat`, `client.tasks.read`, and `client.status.read`
+scopes plus `events.read`. Task responses expose status metadata only. Chat requests use
+session-bound request IDs for bounded response-loss retry and publish private deltas only to an
+in-memory subscription bound to exact `host_id + device_id + session_id`. Each subscription has
+monotonic cursors, fixed event/count/TTL ceilings, and is cleared on logout. Restart discards these
+volatile buffers; the client refreshes durable conversation/task state and resubscribes. A cursor
+gap or stale cursor is explicit, never filled by guessed data. There is no offline task/action
+queue, remote approval/execution route, push service, or voice upload.
+
 Remote access defaults to Tailscale/private networking with deny-by-default grants, plus JARVIS application authentication. Private networking is not sufficient authorization. Use TLS, per-device credentials, session expiry, replay protection, rate limits, and revocation. Do not expose Ollama, the privilege broker, or an unauthenticated JARVIS port to the public Internet.
 
 ## 12. Security boundaries

@@ -211,7 +211,7 @@ the disabled Windows Store alias; repository commands use `uv run`.
 
 Actual status, reconciled 2026-09-10: Phase 1 has an external hosted-latency blocker and a fresh
 local-cold revalidation miss; Phases 2-3 are implemented with current authorized live effects
-pending; Phases 4-7 are complete; Phase 8A-8B identity/browser hardening is complete while 8C-8D remain;
+pending; Phases 4-7 are complete; Phase 8A-8C identity/browser/PWA transport is complete while 8D remains;
 Phase 9 onward is not implemented. No root license exists, so copying external code is
 blocked on an owner licensing decision. No external code was copied. See
 [External Repository Comparison](EXTERNAL_REPOSITORY_COMPARISON.md).
@@ -578,7 +578,7 @@ insufficient.
 ## 14. Phase 8 — Secure phone/PWA access
 
 Recommended execution: **`gpt-6-astra`, `ultra`**
-Baseline status: **8A-8B complete; 8C-8D not started (listener remains loopback-only)**
+Baseline status: **8A-8C complete; 8D not started (listener remains loopback-only)**
 Prerequisites: stable internal API/events; Phase 3 permissions; device identity model
 
 ### Read first
@@ -875,7 +875,7 @@ reasoning, and rationale. Universal requirements still apply.
   origin/CSRF/XSS/oversize/confused deputy/audit. SP: required audience; empty scope denies; owner
   data withheld. M: security/UX/API/report. A/E: no grant expansion/session leak. N: 1. R:
   `gpt-6-astra` `ultra`, authorization plus web surface.
-- **8C PWA/stream/reconnect (`not-started`)** — O/S/D: responsive client, offline shell, desired
+- **8C PWA/stream/reconnect (`complete`)** — O/S/D: responsive client, offline shell, desired
   subscriptions/cursors/logout clearing/private notifications. P: 8A-B. X: offline effects/content
   cache. Q: state -> typed client -> auth -> reconnect -> offline/accessibility. T: flap/duplicate/
   order/expiry/zombie/logout/cache/tabs. SP: minimal cache, clear secrets/subscriptions. M: install/

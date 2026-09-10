@@ -151,8 +151,8 @@ uv run jarvis chat --message "Reply with a short readiness confirmation."
 `doctor` should report an actionable error when Ollama is stopped or the model is
 missing. It must not print environment variables or private data.
 
-Browser chat listens at `http://127.0.0.1:8765` by default. Phase 1 rejects a
-non-loopback bind because remote authentication is not implemented.
+Browser chat listens at `http://127.0.0.1:8765` by default. JARVIS rejects a non-loopback bind
+until Phase 8D supplies reviewed private-network/TLS deployment configuration and authority.
 
 ### Latency routing and NVIDIA evidence
 
@@ -461,6 +461,46 @@ uv run jarvis remote enroll "My browser" `
   --scope approval.review `
   --risk-ceiling 1
 ```
+
+## Phase 8C PWA client
+
+Phase 8C packages the offline-safe shell at `/app/` but does not expose it beyond loopback. Preview
+the static shell locally after `uv run jarvis serve`:
+
+```text
+http://127.0.0.1:8765/app/
+```
+
+Full cookie authentication requires the exact HTTPS origin configured above. Do not weaken the
+origin validator to use HTTP, add a firewall rule, bind a LAN address, or configure a reverse
+proxy/Tailscale Serve rule during Phase 8C. Phase 8D owns those changes and real-phone validation.
+
+For a later reviewed HTTPS origin, enroll the PWA from the trusted local terminal with only its
+required scopes:
+
+```powershell
+uv run jarvis remote enroll "My PWA" `
+  --type browser `
+  --scope browser.session `
+  --scope identity.read `
+  --scope events.read `
+  --scope session.revoke `
+  --scope client.chat `
+  --scope client.tasks.read `
+  --scope client.status.read `
+  --risk-ceiling 1
+```
+
+Paste the one-time JSON ticket into `/app/`. The browser generates a non-exportable Ed25519 private
+key in dedicated IndexedDB. The service worker caches only static `/app/` assets; it never caches
+`/api/*`, messages, tasks, credentials, or notification text. Notifications require an explicit
+button press and contain generic text only. Remote voice stays disabled.
+
+Use **Logout and erase this device** while online. It revokes the browser session and clears the
+cookie, IndexedDB key, CSRF/cursor/subscription state, notification setting, shell cache, and
+service-worker registration. If the phone is lost or offline, run the trusted-local `remote revoke`
+command instead; offline browser erasure cannot revoke the server session, which otherwise expires
+within 15 minutes.
 
 Private keys belong in platform secure storage, never `localStorage`, IndexedDB plaintext, Git,
 logs, model context, or URLs. Keep returned CSRF value only in memory. Close/rebootstrap after

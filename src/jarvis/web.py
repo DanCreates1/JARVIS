@@ -6,14 +6,15 @@ import base64
 import hashlib
 import re
 from collections.abc import AsyncIterator, Awaitable, Callable
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from datetime import UTC, datetime
 from http.cookies import CookieError, SimpleCookie
+from pathlib import Path as FileSystemPath
 from typing import Annotated, Any, Literal, Self, cast
 
 from fastapi import FastAPI, HTTPException, Path, Query, Request, Response
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from jarvis.bootstrap import RuntimeComponents, build_runtime
@@ -36,6 +37,9 @@ from jarvis.remote import (
     EnrollmentCompletion,
     FixedWindowRateLimiter,
     KeyRotationRequest,
+    PWAEventHub,
+    PWAEventTopic,
+    PWATransportError,
     RemoteAuthenticationError,
     RemoteIdentityContext,
     RemoteIdentityService,
@@ -73,6 +77,7 @@ _REMOTE_HEADER_NAMES = (
     "x-jarvis-nonce",
     "x-jarvis-signature",
 )
+_PWA_ROOT = FileSystemPath(__file__).with_name("pwa")
 
 
 class ChatInput(BaseModel):
@@ -140,12 +145,36 @@ class ResearchQuestionUpdateInput(BaseModel):
     answer_claim_id: str | None = Field(default=None, min_length=1, max_length=200)
 
 
+class PWASubscriptionInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    topics: tuple[PWAEventTopic, ...] = Field(min_length=1, max_length=3)
+
+    @model_validator(mode="after")
+    def require_unique_topics(self) -> Self:
+        if len(self.topics) != len(set(self.topics)):
+            raise ValueError("subscription topics must be unique")
+        return self
+
+
+class PWAChatInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    request_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$")
+    subscription_id: str = Field(pattern=r"^subscription:[0-9a-f-]{36}$")
+    message: str = Field(min_length=1, max_length=100_000)
+    conversation_id: str | None = Field(default=None, max_length=200)
+    model_role: ModelRole | None = None
+    reasoning_level: ReasoningLevel | None = None
+
+
 def create_app(
     settings: Settings | None = None,
     *,
     runtime_factory: RuntimeFactory = build_runtime,
 ) -> FastAPI:
     configured = settings or Settings()
+    pwa_hub = PWAEventHub()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -154,16 +183,23 @@ def create_app(
         try:
             yield
         finally:
-            await components.close()
+            try:
+                await pwa_hub.close()
+            finally:
+                await components.close()
 
     app = FastAPI(title="JARVIS API", version="1.0", lifespan=lifespan)
+    app.state.pwa_hub = pwa_hub
     origin_policy = BrowserOriginPolicy(configured.trusted_browser_origins)
     rate_limiter = FixedWindowRateLimiter(max_entries=configured.remote_rate_limit_entries)
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next: Any) -> Any:
         response = await call_next(request)
-        _apply_security_headers(response, api_only=request.url.path.startswith("/api/"))
+        if request.url.path == "/app" or request.url.path.startswith("/app/"):
+            _apply_pwa_security_headers(response, path=request.url.path)
+        else:
+            _apply_security_headers(response, api_only=request.url.path.startswith("/api/"))
         trusted_origin = getattr(request.state, "trusted_origin", None)
         if isinstance(trusted_origin, str):
             _apply_cors_headers(response, trusted_origin)
@@ -245,6 +281,34 @@ def create_app(
             except (UnicodeError, ValueError):
                 return _remote_error(400, "Malformed remote authentication headers")
         return await call_next(request)
+
+    @app.get("/app", include_in_schema=False)
+    @app.get("/app/", include_in_schema=False)
+    async def pwa_index() -> FileResponse:
+        return FileResponse(_PWA_ROOT / "index.html", media_type="text/html")
+
+    @app.get("/app/app.css", include_in_schema=False)
+    async def pwa_css() -> FileResponse:
+        return FileResponse(_PWA_ROOT / "app.css", media_type="text/css")
+
+    @app.get("/app/app.js", include_in_schema=False)
+    async def pwa_javascript() -> FileResponse:
+        return FileResponse(_PWA_ROOT / "app.js", media_type="text/javascript")
+
+    @app.get("/app/sw.js", include_in_schema=False)
+    async def pwa_service_worker() -> FileResponse:
+        return FileResponse(_PWA_ROOT / "sw.js", media_type="text/javascript")
+
+    @app.get("/app/manifest.webmanifest", include_in_schema=False)
+    async def pwa_manifest() -> FileResponse:
+        return FileResponse(
+            _PWA_ROOT / "manifest.webmanifest",
+            media_type="application/manifest+json",
+        )
+
+    @app.get("/app/icon.svg", include_in_schema=False)
+    async def pwa_icon() -> FileResponse:
+        return FileResponse(_PWA_ROOT / "icon.svg", media_type="image/svg+xml")
 
     @app.get("/", response_class=HTMLResponse)
     async def index() -> str:
@@ -367,6 +431,255 @@ def create_app(
             raise HTTPException(status_code=403, detail="Remote scope denied") from None
         return [event.model_dump(mode="json") for event in events]
 
+    @app.get("/api/v1/client/status")
+    async def get_pwa_status(request: Request) -> dict[str, object]:
+        context = _remote_context(request)
+        runtime = _runtime(request)
+        _require_remote_host(runtime, context)
+        try:
+            device = await _remote_identity(request).get_current_device(context)
+        except RemoteStateError:
+            raise HTTPException(status_code=403, detail="Remote scope denied") from None
+        task_counts: dict[str, int] = {}
+        if runtime.task_store is not None and runtime.memory_host_id is not None:
+            for record in await runtime.task_store.list_tasks(
+                host_id=runtime.memory_host_id,
+                limit=500,
+            ):
+                task_counts[record.status.value] = task_counts.get(record.status.value, 0) + 1
+        return cast(
+            dict[str, object],
+            jsonable_encoder(
+                {
+                    "online": True,
+                    "device": {
+                        "id": device.id,
+                        "display_name": device.display_name,
+                        "device_type": device.device_type,
+                        "state": device.state,
+                        "key_version": device.key_version,
+                        "credential_expires_at": device.credential_expires_at,
+                    },
+                    "session": {
+                        "id": context.session_id,
+                        "scopes": sorted(scope.value for scope in context.scopes),
+                    },
+                    "task_counts": task_counts,
+                    "notifications": {
+                        "supported": True,
+                        "private_preview": False,
+                    },
+                }
+            ),
+        )
+
+    @app.get("/api/v1/client/tasks")
+    async def list_pwa_tasks(
+        request: Request,
+        limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    ) -> list[dict[str, object]]:
+        context = _remote_context(request)
+        runtime = _runtime(request)
+        _require_remote_host(runtime, context)
+        if runtime.task_store is None or runtime.memory_host_id is None:
+            return []
+        records = await runtime.task_store.list_tasks(
+            host_id=runtime.memory_host_id,
+            limit=limit,
+        )
+        return [
+            cast(
+                dict[str, object],
+                jsonable_encoder(
+                    {
+                        "id": record.graph.id,
+                        "status": record.status,
+                        "version": record.version,
+                        "pause_requested": record.pause_requested,
+                        "cancel_requested": record.cancel_requested,
+                        "updated_at": record.updated_at,
+                    }
+                ),
+            )
+            for record in records
+        ]
+
+    @app.post("/api/v1/client/subscriptions", status_code=201)
+    async def create_pwa_subscription(
+        payload: PWASubscriptionInput, request: Request
+    ) -> dict[str, object]:
+        context = _remote_context(request)
+        _require_remote_host(_runtime(request), context)
+        _require_pwa_topic_scopes(context, payload.topics)
+        try:
+            subscription = await _pwa_hub(request).subscribe(
+                context=context,
+                topics=payload.topics,
+            )
+            if PWAEventTopic.DEVICE in payload.topics:
+                await _pwa_hub(request).publish(
+                    context=context,
+                    subscription_id=subscription.id,
+                    topic=PWAEventTopic.DEVICE,
+                    event_type="device.online",
+                    payload={"online": True},
+                )
+        except PWATransportError as exc:
+            raise _pwa_transport_http_error(exc) from None
+        return subscription.model_dump(mode="json")
+
+    @app.get("/api/v1/client/events")
+    async def stream_pwa_events(
+        request: Request,
+        subscription_id: Annotated[str, Query(pattern=r"^subscription:[0-9a-f-]{36}$")],
+        after: Annotated[int, Query(ge=0)] = 0,
+        limit: Annotated[int, Query(ge=1, le=500)] = 100,
+        wait: Annotated[float, Query(ge=0, le=25)] = 0,
+    ) -> StreamingResponse:
+        context = _remote_context(request)
+        _require_remote_host(_runtime(request), context)
+        try:
+            page = await _pwa_hub(request).read(
+                context=context,
+                subscription_id=subscription_id,
+                after_cursor=after,
+                limit=limit,
+                wait_seconds=wait,
+            )
+        except PWATransportError as exc:
+            raise _pwa_transport_http_error(exc) from None
+
+        async def pwa_events() -> AsyncIterator[str]:
+            if not page.events:
+                yield ": keepalive\n\n"
+                return
+            for event in page.events:
+                yield (
+                    f"id: {event.cursor}\n"
+                    f"event: {event.event_type}\n"
+                    f"data: {event.model_dump_json()}\n\n"
+                )
+
+        return StreamingResponse(
+            pwa_events(),
+            media_type="text/event-stream",
+            headers={
+                "X-Jarvis-Next-Cursor": str(page.next_cursor),
+                "X-Jarvis-Earliest-Cursor": str(page.earliest_cursor),
+                "X-Jarvis-Has-More": str(page.has_more).lower(),
+                "X-Accel-Buffering": "no",
+            },
+        )
+
+    @app.delete("/api/v1/client/subscriptions/{subscription_id}")
+    async def delete_pwa_subscription(
+        request: Request,
+        subscription_id: Annotated[str, Path(pattern=r"^subscription:[0-9a-f-]{36}$")],
+    ) -> dict[str, bool]:
+        context = _remote_context(request)
+        try:
+            closed = await _pwa_hub(request).close_subscription(
+                context=context,
+                subscription_id=subscription_id,
+            )
+        except PWATransportError as exc:
+            raise _pwa_transport_http_error(exc) from None
+        if not closed:
+            raise HTTPException(status_code=404, detail="Subscription unavailable")
+        return {"closed": True}
+
+    @app.post("/api/v1/client/chat")
+    async def pwa_chat(payload: PWAChatInput, request: Request) -> Response:
+        context = _remote_context(request)
+        runtime = _runtime(request)
+        _require_remote_host(runtime, context)
+        hub = _pwa_hub(request)
+        try:
+            is_new, cached = await hub.begin_request(
+                context=context,
+                request_id=payload.request_id,
+            )
+            if not is_new:
+                if cached is None:
+                    return JSONResponse(
+                        status_code=202,
+                        content={"request_id": payload.request_id, "status": "running"},
+                    )
+                return JSONResponse(content=cached)
+            await hub.publish(
+                context=context,
+                subscription_id=payload.subscription_id,
+                topic=PWAEventTopic.CHAT,
+                event_type="chat.started",
+                request_id=payload.request_id,
+                payload={},
+            )
+            result: object | None = None
+            emitted_delta = False
+            async for frame in runtime.service.stream(_assistant_request(payload)):
+                if frame.event is not None:
+                    event_payload = frame.event.model_dump(mode="json")
+                    emitted_delta = emitted_delta or frame.event.type.value == "assistant_delta"
+                    await hub.publish(
+                        context=context,
+                        subscription_id=payload.subscription_id,
+                        topic=PWAEventTopic.CHAT,
+                        event_type="chat.frame",
+                        request_id=payload.request_id,
+                        payload=event_payload,
+                    )
+                if frame.result is not None:
+                    result = frame.result
+            if result is None:
+                raise RuntimeError("assistant stream ended without a result")
+            rendered = cast(dict[str, object], jsonable_encoder(result))
+            reply = rendered.get("reply")
+            if not emitted_delta and isinstance(reply, str):
+                for offset in range(0, len(reply), 16_000):
+                    await hub.publish(
+                        context=context,
+                        subscription_id=payload.subscription_id,
+                        topic=PWAEventTopic.CHAT,
+                        event_type="chat.delta",
+                        request_id=payload.request_id,
+                        payload={"content_delta": reply[offset : offset + 16_000]},
+                    )
+            await hub.complete_request(
+                context=context,
+                request_id=payload.request_id,
+                result=cast(Any, rendered),
+            )
+            await hub.publish(
+                context=context,
+                subscription_id=payload.subscription_id,
+                topic=PWAEventTopic.CHAT,
+                event_type="chat.completed",
+                request_id=payload.request_id,
+                payload=cast(
+                    Any,
+                    {
+                        "status": rendered.get("status"),
+                        "conversation_id": rendered.get("conversation_id"),
+                    },
+                ),
+            )
+            return JSONResponse(content=rendered)
+        except PWATransportError as exc:
+            await hub.abandon_request(context=context, request_id=payload.request_id)
+            raise _pwa_transport_http_error(exc) from None
+        except Exception:
+            await hub.abandon_request(context=context, request_id=payload.request_id)
+            with suppress(PWATransportError):
+                await hub.publish(
+                    context=context,
+                    subscription_id=payload.subscription_id,
+                    topic=PWAEventTopic.CHAT,
+                    event_type="chat.failed",
+                    request_id=payload.request_id,
+                    payload={"error": "request_failed"},
+                )
+            raise HTTPException(status_code=502, detail="Assistant request failed") from None
+
     @app.delete("/api/v1/sessions/current")
     async def revoke_current_remote_session(
         request: Request, response: Response
@@ -375,6 +688,7 @@ def create_app(
         if not revoked:
             raise HTTPException(status_code=409, detail="Session already changed")
         if _remote_context(request).session_kind is RemoteSessionKind.BROWSER:
+            await _pwa_hub(request).clear_session(_remote_context(request).session_id)
             response.delete_cookie(
                 key=_BROWSER_SESSION_COOKIE,
                 path="/",
@@ -382,6 +696,7 @@ def create_app(
                 httponly=True,
                 samesite="strict",
             )
+            response.headers["Clear-Site-Data"] = '"cache", "cookies", "storage"'
         return {"revoked": True}
 
     @app.post("/api/v1/device/key")
@@ -859,6 +1174,43 @@ def _remote_context(request: Request) -> RemoteIdentityContext:
     return context
 
 
+def _pwa_hub(request: Request) -> PWAEventHub:
+    hub = getattr(request.app.state, "pwa_hub", None)
+    if not isinstance(hub, PWAEventHub):
+        raise HTTPException(status_code=503, detail="PWA transport is unavailable")
+    return hub
+
+
+def _require_remote_host(runtime: RuntimeComponents, context: RemoteIdentityContext) -> None:
+    if runtime.memory_host_id is None or runtime.memory_host_id != context.host_id:
+        raise HTTPException(status_code=403, detail="Remote host denied")
+
+
+def _require_pwa_topic_scopes(
+    context: RemoteIdentityContext,
+    topics: tuple[PWAEventTopic, ...],
+) -> None:
+    required = {
+        PWAEventTopic.CHAT: RemoteScope.CLIENT_CHAT,
+        PWAEventTopic.TASKS: RemoteScope.CLIENT_TASKS_READ,
+        PWAEventTopic.DEVICE: RemoteScope.CLIENT_STATUS_READ,
+    }
+    if any(required[topic] not in context.scopes for topic in topics):
+        raise HTTPException(status_code=403, detail="Remote scope denied")
+
+
+def _pwa_transport_http_error(error: PWATransportError) -> HTTPException:
+    if error.code in {"subscription_limit", "transport_capacity"}:
+        return HTTPException(status_code=429, detail="PWA transport capacity exceeded")
+    if error.code == "cursor_expired":
+        return HTTPException(status_code=409, detail="PWA event cursor expired")
+    if error.code in {"event_too_large", "request_result_too_large"}:
+        return HTTPException(status_code=413, detail="PWA transport payload too large")
+    if error.code == "topic_not_subscribed":
+        return HTTPException(status_code=403, detail="PWA topic denied")
+    return HTTPException(status_code=404, detail="PWA subscription unavailable")
+
+
 def _remote_scope_for_request(method: str, path: str) -> tuple[bool, RemoteScope | None]:
     if (method, path) in {
         ("POST", "/api/v1/enrollments/complete"),
@@ -866,11 +1218,18 @@ def _remote_scope_for_request(method: str, path: str) -> tuple[bool, RemoteScope
         ("POST", "/api/v1/browser/sessions"),
     }:
         return True, None
+    if method == "DELETE" and path.startswith("/api/v1/client/subscriptions/"):
+        return False, RemoteScope.EVENTS_READ
     return False, {
         "/api/v1/identity": RemoteScope.IDENTITY_READ,
         "/api/v1/events": RemoteScope.EVENTS_READ,
         "/api/v1/sessions/current": RemoteScope.SESSION_REVOKE,
         "/api/v1/device/key": RemoteScope.KEY_ROTATE,
+        "/api/v1/client/status": RemoteScope.CLIENT_STATUS_READ,
+        "/api/v1/client/tasks": RemoteScope.CLIENT_TASKS_READ,
+        "/api/v1/client/subscriptions": RemoteScope.EVENTS_READ,
+        "/api/v1/client/events": RemoteScope.EVENTS_READ,
+        "/api/v1/client/chat": RemoteScope.CLIENT_CHAT,
     }.get(path)
 
 
@@ -1036,6 +1395,24 @@ def _apply_security_headers(response: Response, *, api_only: bool) -> None:
     )
 
 
+def _apply_pwa_security_headers(response: Response, *, path: str) -> None:
+    response.headers["Cache-Control"] = (
+        "no-cache" if path in {"/app", "/app/", "/app/sw.js"} else "public, max-age=3600"
+    )
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000"
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; "
+        "connect-src 'self'; manifest-src 'self'; worker-src 'self'; "
+        "frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+    )
+
+
 def _legacy_page_csp() -> str:
     hashes: list[str] = []
     for tag in ("style", "script"):
@@ -1133,7 +1510,7 @@ def _remote_rate_error(retry_after_seconds: int) -> JSONResponse:
     return response
 
 
-def _assistant_request(payload: ChatInput) -> AssistantRequest:
+def _assistant_request(payload: ChatInput | PWAChatInput) -> AssistantRequest:
     return AssistantRequest(
         user_input=payload.message,
         conversation_id=payload.conversation_id,

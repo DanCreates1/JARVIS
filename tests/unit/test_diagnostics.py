@@ -155,3 +155,10 @@ def test_research_parser_diagnostic_reports_disabled_and_missing_dependency(
     )
     assert missing.status is DiagnosticStatus.FAIL
     assert missing.remediation is not None and "uv sync --locked" in missing.remediation
+
+
+def test_pwa_shell_diagnostic_enforces_packaged_asset_ceiling() -> None:
+    check = diagnostics._pwa_shell_check()
+    assert check.status is DiagnosticStatus.PASS
+    assert "/app/" in check.detail
+    assert "excluded" in check.detail

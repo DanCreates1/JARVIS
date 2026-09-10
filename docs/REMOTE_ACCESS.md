@@ -1,9 +1,10 @@
-# Phase 8A-8B remote identity and trusted browser boundary
+# Phase 8A-8C remote identity, trusted browser, and PWA boundary
 
 Phase 8A supplies device identity. Phase 8B adds trusted browser sessions, origin/CSRF/CORS/CSP,
-bounded request/rate policy, and low-risk remote approval rules. Neither subphase enables remote
-networking. JARVIS still refuses non-loopback web binding; the PWA, TLS/private-network deployment,
-and real-phone validation remain Phase 8C-8D.
+bounded request/rate policy, and low-risk remote approval rules. Phase 8C adds an installable,
+offline-safe shell plus scoped status/task/chat and resumable event transport. None enables remote
+networking. JARVIS still refuses non-loopback web binding; TLS/private-network deployment and
+real-phone validation remain Phase 8D.
 
 ## Security properties
 
@@ -66,6 +67,12 @@ device again with a new key if access should return.
 | `GET /api/v1/events?after=N&limit=N` | bearer token + signed request | `events.read` | current-device audit only |
 | `DELETE /api/v1/sessions/current` | bearer token + signed request | `session.revoke` | current-session revocation |
 | `POST /api/v1/device/key` | bearer token + old-key request signature + new-key proof | `key.rotate` | rotated device metadata |
+| `GET /api/v1/client/status` | browser cookie + exact origin | `client.status.read` | bounded device/session/task-count status |
+| `GET /api/v1/client/tasks?limit=N` | browser cookie + exact origin | `client.tasks.read` | status-only task summaries; no objective, arguments, or outputs |
+| `POST /api/v1/client/subscriptions` | browser cookie + exact origin + CSRF | `events.read` plus each topic scope | opaque session-owned subscription and initial cursor |
+| `GET /api/v1/client/events?subscription_id=...&after=N` | browser cookie + exact origin | `events.read` | finite SSE page with monotonic cursor headers |
+| `DELETE /api/v1/client/subscriptions/ID` | browser cookie + exact origin + CSRF | `events.read` | clear exact owned subscription buffer |
+| `POST /api/v1/client/chat` | browser cookie + exact origin + CSRF | `client.chat` | idempotent request result plus streamed private in-memory events |
 
 Every signed request sends exactly one of each header:
 
@@ -122,22 +129,77 @@ the same host/device/session and capabilities as the canonical Phase 3 action, t
 fingerprint phrase, and a permission level within the enrolled device risk ceiling. Levels 2-4
 always require exact trusted local-host approval. Phase 8B adds no remote action execution route.
 
+## Phase 8C PWA and reconnect boundary
+
+The static shell is served at `/app/`. It contains separate same-origin script/style assets, a web
+manifest, icon, and service worker. CSP contains no inline-script/style exception. The service
+worker caches only five `/app/` shell assets. `/api/*`, authentication state, chat/task data,
+notification text, and user content are never added to Cache Storage. The fixed packaged shell
+ceiling is 250 KiB. Offline mode never queues chat, task changes, approvals, or other effects.
+
+Enrollment uses Web Crypto Ed25519. The PWA generates a non-exportable private `CryptoKey` and
+stores that structured-clone key in its dedicated IndexedDB database; only the public key is
+exported for the existing Phase 8A proof. The user pastes the one-time local enrollment ticket.
+The ticket, key, CSRF value, session ID, cursor, and subscription ID are never placed in a URL,
+browser local storage, service-worker cache, notification, or model context. CSRF remains only in
+JavaScript memory; cursor/subscription state is tab-scoped `sessionStorage`. Reloading or closing
+the tab requires a fresh signed browser bootstrap before any state-changing request.
+
+Use these exact enrollment scopes for the Phase 8C client:
+
+```powershell
+uv run jarvis remote enroll "My PWA" `
+  --type browser `
+  --scope browser.session `
+  --scope identity.read `
+  --scope events.read `
+  --scope session.revoke `
+  --scope client.chat `
+  --scope client.tasks.read `
+  --scope client.status.read `
+  --risk-ceiling 1
+```
+
+`chat`, `tasks`, and `device` are desired subscription topics. Each additionally requires its own
+product scope. Subscriptions bind exact host, device, and browser-session IDs, expire no later than
+the browser session, retain at most 256 events/256 KiB, and cap at four per session/64 process-wide.
+Each event is at most 64 KiB. Private chat deltas live only in bounded process memory. A reconnect
+sends the last accepted cursor and receives only later events. Duplicate cursors are ignored by the
+client; a gap or expired cursor causes a clean state refresh/new subscription, never guessed data.
+Server restart intentionally drops volatile event buffers; durable conversation/task state remains
+canonical and the client creates a new subscription.
+
+Chat requests carry a client-generated request ID. The server keeps at most 128 session-bound,
+128-KiB in-memory results, so response loss can retry without a second model turn while retained.
+This is not permission or effect idempotency: the Phase 8C route has no task-run, approval,
+computer-action, or offline-effect endpoint. One tab owns the live stream through the browser Locks API where
+available. Other tabs remain read-only until they acquire ownership or establish a new session.
+
+Notifications require an explicit user gesture and browser permission. They are non-persistent,
+silent, and always use generic text: `JARVIS has an update.` Message/task content, identifiers, and
+links are excluded. Remote voice capture is not enabled by Phase 8C.
+
+Online logout revokes the durable browser session, clears its server event/request buffers, deletes
+the host-only cookie, returns `Clear-Site-Data` for cache/cookies/storage, and makes the client erase
+its IndexedDB key, tab state, notification setting, Cache Storage, and service-worker registration.
+Offline local erasure cannot contact the host or directly delete an HttpOnly cookie; it removes all
+script-accessible credentials and the remaining server session expires within 15 minutes. Use local
+device revocation for a lost/offline phone.
+
 ## Operations and limits
 
-- Keep `JARVIS_WEB_HOST=127.0.0.1`. Phase 8A-8B create no firewall rule, certificate, Tailscale grant,
+- Keep `JARVIS_WEB_HOST=127.0.0.1`. Phase 8A-8C create no firewall rule, certificate, Tailscale grant,
   public listener, or background listener.
 - Run `uv run jarvis doctor` to verify the identity database and confirm the loopback listener
   configuration.
 - Server time and client time must differ by no more than 60 seconds.
-- Client private-key storage is client-platform work. Do not place a private key in Git, logs,
-  browser local storage, query strings, or model context.
+- Client private keys are non-exportable Web Crypto keys in dedicated IndexedDB. Do not place any
+  key in Git, logs, browser local storage, query strings, Cache Storage, or model context.
 - Existing unversioned `/api/*` routes remain local-only and are not a remote compatibility API.
 - Locked runtime dependency evidence: `cryptography 50.0.1` (`Apache-2.0 OR BSD-3-Clause`),
   `cffi 2.1.1` (`MIT-0`), and `pycparser 3.0` (`BSD-3-Clause`), from installed package metadata.
 
 ## Deferred Phase 8 work
 
-- Phase 8C: installable PWA, conversation/task transport, reconnect/resume, offline shell, and
-  notification controls.
 - Phase 8D: reviewed TLS/private-network deployment, firewall/Tailscale policy, external listener
   scan, and real-phone enrollment/revocation testing.

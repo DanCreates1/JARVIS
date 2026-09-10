@@ -31,7 +31,7 @@ implementation protocol, acceptance gates, safety boundaries, and completion rep
 | 5 | Research | Complete | 5A-5C complete | `gpt-6-astra` / `xhigh` aggregate |
 | 6 | Bounded tasks | Complete | 6A-6C complete | `gpt-6-astra` / `ultra` aggregate |
 | 7 | Vision and gestures | Complete | 7A-7C complete | `gpt-6-astra` / `max` |
-| 8 | Secure phone/PWA | 8A-8B complete; phase in progress | 8C PWA/reconnect transport | `gpt-6-astra` / `ultra` |
+| 8 | Secure phone/PWA | 8A-8C complete; phase in progress | 8D private deployment/phone closeout | `gpt-6-astra` / `max` |
 | 9 | Dedicated server migration | Not started | 9A topology/protocol/identity | `gpt-6-astra` / `ultra` |
 | 10 | Generic wearables | Not started; lower priority | 10A feasibility/license/contracts | `gpt-5.6-sol` / `high` |
 | 11 | Advanced proactive/multimodal | Not started; long-term | 11A trigger/proactivity policy | `gpt-6-astra` / `ultra` |
@@ -73,10 +73,10 @@ dependency is Phase 3/media privacy, but it must not be described as following a
 6. Maintain completed Phase 7 capture, local detection/gesture, and default-off Phase 3 mapping
    boundaries. Keep model downloads explicit, capture foreground-only, and all action authority in
    Phase 3. Preserve the explicit Phase 1 blocker.
-7. Maintain completed Phase 8A-8B identity, signed API, durable browser cookie, origin/CSRF/CORS/CSP,
-   rate-limit, and local-only sensitive-approval boundaries. Next implement Phase 8C PWA and
-   reconnect transport without enabling a non-loopback listener; TLS/private-network and real-phone
-   work remain Phase 8D.
+7. Maintain completed Phase 8A-8C identity, signed API, durable browser cookie,
+   origin/CSRF/CORS/CSP, rate-limit, local-only sensitive approval, offline-safe PWA, scoped product
+   transport, and bounded reconnect boundaries. Next execute Phase 8D only with authority for the
+   reviewed TLS/private-network listener and real-phone enrollment/revocation/scan work.
 
 Hands-free control is a cross-phase track: Phase 2 detects claps, Phase 7 recognizes hand
 gestures, and Phase 3 alone authorizes and executes the mapped computer action. See

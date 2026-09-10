@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="JARVIS">
+  <rect width="512" height="512" rx="112" fill="#07111f"/>
+  <circle cx="256" cy="256" r="166" fill="none" stroke="#2abf88" stroke-width="28"/>
+  <path d="M306 128v207c0 51-31 78-79 78-41 0-70-20-84-57l47-23c7 18 18 28 35 28 19 0 30-11 30-34V128z" fill="#72d8ff"/>
+</svg>

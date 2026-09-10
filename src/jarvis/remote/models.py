@@ -32,6 +32,9 @@ class RemoteScope(StrEnum):
     KEY_ROTATE = "key.rotate"
     BROWSER_SESSION = "browser.session"
     APPROVAL_REVIEW = "approval.review"
+    CLIENT_CHAT = "client.chat"
+    CLIENT_TASKS_READ = "client.tasks.read"
+    CLIENT_STATUS_READ = "client.status.read"
 
 
 class RemoteSessionKind(StrEnum):
@@ -159,14 +162,15 @@ class RemoteIdentityContext(BaseModel):
     session_kind: RemoteSessionKind = RemoteSessionKind.SIGNED_API
     risk_ceiling: int = Field(default=0, ge=0, le=2)
     authenticated_at: datetime | None = None
+    expires_at: datetime | None = None
 
-    @field_validator("authenticated_at")
+    @field_validator("authenticated_at", "expires_at")
     @classmethod
-    def require_aware_authentication_time(cls, value: datetime | None) -> datetime | None:
+    def require_aware_context_time(cls, value: datetime | None) -> datetime | None:
         if value is None:
             return None
         if value.tzinfo is None or value.utcoffset() is None:
-            raise ValueError("authenticated_at must include a timezone")
+            raise ValueError("remote context timestamps must include a timezone")
         return value.astimezone(UTC)
 
 

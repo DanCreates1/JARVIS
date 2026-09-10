@@ -22,6 +22,19 @@ from jarvis.remote.models import (
     SessionCredential,
     SessionRequest,
 )
+from jarvis.remote.pwa import (
+    MAX_PWA_EVENT_BYTES,
+    MAX_PWA_EVENTS_PER_SUBSCRIPTION,
+    MAX_PWA_RETAINED_EVENT_BYTES,
+    MAX_PWA_SUBSCRIPTIONS,
+    MAX_PWA_SUBSCRIPTIONS_PER_SESSION,
+    PWAEvent,
+    PWAEventHub,
+    PWAEventPage,
+    PWAEventTopic,
+    PWASubscription,
+    PWATransportError,
+)
 from jarvis.remote.service import (
     RemoteAuthenticationError,
     RemoteIdentityService,
@@ -39,6 +52,11 @@ from jarvis.remote.signing import (
 from jarvis.remote.sqlite_store import SQLiteRemoteIdentityStore
 
 __all__ = [
+    "MAX_PWA_EVENTS_PER_SUBSCRIPTION",
+    "MAX_PWA_EVENT_BYTES",
+    "MAX_PWA_RETAINED_EVENT_BYTES",
+    "MAX_PWA_SUBSCRIPTIONS",
+    "MAX_PWA_SUBSCRIPTIONS_PER_SESSION",
     "REQUEST_AUDIENCE",
     "SIGNATURE_HEADERS",
     "BrowserOriginError",
@@ -51,6 +69,12 @@ __all__ = [
     "EnrollmentTicket",
     "FixedWindowRateLimiter",
     "KeyRotationRequest",
+    "PWAEvent",
+    "PWAEventHub",
+    "PWAEventPage",
+    "PWAEventTopic",
+    "PWASubscription",
+    "PWATransportError",
     "RateLimitDecision",
     "RemoteAuditEvent",
     "RemoteAuditOutcome",

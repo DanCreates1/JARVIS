@@ -1,18 +1,19 @@
 # JARVIS
 
-JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–7 and Phase 8A-8B implement a
+JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–7 and Phase 8A-8C implement a
 local deterministic privacy gate, configurable NVIDIA/Groq/Gemini/Ollama roles,
 zero-cost fallback routing, durable SQLite state, audited read-only tools, CLI,
 loopback browser chat, local push-to-talk speech, opt-in controlled Windows actions, bounded cited
 public research, durable budgeted task graphs, and a loopback-only authenticated device identity
-API plus a deny-by-default trusted browser boundary. Sensitive and uncertain work remains local.
+API, deny-by-default trusted browser boundary, and offline-safe PWA shell with scoped resumable
+transport. Sensitive and uncertain work remains local.
 
 This repository is the source of truth for the project. Local model weights,
 runtime databases, logs, generated media, and secrets do not belong in Git.
 
 ## Current verification status
 
-As of 2026-09-10, Phases 4–7 and Phase 8A-8B are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
+As of 2026-09-10, Phases 4–7 and Phase 8A-8C are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
 optimized local latency evidence pass; Phase 1 remains formally blocked by fixed hosted NVIDIA
 latency gates. The preserved 20/20 NVIDIA states still miss one or both targets. Fresh instrumented
 requests place the long delay before response headers, while adaptive routing protects normal
@@ -158,7 +159,7 @@ growth, and zero false activations, proposals, authority violations, retained me
 or OS effects. Public HaGRID examples supplied the diverse real-image matrix; fixture pixels remain
 outside Git.
 
-## Implemented Phase 8A-8B
+## Implemented Phase 8A-8C
 
 The remote identity foundation adds:
 
@@ -182,8 +183,20 @@ Phase 8B adds:
 - bounded streamed bodies, headers, paths, queries, per-IP/identity rates, and limiter state; and
 - exact recent-device low-risk approval binding, with Levels 2-4 forced to the trusted local host.
 
-Phase 8A-8B open no remote port and ship no phone/PWA client. PWA flows,
-TLS/private-network deployment, and real-phone validation remain Phase 8C-8D. See
+Phase 8C adds:
+
+- an installable responsive `/app/` shell with strict same-origin CSP and a five-asset,
+  250-KiB-bounded offline cache that excludes all API/user data;
+- browser-generated non-exportable Ed25519 private keys in dedicated IndexedDB and exact signed
+  enrollment/session bootstrap;
+- scope-separated device status, status-only task summaries, and idempotent chat transport;
+- session-owned desired subscriptions with bounded private in-memory events, monotonic SSE cursors,
+  network-flap retry, cursor-gap rejection, and clean restart resubscription;
+- generic opt-in notifications, single-tab stream ownership, no offline effect queue, and complete
+  online logout/site-data cleanup.
+
+Phase 8A-8C open no remote port. TLS/private-network deployment and real-phone validation remain
+Phase 8D; remote voice is not enabled. See
 [Remote Identity and API Boundary](docs/REMOTE_ACCESS.md).
 
 ## Model strategy

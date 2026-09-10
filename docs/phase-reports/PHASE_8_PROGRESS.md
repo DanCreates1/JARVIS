@@ -1,35 +1,59 @@
 # Phase 8 Secure Phone/PWA Progress Report
 
-Status: `in-progress`  
-Started: 2026-09-09  
-Updated: 2026-09-10  
-Active subphase: Phase 8C — PWA/reconnect transport (next)
-Recommended Codex model: `gpt-6-astra`  
-Recommended reasoning: `ultra`  
-Phase 8B session / five-hour stop: 2026-09-10T06:27:00-04:00 / 2026-09-10T11:27:00-04:00
+Status: `in-progress`
+Started: 2026-09-09
+Updated: 2026-09-10
+Active subphase: Phase 8D — private-network/TLS and real-phone validation
+Recommended Codex model: `gpt-5.6-terra`
+Recommended reasoning: `high`
+Phase 8C session / five-hour stop: 2026-09-10T08:31:56-04:00 / 2026-09-10T13:31:56-04:00
 
 ## Objective
 
-Build Phase 8B's deny-by-default trusted browser and approval boundary on the completed Phase 8A
-device identity foundation. Add durable browser sessions, secure cookie and CSRF/origin controls,
-strict CORS/CSP and bounded request/rate policy, and a remote approval surface that preserves exact
-Phase 3 authority while forcing sensitive work back to the local host. Keep every listener
-loopback-only; TLS/private-network deployment and phone/PWA UI remain later Phase 8 subphases.
+Build Phase 8C's installable, responsive PWA and scoped product transport on the completed Phase
+8A-8B identity/browser boundary. Add deterministic enrollment/session handling, resumable ordered
+chat/task/device subscriptions, offline-safe shell behavior, explicit private-notification controls,
+and complete logout cleanup. Keep every listener loopback-only; TLS/private-network deployment and
+real-phone validation remain Phase 8D.
 
 ## Baseline
 
-- Git branch/HEAD at 8B start: `main` at `79f8738`; local HEAD equalled `origin/main`.
+- Git branch/HEAD at 8C start: `main` at `bbbc9ce`; local HEAD equalled `origin/main`.
 - Worktree state and preserved unrelated changes: untracked `.codex_finish_jarvis_cleanup.ps1`
   belongs to the user and remains untouched.
 - Relevant installed software/hardware/provider state: Python 3.11 project managed by `uv 0.12.5`;
   FastAPI loopback server; Git 2.55.0; Gitleaks 8.30.1; Node 24.20.0. No remote listener is
   configured; trusted browser origins default empty.
-- Existing tests and failures: Phase 8A closeout reported 827 passed, 2 skipped, 85.14% coverage.
-  No Phase 8B baseline product failure was observed.
+- Existing tests and failures: Phase 8B closeout reported 844 passed, 2 skipped, 85.11% coverage.
+  Seventeen targeted Phase 8A-8B tests passed at the 8C baseline; no product failure was observed.
 - Prior phase evidence: Phase 3 broker is complete except separately authorized live-effect
   revalidation. Phase 7 is complete. Existing web API refuses non-loopback binding.
 
 ## Acceptance checklist
+
+### Phase 8C
+
+- [x] Installable responsive PWA shell works without caching API responses, private content, or
+  credentials; offline mode exposes shell/status/logout only and cannot queue effects.
+- [x] Browser client creates and stores a non-exportable per-device Ed25519 key, completes exact
+  local-ticket enrollment, and obtains only the approved browser scopes.
+- [x] Authenticated `/api/v1` product routes expose bounded chat, task status, device status, and
+  desired event subscriptions without weakening Phase 8B scope/origin/CSRF/rate enforcement.
+- [x] Ordered event envelopes have opaque subscription IDs and monotonic cursors; reconnect resumes
+  after the acknowledged cursor without duplicates, gaps, cross-device/session leakage, or zombies.
+- [x] Network flaps, response loss, duplicate/out-of-order frames, cursor expiry, session expiry,
+  revocation, restart, and multi-tab ownership fail safely and visibly.
+- [x] Logout revokes the browser session and clears CSRF, device key, cursor, subscriptions,
+  notification state, cached shell state, and service-worker/cache ownership.
+- [x] Notifications are opt-in, local to the PWA, generic by default, and never place message/task
+  content in notification text, tags, URLs, persistent cache, or audit.
+- [x] Keyboard/screen-reader/accessibility behavior, fixed reconnect/resource benchmark, full release
+  gates, documentation, recovery, and status evidence pass.
+
+Frozen Phase 8C targets: 10,000 ordered synthetic event frames across at least 100 reconnects;
+zero duplicates, gaps, cross-session deliveries, offline effects, or retained private payloads;
+event-resume p95 <= 25 ms; shell asset total <= 250 KiB; RSS growth <= 50 MiB; bounded server/client
+cursor and subscription state.
 
 ### Phase 8B
 
@@ -78,6 +102,47 @@ denial audit remains bounded by Phase 8A's per-device retention ceiling.
 - [x] Full release, vulnerability, secret, Git, and doctor gates pass.
 
 ## Milestones
+
+### Phase 8C Milestone 1 — PWA state and transport contracts
+
+- Status: complete
+- Changes: frozen acceptance/resource targets; typed event, subscription, cursor, request-id, expiry,
+  ownership, topic, payload, retention, and capacity contracts.
+- Evidence: unit tests cover ordered bounded resume, 100 concurrent publishers, cursor expiry,
+  cross-session denial, oversize rejection, wait cancellation, zombie state, session expiry, and
+  request-cache capacity/idempotency.
+- Remaining: none for Phase 8C.
+
+### Phase 8C Milestone 2 — Scoped product API and reconnect stream
+
+- Status: complete
+- Changes: authenticated status/task/chat/subscription/event routes with exact host/scope checks,
+  bounded finite SSE pages, monotonic cursors, response-loss idempotency, and logout purge.
+- Evidence: synthetic Ed25519 browser integration covers enrollment, cookie/CSRF bootstrap, exact
+  scopes, task/status minimization, chat retry, once-only events, resume keepalive, session purge,
+  and post-logout denial.
+- Remaining: none for Phase 8C.
+
+### Phase 8C Milestone 3 — Installable offline-safe client
+
+- Status: complete
+- Changes: installable responsive shell, exact five-asset service-worker allowlist, Web Crypto
+  Ed25519 enrollment/signing, IndexedDB non-exportable key, memory-only CSRF, session cursors,
+  navigator-lock tab ownership, generic opt-in notifications, offline-safe controls, and full local
+  cleanup even when server revocation is unavailable.
+- Evidence: package/static tests enforce CSP, no inline script, no `localStorage`, shell ceiling,
+  no API cache path, and packaged assets. Real Chromium pass at 390x844 exposed labelled controls,
+  heading/list/log semantics, readable responsive layout, and zero console warnings/errors.
+- Remaining: real-phone installation belongs to Phase 8D.
+
+### Phase 8C Milestone 4 — Abuse/performance/recovery closeout
+
+- Status: complete
+- Changes: deterministic 10,000-frame/100-reconnect benchmark, PWA doctor check, packaged-wheel
+  verification, ADR, security/architecture/API/setup/recovery/status documentation, and full gates.
+- Evidence: 856 passed, 2 skipped, 85.09% coverage; benchmark passed all frozen thresholds; Ruff,
+  mypy, lock/sync, build, pip-audit, Gitleaks, Node syntax, `git diff --check`, and doctor passed.
+- Remaining: Phase 8D authority and physical network/phone evidence.
 
 ### Phase 8B Milestone 1 — Browser threat model and contracts
 
@@ -162,21 +227,43 @@ denial audit remains bounded by Phase 8A's per-device retention ceiling.
 - Alternatives: none within 8A.
 - Reversible later: reviewed TLS/private-network gateway can be enabled behind the same API.
 
+- Decision: Use finite, cursor-addressed SSE pages over a bounded process-local event hub.
+- Reason: browser reconnect can explicitly acknowledge one monotonic cursor while subscription,
+  payload, expiry, and ownership state stay simple, inspectable, session-bound, and purgeable.
+- Alternatives: WebSocket multiplexing and durable private-content queues rejected for Phase 8C;
+  both increase state and recovery risk without improving the required loopback client.
+- Reversible later: the owned event envelope and cursor contract can sit over a durable broker if a
+  later phase establishes an encrypted retention policy.
+
+- Decision: Cache only five immutable public shell assets; keep the private key as a non-exportable
+  IndexedDB `CryptoKey`, CSRF in memory, and cursor/notification choices in tab session storage.
+- Reason: offline rendering needs no user content, API response, session secret, or effect queue.
+- Alternatives: cache-all/runtime caching and persistent bearer/CSRF storage rejected.
+- Reversible later: cache version and shell files can evolve without changing API data boundaries.
+
 ## Verification evidence
 
 ```text
-ruff format --check .: 261 files formatted
+ruff format --check .: 268 files formatted
 ruff check .: passed
-mypy src: 117 source files, no issues
-targeted Phase 8A-8B suite: 35 passed
-full pytest: 844 passed, 2 skipped, 85.11% coverage
+mypy src: 119 source files, no issues
+targeted Phase 8C suite: 20 passed
+full pytest: 856 passed, 2 skipped, 85.09% coverage
 uv lock --check: 119 packages resolved
-pip-audit: no known vulnerabilities; setuptools 84.0.0 explicitly present in dev audit environment
-gitleaks: 32 commits / ~3.72 MB scanned, no leaks
+uv sync --locked: 68 packages checked
+wheel/sdist build: passed; all six shell assets present in wheel
+Node syntax: app.js and sw.js passed
+pip-audit: no known vulnerabilities
+gitleaks: full history and worktree / ~3.81 MB scanned, no leaks
 git diff --check: passed
-jarvis doctor: ready; browser cookie bootstrap disabled without exact HTTPS origin; loopback
-127.0.0.1:8765
+jarvis doctor: ready; PWA shell 22,189 bytes; browser bootstrap disabled without exact HTTPS origin;
+loopback 127.0.0.1:8765
 ```
+
+Phase 8C revalidated 2026-09-10 against the completed worktree. Real Chromium at 390x844 rendered
+the offline shell with accessible labels/landmarks and no console warning/error. Non-loopback bind,
+TLS gateway, firewall changes, private-network exposure, and physical-phone actions were not
+attempted because they are Phase 8D and require separate authority.
 
 Revalidated 2026-09-10 at `eb53075`: the full suite again passed with 844 tests, 2 skips, and
 85.11% coverage; Ruff, mypy, pip-audit, Gitleaks, `git diff --check`, and `jarvis doctor` passed.
@@ -209,6 +296,16 @@ Phase 8B browser benchmark:
 - Runtime/device: Windows laptop, Python 3.11.16, synthetic Ed25519 browser fixture; local warm
   verification, with restart behavior tested separately.
 
+Phase 8C PWA/reconnect benchmark:
+
+- Samples: 10,000 ordered event frames over 100 fresh reconnect subscriptions, 100 events each.
+- p50/p95 resume: 0.0335/0.0578 ms; p95 target <= 25 ms.
+- Errors/failures: 0 duplicates, gaps, cross-session deliveries, or offline effects.
+- Resource/storage: 0.617 MiB RSS growth against <= 50 MiB; 22,189-byte packaged shell against
+  <= 250 KiB; 0 retained subscriptions/private request results after session clear.
+- Runtime/device: Windows laptop, Python 3.11.16, synthetic browser contexts; real Chromium shell
+  layout separately checked at a 390x844 phone viewport.
+
 ## Security and privacy
 
 - Threats tested: replay, concurrent replay, restart replay, stolen token without matching device key,
@@ -236,32 +333,55 @@ Phase 8B additions:
 - Browser bootstrap default: disabled until exact HTTPS origin configuration; listener still
   loopback-only.
 
+Phase 8C additions:
+
+- Threats tested: duplicate/concurrent/out-of-order frames, expired/lost cursor, response retry,
+  subscription/session ownership confusion, capacity exhaustion, oversized event/result, waiter
+  cancellation, zombie publication, logout retention, hostile topic scope, and offline effect queue.
+- Data boundaries: five public shell assets only in Cache Storage; API/chat/task/device content is
+  never cached; private event/request buffers are fixed-size, expire no later than the browser
+  session, and are erased on logout/restart.
+- Browser secrets: private Ed25519 key is generated non-exportable in IndexedDB; CSRF is memory-only;
+  secure HttpOnly session cookie remains unreadable to JavaScript; logout requests server revocation
+  then clears key, cursors, notification choice, service worker, and shell caches locally.
+- Notifications: explicit browser permission only; fixed generic title/body; no chat/task content,
+  identifier, deep link, or persistent notification payload.
+- Listener/execution boundary: web bind remains `127.0.0.1`; service worker has an exact shell-path
+  allowlist; offline UI never queues chat or effects; remote voice remains disabled.
+
 ## Blockers
 
-- None for safe local Phase 8A-8B implementation. Real phone, TLS, private-network deployment, and
+- None for safe local Phase 8A-8C implementation. Real phone, TLS, private-network deployment, and
   non-loopback exposure require later Phase 8D authority and are not attempted.
 
 ## Known limits and deferred scope
 
 - Passkey/OIDC step-up remains optional future hardening; current browser bootstrap uses the enrolled
   device signature and a five-minute recent-auth window for low-risk approval only.
-- PWA client, reconnect/resume, offline shell, notifications: Phase 8C.
+- Persistent push notifications and remote voice are not part of Phase 8C.
+- Process restart intentionally drops private event deltas and idempotency results; client creates a
+  fresh session/subscription and refreshes durable status instead of recovering cached content.
+- Offline logout erases all browser-held state immediately; server cookie/session can only be
+  revoked after connectivity returns and otherwise expires within its 15-minute TTL.
 - TLS/private topology, firewall/Tailscale deployment, real phone enrollment/revocation and scan:
   Phase 8D.
 
 ## Recovery and rollback
 
 - Keep `JARVIS_WEB_HOST=127.0.0.1` and `JARVIS_TRUSTED_BROWSER_ORIGINS=[]` to disable browser
-  bootstrap. Revoke a device to invalidate all API/browser sessions. Existing migration 010 is
-  additive; rollback disables routes/configuration rather than deleting durable identity data.
+  bootstrap. Revoke a device to invalidate all API/browser sessions. In the PWA, **Logout and erase
+  this device** removes the browser key, cursor, notification choice, service worker, and cache even
+  while offline. Restarting JARVIS clears every process-local event/idempotency buffer. Existing
+  migration 010 is additive; rollback disables routes/configuration rather than deleting durable
+  identity data.
 
 ## Final handoff
 
-- Final status: Phase 8A-8B complete; Phase 8 overall remains in progress.
-- Files changed: browser identity/policy contracts, migration 010, remote store/service, web
-  middleware/routes, configuration/diagnostics, approval surface, tests, benchmark, dependency
-  audit records, ADR, API/recovery/security/architecture/setup/status docs.
-- Next recommended phase: Phase 8C PWA, product transport, reconnect/resume, offline shell, and
-  notification controls.
-- Phase 8B implementation commit: `eb53075`, synchronized with `origin/main` before this
-  documentation-only revalidation.
+- Final status: Phase 8A-8C complete; Phase 8 overall remains in progress.
+- Files changed: PWA shell/service worker, bounded event hub, remote scope/context contracts,
+  authenticated product routes, diagnostics/package data, tests, benchmark, ADR, and
+  API/recovery/security/architecture/setup/status documentation.
+- Next recommended phase: Phase 8D private-network/TLS deployment and real-phone enrollment,
+  install, reconnect, revocation, loss, and security-scan validation.
+- Phase 8C implementation commit is recorded in Git history and the final handoff; Phase 8B
+  baseline `bbbc9ce` was synchronized with `origin/main` before this implementation.
