@@ -387,8 +387,16 @@ manifest profile/epoch/digest, supported and minimum protocol versions, and offe
 capabilities. Caller role/owner fields are forbidden. Highest-common-version selection prevents a
 silent downgrade; unknown required capability, owner drift, stale/replayed/revoked identity, or
 topology mismatch fails closed. Network location, Tailscale identity headers, and advertised
-capabilities grant nothing by themselves. Runtime remains one local owner until Phase 9B proves
-backup, transfer, reconciliation, cutover, and rollback.
+capabilities grant nothing by themselves.
+
+Phase 9B encrypts each migration snapshot with AES-256-GCM using a unique nonce and an HKDF-derived
+bundle key from a separately stored random 256-bit operator key. The authenticated private manifest
+binds exact topology/epoch/owners and database/schema/logical fingerprints. Restore never
+overwrites, authenticates before parsing plaintext, and requires current migrations plus SQLite
+integrity and foreign-key checks. Cutover fails on source drift, shadow mismatch, lock contention,
+stale epoch, altered predecessor, or owner ambiguity. Chained receipts contain no user content and
+grant no runtime authority. Runtime remains one local owner until Phase 9C adds explicit receipt
+enforcement and deployment.
 
 ## 14. Memory, research, audio, and vision privacy
 

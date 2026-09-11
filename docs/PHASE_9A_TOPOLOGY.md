@@ -16,8 +16,9 @@ capabilities, ownership map, and network-loss behavior. Its canonical sorted JSO
 digest. Changing any role, capability, owner, epoch, or fallback changes the digest and forces a
 fresh negotiation.
 
-Only `local-only` is accepted by `Settings`. Phase 9B may widen that literal after a verified
-backup, restore, shadow-copy, cutover, and rollback design exists.
+Only `local-only` is accepted by `Settings`. Phase 9B now provides verified backup, restore,
+shadow comparison, cutover-receipt, and rollback-receipt tooling, but intentionally does not widen
+that executable setting. Phase 9C owns any deployment activation.
 
 ## Single-owner map
 
@@ -41,7 +42,8 @@ role-incompatible owners are invalid.
 Offline fallback never rewrites this table. A disconnected laptop may use only capabilities listed
 in its signed negotiation result's `offline_capabilities`; it cannot become canonical writer for
 server-owned identity, sessions, conversations, memory, research, tasks, permissions, or audit.
-Phase 9B owns later reconciliation rules.
+Phase 9B defines exact-snapshot reconciliation and fenced ownership receipts. Those receipts remain
+evidence, not runtime authority, until Phase 9C enforces them during deployment.
 
 ## Authenticated protocol negotiation
 

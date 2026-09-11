@@ -25,9 +25,12 @@ from jarvis.llm import (
 from jarvis.memory import SQLiteConversationStore
 from jarvis.memory.identity import local_memory_host_id
 from jarvis.remote import (
+    MIGRATION_CIPHER,
+    MIGRATION_KEY_BYTES,
     TOPOLOGY_PROTOCOL_VERSION,
     SQLiteRemoteIdentityStore,
     build_local_only_manifest,
+    iter_shared_domains,
 )
 from jarvis.research import FetchedDocument, SandboxedDocumentParser
 
@@ -168,6 +171,7 @@ async def run_diagnostics(
 
     checks.append(await _remote_identity_check(settings))
     checks.append(_topology_check(settings))
+    checks.append(_migration_check())
 
     provider: DiagnosticProvider | None = None
     try:
@@ -379,6 +383,20 @@ def _topology_check(settings: Settings) -> DiagnosticCheck:
             f"Runtime is hard-locked to {settings.topology_profile} with one node, "
             f"{len(manifest.ownership)} single-owner domains, protocol "
             f"{TOPOLOGY_PROTOCOL_VERSION}, and no remote writer."
+        ),
+    )
+
+
+def _migration_check() -> DiagnosticCheck:
+    return DiagnosticCheck(
+        name="migration recovery boundary",
+        status=DiagnosticStatus.PASS,
+        detail=(
+            f"Phase 9B tooling covers {len(tuple(iter_shared_domains()))} shared-state domains "
+            "with "
+            f"{MIGRATION_CIPHER}, a separate {MIGRATION_KEY_BYTES * 8}-bit operator key, "
+            "verified restore, shadow comparison, and chained cutover/rollback receipts. "
+            "No migration key, remote writer, or automatic cutover is enabled."
         ),
     )
 

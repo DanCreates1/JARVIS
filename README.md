@@ -1,6 +1,6 @@
 # JARVIS
 
-JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–8 and Phase 9A implement a
+JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–8 and Phases 9A–9B implement a
 local deterministic privacy gate, configurable NVIDIA/Groq/Gemini/Ollama roles,
 zero-cost fallback routing, durable SQLite state, audited read-only tools, CLI,
 loopback browser chat, local push-to-talk speech, opt-in controlled Windows actions, bounded cited
@@ -13,7 +13,7 @@ runtime databases, logs, generated media, and secrets do not belong in Git.
 
 ## Current verification status
 
-As of 2026-09-11, Phases 4–8 and Phase 9A are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
+As of 2026-09-11, Phases 4–8 and Phases 9A–9B are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
 optimized local latency evidence pass; Phase 1 remains formally blocked by fixed hosted NVIDIA
 latency gates. The preserved 20/20 NVIDIA states still miss one or both targets. Fresh instrumented
 requests place the long delay before response headers, while adaptive routing protects normal
@@ -222,6 +222,24 @@ The server-migration boundary now adds:
 Runtime configuration remains hard-locked to `local-only`. Phase 9A does not migrate data, start a
 server, add PostgreSQL, or permit another writer/replica. See
 [Phase 9A Topology and Protocol Boundary](docs/PHASE_9A_TOPOLOGY.md).
+
+## Implemented Phase 9B
+
+The migration recovery boundary adds:
+
+- no-overwrite SQLite online snapshots encrypted with per-bundle HKDF-derived AES-256-GCM keys;
+- separate caller-owned 256-bit key files and authenticated private manifests bound to exact
+  topology digest, epoch, source/target owner, migrations, schema, hashes, and table row state;
+- authenticate-before-use restore with SHA-256, migration/schema, logical table,
+  `integrity_check`, and `foreign_key_check` verification;
+- layout-independent source/target shadow comparison and exclusive source-drift/writer-lock checks;
+  and
+- chained content-free cutover and rollback receipts selecting one owner without changing either
+  database or activating runtime topology.
+
+The runtime remains hard-locked to `local-only`. Phase 9C must enforce a reviewed receipt before
+any remote writer/server deployment. See
+[Phase 9B Migration and Recovery](docs/PHASE_9B_MIGRATION.md).
 
 ## Model strategy
 

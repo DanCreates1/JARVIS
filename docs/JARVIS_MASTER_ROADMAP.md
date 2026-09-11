@@ -531,9 +531,13 @@ node roles, network-loss policy, and one owner for eleven shared-state/device-ef
 additive signed protocol `1.0` route binds authenticated host/device/session/audience to exact
 profile/epoch/manifest digest and negotiates only the configured capability intersection. Replay,
 stale/revoked identity, downgrade, mismatch, owner substitution, and capability escalation fail
-closed with content-free audit. Executable settings remain hard-locked to one local node and no
-remote writer. Phase 9B migration/backup/reconciliation is next; no state transfer, server
-deployment, PostgreSQL, second replica, or cutover exists yet.
+closed with content-free audit. Phase 9B is complete: the eight shared durable domains move in one
+online SQLite snapshot protected by HKDF-separated AES-256-GCM; authenticated private manifests,
+current schema/migration/integrity/foreign-key verification, logical shadow fingerprints,
+source-drift locks, and chained cutover/rollback receipts fail closed. The fixed 100-cycle plus
+64 MiB rehearsal passed with zero failures, false accepts, or mismatches. Executable settings remain
+hard-locked to one local node and no remote writer. Phase 9C deployment/resilience is next; no
+server deployment, PostgreSQL, second replica, or active remote cutover exists yet.
 
 **Goal**  
 Move intelligence and durable state to a server while laptop becomes a capability node.

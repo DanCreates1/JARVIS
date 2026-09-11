@@ -10,7 +10,7 @@ import sqlite3
 from contextlib import suppress
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Never
 
 import typer
 from pydantic import ValidationError
@@ -52,6 +52,8 @@ from jarvis.planning import (
     TaskStateError,
     TaskStatus,
 )
+from jarvis.remote.migration import MigrationError, MigrationErrorCode
+from jarvis.remote.topology import TopologyManifest
 from jarvis.research import (
     ResearchInterface,
     ResearchNotFoundError,
@@ -110,6 +112,12 @@ remote_app = typer.Typer(
     no_args_is_help=True,
 )
 app.add_typer(remote_app, name="remote")
+migration_app = typer.Typer(
+    name="migration",
+    help="Encrypted backup, restore, shadow, cutover, and rollback rehearsal.",
+    no_args_is_help=True,
+)
+remote_app.add_typer(migration_app, name="migration")
 console = Console(highlight=False, legacy_windows=False)
 
 
@@ -2184,6 +2192,246 @@ async def _computer_audit(settings: Settings, *, limit: int, kind: str = "all") 
             )
         console.print(table)
     return 0
+
+
+def _load_topology_manifest(path: Path) -> TopologyManifest:
+    try:
+        payload = path.read_bytes()
+        if len(payload) > 1_048_576:
+            raise ValueError("manifest exceeds 1 MiB")
+        return TopologyManifest.model_validate_json(payload)
+    except (OSError, ValueError) as exc:
+        raise MigrationError(
+            MigrationErrorCode.INVALID_INPUT, "topology manifest is unavailable or invalid"
+        ) from exc
+
+
+def _render_migration_error(exc: MigrationError) -> Never:
+    console.print(f"[bold red]Migration blocked.[/] {exc.code.value}: {exc}")
+    raise typer.Exit(code=2) from None
+
+
+@migration_app.command("manifest")
+def migration_manifest(
+    destination: Annotated[Path, typer.Argument(dir_okay=False, resolve_path=True)],
+    profile: Annotated[str, typer.Option("--profile")] = "split",
+    server_node_id: Annotated[str, typer.Option("--server-node-id")] = "node:server",
+    laptop_node_id: Annotated[str, typer.Option("--laptop-node-id")] = "node:laptop",
+    epoch: Annotated[int, typer.Option("--epoch", min=1)] = 2,
+    server_capability: Annotated[list[str] | None, typer.Option("--server-capability")] = None,
+    laptop_capability: Annotated[list[str] | None, typer.Option("--laptop-capability")] = None,
+    offline_capability: Annotated[list[str] | None, typer.Option("--offline-capability")] = None,
+) -> None:
+    """Create one reviewed, no-overwrite remote topology manifest for rehearsal."""
+    from jarvis.remote import TopologyProfile, build_local_only_manifest, build_remote_manifest
+
+    default_server = (
+        "core.chat",
+        "core.identity",
+        "core.memory",
+        "core.permissions",
+        "core.research",
+        "core.tasks",
+        "transport.events",
+    )
+    default_laptop = ("node.computer", "node.vision", "node.voice", "transport.events")
+    try:
+        selected_profile = TopologyProfile(profile)
+        if selected_profile is TopologyProfile.LOCAL_ONLY:
+            if server_capability or offline_capability:
+                raise ValueError("local-only manifest does not accept server/offline capabilities")
+            topology = build_local_only_manifest(
+                host_id=local_memory_host_id(),
+                node_id=laptop_node_id,
+                capabilities=tuple(
+                    laptop_capability or sorted(set(default_server).union(default_laptop))
+                ),
+                epoch=epoch,
+            )
+        else:
+            topology = build_remote_manifest(
+                profile=selected_profile,
+                host_id=local_memory_host_id(),
+                server_node_id=server_node_id,
+                laptop_node_id=laptop_node_id,
+                server_capabilities=tuple(server_capability or default_server),
+                laptop_capabilities=tuple(laptop_capability or default_laptop),
+                laptop_offline_capabilities=tuple(offline_capability or ()),
+                epoch=epoch,
+            )
+        if destination.exists() or destination.is_symlink() or not destination.parent.is_dir():
+            raise ValueError("destination must be new and its parent must exist")
+        with destination.open("x", encoding="utf-8") as output:
+            output.write(topology.model_dump_json(indent=2) + "\n")
+    except (OSError, ValueError) as exc:
+        console.print(f"[bold red]Manifest blocked.[/] {exc}")
+        raise typer.Exit(code=2) from None
+    console.print(
+        json.dumps(
+            {
+                "manifest_path": str(destination),
+                "profile": topology.profile.value,
+                "epoch": topology.epoch,
+                "topology_digest": topology.digest,
+                "activates_runtime": False,
+            },
+            indent=2,
+        )
+    )
+
+
+@migration_app.command("backup")
+def migration_backup(
+    destination: Annotated[Path, typer.Argument(dir_okay=False, resolve_path=True)],
+    manifest: Annotated[
+        Path,
+        typer.Option("--manifest", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    key_file: Annotated[
+        Path,
+        typer.Option("--key-file", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    key_id: Annotated[str, typer.Option("--key-id")],
+    source_owner_node_id: Annotated[str, typer.Option("--source-owner-node-id")],
+) -> None:
+    """Create an encrypted no-overwrite snapshot of the configured JARVIS database."""
+    from jarvis.remote import MigrationError, create_encrypted_backup, read_migration_key
+
+    settings = _load_settings()
+    try:
+        receipt = create_encrypted_backup(
+            settings.database_path,
+            destination,
+            topology=_load_topology_manifest(manifest),
+            source_owner_node_id=source_owner_node_id,
+            key=read_migration_key(key_file),
+            key_id=key_id,
+        )
+    except MigrationError as exc:
+        _render_migration_error(exc)
+    console.print(receipt.model_dump_json(indent=2))
+
+
+@migration_app.command("restore")
+def migration_restore(
+    bundle: Annotated[
+        Path, typer.Argument(exists=True, dir_okay=False, readable=True, resolve_path=True)
+    ],
+    destination: Annotated[Path, typer.Argument(dir_okay=False, resolve_path=True)],
+    manifest: Annotated[
+        Path,
+        typer.Option("--manifest", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    key_file: Annotated[
+        Path,
+        typer.Option("--key-file", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    key_id: Annotated[str, typer.Option("--key-id")],
+) -> None:
+    """Authenticate and restore an encrypted bundle to one new database path."""
+    from jarvis.remote import MigrationError, read_migration_key, restore_encrypted_backup
+
+    try:
+        receipt = restore_encrypted_backup(
+            bundle,
+            destination,
+            topology=_load_topology_manifest(manifest),
+            key=read_migration_key(key_file),
+            expected_key_id=key_id,
+        )
+    except MigrationError as exc:
+        _render_migration_error(exc)
+    console.print(receipt.model_dump_json(indent=2))
+
+
+@migration_app.command("shadow")
+def migration_shadow(
+    source: Annotated[
+        Path, typer.Argument(exists=True, dir_okay=False, readable=True, resolve_path=True)
+    ],
+    target: Annotated[
+        Path, typer.Argument(exists=True, dir_okay=False, readable=True, resolve_path=True)
+    ],
+) -> None:
+    """Compare exact logical schema, migrations, row counts, and table fingerprints."""
+    from jarvis.remote import MigrationError, compare_shadow
+
+    try:
+        receipt = compare_shadow(source, target)
+    except MigrationError as exc:
+        _render_migration_error(exc)
+    console.print(receipt.model_dump_json(indent=2))
+
+
+@migration_app.command("cutover")
+def migration_cutover(
+    source: Annotated[
+        Path, typer.Argument(exists=True, dir_okay=False, readable=True, resolve_path=True)
+    ],
+    target: Annotated[
+        Path, typer.Argument(exists=True, dir_okay=False, readable=True, resolve_path=True)
+    ],
+    destination: Annotated[Path, typer.Argument(dir_okay=False, resolve_path=True)],
+    manifest: Annotated[
+        Path,
+        typer.Option("--manifest", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    source_owner_node_id: Annotated[str, typer.Option("--source-owner-node-id")],
+    accepted_state_sha256: Annotated[str, typer.Option("--accepted-state-sha256")],
+) -> None:
+    """Create a no-overwrite ownership receipt while both databases reject writers."""
+    from jarvis.remote import MigrationError, create_cutover_receipt
+
+    try:
+        receipt = create_cutover_receipt(
+            source,
+            target,
+            destination,
+            topology=_load_topology_manifest(manifest),
+            source_owner_node_id=source_owner_node_id,
+            accepted_state_sha256=accepted_state_sha256,
+        )
+    except MigrationError as exc:
+        _render_migration_error(exc)
+    console.print(receipt.model_dump_json(indent=2))
+
+
+@migration_app.command("rollback")
+def migration_rollback(
+    active: Annotated[
+        Path, typer.Argument(exists=True, dir_okay=False, readable=True, resolve_path=True)
+    ],
+    restored_local: Annotated[
+        Path, typer.Argument(exists=True, dir_okay=False, readable=True, resolve_path=True)
+    ],
+    destination: Annotated[Path, typer.Argument(dir_okay=False, resolve_path=True)],
+    manifest: Annotated[
+        Path,
+        typer.Option("--manifest", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    previous_receipt: Annotated[
+        Path,
+        typer.Option(
+            "--previous-receipt", exists=True, dir_okay=False, readable=True, resolve_path=True
+        ),
+    ],
+    accepted_state_sha256: Annotated[str, typer.Option("--accepted-state-sha256")],
+) -> None:
+    """Chain ownership back to one local owner after verified reverse synchronization."""
+    from jarvis.remote import MigrationError, create_rollback_receipt
+
+    try:
+        receipt = create_rollback_receipt(
+            active,
+            restored_local,
+            destination,
+            topology=_load_topology_manifest(manifest),
+            previous_receipt=previous_receipt,
+            accepted_state_sha256=accepted_state_sha256,
+        )
+    except MigrationError as exc:
+        _render_migration_error(exc)
+    console.print(receipt.model_dump_json(indent=2))
 
 
 @remote_app.command("deployment-plan")

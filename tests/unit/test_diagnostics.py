@@ -133,6 +133,14 @@ async def test_diagnostics_reports_default_computer_access_as_safely_disabled(
     assert "local-only" in topology.detail
     assert "11 single-owner domains" in topology.detail
 
+    migration = next(
+        check for check in report.checks if check.name == "migration recovery boundary"
+    )
+    assert migration.status is DiagnosticStatus.PASS
+    assert "AES-256-GCM" in migration.detail
+    assert "256-bit operator key" in migration.detail
+    assert "No migration key, remote writer, or automatic cutover" in migration.detail
+
 
 def test_bounded_task_diagnostic_reports_explicit_foreground_limits(tmp_path: Path) -> None:
     check = diagnostics._bounded_task_check(

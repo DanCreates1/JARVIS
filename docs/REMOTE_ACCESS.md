@@ -220,6 +220,11 @@ whole negotiation returns HTTP 409 and stable bounded code. Replay/stale/revoked
 the Phase 8 authentication layer. Network loss exposes only the manifest's offline subset and never
 transfers shared-state ownership. See [Phase 9A topology boundary](PHASE_9A_TOPOLOGY.md).
 
+Phase 9B adds local operator commands under `jarvis remote migration` for reviewed manifest
+creation, encrypted SQLite backup, authenticated no-overwrite restore, logical shadow comparison,
+and chained cutover/rollback receipts. These commands add no route, remote scope, listener, or
+runtime activation. See [Phase 9B migration and recovery](PHASE_9B_MIGRATION.md).
+
 ## Phase 8D private deployment controls
 
 Phase 8D uses Tailscale Serve as the HTTPS gateway and keeps JARVIS on

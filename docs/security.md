@@ -232,8 +232,10 @@ Implemented browser/API service binds to loopback, sets restrictive browser head
 credentialed CORS, and validates typed request sizes. Configuration rejects non-loopback binding.
 Phase 8 private access terminates HTTPS at tailnet-only Tailscale Serve and still requires JARVIS
 device/session authentication. Phase 9A capability negotiation additionally requires exact
-`topology.negotiate` scope and matching signed manifest digest/version claims; executable topology
-remains hard-locked to one local owner.
+`topology.negotiate` scope and matching signed manifest digest/version claims. Phase 9B migration
+bundles use authenticated encryption with a separate operator key; restore, shadow comparison,
+source-drift checks, writer locks, and chained ownership receipts fail closed. Executable topology
+remains hard-locked to one local owner pending Phase 9C deployment enforcement.
 
 An API caller cannot approve its own privileged tool request without a separate,
 user-visible approval flow.

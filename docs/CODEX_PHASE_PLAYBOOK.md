@@ -211,8 +211,9 @@ the disabled Windows Store alias; repository commands use `uv run`.
 
 Actual status, reconciled 2026-09-11: Phase 1 has an external hosted-latency blocker and a fresh
 local-cold revalidation miss; Phases 2-3 are implemented with current authorized live effects
-pending; Phases 4-8 and Phase 9A are complete; Phase 9B onward is not implemented. No root license exists, so copying external code is
-blocked on an owner licensing decision. No external code was copied. See
+pending; Phases 4-8 and Phase 9A-9B are complete; Phase 9C onward is not implemented. No root
+license exists, so copying external code is blocked on an owner licensing decision. No external
+code was copied. See
 [External Repository Comparison](EXTERNAL_REPOSITORY_COMPARISON.md).
 
 ## 6. Phase 0 — Repository baseline and reset verification
@@ -614,7 +615,7 @@ internet or weakening local privacy/permission boundaries.
 ## 15. Phase 9 — Dedicated server migration
 
 Recommended execution: **`gpt-6-astra`, `ultra`**
-Baseline status: **not started**  
+Baseline status: **in progress; 9A-9B complete, 9C next**
 Prerequisite: stable internal ports, Phase 8 identity/network model
 
 ### Read first
@@ -891,7 +892,7 @@ reasoning, and rationale. Universal requirements still apply.
   -> threat/ADR -> protocol fakes -> downgrade/replay. T: stale/skew/revoke/mismatch/loss/fallback.
   SP: least privilege/audience/owner. M: architecture/security/topology/report. A/E: one owner and
   negotiated capability. N: 1. R: `gpt-6-astra` `ultra`, distributed trust.
-- **9B Migration/backup/reconciliation (`not-started`)** — O/S/D: reversible transfer/cutover,
+- **9B Migration/backup/reconciliation (`complete`)** — O/S/D: reversible transfer/cutover,
   manifests/checksums/backup/restore. P: 9A/capacity/keys. X: cutover before rehearsal/unjustified
   database. Q: classify -> backup/restore -> shadow/check -> cutover/rollback. T: interruption,
   duplicate/order/stale writer/disk/corrupt/schema/partition. SP: encryption/key separation/no split

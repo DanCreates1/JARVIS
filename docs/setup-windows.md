@@ -551,6 +551,20 @@ replica during 9A. Phase 9B requires verified backup/restore, shadow comparison,
 rollback before this configuration can widen. Full ownership and protocol details are in
 [Phase 9A Topology and Protocol Boundary](PHASE_9A_TOPOLOGY.md).
 
+## Phase 9B migration rehearsal
+
+Phase 9B adds `uv run jarvis remote migration --help`. It creates reviewed topology manifests,
+encrypted no-overwrite SQLite bundles, authenticated restores, exact logical shadow comparisons,
+and chained cutover/rollback receipts. Migration keys must be random 256-bit files stored and
+transferred separately from bundles. Never put a key, bundle, restored database, receipt with local
+paths, or runtime evidence in Git.
+
+Completing a receipt does not activate `split` or `server-primary`. Keep the runtime settings above,
+keep one local process, and do not start a remote writer. Follow the exact stop, RPO/RTO, key,
+backup, restore, drift, cutover, and rollback sequence in
+[Phase 9B Migration and Recovery](PHASE_9B_MIGRATION.md). Phase 9C must enforce the reviewed receipt
+before deployment can widen runtime placement.
+
 ## Optional free-tier cloud roles
 
 Local Ollama works without cloud credentials. To activate Groq, inject a key from

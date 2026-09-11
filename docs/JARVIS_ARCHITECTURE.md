@@ -603,8 +603,17 @@ private TLS authenticate the request before the negotiator binds host/device/ses
 profile, epoch, manifest digest, minimum/supported version, and offered/required capabilities. The
 highest allowed common version wins. Granted capability is only the intersection of the caller
 offer, configured node allowance, and server registry. Offline fallback returns only the manifest's
-declared subset and never changes canonical owner. Migration, reconciliation, a second writer, and
-server deployment remain Phase 9B/9C.
+declared subset and never changes canonical owner.
+
+Phase 9B adds an offline migration/recovery adapter without changing runtime placement. The eight
+shared durable domains move as one SQLite online snapshot; the three device-owned domains and
+local JSON controls stay on the laptop. A random caller-held 256-bit key is HKDF-separated per
+bundle, and streaming AES-256-GCM authenticates a private manifest plus snapshot. The encrypted
+manifest binds topology/epoch/owners, packaged migrations, schema, database hash, table counts, and
+logical fingerprints. Restore authenticates fully before use and verifies both SQLite integrity and
+foreign keys. Cutover and rollback require equal logical shadows under writer locks and emit
+chained one-owner receipts; they do not alter either database or enable a runtime profile. Phase 9C
+owns deployment enforcement, remote processes, and resilience.
 
 Remote access defaults to Tailscale/private networking with deny-by-default grants, plus JARVIS application authentication. Private networking is not sufficient authorization. Use TLS, per-device credentials, session expiry, replay protection, rate limits, and revocation. Do not expose Ollama, the privilege broker, or an unauthenticated JARVIS port to the public Internet.
 
