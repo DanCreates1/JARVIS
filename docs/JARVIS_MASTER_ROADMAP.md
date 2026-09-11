@@ -493,8 +493,13 @@ complete: type-separated durable browser sessions, secure host-only cookies,
 CSRF/origin/CORS/CSP controls, bounded request/rate policy, and exact low-risk remote approval with
 Levels 2-4 forced local. Phase 8C is complete: installable offline-safe PWA shell, non-exportable
 browser keys, scoped status/task/chat APIs, idempotent chat requests, session-owned bounded SSE
-subscriptions/cursors, generic opt-in notifications, and logout cleanup. TLS/private-network plus
-real-phone validation (8D) remains incomplete; Phase 8 overall is not complete.
+subscriptions/cursors, generic opt-in notifications, and logout cleanup. Phase 8D is complete:
+one Tailscale Serve HTTPS gateway proxies only to loopback JARVIS; Funnel, LAN/public binding,
+broad firewall rules, and multiple replicas remain forbidden. A physical iPhone passed
+minimum-scope enrollment, install, chat/status/tasks, network loss/reconnect, restart, immediate
+revocation, offline erase, fresh-key re-enrollment, teardown, backup/restore rehearsal, and clean
+restart. Remote voice, persistent push, remote effects, and multi-replica deployment remain
+deferred.
 
 **Goal**  
 Use JARVIS away from laptop without a public unauthenticated API.

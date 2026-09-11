@@ -68,6 +68,8 @@ _MAX_REMOTE_PATH_BYTES = 2_048
 _MAX_REMOTE_QUERY_BYTES = 8_192
 _BROWSER_SESSION_COOKIE = "__Host-jarvis-session"
 _CSRF_HEADER = "x-jarvis-csrf"
+_BROWSER_ORIGIN_HEADER = "x-jarvis-browser-origin"
+_SAFE_BROWSER_METHODS = frozenset({"GET", "HEAD"})
 _UNSAFE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 _REMOTE_HEADER_NAMES = (
     "x-jarvis-audience",
@@ -246,7 +248,16 @@ def create_app(
                     return await call_next(request)
                 service = _remote_identity(request)
                 if browser_token is not None:
-                    request.state.trusted_origin = origin_policy.require(origins)
+                    opaque_origin = origins == ("null",)
+                    if origins and not opaque_origin:
+                        trusted_origin = origin_policy.require(origins)
+                    elif request.method in _SAFE_BROWSER_METHODS:
+                        trusted_origin = origin_policy.require(
+                            _header_values(request, _BROWSER_ORIGIN_HEADER)
+                        )
+                    else:
+                        trusted_origin = origin_policy.require(origins)
+                    request.state.trusted_origin = trusted_origin
                     csrf_token = _csrf_token(request) if request.method in _UNSAFE_METHODS else None
                     context = await service.authenticate_browser_session(
                         cookie_token=browser_token,

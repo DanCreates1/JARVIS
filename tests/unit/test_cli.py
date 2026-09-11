@@ -149,6 +149,78 @@ def test_remote_enrollment_cli_requires_scope_and_persists_only_challenge_digest
     assert "confirmation does not match" in output.getvalue()
 
 
+def test_remote_deployment_plan_cli_emits_sanitized_loopback_plan(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = capture_console(monkeypatch)
+    status_path = tmp_path / "tailscale-status.json"
+    status_path.write_text(
+        json.dumps(
+            {
+                "BackendState": "Running",
+                "TailscaleIPs": ["100.64.0.10"],
+                "Self": {
+                    "Online": True,
+                    "DNSName": "jarvis-laptop.example-tailnet.ts.net.",
+                    "UserID": 12345,
+                },
+                "User": {"12345": {"LoginName": "private@example.test"}},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(
+        cli.app,
+        ["remote", "deployment-plan", "--tailscale-status-json", str(status_path)],
+    )
+
+    assert result.exit_code == 0
+    text = output.getvalue()
+    assert "https://jarvis-laptop.example-tailnet.ts.net" in text
+    assert '"backend_host": "127.0.0.1"' in text
+    assert '"public_exposure": false' in text
+    assert "private@example.test" not in text
+
+
+def test_remote_backup_creates_verified_snapshot_without_overwrite(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = capture_console(monkeypatch)
+    data_dir = tmp_path / "live"
+    monkeypatch.setenv("JARVIS_DATA_DIR", str(data_dir))
+    runner = CliRunner()
+    enrolled = runner.invoke(
+        cli.app,
+        ["remote", "enroll", "Backup fixture", "--scope", "identity.read"],
+    )
+    assert enrolled.exit_code == 0
+
+    backup_dir = tmp_path / "private-backups"
+    backup_dir.mkdir()
+    backup_path = backup_dir / "jarvis-phase8d.db"
+    output.seek(0)
+    output.truncate(0)
+    backed_up = runner.invoke(cli.app, ["remote", "backup", str(backup_path)])
+
+    assert backed_up.exit_code == 0
+    receipt = json.loads(output.getvalue())
+    assert receipt["integrity_check"] == "ok"
+    assert receipt["contains_private_data"] is True
+    assert len(receipt["sha256"]) == 64
+    with sqlite3.connect(backup_path) as connection:
+        assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
+        assert connection.execute("SELECT COUNT(*) FROM remote_enrollments").fetchone() == (1,)
+
+    original = backup_path.read_bytes()
+    output.seek(0)
+    output.truncate(0)
+    duplicate = runner.invoke(cli.app, ["remote", "backup", str(backup_path)])
+    assert duplicate.exit_code == 2
+    assert "Destination already exists" in output.getvalue()
+    assert backup_path.read_bytes() == original
+
+
 def test_phase6_task_cli_preview_list_show_default_off_and_delete(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

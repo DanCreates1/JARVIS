@@ -1,19 +1,19 @@
 # JARVIS
 
-JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–7 and Phase 8A-8C implement a
+JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–8 implement a
 local deterministic privacy gate, configurable NVIDIA/Groq/Gemini/Ollama roles,
 zero-cost fallback routing, durable SQLite state, audited read-only tools, CLI,
 loopback browser chat, local push-to-talk speech, opt-in controlled Windows actions, bounded cited
 public research, durable budgeted task graphs, and a loopback-only authenticated device identity
-API, deny-by-default trusted browser boundary, and offline-safe PWA shell with scoped resumable
-transport. Sensitive and uncertain work remains local.
+API, deny-by-default trusted browser boundary, offline-safe PWA shell with scoped resumable
+transport, and tailnet-only TLS deployment. Sensitive and uncertain work remains local.
 
 This repository is the source of truth for the project. Local model weights,
 runtime databases, logs, generated media, and secrets do not belong in Git.
 
 ## Current verification status
 
-As of 2026-09-10, Phases 4–7 and Phase 8A-8C are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
+As of 2026-09-10, Phases 4–8 are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
 optimized local latency evidence pass; Phase 1 remains formally blocked by fixed hosted NVIDIA
 latency gates. The preserved 20/20 NVIDIA states still miss one or both targets. Fresh instrumented
 requests place the long delay before response headers, while adaptive routing protects normal
@@ -159,7 +159,7 @@ growth, and zero false activations, proposals, authority violations, retained me
 or OS effects. Public HaGRID examples supplied the diverse real-image matrix; fixture pixels remain
 outside Git.
 
-## Implemented Phase 8A-8C
+## Implemented Phase 8
 
 The remote identity foundation adds:
 
@@ -195,8 +195,14 @@ Phase 8C adds:
 - generic opt-in notifications, single-tab stream ownership, no offline effect queue, and complete
   online logout/site-data cleanup.
 
-Phase 8A-8C open no remote port. TLS/private-network deployment and real-phone validation remain
-Phase 8D; remote voice is not enabled. See
+Phase 8D adds a one-replica Tailscale Serve deployment that terminates trusted HTTPS and proxies
+only to JARVIS on `127.0.0.1`. Funnel, LAN/public binding, broad firewall rules, and public access
+remain forbidden. A physical iPhone passed installation, minimum-scope enrollment, chat,
+minimized status/tasks, notification/cache privacy, network loss/reconnect, restart, immediate
+revocation, offline erase, fresh-key re-enrollment, teardown, and recovery. A no-overwrite verified
+SQLite backup and fail-closed owned-route rollback cover recovery.
+
+Remote voice, persistent push, remote effects, and multi-replica deployment remain disabled. See
 [Remote Identity and API Boundary](docs/REMOTE_ACCESS.md).
 
 ## Model strategy

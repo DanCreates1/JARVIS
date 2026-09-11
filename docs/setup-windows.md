@@ -7,7 +7,7 @@
 - Git
 - `uv`
 - Ollama
-- Python 3.11, managed by `uv`
+- Official Python Software Foundation CPython 3.11; `uv` manages locked dependencies
 
 A GPU is not required for the Phase 1 text runtime. Model speed and memory use
 depend on the selected Ollama model and hardware.
@@ -22,11 +22,11 @@ commands passed; pytest reported 535 passed, 1 capability skip, and 85.09% cover
 complete-history Gitleaks job also passed. This supplies independent clean-Windows bootstrap and
 repository-gate evidence without relying on this laptop's caches or policy.
 
-The current host rehearsal also passed in a fresh ignored environment. Windows Smart App Control
-still rejects generated `mypy`, `pytest`, `pip-audit`, and `jarvis` console shims with OS error
-4551, while RTK 0.45.0 and uv run normally. Do not change or bypass that policy. Use the same locked
-modules through allowed uv-managed Python entry points and retain both local module results and the
-independent exact-command CI evidence.
+During Phase 8D, Windows App Control rejected the uv-managed CPython executable and generated
+console shims with OS error 4551. No security policy was changed. Official PSF CPython 3.11.9 was
+installed through the `Python.Python.3.11` WinGet package, the blocked environment was preserved in
+ignored runtime storage, and the locked environment was rebuilt from that interpreter. `jarvis`,
+`pytest`, and `mypy` then executed normally through `uv run`.
 
 ## 1. Clone the repository
 
@@ -49,10 +49,10 @@ uv --version
 ```
 
 If Windows Package Manager is already installed, the bootstrap script can request
-the official package explicitly:
+the official uv and PSF Python packages explicitly:
 
 ```powershell
-./scripts/bootstrap.ps1 -InstallUv
+./scripts/bootstrap.ps1 -InstallUv -InstallPython
 ```
 
 The script does not download and execute a remote PowerShell script.
@@ -78,17 +78,18 @@ may be used when installed and permitted, but does not waive any execution or ap
 This command:
 
 - verifies the repository metadata needed for installation;
-- asks `uv` to provision Python 3.11;
+- locates executable PSF CPython 3.11 and rejects unsigned/non-PSF substitutes;
 - requires the committed `uv.lock`; and
 - synchronizes the virtual environment from that lock using copies, avoiding OneDrive cache
-  hardlink failures (Windows error 396).
+  hardlink failures (Windows error 396), while disabling uv-managed Python fallback and downloads.
 
 It does not install Ollama, pull a model, enable startup tasks, request
 administrator privileges, or write outside normal tool-managed locations.
 
 Copy mode uses more disk than hardlinks but does not change package versions or disable checks.
 See [uv link modes](https://docs.astral.sh/uv/reference/settings/#link-mode).
-For a separate manual sync that encounters error 396, use `uv sync --locked --link-mode copy`.
+For a separate manual sync that encounters error 396, pass the exact approved interpreter with
+`uv sync --locked --link-mode copy --python <approved-python.exe> --no-managed-python --no-python-downloads`.
 
 ### Clean Windows verification
 
@@ -505,6 +506,31 @@ within 15 minutes.
 Private keys belong in platform secure storage, never `localStorage`, IndexedDB plaintext, Git,
 logs, model context, or URLs. Keep returned CSRF value only in memory. Close/rebootstrap after
 reload; local device revocation is the lost-device recovery path.
+
+## Phase 8D private phone deployment
+
+Phase 8D keeps `JARVIS_WEB_HOST=127.0.0.1` and uses Tailscale Serve for private HTTPS. Install the
+official Windows client and authenticate the laptop and phone to the reviewed tailnet. Before
+enabling HTTPS, review the machine name: its exact `.ts.net` FQDN will appear in public Certificate
+Transparency logs. Remove any tailnet allow-all rule and restrict the intended source to this
+JARVIS host on TCP 443. Never enable Funnel.
+
+Run preflight, then the foreground launcher:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\phase8d-private.ps1 `
+  -Action Preflight
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\phase8d-private.ps1 `
+  -Action Run `
+  -AcknowledgeCertificateTransparency `
+  -AcknowledgePrivateGrant
+```
+
+`-ExecutionPolicy Bypass` is process-local and does not change Windows policy. Normal `Ctrl+C`
+removes the owned Serve route. After a hard interruption, run the same command with `-Action Stop`.
+The script refuses to remove an unowned or changed Serve configuration. See
+[Phase 8D private deployment](PHASE_8D_DEPLOYMENT.md) for phone enrollment,
+reconnect/restart, external scan, revocation, loss, and rollback gates.
 
 ## Optional free-tier cloud roles
 

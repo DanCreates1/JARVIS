@@ -193,7 +193,11 @@ def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(tmp_path: Pat
         assert script.status_code == worker.status_code == manifest.status_code == 200
         assert "localStorage" not in script.text
         assert "indexedDB" in script.text and '"JARVIS_LOGOUT"' in script.text
-        assert "SHELL.includes(url.pathname)" in worker.text and "cache.put" in worker.text
+        assert 'headers["X-Jarvis-Browser-Origin"]=window.location.origin' in script.text
+        assert "SHELL.includes(shellKey)" in worker.text and "cache.put" in worker.text
+        assert 'const CACHE="jarvis-shell-v3"' in worker.text
+        assert "self.skipWaiting()" in worker.text
+        assert "/app/app.js?v=3" in shell.text and "/app/sw.js?v=3" in script.text
         assert "ui.logout.disabled=!state.hasIdentity" in script.text
         assert manifest.json()["start_url"] == "/app/"
         asset_bytes = sum(
@@ -224,14 +228,17 @@ def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(tmp_path: Pat
         assert subscribed.status_code == 201
         subscription_id = subscribed.json()["id"]
 
-        status = client.get("/api/v1/client/status", headers={"Origin": ORIGIN})
+        ios_headers = {"X-Jarvis-Browser-Origin": ORIGIN}
+        status = client.get("/api/v1/client/status", headers=ios_headers)
         assert status.status_code == 200
         assert status.json()["device"]["id"] == created["device_id"]
         assert status.json()["notifications"] == {
             "supported": True,
             "private_preview": False,
         }
-        assert client.get("/api/v1/client/tasks", headers={"Origin": ORIGIN}).json() == []
+        assert client.get("/api/v1/client/tasks", headers=ios_headers).json() == []
+        opaque_ios_headers = {"Origin": "null", "X-Jarvis-Browser-Origin": ORIGIN}
+        assert client.get("/api/v1/client/status", headers=opaque_ios_headers).status_code == 200
 
         request = {
             "request_id": "request:pwa-one",

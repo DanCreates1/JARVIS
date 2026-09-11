@@ -583,6 +583,14 @@ volatile buffers; the client refreshes durable conversation/task state and resub
 gap or stale cursor is explicit, never filled by guessed data. There is no offline task/action
 queue, remote approval/execution route, push service, or voice upload.
 
+Phase 8D deploys this boundary through one Tailscale Serve HTTPS gateway. Serve owns tailnet TCP
+443 and proxies only to `http://127.0.0.1:8765`; JARVIS never binds the LAN, tailnet, or public
+interface. A fail-closed planner derives the exact `.ts.net` origin from bounded live state. The
+launcher rejects Funnel, an occupied/non-loopback backend port, malformed/offline Tailscale state,
+and existing or changed Serve configuration. A local ownership marker permits teardown only when
+the complete single TCP/HTTPS/handler shape still matches. Replay, session, rate, and subscription
+state therefore remains owned by one JARVIS replica.
+
 Remote access defaults to Tailscale/private networking with deny-by-default grants, plus JARVIS application authentication. Private networking is not sufficient authorization. Use TLS, per-device credentials, session expiry, replay protection, rate limits, and revocation. Do not expose Ollama, the privilege broker, or an unauthenticated JARVIS port to the public Internet.
 
 ## 12. Security boundaries

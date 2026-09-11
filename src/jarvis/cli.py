@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import secrets
+import sqlite3
 from contextlib import suppress
 from datetime import UTC, datetime
 from pathlib import Path
@@ -2137,6 +2139,7 @@ async def _computer_audit(settings: Settings, *, limit: int, kind: str = "all") 
                 f"{lifecycle_event.grant_id or '-'}",
             )
         console.print(table)
+
     if kind in {"all", "receipts"}:
         table = Table(title="Sanitized computer action receipts")
         table.add_column("Finished")
@@ -2181,6 +2184,104 @@ async def _computer_audit(settings: Settings, *, limit: int, kind: str = "all") 
             )
         console.print(table)
     return 0
+
+
+@remote_app.command("deployment-plan")
+def remote_deployment_plan(
+    tailscale_status_json: Annotated[
+        Path,
+        typer.Option(
+            "--tailscale-status-json",
+            exists=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Bounded output from `tailscale status --json`.",
+        ),
+    ],
+    backend_port: Annotated[
+        int,
+        typer.Option("--backend-port", min=1, max=65535),
+    ] = 8765,
+) -> None:
+    """Derive a sanitized loopback-only Tailscale Serve deployment plan."""
+    from jarvis.remote import (
+        PrivateDeploymentError,
+        build_private_deployment_plan,
+        load_tailscale_status,
+    )
+
+    try:
+        status = load_tailscale_status(tailscale_status_json)
+        plan = build_private_deployment_plan(status, backend_port=backend_port)
+    except PrivateDeploymentError as exc:
+        console.print(f"[bold red]Private deployment blocked.[/] {exc}")
+        raise typer.Exit(code=2) from None
+    console.print(plan.model_dump_json(indent=2))
+
+
+@remote_app.command("backup")
+def remote_backup(
+    destination: Annotated[
+        Path,
+        typer.Argument(
+            dir_okay=False,
+            resolve_path=True,
+            help="New private path for a consistent full JARVIS SQLite backup.",
+        ),
+    ],
+) -> None:
+    """Create and verify a no-overwrite SQLite backup for deployment recovery."""
+    settings = _load_settings()
+    source_path = settings.database_path.resolve()
+    target_path = destination.resolve()
+    if not source_path.is_file():
+        console.print("[bold red]Backup blocked.[/] JARVIS database is unavailable.")
+        raise typer.Exit(code=2)
+    if target_path.exists() or target_path.is_symlink():
+        console.print("[bold red]Backup blocked.[/] Destination already exists.")
+        raise typer.Exit(code=2)
+    if not target_path.parent.is_dir():
+        console.print("[bold red]Backup blocked.[/] Destination directory does not exist.")
+        raise typer.Exit(code=2)
+    if target_path == source_path:
+        console.print("[bold red]Backup blocked.[/] Destination must differ from live database.")
+        raise typer.Exit(code=2)
+
+    created = False
+    try:
+        with target_path.open("xb"):
+            created = True
+        source_uri = f"{source_path.as_uri()}?mode=ro"
+        with (
+            sqlite3.connect(source_uri, uri=True) as source,
+            sqlite3.connect(target_path) as target,
+        ):
+            source.backup(target)
+            integrity = target.execute("PRAGMA integrity_check").fetchone()
+            if integrity != ("ok",):
+                raise sqlite3.DatabaseError("backup integrity check failed")
+        with target_path.open("rb") as backup_file:
+            digest = hashlib.file_digest(backup_file, "sha256").hexdigest()
+    except (OSError, sqlite3.Error) as exc:
+        if created:
+            target_path.unlink(missing_ok=True)
+        console.print(f"[bold red]Backup failed.[/] {type(exc).__name__}")
+        raise typer.Exit(code=1) from None
+
+    console.print(
+        json.dumps(
+            {
+                "backup_path": str(target_path),
+                "bytes": target_path.stat().st_size,
+                "sha256": digest,
+                "integrity_check": "ok",
+                "contains_private_data": True,
+            },
+            indent=2,
+        ),
+        soft_wrap=True,
+    )
 
 
 def _render_diagnostics(report: DiagnosticReport) -> None:

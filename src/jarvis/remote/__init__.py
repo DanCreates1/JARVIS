@@ -6,6 +6,13 @@ from jarvis.remote.browser import (
     FixedWindowRateLimiter,
     RateLimitDecision,
 )
+from jarvis.remote.deployment import (
+    MAX_TAILSCALE_STATUS_BYTES,
+    PrivateDeploymentError,
+    PrivateDeploymentPlan,
+    build_private_deployment_plan,
+    load_tailscale_status,
+)
 from jarvis.remote.models import (
     BrowserSessionCredential,
     DeviceRecord,
@@ -57,6 +64,7 @@ __all__ = [
     "MAX_PWA_RETAINED_EVENT_BYTES",
     "MAX_PWA_SUBSCRIPTIONS",
     "MAX_PWA_SUBSCRIPTIONS_PER_SESSION",
+    "MAX_TAILSCALE_STATUS_BYTES",
     "REQUEST_AUDIENCE",
     "SIGNATURE_HEADERS",
     "BrowserOriginError",
@@ -75,6 +83,8 @@ __all__ = [
     "PWAEventTopic",
     "PWASubscription",
     "PWATransportError",
+    "PrivateDeploymentError",
+    "PrivateDeploymentPlan",
     "RateLimitDecision",
     "RemoteAuditEvent",
     "RemoteAuditOutcome",
@@ -89,7 +99,9 @@ __all__ = [
     "SessionRequest",
     "SignedRequest",
     "build_enrollment_proof",
+    "build_private_deployment_plan",
     "build_rotation_proof",
     "canonical_request",
     "encode_base64url",
+    "load_tailscale_status",
 ]

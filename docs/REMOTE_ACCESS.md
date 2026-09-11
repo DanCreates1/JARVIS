@@ -1,10 +1,9 @@
-# Phase 8A-8C remote identity, trusted browser, and PWA boundary
+# Phase 8 remote identity, trusted browser, PWA, and private deployment boundary
 
 Phase 8A supplies device identity. Phase 8B adds trusted browser sessions, origin/CSRF/CORS/CSP,
 bounded request/rate policy, and low-risk remote approval rules. Phase 8C adds an installable,
-offline-safe shell plus scoped status/task/chat and resumable event transport. None enables remote
-networking. JARVIS still refuses non-loopback web binding; TLS/private-network deployment and
-real-phone validation remain Phase 8D.
+offline-safe shell plus scoped status/task/chat and resumable event transport. Phase 8D deploys
+that boundary through tailnet-only Tailscale Serve HTTPS while JARVIS stays loopback-only.
 
 ## Security properties
 
@@ -107,7 +106,9 @@ An enrolled phone/browser requests a session with a signed
 - returns the CSRF token once in JSON for memory-only client use; and
 - persists only SHA-256 digests of both values and marks the row as a browser session.
 
-Cookie-authenticated requests require the exact configured `Origin`. `POST`, `PUT`, `PATCH`, and
+Cookie-authenticated unsafe requests require the exact configured `Origin`. Safe `GET`/`HEAD`
+requests may use the PWA's exact `X-Jarvis-Browser-Origin` only when iOS standalone mode omits
+`Origin` or sends `Origin: null`; hostile or missing fallback is denied. `POST`, `PUT`, `PATCH`, and
 `DELETE` additionally require exactly one `X-Jarvis-CSRF` value. Signed API tokens and browser
 cookies are different session types and cannot be exchanged. Logout clears the cookie and revokes
 the durable session. Device revocation or key rotation invalidates browser sessions immediately;
@@ -199,7 +200,34 @@ device revocation for a lost/offline phone.
 - Locked runtime dependency evidence: `cryptography 50.0.1` (`Apache-2.0 OR BSD-3-Clause`),
   `cffi 2.1.1` (`MIT-0`), and `pycparser 3.0` (`BSD-3-Clause`), from installed package metadata.
 
-## Deferred Phase 8 work
+## Deferred remote work
 
-- Phase 8D: reviewed TLS/private-network deployment, firewall/Tailscale policy, external listener
-  scan, and real-phone enrollment/revocation testing.
+- Remote voice, persistent push, remote effects, public access, and multi-replica state remain
+  unavailable. They require separate future threat models and acceptance gates.
+
+## Phase 8D private deployment controls
+
+Phase 8D uses Tailscale Serve as the HTTPS gateway and keeps JARVIS on
+`http://127.0.0.1:8765`. It forbids Funnel, direct LAN/tailnet binding, port forwarding, broad
+firewall rules, and multiple JARVIS replicas. The deployment planner derives the exact `.ts.net`
+origin from bounded live Tailscale status instead of accepting a caller-supplied hostname.
+
+Use `scripts/phase8d-private.ps1` for preflight, foreground run, sanitized status, and owned-route
+rollback. The launcher refuses an offline/malformed node, public Funnel, non-loopback backend
+listener, occupied backend port, existing unowned Serve route, invalid origin/port, missing policy/Certificate
+Transparency acknowledgement, or failed JARVIS diagnostics. Runtime status and the ownership marker
+remain under ignored `runtime/`; no Tailscale status, login identity, key, ticket, or phone data is
+committed.
+
+Tailscale HTTPS places the exact machine FQDN in public Certificate Transparency logs. Review and,
+if needed, rename the node before enabling Serve. Tailnet grants must restrict the intended source
+to this host's TCP 443; tailnet access never replaces JARVIS enrollment. Full operator steps,
+live-test matrix, lost-phone recovery, and rollback are in
+[`PHASE_8D_DEPLOYMENT.md`](PHASE_8D_DEPLOYMENT.md).
+
+The completed physical-iPhone matrix covers install, exact minimum scopes, minimized status/tasks,
+public-fixture chat, generic notifications, cache privacy, network loss/reconnect, restart,
+immediate revocation, offline erase, and fresh-key re-enrollment. iOS standalone safe reads may
+send no `Origin` or opaque `Origin: null`; the PWA supplies its exact `window.location.origin` in a
+custom header. Only safe `GET`/`HEAD` may use that reviewed fallback. Unsafe methods still require
+the browser `Origin` plus CSRF proof, and hostile/missing fallback fails closed.

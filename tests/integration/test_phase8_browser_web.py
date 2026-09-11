@@ -215,12 +215,31 @@ def test_browser_cookie_csrf_origin_cors_csp_logout_and_secret_storage(tmp_path:
         assert "unsafe-inline" not in identity.headers["content-security-policy"]
         assert identity.headers["strict-transport-security"] == "max-age=31536000"
 
+        ios_identity = client.get("/api/v1/identity", headers={"X-Jarvis-Browser-Origin": ORIGIN})
+        assert ios_identity.status_code == 200 and ios_identity.json()["id"] == device_id
+        assert ios_identity.headers["access-control-allow-origin"] == ORIGIN
+        opaque_ios_identity = client.get(
+            "/api/v1/identity",
+            headers={"Origin": "null", "X-Jarvis-Browser-Origin": ORIGIN},
+        )
+        assert opaque_ios_identity.status_code == 200
+        assert opaque_ios_identity.headers["access-control-allow-origin"] == ORIGIN
+
         assert client.get("/api/v1/identity").status_code == 403
         hostile = client.get(
             "/api/v1/identity", headers={"Origin": "https://phone.jarvis.test.attacker.invalid"}
         )
         assert hostile.status_code == 403
         assert "access-control-allow-origin" not in hostile.headers
+        hostile_fallback = client.get(
+            "/api/v1/identity",
+            headers={
+                "Origin": "null",
+                "X-Jarvis-Browser-Origin": "https://phone.jarvis.test.attacker.invalid",
+            },
+        )
+        assert hostile_fallback.status_code == 403
+        assert "access-control-allow-origin" not in hostile_fallback.headers
 
         missing_csrf = client.delete("/api/v1/sessions/current", headers={"Origin": ORIGIN})
         assert missing_csrf.status_code == 401
@@ -229,6 +248,11 @@ def test_browser_cookie_csrf_origin_cors_csp_logout_and_secret_storage(tmp_path:
             headers={"Origin": ORIGIN, "X-Jarvis-CSRF": "Z" * 43},
         )
         assert wrong_csrf.status_code == 401
+        fallback_on_unsafe_method = client.delete(
+            "/api/v1/sessions/current",
+            headers={"X-Jarvis-Browser-Origin": ORIGIN, "X-Jarvis-CSRF": csrf_token},
+        )
+        assert fallback_on_unsafe_method.status_code == 403
         logout = client.delete(
             "/api/v1/sessions/current",
             headers={"Origin": ORIGIN, "X-Jarvis-CSRF": csrf_token},

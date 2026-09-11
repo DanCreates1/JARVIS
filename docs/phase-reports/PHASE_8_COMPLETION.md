@@ -1,20 +1,19 @@
-# Phase 8 Secure Phone/PWA Progress Report
+# Phase 8 Secure Phone/PWA Completion Report
 
-Status: `in-progress`
+Status: `complete`
 Started: 2026-09-09
 Updated: 2026-09-10
-Active subphase: Phase 8D — private-network/TLS and real-phone validation
-Recommended Codex model: `gpt-5.6-terra`
-Recommended reasoning: `high`
-Phase 8C session / five-hour stop: 2026-09-10T08:31:56-04:00 / 2026-09-10T13:31:56-04:00
+Active subphase: Phase 8D — complete
+Recommended Codex model: `gpt-6-astra`
+Recommended reasoning: `max`
+Phase 8D session / five-hour stop: 2026-09-10T16:15:32-04:00 / 2026-09-10T21:15:32-04:00
 
 ## Objective
 
-Build Phase 8C's installable, responsive PWA and scoped product transport on the completed Phase
-8A-8B identity/browser boundary. Add deterministic enrollment/session handling, resumable ordered
-chat/task/device subscriptions, offline-safe shell behavior, explicit private-notification controls,
-and complete logout cleanup. Keep every listener loopback-only; TLS/private-network deployment and
-real-phone validation remain Phase 8D.
+Deploy completed Phase 8A-8C through a private Tailscale HTTPS gateway while JARVIS remains bound
+only to loopback. Prove real-phone enrollment, installation, reconnect, restart, revocation,
+lost-phone recovery, external listener confinement, laptop-offline behavior, and rollback. Keep one
+replica, prohibit Funnel/public exposure, and leave remote voice and remote effects disabled.
 
 ## Baseline
 
@@ -28,8 +27,40 @@ real-phone validation remain Phase 8D.
   Seventeen targeted Phase 8A-8B tests passed at the 8C baseline; no product failure was observed.
 - Prior phase evidence: Phase 3 broker is complete except separately authorized live-effect
   revalidation. Phase 7 is complete. Existing web API refuses non-loopback binding.
+- Phase 8D start: `main` at `f788985`, equal to `origin/main`; no listener on ports 80, 443, or
+  8765 and no JARVIS firewall rule. Tailscale was absent; WinGet installation of official package
+  `Tailscale.Tailscale` 1.102.3 began and awaited Windows elevation. Existing untracked user cleanup
+  script remains untouched.
+- Phase 8D live activation: official Tailscale 1.102.3 is authenticated with MagicDNS/HTTPS;
+  policy restricts the tagged JARVIS host to approved TCP 443 access. App Control blocked the
+  uv-managed CPython executable with OS error 4551, so official PSF CPython 3.11.9 was installed
+  through WinGet and the locked environment was rebuilt without changing Windows security policy.
 
 ## Acceptance checklist
+
+### Phase 8D
+
+- [x] Tailscale Serve terminates trusted HTTPS for the exact node `*.ts.net` origin and proxies only
+  to `http://127.0.0.1:8765`; JARVIS never binds a LAN/tailnet/public address.
+- [x] Tailnet policy is deny-by-default for this service, Funnel is off, no broad firewall rule is
+  added, and one JARVIS replica owns replay/session/rate/subscription state.
+- [x] Deployment preflight, foreground startup, status, teardown, backup, and rollback runbooks are
+  reproducible and fail closed on missing login/DNS/HTTPS, wrong origin, occupied port, public
+  Funnel, unexpected Serve target, or unhealthy backend.
+- [x] One physical phone on the approved tailnet installs the PWA, enrolls with exact minimum
+  browser scopes, chats, reads minimized status/tasks, reconnects without duplicates, and exposes
+  no private notification/cache content.
+- [x] Phone network partition, laptop restart/offline, certificate failure, revoked stream/session,
+  offline logout, lost-phone local revocation, and re-enrollment behave safely.
+- [x] Revocation blocks the phone immediately; external scans show only the intended tailnet HTTPS
+  endpoint and no LAN/public JARVIS listener.
+- [x] Fixed live latency/reconnect/resource measurements, full release gates, dependency/secret
+  scans, documentation, and rollback evidence pass.
+
+Frozen Phase 8D targets: zero unauthenticated success, revoked success, cross-device/session leak,
+duplicate/gap, offline effect, unintended LAN/public listener, or Funnel route; 100 reconnect cycles;
+HTTPS status p95 <= 250 ms and reconnect/resubscribe p95 <= 1,000 ms on the private tailnet; revoke
+denial observed within 5 seconds; JARVIS RSS growth <= 50 MiB; one replica only.
 
 ### Phase 8C
 
@@ -102,6 +133,68 @@ denial audit remains bounded by Phase 8A's per-device retention ceiling.
 - [x] Full release, vulnerability, secret, Git, and doctor gates pass.
 
 ## Milestones
+
+### Phase 8D Milestone 1 — Private topology and deployment controls
+
+- Status: complete
+- Changes: Tailscale Serve topology selected; JARVIS stays loopback-only; Funnel, direct LAN bind,
+  broad firewall rules, and multi-replica deployment are excluded. Added bounded live-status
+  deployment planner plus fail-closed preflight/run/status/owned-stop launcher and runbook. Raw
+  Tailscale status is deleted immediately after sanitized plan derivation. Windows bootstrap now
+  requires executable official PSF CPython 3.11 and disables uv-managed Python fallback/downloads.
+- Evidence: official Tailscale 2026 Serve/HTTPS/access-control/address documentation reviewed;
+  planner rejects unsafe/offline DNS/IP state and retains no login identity; PowerShell parses and
+  preflight passes; focused 42-test validation, mypy, and Ruff pass. Live private HTTPS returns 200,
+  unauthenticated identity returns 401 with HSTS/authentication challenge, the backend listens only
+  on `127.0.0.1:8765`, TCP 443 is owned by `tailscaled` without wildcard bind, Funnel has no enabled
+  route, and no JARVIS firewall rule exists.
+- Remaining: none; physical-phone evidence begins in Milestone 2.
+
+### Phase 8D Milestone 2 — Real-phone enrollment and functional proof
+
+- Status: complete
+- Changes: installed PWA shell on a physical iPhone, enrolled one non-exportable browser key with
+  exact minimum scopes, and added a safe-method exact-origin fallback for iOS standalone mode where
+  WebKit omitted `Origin` or sent opaque `Origin: null`. Unsafe methods still require exact browser
+  `Origin`; hostile/missing fallback remains denied.
+- Evidence: physical phone enrollment/session bootstrap and public-fixture chat passed; minimized
+  active device status, key/session metadata, empty task state, generic notification/cache privacy,
+  Tailscale-off network loss, blocked offline chat, Tailscale-on reconnect, and post-reconnect chat
+  passed. After final owned teardown and clean deployment restart, the re-enrolled phone connected,
+  loaded status/tasks, and completed `PHASE8D FINAL RESTART OK`. Server integration tests cover
+  missing, opaque, hostile, and unsafe-method fallback cases.
+- Remaining: none; irreversible lost-phone revocation/re-enrollment begins after explicit authority.
+
+### Phase 8D Milestone 3 — Loss, revocation, scan, and rollback
+
+- Status: complete
+- Changes: none beyond Milestones 1-2 deployment/recovery controls.
+- Evidence: exact local device revocation succeeded and atomically invalidated every session; audit
+  recorded content-free `device.revoked / succeeded / local_host_revocation`. Physical phone
+  immediately denied refresh/chat, then erased its non-exportable key, cookies, cursors,
+  notification choice, service worker, and shell cache while Tailscale was offline. Reopen required
+  enrollment and exposed no old key. Certificate authority mismatch was rejected; Funnel remained
+  off; backend had one loopback listener and zero non-loopback listeners. Fresh-key phone
+  re-enrollment passed while the old device remained revoked. Exact owned Serve teardown removed
+  the route, marker, and both listeners; clean preflight and background restart restored only
+  tailnet HTTPS 443 plus loopback backend 8765. Final scan found zero unexpected listeners and zero
+  JARVIS firewall rules; the replacement physical-phone session reconnected and chatted after that
+  restart.
+- Remaining: none.
+
+### Phase 8D Milestone 4 — Release closeout
+
+- Status: complete
+- Changes: added a no-overwrite, integrity-checked online SQLite backup command and tightened owned
+  Serve teardown to reject any TCP, HTTPS authority, or handler drift. Runbook now works under the
+  host's process-scoped PowerShell execution-policy constraint.
+- Evidence: final 794,624-byte private backup emitted a SHA-256 receipt and
+  `integrity_check: ok`; isolated restore rehearsal passed `jarvis doctor` with one active and one
+  revoked device, then removed its temporary copy. Two superseded recovery backups were deleted so
+  a pre-revocation snapshot cannot accidentally reactivate the retired credential. Full suite
+  passes with 881 tests, 2 skips, 85.09% coverage; Ruff, mypy, build, JavaScript syntax,
+  dependency audit, secret scan, doctor, and Git whitespace checks pass.
+- Remaining: none. Phase 9A is next.
 
 ### Phase 8C Milestone 1 — PWA state and transport contracts
 
@@ -214,6 +307,25 @@ denial audit remains bounded by Phase 8A's per-device retention ceiling.
 
 ## Decisions
 
+- Decision: Use Tailscale Serve HTTPS to proxy only `http://127.0.0.1:8765`; keep the JARVIS
+  listener loopback-only.
+- Reason: this preserves the tested application boundary, avoids LAN/firewall exposure, supplies a
+  browser-trusted secure context, and limits reachability to the reviewed tailnet policy.
+- Alternatives: direct `0.0.0.0`/LAN bind, self-signed LAN TLS, port forwarding, Funnel, and a
+  second replica rejected.
+- Reversible later: the owned Serve route is removed on normal shutdown or exact marker-validated
+  rollback; origin configuration is process-local.
+
+- Decision: Derive the trusted origin from bounded live `tailscale status --json` and require
+  explicit Certificate Transparency and private-grant acknowledgements.
+- Reason: caller-supplied hostnames and silent FQDN publication would weaken origin and privacy
+  review. Local Tailscale status cannot prove admin-console grants, so activation fails closed on an
+  explicit operator checkpoint.
+- Alternatives: hard-coded origin, broad `.ts.net` wildcard, reusable auth key, and assumed default
+  tailnet access rejected.
+- Reversible later: a future authenticated policy API could verify exact grants without changing
+  application identity/scopes.
+
 - Decision: Use Ed25519 proof-of-possession credentials and server-side hashed opaque sessions.
 - Reason: unique asymmetric device identity avoids shared secrets; signed requests remain bound to
   the enrolled key while session tokens are never stored in plaintext.
@@ -242,6 +354,42 @@ denial audit remains bounded by Phase 8A's per-device retention ceiling.
 - Reversible later: cache version and shell files can evolve without changing API data boundaries.
 
 ## Verification evidence
+
+Initial Phase 8D deployment-control evidence before live activation:
+
+```text
+PowerShell AST parse: scripts/phase8d-private.ps1 passed
+uv lock --check: 119 packages resolved
+uv sync --locked: 68 packages checked
+Ruff full format/check: 271 files formatted; passed
+mypy src: 120 source files, no issues
+full pytest: 879 passed, 2 skipped, 85.12% coverage, 1 upstream deprecation warning
+targeted deployment/browser/PWA suite: 46 passed
+pip-audit: no known vulnerabilities
+Gitleaks: 35 commits and worktree / ~3.92 MB scanned; no leaks
+wheel/sdist build: passed
+jarvis doctor: ready; 0 active remote devices; exact origin disabled; loopback 127.0.0.1:8765
+git diff --check: passed
+network baseline: no listener on 80/443/8765; no JARVIS firewall rule
+Tailscale package selected: official WinGet Tailscale.Tailscale 1.102.3; elevation pending
+```
+
+Current Phase 8D live/local closeout evidence:
+
+```text
+Tailscale 1.102.3: authenticated; HTTPS Serve is tailnet-only; Funnel is off
+private TLS shell: HTTP 200; HSTS max-age=31536000; platform trust validation passed
+final 100 unauthenticated private-HTTPS status requests: 100 HTTP 401; p50 1.159 ms; p95 1.600 ms;
+maximum 46.464 ms; JARVIS RSS growth 0.254 MiB
+listener/connectivity matrix: loopback 8765 and tailnet 443 reachable; tailnet/LAN 8765 and LAN
+11434 unreachable; no wildcard listener
+final backup: 794,624 bytes; SHA-256 receipt emitted; SQLite integrity_check ok
+isolated restore rehearsal: jarvis doctor passed with one active and one revoked device; temporary
+copy removed
+full pytest: 881 passed, 2 skipped, 85.09% coverage
+Ruff format/check, mypy 120 files, wheel/sdist build, Node syntax, pip-audit, Gitleaks, and
+git diff --check: passed
+```
 
 ```text
 ruff format --check .: 268 files formatted
@@ -306,6 +454,22 @@ Phase 8C PWA/reconnect benchmark:
 - Runtime/device: Windows laptop, Python 3.11.16, synthetic browser contexts; real Chromium shell
   layout separately checked at a 390x844 phone viewport.
 
+Phase 8D private deployment benchmark:
+
+- Samples: 100 private-TLS unauthenticated status requests through Tailscale Serve, plus one
+  physical iPhone install/enrollment, loss/reconnect, revocation/offline erase, re-enrollment, and
+  post-rollback restart sequence. Phase 8C separately supplies 100 deterministic reconnect
+  subscriptions and 10,000 ordered frames.
+- p50/p95/max private HTTPS: 1.159/1.600/46.464 ms; p95 target <= 250 ms.
+- Reconnect/resubscribe: deterministic p95 0.0578 ms against <= 1,000 ms; physical tailnet recovery
+  passed operator observation after a 30-second disconnect.
+- Errors/failures: 100/100 unauthenticated requests returned HTTP 401; zero revoked successes,
+  cross-session leaks, duplicates, gaps, offline effects, unintended listeners, or Funnel routes.
+- Resource growth: 0.254 MiB JARVIS RSS against <= 50 MiB. One backend process/listener and one
+  tailnet HTTPS gateway; old phone device revoked, replacement device active.
+- Runtime/device: Windows laptop, official PSF Python 3.11.9, Tailscale 1.102.3, physical iPhone PWA;
+  one private HTTPS origin, 15-minute browser sessions, exact minimum product scopes.
+
 ## Security and privacy
 
 - Threats tested: replay, concurrent replay, restart replay, stolen token without matching device key,
@@ -349,22 +513,34 @@ Phase 8C additions:
 - Listener/execution boundary: web bind remains `127.0.0.1`; service worker has an exact shell-path
   allowlist; offline UI never queues chat or effects; remote voice remains disabled.
 
+Phase 8D additions:
+
+- Tailscale Serve is tailnet-only on HTTPS 443 and proxies only to loopback 8765; Funnel, LAN/public
+  binding, port forwarding, broad firewall rules, and multiple replicas remain forbidden.
+- Deployment state is derived from bounded live status. Run refuses malformed/offline Tailscale,
+  invalid `.ts.net` identity/address state, occupied/non-loopback backend ports, public Funnel, and
+  existing routes. Stop requires the exact owned TCP, authority, root handler, and backend target.
+- Physical loss recovery immediately revoked every old session; offline erase removed the phone
+  key and site data; fresh enrollment generated a different key/device while old audit and denial
+  state remained durable.
+- Final full-database backup refuses overwrite, verifies SQLite integrity, and stays outside Git.
+  Isolated restore passed diagnostics. Superseded pre/post-revocation backups were removed.
+
 ## Blockers
 
-- None for safe local Phase 8A-8C implementation. Real phone, TLS, private-network deployment, and
-  non-loopback exposure require later Phase 8D authority and are not attempted.
+- None for Phase 8. Phase 1 hosted latency and separately authorized Phase 2/3 live smokes remain
+  independent cross-phase limitations.
 
 ## Known limits and deferred scope
 
 - Passkey/OIDC step-up remains optional future hardening; current browser bootstrap uses the enrolled
   device signature and a five-minute recent-auth window for low-risk approval only.
-- Persistent push notifications and remote voice are not part of Phase 8C.
+- Persistent push notifications, remote voice/effects, public access, and multiple replicas remain
+  deferred and disabled.
 - Process restart intentionally drops private event deltas and idempotency results; client creates a
   fresh session/subscription and refreshes durable status instead of recovering cached content.
 - Offline logout erases all browser-held state immediately; server cookie/session can only be
   revoked after connectivity returns and otherwise expires within its 15-minute TTL.
-- TLS/private topology, firewall/Tailscale deployment, real phone enrollment/revocation and scan:
-  Phase 8D.
 
 ## Recovery and rollback
 
@@ -374,14 +550,18 @@ Phase 8C additions:
   while offline. Restarting JARVIS clears every process-local event/idempotency buffer. Existing
   migration 010 is additive; rollback disables routes/configuration rather than deleting durable
   identity data.
+- `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\phase8d-private.ps1 -Action
+  Stop` removes only the exactly matching owned Serve route. `jarvis remote backup` creates a
+  no-overwrite, integrity-checked full SQLite backup; stop JARVIS before replacing live data during
+  an authorized restore.
 
 ## Final handoff
 
-- Final status: Phase 8A-8C complete; Phase 8 overall remains in progress.
+- Final status: Phase 8A-8D complete; Phase 8 is complete.
 - Files changed: PWA shell/service worker, bounded event hub, remote scope/context contracts,
   authenticated product routes, diagnostics/package data, tests, benchmark, ADR, and
   API/recovery/security/architecture/setup/status documentation.
-- Next recommended phase: Phase 8D private-network/TLS deployment and real-phone enrollment,
-  install, reconnect, revocation, loss, and security-scan validation.
+- Next recommended phase: Phase 9A topology/protocol/identity. Do not migrate state or deploy a
+  second replica before its ownership and negotiation gates.
 - Phase 8C implementation commit is recorded in Git history and the final handoff; Phase 8B
   baseline `bbbc9ce` was synchronized with `origin/main` before this implementation.

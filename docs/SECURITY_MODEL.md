@@ -371,9 +371,14 @@ clears server buffers/cookie/site data, and erases client key/cursors/cache/serv
 voice, push subscriptions, task execution, computer actions, approvals, and offline mutation queues
 remain unavailable.
 
-Phase 8A-8C do not authorize a non-loopback listener. TLS/private-network deployment, firewall
-policy, and real-phone testing remain explicit Phase 8D work. See
-`docs/REMOTE_ACCESS.md`.
+Phase 8D adds one tailnet-only Tailscale Serve HTTPS listener while the JARVIS process remains on
+`127.0.0.1`. Funnel, public/LAN JARVIS listeners, broad firewall rules, port forwarding, and
+multiple replicas are prohibited. The deployment launcher requires explicit Certificate
+Transparency and private-grant acknowledgement, rejects occupied or non-loopback backend ports,
+and removes only an exactly matching owned Serve configuration. A physical-phone loss test proved
+immediate device/session revocation, offline client-key/site-data erase, and fresh-key
+re-enrollment. A verified SQLite backup plus isolated restore rehearsal covers local recovery.
+See `docs/REMOTE_ACCESS.md`.
 
 ## 14. Memory, research, audio, and vision privacy
 
