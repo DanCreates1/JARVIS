@@ -575,6 +575,27 @@ class SQLiteRemoteIdentityStore:
             )
             await connection.commit()
 
+    async def append_protocol_success(
+        self,
+        *,
+        device_id: str,
+        session_id: str,
+        created_at: datetime,
+    ) -> None:
+        """Record content-free successful negotiation in the existing identity audit."""
+        async with self._operation_lock:
+            connection = await self._get_connection()
+            await self._insert_audit(
+                connection,
+                event_type="protocol.negotiated",
+                outcome=RemoteAuditOutcome.SUCCEEDED,
+                reason_code="capabilities_negotiated",
+                device_id=device_id,
+                session_id=session_id,
+                created_at=created_at,
+            )
+            await connection.commit()
+
     async def list_audit_events(
         self,
         *,

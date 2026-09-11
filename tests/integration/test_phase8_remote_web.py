@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import AsyncIterator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from cryptography.hazmat.primitives import serialization
@@ -26,7 +26,10 @@ from jarvis.remote import (
     RemoteScope,
     SignedRequest,
     SQLiteRemoteIdentityStore,
+    TopologyNegotiator,
+    TopologyProfile,
     build_enrollment_proof,
+    build_remote_manifest,
     canonical_request,
     encode_base64url,
 )
@@ -71,8 +74,9 @@ def _headers(
     query: str = "",
     token: str | None = None,
     key_version: int = 1,
+    timestamp: datetime | None = None,
 ) -> dict[str, str]:
-    timestamp = datetime.now(UTC)
+    timestamp = timestamp or datetime.now(UTC)
     request = SignedRequest(
         method=method,
         authority="testserver",
@@ -350,3 +354,191 @@ def test_versioned_remote_api_rejects_scope_expansion_and_wrong_token_type(
         )
         wrong_type_headers["Authorization"] = "Basic " + "A" * 43
         assert client.get("/api/v1/identity", headers=wrong_type_headers).status_code == 401
+
+
+def test_authenticated_topology_negotiation_rejects_replay_stale_and_digest_mismatch(
+    tmp_path: Path,
+) -> None:
+    settings = Settings(data_dir=tmp_path, _env_file=None)
+    key = Ed25519PrivateKey.generate()
+    created: dict[str, object] = {}
+
+    async def runtime_factory(_settings: Settings) -> RuntimeComponents:
+        database = tmp_path / "phase9-topology-web.db"
+        store = SQLiteConversationStore(database)
+        remote_store = SQLiteRemoteIdentityStore(database)
+        await store.initialize()
+        await remote_store.initialize()
+        remote = RemoteIdentityService(remote_store)
+        ticket = await remote.create_enrollment(
+            host_id="host:phase9-web",
+            display_name="Synthetic laptop node",
+            device_type=DeviceType.LAPTOP,
+            approved_scopes=(RemoteScope.EVENTS_READ, RemoteScope.TOPOLOGY_NEGOTIATE),
+        )
+        public_key = _public_key(key)
+        device = await remote.complete_enrollment(
+            EnrollmentCompletion(
+                enrollment_id=ticket.id,
+                challenge=ticket.challenge,
+                public_key=public_key,
+                proof_signature=encode_base64url(
+                    key.sign(
+                        build_enrollment_proof(
+                            enrollment_id=ticket.id,
+                            challenge=ticket.challenge,
+                            public_key=public_key,
+                            protocol_version="1",
+                        )
+                    )
+                ),
+            )
+        )
+        manifest = build_remote_manifest(
+            profile=TopologyProfile.SPLIT,
+            host_id="host:phase9-web",
+            server_node_id="node:server",
+            laptop_node_id=device.id,
+            server_capabilities=("core.chat", "core.identity"),
+            laptop_capabilities=("node.computer", "node.voice"),
+            laptop_offline_capabilities=("node.voice",),
+            epoch=2,
+        )
+        created.update(
+            device_id=device.id,
+            manifest=manifest,
+            remote_store=remote_store,
+        )
+        return RuntimeComponents(
+            settings=settings,
+            store=store,
+            provider=_FakeRouter(),  # type: ignore[arg-type]
+            service=_FakeService(),  # type: ignore[arg-type]
+            remote_store=remote_store,
+            remote_identity=remote,
+            topology=TopologyNegotiator(manifest, server_node_id="node:server"),
+        )
+
+    with TestClient(create_app(settings, runtime_factory=runtime_factory)) as client:
+        device_id = str(created["device_id"])
+        session_body = (
+            b'{"requested_scopes":["events.read","topology.negotiate"],"audience":"jarvis-api"}'
+        )
+        issued = client.post(
+            "/api/v1/sessions",
+            content=session_body,
+            headers={
+                **_headers(
+                    key=key,
+                    method="POST",
+                    path="/api/v1/sessions",
+                    device_id=device_id,
+                    nonce="I" * 22,
+                    body=session_body,
+                ),
+                "Content-Type": "application/json",
+            },
+        )
+        assert issued.status_code == 201
+        credential = issued.json()
+        token = credential["token"]
+        manifest = created["manifest"]
+        hello = {
+            "host_id": "host:phase9-web",
+            "node_id": device_id,
+            "session_id": credential["session_id"],
+            "audience": "jarvis-api",
+            "profile": "split",
+            "topology_epoch": 2,
+            "topology_digest": manifest.digest,  # type: ignore[union-attr]
+            "supported_versions": ["1.0"],
+            "minimum_version": "1.0",
+            "offered_capabilities": ["node.computer", "node.voice", "node.unapproved"],
+            "required_capabilities": ["node.voice"],
+        }
+        hello_body = json.dumps(hello, separators=(",", ":")).encode()
+        headers = _headers(
+            key=key,
+            method="POST",
+            path="/api/v1/topology/negotiate",
+            device_id=device_id,
+            nonce="J" * 22,
+            token=token,
+            body=hello_body,
+        )
+        negotiated = client.post(
+            "/api/v1/topology/negotiate",
+            content=hello_body,
+            headers={**headers, "Content-Type": "application/json"},
+        )
+        assert negotiated.status_code == 200
+        assert negotiated.json()["selected_version"] == "1.0"
+        assert negotiated.json()["granted_capabilities"] == ["node.computer", "node.voice"]
+        assert negotiated.json()["denied_capabilities"] == ["node.unapproved"]
+
+        assert (
+            client.post(
+                "/api/v1/topology/negotiate",
+                content=hello_body,
+                headers={**headers, "Content-Type": "application/json"},
+            ).status_code
+            == 401
+        )
+
+        wrong_digest = {**hello, "topology_digest": "0" * 64}
+        wrong_body = json.dumps(wrong_digest, separators=(",", ":")).encode()
+        mismatch = client.post(
+            "/api/v1/topology/negotiate",
+            content=wrong_body,
+            headers={
+                **_headers(
+                    key=key,
+                    method="POST",
+                    path="/api/v1/topology/negotiate",
+                    device_id=device_id,
+                    nonce="K" * 22,
+                    token=token,
+                    body=wrong_body,
+                ),
+                "Content-Type": "application/json",
+            },
+        )
+        assert mismatch.status_code == 409
+        assert mismatch.json()["detail"]["code"] == "topology_digest_mismatch"
+
+        stale = client.post(
+            "/api/v1/topology/negotiate",
+            content=hello_body,
+            headers={
+                **_headers(
+                    key=key,
+                    method="POST",
+                    path="/api/v1/topology/negotiate",
+                    device_id=device_id,
+                    nonce="L" * 22,
+                    token=token,
+                    body=hello_body,
+                    timestamp=datetime.now(UTC) - timedelta(minutes=2),
+                ),
+                "Content-Type": "application/json",
+            },
+        )
+        assert stale.status_code == 401
+
+        query = "after=0&limit=100"
+        events = client.get(
+            f"/api/v1/events?{query}",
+            headers=_headers(
+                key=key,
+                method="GET",
+                path="/api/v1/events",
+                query=query,
+                device_id=device_id,
+                nonce="M" * 22,
+                token=token,
+            ),
+        )
+        assert events.status_code == 200
+        assert "protocol.negotiated" in events.text
+        assert "topology_topology_digest_mismatch" in events.text
+        assert token not in events.text

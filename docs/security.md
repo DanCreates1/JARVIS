@@ -228,9 +228,12 @@ model digest is a future hardening step so changed weights become visible.
 
 ## API security
 
-Implemented browser/API service binds to loopback, sets restrictive browser
-headers, omits permissive CORS, and validates typed request sizes. Configuration
-rejects non-loopback binding. Authenticated remote access remains deferred.
+Implemented browser/API service binds to loopback, sets restrictive browser headers, uses exact
+credentialed CORS, and validates typed request sizes. Configuration rejects non-loopback binding.
+Phase 8 private access terminates HTTPS at tailnet-only Tailscale Serve and still requires JARVIS
+device/session authentication. Phase 9A capability negotiation additionally requires exact
+`topology.negotiate` scope and matching signed manifest digest/version claims; executable topology
+remains hard-locked to one local owner.
 
 An API caller cannot approve its own privileged tool request without a separate,
 user-visible approval flow.

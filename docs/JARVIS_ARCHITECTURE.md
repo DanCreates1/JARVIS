@@ -591,6 +591,21 @@ and existing or changed Serve configuration. A local ownership marker permits te
 the complete single TCP/HTTPS/handler shape still matches. Replay, session, rate, and subscription
 state therefore remains owned by one JARVIS replica.
 
+Phase 9A makes future placement explicit without activating it. An immutable topology manifest
+defines `local-only`, `split`, or `server-primary`; exact primary-core/gateway/device/offline roles;
+and one owner for each identity, session/replay, conversation, memory, research, task, permission,
+audit, device-setting, computer-effect, and media-capture domain. Shared durable domains require the
+one primary core. Device-local domains require a device node. The shipped `Settings` type accepts
+only `local-only`, whose single laptop node owns every domain.
+
+`POST /api/v1/topology/negotiate` is additive protocol `1.0`. The existing Phase 8 signature and
+private TLS authenticate the request before the negotiator binds host/device/session/audience,
+profile, epoch, manifest digest, minimum/supported version, and offered/required capabilities. The
+highest allowed common version wins. Granted capability is only the intersection of the caller
+offer, configured node allowance, and server registry. Offline fallback returns only the manifest's
+declared subset and never changes canonical owner. Migration, reconciliation, a second writer, and
+server deployment remain Phase 9B/9C.
+
 Remote access defaults to Tailscale/private networking with deny-by-default grants, plus JARVIS application authentication. Private networking is not sufficient authorization. Use TLS, per-device credentials, session expiry, replay protection, rate limits, and revocation. Do not expose Ollama, the privilege broker, or an unauthenticated JARVIS port to the public Internet.
 
 ## 12. Security boundaries

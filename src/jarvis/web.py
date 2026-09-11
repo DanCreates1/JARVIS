@@ -37,6 +37,7 @@ from jarvis.remote import (
     EnrollmentCompletion,
     FixedWindowRateLimiter,
     KeyRotationRequest,
+    ProtocolHello,
     PWAEventHub,
     PWAEventTopic,
     PWATransportError,
@@ -48,6 +49,8 @@ from jarvis.remote import (
     RemoteStateError,
     SessionRequest,
     SignedRequest,
+    TopologyNegotiationError,
+    TopologyNegotiator,
 )
 from jarvis.research import (
     ResearchInterface,
@@ -425,6 +428,29 @@ def create_app(
         except RemoteStateError:
             raise HTTPException(status_code=403, detail="Remote scope denied") from None
         return device.model_dump(mode="json")
+
+    @app.post("/api/v1/topology/negotiate")
+    async def negotiate_topology(payload: ProtocolHello, request: Request) -> dict[str, object]:
+        context = _remote_context(request)
+        identity = _remote_identity(request)
+        try:
+            result = _topology(request).negotiate(context=context, hello=payload)
+        except TopologyNegotiationError as exc:
+            await identity.record_protocol_negotiation(
+                context=context,
+                succeeded=False,
+                reason_code=exc.code,
+            )
+            raise HTTPException(
+                status_code=409,
+                detail={"code": exc.code, "message": "Topology negotiation failed"},
+            ) from None
+        await identity.record_protocol_negotiation(
+            context=context,
+            succeeded=True,
+            reason_code="capabilities_negotiated",
+        )
+        return cast(dict[str, object], jsonable_encoder(result.model_dump(mode="json")))
 
     @app.get("/api/v1/events")
     async def list_remote_identity_events(
@@ -1236,12 +1262,20 @@ def _remote_scope_for_request(method: str, path: str) -> tuple[bool, RemoteScope
         "/api/v1/events": RemoteScope.EVENTS_READ,
         "/api/v1/sessions/current": RemoteScope.SESSION_REVOKE,
         "/api/v1/device/key": RemoteScope.KEY_ROTATE,
+        "/api/v1/topology/negotiate": RemoteScope.TOPOLOGY_NEGOTIATE,
         "/api/v1/client/status": RemoteScope.CLIENT_STATUS_READ,
         "/api/v1/client/tasks": RemoteScope.CLIENT_TASKS_READ,
         "/api/v1/client/subscriptions": RemoteScope.EVENTS_READ,
         "/api/v1/client/events": RemoteScope.EVENTS_READ,
         "/api/v1/client/chat": RemoteScope.CLIENT_CHAT,
     }.get(path)
+
+
+def _topology(request: Request) -> TopologyNegotiator:
+    topology = _runtime(request).topology
+    if topology is None:
+        raise HTTPException(status_code=503, detail="Topology protocol unavailable")
+    return topology
 
 
 def _validate_remote_request_shape(request: Request) -> None:

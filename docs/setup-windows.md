@@ -532,6 +532,25 @@ The script refuses to remove an unowned or changed Serve configuration. See
 [Phase 8D private deployment](PHASE_8D_DEPLOYMENT.md) for phone enrollment,
 reconnect/restart, external scan, revocation, loss, and rollback gates.
 
+## Phase 9A topology safety
+
+Phase 9A adds topology and negotiation contracts only. Keep these defaults:
+
+```powershell
+$env:JARVIS_TOPOLOGY_PROFILE = 'local-only'
+$env:JARVIS_TOPOLOGY_NODE_ID = 'node:local-core'
+$env:JARVIS_TOPOLOGY_EPOCH = '1'
+uv run jarvis doctor
+```
+
+`jarvis doctor` must report one local node, eleven single-owner domains, protocol `1.0`, and no
+remote writer. `split` and `server-primary` are design manifests but are rejected by executable
+settings. Do not enroll a real remote `topology.negotiate` peer, move a database, start a remote
+core, or add another
+replica during 9A. Phase 9B requires verified backup/restore, shadow comparison, cutover, and
+rollback before this configuration can widen. Full ownership and protocol details are in
+[Phase 9A Topology and Protocol Boundary](PHASE_9A_TOPOLOGY.md).
+
 ## Optional free-tier cloud roles
 
 Local Ollama works without cloud credentials. To activate Groq, inject a key from

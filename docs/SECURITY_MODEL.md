@@ -380,6 +380,16 @@ immediate device/session revocation, offline client-key/site-data erase, and fre
 re-enrollment. A verified SQLite backup plus isolated restore rehearsal covers local recovery.
 See `docs/REMOTE_ACCESS.md`.
 
+Phase 9A adds no network listener or remote writer. It defines an authenticated service/laptop
+negotiation route behind the same Phase 8 signed-request middleware. Exact `topology.negotiate`
+device and session scope is required. The signed body binds host/device/session/audience, immutable
+manifest profile/epoch/digest, supported and minimum protocol versions, and offered/required
+capabilities. Caller role/owner fields are forbidden. Highest-common-version selection prevents a
+silent downgrade; unknown required capability, owner drift, stale/replayed/revoked identity, or
+topology mismatch fails closed. Network location, Tailscale identity headers, and advertised
+capabilities grant nothing by themselves. Runtime remains one local owner until Phase 9B proves
+backup, transfer, reconciliation, cutover, and rollback.
+
 ## 14. Memory, research, audio, and vision privacy
 
 Data minimization:

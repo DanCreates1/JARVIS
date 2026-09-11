@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Literal
@@ -92,6 +93,23 @@ class Settings(BaseSettings):
     remote_public_requests_per_minute: int = Field(default=20, ge=1, le=1_000)
     remote_authenticated_requests_per_minute: int = Field(default=240, ge=1, le=10_000)
     remote_rate_limit_entries: int = Field(default=4_096, ge=128, le=100_000)
+    topology_profile: Literal["local-only"] = "local-only"
+    topology_node_id: str = Field(
+        default="node:local-core", pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$"
+    )
+    topology_epoch: int = Field(default=1, ge=1)
+    topology_capabilities: tuple[str, ...] = (
+        "core.chat",
+        "core.identity",
+        "core.memory",
+        "core.permissions",
+        "core.research",
+        "core.tasks",
+        "node.computer",
+        "node.vision",
+        "node.voice",
+        "transport.events",
+    )
     computer_access_enabled: bool = False
     memory_retrieval_enabled: bool = True
     research_enabled: bool = True
@@ -206,6 +224,15 @@ class Settings(BaseSettings):
         if len(normalized) != len(set(normalized)):
             raise ValueError("trusted browser origins must be unique")
         return tuple(sorted(normalized))
+
+    @field_validator("topology_capabilities")
+    @classmethod
+    def validate_topology_capabilities(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        if not value or len(value) > 64 or len(value) != len(set(value)):
+            raise ValueError("topology capabilities must be 1-64 unique names")
+        if any(re.fullmatch(r"[a-z][a-z0-9_.-]{0,127}", item) is None for item in value):
+            raise ValueError("invalid topology capability")
+        return tuple(sorted(value))
 
     @model_validator(mode="after")
     def require_explicit_remote_opt_in(self) -> Settings:
@@ -343,6 +370,10 @@ class Settings(BaseSettings):
                 self.remote_authenticated_requests_per_minute
             ),
             "remote_rate_limit_entries": self.remote_rate_limit_entries,
+            "topology_profile": self.topology_profile,
+            "topology_node_id": self.topology_node_id,
+            "topology_epoch": self.topology_epoch,
+            "topology_capabilities": ",".join(self.topology_capabilities),
             "computer_access_enabled": self.computer_access_enabled,
             "memory_retrieval_enabled": self.memory_retrieval_enabled,
             "research_enabled": self.research_enabled,

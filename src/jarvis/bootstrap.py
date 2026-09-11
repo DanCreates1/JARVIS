@@ -45,7 +45,12 @@ from jarvis.planning import (
     TaskScheduler,
     ValueTaskHandler,
 )
-from jarvis.remote import RemoteIdentityService, SQLiteRemoteIdentityStore
+from jarvis.remote import (
+    RemoteIdentityService,
+    SQLiteRemoteIdentityStore,
+    TopologyNegotiator,
+    build_local_only_manifest,
+)
 from jarvis.research import (
     BoundedResearchOrchestrator,
     ExtractiveResearchSynthesizer,
@@ -93,6 +98,7 @@ class RuntimeComponents:
     tasks: TaskScheduler | None = None
     remote_store: SQLiteRemoteIdentityStore | None = None
     remote_identity: RemoteIdentityService | None = None
+    topology: TopologyNegotiator | None = None
 
     async def close(self) -> None:
         try:
@@ -379,6 +385,15 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
         tasks=tasks,
         remote_store=remote_store,
         remote_identity=RemoteIdentityService(remote_store),
+        topology=TopologyNegotiator(
+            build_local_only_manifest(
+                host_id=memory_host_id,
+                node_id=settings.topology_node_id,
+                capabilities=settings.topology_capabilities,
+                epoch=settings.topology_epoch,
+            ),
+            server_node_id=settings.topology_node_id,
+        ),
         provider=provider,
         service=service,
         computer=computer,

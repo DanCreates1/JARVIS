@@ -92,6 +92,10 @@ def test_safe_summary_contains_only_declared_diagnostics(tmp_path: Path) -> None
         "remote_public_requests_per_minute",
         "remote_authenticated_requests_per_minute",
         "remote_rate_limit_entries",
+        "topology_profile",
+        "topology_node_id",
+        "topology_epoch",
+        "topology_capabilities",
         "computer_access_enabled",
         "computer_access_policy_path",
         "memory_retrieval_enabled",
@@ -139,6 +143,23 @@ def test_phase_seven_capture_is_disabled_by_default(tmp_path: Path) -> None:
 
     assert settings.vision_capture_enabled is False
     assert settings.vision_settings_path == tmp_path / "vision-settings.json"
+
+
+def test_phase_nine_runtime_is_hard_locked_local_only(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path, _env_file=None)
+
+    assert settings.topology_profile == "local-only"
+    assert settings.topology_node_id == "node:local-core"
+    assert settings.topology_epoch == 1
+    assert "core.identity" in settings.topology_capabilities
+    with pytest.raises(ValidationError):
+        Settings(data_dir=tmp_path, topology_profile="split", _env_file=None)
+    with pytest.raises(ValidationError, match="topology capabilities"):
+        Settings(
+            data_dir=tmp_path,
+            topology_capabilities=("core.chat", "core.chat"),
+            _env_file=None,
+        )
 
 
 def test_research_defaults_are_zero_cost_bounded_and_https_only(tmp_path: Path) -> None:

@@ -560,6 +560,29 @@ class RemoteIdentityService:
             raise RemoteAuthenticationError("device_unavailable")
         return stored.record
 
+    async def record_protocol_negotiation(
+        self,
+        *,
+        context: RemoteIdentityContext,
+        succeeded: bool,
+        reason_code: str,
+    ) -> None:
+        """Append a content-free Phase 9A negotiation result."""
+        now = self._now()
+        if succeeded:
+            await self._store.append_protocol_success(
+                device_id=context.device_id,
+                session_id=context.session_id,
+                created_at=now,
+            )
+            return
+        await self._store.append_denial(
+            reason_code=f"topology_{reason_code}"[:64],
+            device_id=context.device_id,
+            session_id=context.session_id,
+            created_at=now,
+        )
+
     async def _authenticate_device_signature(
         self,
         *,

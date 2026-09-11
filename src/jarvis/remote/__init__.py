@@ -1,4 +1,4 @@
-"""Phase 8 remote identity, enrollment, and request-authentication boundary."""
+"""Phase 8 identity plus Phase 9A topology/protocol boundary."""
 
 from jarvis.remote.browser import (
     BrowserOriginError,
@@ -57,6 +57,22 @@ from jarvis.remote.signing import (
     encode_base64url,
 )
 from jarvis.remote.sqlite_store import SQLiteRemoteIdentityStore
+from jarvis.remote.topology import (
+    TOPOLOGY_PROTOCOL_VERSION,
+    NetworkLossBehavior,
+    OwnershipAssignment,
+    OwnershipDomain,
+    ProtocolHello,
+    ProtocolNegotiation,
+    TopologyManifest,
+    TopologyNegotiationError,
+    TopologyNegotiator,
+    TopologyNode,
+    TopologyNodeRole,
+    TopologyProfile,
+    build_local_only_manifest,
+    build_remote_manifest,
+)
 
 __all__ = [
     "MAX_PWA_EVENTS_PER_SUBSCRIPTION",
@@ -67,6 +83,7 @@ __all__ = [
     "MAX_TAILSCALE_STATUS_BYTES",
     "REQUEST_AUDIENCE",
     "SIGNATURE_HEADERS",
+    "TOPOLOGY_PROTOCOL_VERSION",
     "BrowserOriginError",
     "BrowserOriginPolicy",
     "BrowserSessionCredential",
@@ -77,6 +94,9 @@ __all__ = [
     "EnrollmentTicket",
     "FixedWindowRateLimiter",
     "KeyRotationRequest",
+    "NetworkLossBehavior",
+    "OwnershipAssignment",
+    "OwnershipDomain",
     "PWAEvent",
     "PWAEventHub",
     "PWAEventPage",
@@ -85,6 +105,8 @@ __all__ = [
     "PWATransportError",
     "PrivateDeploymentError",
     "PrivateDeploymentPlan",
+    "ProtocolHello",
+    "ProtocolNegotiation",
     "RateLimitDecision",
     "RemoteAuditEvent",
     "RemoteAuditOutcome",
@@ -98,8 +120,16 @@ __all__ = [
     "SessionCredential",
     "SessionRequest",
     "SignedRequest",
+    "TopologyManifest",
+    "TopologyNegotiationError",
+    "TopologyNegotiator",
+    "TopologyNode",
+    "TopologyNodeRole",
+    "TopologyProfile",
     "build_enrollment_proof",
+    "build_local_only_manifest",
     "build_private_deployment_plan",
+    "build_remote_manifest",
     "build_rotation_proof",
     "canonical_request",
     "encode_base64url",

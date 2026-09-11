@@ -209,9 +209,9 @@ Audited 2026-09-08 at `96143e7` before this rewrite: Python 3.11 modular monolit
 included `uv 0.12.5`, Git 2.55.0, Gitleaks 8.30.1, and Node 24.20.0. Bare `python` resolved only to
 the disabled Windows Store alias; repository commands use `uv run`.
 
-Actual status, reconciled 2026-09-10: Phase 1 has an external hosted-latency blocker and a fresh
+Actual status, reconciled 2026-09-11: Phase 1 has an external hosted-latency blocker and a fresh
 local-cold revalidation miss; Phases 2-3 are implemented with current authorized live effects
-pending; Phases 4-8 are complete; Phase 9 onward is not implemented. No root license exists, so copying external code is
+pending; Phases 4-8 and Phase 9A are complete; Phase 9B onward is not implemented. No root license exists, so copying external code is
 blocked on an owner licensing decision. No external code was copied. See
 [External Repository Comparison](EXTERNAL_REPOSITORY_COMPARISON.md).
 
@@ -537,7 +537,7 @@ resumption, and recovery. Plans never expand permissions.
 ## 13. Phase 7 — Vision and gestures
 
 Recommended execution: **`gpt-6-astra`, `max`**
-Baseline status: **not started**  
+Baseline status: **in progress; 9A complete, 9B next**
 Prerequisite: Phase 3 permission broker and media privacy controls
 
 ### Read first
@@ -886,7 +886,7 @@ reasoning, and rationale. Universal requirements still apply.
   partition/restart/revoked stream/certificate/offline. SP: app/network deny; one replica while
   replay/session/rate state is local. M: setup/security/deployment/overview/report. A/E: real phone,
   immediate revoke, no listener, laptop offline. N: 1. R: `gpt-6-astra` `max`, cross-system deploy.
-- **9A Topology/protocol/identity (`not-started`)** — O/S/D: topology roles, one-owner map,
+- **9A Topology/protocol/identity (`complete`)** — O/S/D: topology roles, one-owner map,
   authenticated version/capability protocol. P: Phase 8/measurements. X: migration/scale. Q: measure
   -> threat/ADR -> protocol fakes -> downgrade/replay. T: stale/skew/revoke/mismatch/loss/fallback.
   SP: least privilege/audience/owner. M: architecture/security/topology/report. A/E: one owner and

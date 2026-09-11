@@ -24,7 +24,11 @@ from jarvis.llm import (
 )
 from jarvis.memory import SQLiteConversationStore
 from jarvis.memory.identity import local_memory_host_id
-from jarvis.remote import SQLiteRemoteIdentityStore
+from jarvis.remote import (
+    TOPOLOGY_PROTOCOL_VERSION,
+    SQLiteRemoteIdentityStore,
+    build_local_only_manifest,
+)
 from jarvis.research import FetchedDocument, SandboxedDocumentParser
 
 
@@ -163,6 +167,7 @@ async def run_diagnostics(
     checks.append(_pwa_shell_check())
 
     checks.append(await _remote_identity_check(settings))
+    checks.append(_topology_check(settings))
 
     provider: DiagnosticProvider | None = None
     try:
@@ -356,6 +361,24 @@ def _pwa_shell_check() -> DiagnosticCheck:
         detail=(
             f"Offline-safe shell is packaged at /app/ ({size} bytes); API/user content is "
             "excluded from its cache; listener remains loopback-only."
+        ),
+    )
+
+
+def _topology_check(settings: Settings) -> DiagnosticCheck:
+    manifest = build_local_only_manifest(
+        host_id=local_memory_host_id(),
+        node_id=settings.topology_node_id,
+        capabilities=settings.topology_capabilities,
+        epoch=settings.topology_epoch,
+    )
+    return DiagnosticCheck(
+        name="runtime topology",
+        status=DiagnosticStatus.PASS,
+        detail=(
+            f"Runtime is hard-locked to {settings.topology_profile} with one node, "
+            f"{len(manifest.ownership)} single-owner domains, protocol "
+            f"{TOPOLOGY_PROTOCOL_VERSION}, and no remote writer."
         ),
     )
 

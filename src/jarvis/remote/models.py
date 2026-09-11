@@ -35,6 +35,7 @@ class RemoteScope(StrEnum):
     CLIENT_CHAT = "client.chat"
     CLIENT_TASKS_READ = "client.tasks.read"
     CLIENT_STATUS_READ = "client.status.read"
+    TOPOLOGY_NEGOTIATE = "topology.negotiate"
 
 
 class RemoteSessionKind(StrEnum):

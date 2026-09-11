@@ -128,6 +128,11 @@ async def test_diagnostics_reports_default_computer_access_as_safely_disabled(
     assert "disabled" in task.detail
     assert "$0 cloud cost" in task.detail
 
+    topology = next(check for check in report.checks if check.name == "runtime topology")
+    assert topology.status is DiagnosticStatus.PASS
+    assert "local-only" in topology.detail
+    assert "11 single-owner domains" in topology.detail
+
 
 def test_bounded_task_diagnostic_reports_explicit_foreground_limits(tmp_path: Path) -> None:
     check = diagnostics._bounded_task_check(

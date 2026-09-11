@@ -66,6 +66,7 @@ device again with a new key if access should return.
 | `GET /api/v1/events?after=N&limit=N` | bearer token + signed request | `events.read` | current-device audit only |
 | `DELETE /api/v1/sessions/current` | bearer token + signed request | `session.revoke` | current-session revocation |
 | `POST /api/v1/device/key` | bearer token + old-key request signature + new-key proof | `key.rotate` | rotated device metadata |
+| `POST /api/v1/topology/negotiate` | bearer token + signed request | `topology.negotiate` | Phase 9A version, configured role/ownership, and capability intersection |
 | `GET /api/v1/client/status` | browser cookie + exact origin | `client.status.read` | bounded device/session/task-count status |
 | `GET /api/v1/client/tasks?limit=N` | browser cookie + exact origin | `client.tasks.read` | status-only task summaries; no objective, arguments, or outputs |
 | `POST /api/v1/client/subscriptions` | browser cookie + exact origin + CSRF | `events.read` plus each topic scope | opaque session-owned subscription and initial cursor |
@@ -204,6 +205,20 @@ device revocation for a lost/offline phone.
 
 - Remote voice, persistent push, remote effects, public access, and multi-replica state remain
   unavailable. They require separate future threat models and acceptance gates.
+
+## Phase 9A service/laptop negotiation
+
+Phase 9A reuses the signed API session for service/laptop nodes. Enrollment must explicitly include
+`topology.negotiate`; ordinary phone/PWA scope sets do not include it. The signed hello binds exact
+host, device/node, session, audience, topology profile/epoch/digest, supported versions, signed
+minimum version, and offered/required capabilities. Protocol `1.0` is the only shipped version.
+
+The caller cannot send roles or ownership. The server returns only configured roles, domains owned
+by that exact node, highest common version, and capabilities permitted by both the manifest and
+server registry. A caller-offered but unconfigured capability is denied; if it was required, the
+whole negotiation returns HTTP 409 and stable bounded code. Replay/stale/revoked requests fail in
+the Phase 8 authentication layer. Network loss exposes only the manifest's offline subset and never
+transfers shared-state ownership. See [Phase 9A topology boundary](PHASE_9A_TOPOLOGY.md).
 
 ## Phase 8D private deployment controls
 

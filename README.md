@@ -1,6 +1,6 @@
 # JARVIS
 
-JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–8 implement a
+JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–8 and Phase 9A implement a
 local deterministic privacy gate, configurable NVIDIA/Groq/Gemini/Ollama roles,
 zero-cost fallback routing, durable SQLite state, audited read-only tools, CLI,
 loopback browser chat, local push-to-talk speech, opt-in controlled Windows actions, bounded cited
@@ -13,7 +13,7 @@ runtime databases, logs, generated media, and secrets do not belong in Git.
 
 ## Current verification status
 
-As of 2026-09-10, Phases 4–8 are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
+As of 2026-09-11, Phases 4–8 and Phase 9A are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
 optimized local latency evidence pass; Phase 1 remains formally blocked by fixed hosted NVIDIA
 latency gates. The preserved 20/20 NVIDIA states still miss one or both targets. Fresh instrumented
 requests place the long delay before response headers, while adaptive routing protects normal
@@ -205,6 +205,24 @@ SQLite backup and fail-closed owned-route rollback cover recovery.
 Remote voice, persistent push, remote effects, and multi-replica deployment remain disabled. See
 [Remote Identity and API Boundary](docs/REMOTE_ACCESS.md).
 
+## Implemented Phase 9A
+
+The server-migration boundary now adds:
+
+- validated `local-only`, `split`, and `server-primary` manifests with one exact owner for every
+  shared state and device-effect domain;
+- explicit primary-core, gateway, device-node, and bounded offline-core roles;
+- protocol `1.0` capability negotiation bound to the Phase 8 signed host/device/session/audience,
+  exact topology epoch/digest, and signed minimum version;
+- capability grants limited to the intersection of caller offer, configured node allowance, and
+  server registry, with no caller role/owner claims; and
+- content-free negotiation audit plus fail-closed downgrade, replay, stale, revoked, mismatch,
+  loss, and unsupported-capability behavior.
+
+Runtime configuration remains hard-locked to `local-only`. Phase 9A does not migrate data, start a
+server, add PostgreSQL, or permit another writer/replica. See
+[Phase 9A Topology and Protocol Boundary](docs/PHASE_9A_TOPOLOGY.md).
+
 ## Model strategy
 
 | Role | Target default | Use |
@@ -383,6 +401,10 @@ The main settings are:
 | `JARVIS_CLOUD_POLICY` | `privacy_aware` | Use cloud only after local public-content classification |
 | `JARVIS_MAX_CLOUD_COST_USD` | `0` | Hard Phase 1 budget; any other value is rejected |
 | `JARVIS_WEB_HOST` | `127.0.0.1` | Browser/API bind; Phase 1 rejects non-loopback hosts |
+| `JARVIS_TOPOLOGY_PROFILE` | `local-only` | Hard-locked executable topology until Phase 9B migration gates |
+| `JARVIS_TOPOLOGY_NODE_ID` | `node:local-core` | Stable local primary-core node identifier |
+| `JARVIS_TOPOLOGY_EPOCH` | `1` | Ownership manifest generation; change forces renegotiation |
+| `JARVIS_TOPOLOGY_CAPABILITIES` | fixed local capability list | Capabilities owned by the local-only node |
 | `JARVIS_DATA_DIR` | platform default | Override the private runtime data directory |
 | `JARVIS_MEMORY_RETRIEVAL_ENABLED` | `true` | Project committed host memory into bounded local context; `false` preserves data but disables retrieval |
 | `JARVIS_RESEARCH_ENABLED` | `true` | Enable bounded public research; `false` retains approved ledger data for recovery |

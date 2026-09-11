@@ -525,6 +525,16 @@ An enrolled phone can use allowed features remotely; revocation immediately bloc
 
 ### Phase 9 — Dedicated server migration (Large)
 
+**Current implementation (2026-09-11)**
+Phase 9A is complete. Immutable `local-only`, `split`, and `server-primary` manifests define exact
+node roles, network-loss policy, and one owner for eleven shared-state/device-effect domains. An
+additive signed protocol `1.0` route binds authenticated host/device/session/audience to exact
+profile/epoch/manifest digest and negotiates only the configured capability intersection. Replay,
+stale/revoked identity, downgrade, mismatch, owner substitution, and capability escalation fail
+closed with content-free audit. Executable settings remain hard-locked to one local node and no
+remote writer. Phase 9B migration/backup/reconciliation is next; no state transfer, server
+deployment, PostgreSQL, second replica, or cutover exists yet.
+
 **Goal**  
 Move intelligence and durable state to a server while laptop becomes a capability node.
 
