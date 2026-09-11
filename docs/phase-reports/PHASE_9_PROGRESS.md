@@ -26,7 +26,7 @@ writer and require separate deployment authority before touching a dedicated ser
   native systemd and container runtime proof require a later target or CI runner. No deployment
   receipt, server path, or remote writer is configured.
 - Existing tests and failures: final repository closeout passes 959 tests with 3 intentional skips
-  and 85.02% coverage. No product failure remains.
+  and 85.03% coverage. No product failure remains.
 - Prior phase evidence: Phase 8 is complete at `4a1338d`; Phase 9A at `efdadda`; Phase 9B at
   `6d969d8`. The final private deployment uses one
   Tailscale Serve HTTPS gateway, one loopback JARVIS process, immediate device/session revocation,
@@ -209,7 +209,7 @@ recovery time objective <= 15 minutes, and benchmark RSS growth <= 100 MiB.
   capacity/DR/security runbook, ADR 0005, environment template, and architecture/setup/status docs.
 - Evidence: local benchmark passes every frozen local threshold with zero false accepts/mismatches;
   restart verification avoids unused logical content fingerprints while preserving integrity,
-  foreign-key, schema, and migration checks; 959 tests pass with 3 intentional skips and 85.02%
+  foreign-key, schema, and migration checks; 959 tests pass with 3 intentional skips and 85.03%
   coverage; lock/sync, format, lint, types, dependency audit, secret scan, doctor, build, and
   whitespace gates pass.
 - Remaining: dedicated-server and laptop acceptance needs separate deployment authority; container
@@ -303,7 +303,7 @@ uv lock --check: 119 packages resolved
 uv sync --locked: 68 packages checked
 uv run ruff format --check .: 293 files formatted
 uv run mypy src: 123 source files, no issues
-uv run pytest: 959 passed, 3 intentional skips, 85.02% coverage
+uv run pytest: 959 passed, 3 intentional skips, 85.03% coverage
 uv run pip-audit: no known vulnerabilities
 gitleaks detect --source . --redact --no-banner: 39 commits / ~4.34 MB, no leaks
 uv build: source distribution and wheel passed; wheel contains jarvis/remote/resilience.py

@@ -26,7 +26,7 @@ def _database(path: Path) -> Path:
 
 def _capture(monkeypatch: pytest.MonkeyPatch) -> StringIO:
     output = StringIO()
-    monkeypatch.setattr(cli, "console", Console(file=output, force_terminal=False, width=120))
+    monkeypatch.setattr(cli, "console", Console(file=output, force_terminal=False, width=60))
     return output
 
 

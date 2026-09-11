@@ -63,7 +63,7 @@ def test_symlinked_control_document_and_release_are_rejected(tmp_path: Path) -> 
     releases.mkdir()
     with pytest.raises(DeploymentError) as release_error:
         stage_release(link, releases, expected_sha256="0" * 64)
-    assert release_error.value.code is DeploymentErrorCode.IO_FAILED
+    assert release_error.value.code is DeploymentErrorCode.INVALID_INPUT
 
 
 def test_invalid_pinned_topology_fails_before_database_creation(tmp_path: Path) -> None:

@@ -2228,6 +2228,11 @@ def _render_deployment_error(exc: Exception) -> Never:
     raise typer.Exit(code=2) from None
 
 
+def _print_json(payload: str) -> None:
+    """Emit machine-readable JSON without terminal-width line wrapping."""
+    console.print(payload, soft_wrap=True)
+
+
 @deployment_app.command("manifest")
 def deployment_manifest(
     destination: Annotated[Path, typer.Argument(dir_okay=False, resolve_path=True)],
@@ -2285,8 +2290,8 @@ def deployment_manifest(
         write_deployment_manifest(destination, manifest)
     except (DeploymentError, OSError, ValueError) as exc:
         _render_deployment_error(exc)
-    console.print(manifest.model_dump_json(indent=2))
-    console.print(json.dumps({"deployment_manifest_sha256": manifest.digest}, indent=2))
+    _print_json(manifest.model_dump_json(indent=2))
+    _print_json(json.dumps({"deployment_manifest_sha256": manifest.digest}, indent=2))
 
 
 @deployment_app.command("activate")
@@ -2359,8 +2364,8 @@ def deployment_activate(
         )
     except (DeploymentError, OSError, ValueError) as exc:
         _render_deployment_error(exc)
-    console.print(state.model_dump_json(indent=2))
-    console.print(json.dumps({"deployment_state_sha256": state.digest}, indent=2))
+    _print_json(state.model_dump_json(indent=2))
+    _print_json(json.dumps({"deployment_state_sha256": state.digest}, indent=2))
 
 
 @deployment_app.command("verify")
@@ -2428,7 +2433,7 @@ def deployment_verify(
         )
     except (DeploymentError, OSError, ValueError) as exc:
         _render_deployment_error(exc)
-    console.print(activation.model_dump_json(indent=2))
+    _print_json(activation.model_dump_json(indent=2))
 
 
 @deployment_app.command("stage")
@@ -2448,7 +2453,7 @@ def deployment_stage(
         staged = stage_release(release_artifact, release_root, expected_sha256=expected_sha256)
     except (DeploymentError, OSError, ValueError) as exc:
         _render_deployment_error(exc)
-    console.print(json.dumps({"staged_path": str(staged), "sha256": expected_sha256}, indent=2))
+    _print_json(json.dumps({"staged_path": str(staged), "sha256": expected_sha256}, indent=2))
 
 
 def _probe_staged_release(release_root: Path, digest: str) -> bool:
@@ -2488,7 +2493,7 @@ def deployment_promote(
         )
     except (DeploymentError, OSError, ValueError) as exc:
         _render_deployment_error(exc)
-    console.print(state.model_dump_json(indent=2))
+    _print_json(state.model_dump_json(indent=2))
 
 
 @deployment_app.command("rollback")
@@ -2513,7 +2518,7 @@ def deployment_rollback(
         )
     except (DeploymentError, OSError, ValueError) as exc:
         _render_deployment_error(exc)
-    console.print(state.model_dump_json(indent=2))
+    _print_json(state.model_dump_json(indent=2))
 
 
 @migration_app.command("manifest")
@@ -2571,7 +2576,7 @@ def migration_manifest(
     except (OSError, ValueError) as exc:
         console.print(f"[bold red]Manifest blocked.[/] {exc}")
         raise typer.Exit(code=2) from None
-    console.print(
+    _print_json(
         json.dumps(
             {
                 "manifest_path": str(destination),
@@ -2614,7 +2619,7 @@ def migration_backup(
         )
     except MigrationError as exc:
         _render_migration_error(exc)
-    console.print(receipt.model_dump_json(indent=2))
+    _print_json(receipt.model_dump_json(indent=2))
 
 
 @migration_app.command("restore")
@@ -2646,7 +2651,7 @@ def migration_restore(
         )
     except MigrationError as exc:
         _render_migration_error(exc)
-    console.print(receipt.model_dump_json(indent=2))
+    _print_json(receipt.model_dump_json(indent=2))
 
 
 @migration_app.command("shadow")
@@ -2665,7 +2670,7 @@ def migration_shadow(
         receipt = compare_shadow(source, target)
     except MigrationError as exc:
         _render_migration_error(exc)
-    console.print(receipt.model_dump_json(indent=2))
+    _print_json(receipt.model_dump_json(indent=2))
 
 
 @migration_app.command("cutover")
@@ -2698,7 +2703,7 @@ def migration_cutover(
         )
     except MigrationError as exc:
         _render_migration_error(exc)
-    console.print(receipt.model_dump_json(indent=2))
+    _print_json(receipt.model_dump_json(indent=2))
 
 
 @migration_app.command("rollback")
@@ -2736,7 +2741,7 @@ def migration_rollback(
         )
     except MigrationError as exc:
         _render_migration_error(exc)
-    console.print(receipt.model_dump_json(indent=2))
+    _print_json(receipt.model_dump_json(indent=2))
 
 
 @remote_app.command("deployment-plan")
