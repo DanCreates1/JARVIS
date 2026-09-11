@@ -237,9 +237,19 @@ The migration recovery boundary adds:
 - chained content-free cutover and rollback receipts selecting one owner without changing either
   database or activating runtime topology.
 
-The runtime remains hard-locked to `local-only`. Phase 9C must enforce a reviewed receipt before
-any remote writer/server deployment. See
+At Phase 9B close the runtime remained hard-locked to `local-only`; Phase 9C now supplies the
+required enforcement boundary. See
 [Phase 9B Migration and Recovery](docs/PHASE_9B_MIGRATION.md).
+
+## Implemented Phase 9C
+
+The deployment/resilience boundary adds exact release/Python/topology/receipt/database manifests,
+monotonic activation/update/rollback state, fail-before-store startup validation, immutable release
+staging, compare-and-swap promotion/rollback, status-only health, bounded content-free telemetry,
+and deterministic partition/chaos gates. Local-only remains default. Remote profiles require every
+pinned path and digest plus a valid Phase 9B owner receipt. One core replica and loopback binding
+remain mandatory. Real server/Tailscale/systemd activation still needs separate operator authority.
+See [Phase 9C Deployment and Recovery](docs/PHASE_9C_DEPLOYMENT.md).
 
 ## Model strategy
 
@@ -419,10 +429,12 @@ The main settings are:
 | `JARVIS_CLOUD_POLICY` | `privacy_aware` | Use cloud only after local public-content classification |
 | `JARVIS_MAX_CLOUD_COST_USD` | `0` | Hard Phase 1 budget; any other value is rejected |
 | `JARVIS_WEB_HOST` | `127.0.0.1` | Browser/API bind; Phase 1 rejects non-loopback hosts |
-| `JARVIS_TOPOLOGY_PROFILE` | `local-only` | Hard-locked executable topology until Phase 9B migration gates |
+| `JARVIS_TOPOLOGY_PROFILE` | `local-only` | Remote profile requires complete Phase 9C receipt enforcement |
 | `JARVIS_TOPOLOGY_NODE_ID` | `node:local-core` | Stable local primary-core node identifier |
 | `JARVIS_TOPOLOGY_EPOCH` | `1` | Ownership manifest generation; change forces renegotiation |
 | `JARVIS_TOPOLOGY_CAPABILITIES` | fixed local capability list | Capabilities owned by the local-only node |
+| `JARVIS_DEPLOYMENT_ENFORCED` | `false` | Require exact Phase 9C control documents before startup |
+| `JARVIS_DEPLOYMENT_ROLE` | `local-core` | Must match topology node and deployment manifest |
 | `JARVIS_DATA_DIR` | platform default | Override the private runtime data directory |
 | `JARVIS_MEMORY_RETRIEVAL_ENABLED` | `true` | Project committed host memory into bounded local context; `false` preserves data but disables retrieval |
 | `JARVIS_RESEARCH_ENABLED` | `true` | Enable bounded public research; `false` retains approved ledger data for recovery |
@@ -490,6 +502,7 @@ always performs secret scanning.
 - [Phase 7B local gesture core](docs/GESTURE_RECOGNITION.md)
 - [Phase 7B synthetic dataset card](docs/PHASE_7B_DATASET_CARD.md)
 - [Phase 7 completion evidence](docs/phase-reports/PHASE_7_COMPLETION.md)
+- [Phase 9C deployment/resilience runbook](docs/PHASE_9C_DEPLOYMENT.md)
 - [Codex phase execution playbook](docs/CODEX_PHASE_PLAYBOOK.md)
 - [External repository comparison](docs/EXTERNAL_REPOSITORY_COMPARISON.md)
 - [Hands-free control plan](docs/HANDS_FREE_CONTROL.md)

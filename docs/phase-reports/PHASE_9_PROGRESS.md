@@ -3,33 +3,70 @@
 Status: `in-progress`
 Started: 2026-09-10
 Updated: 2026-09-11
-Active subphase: Phase 9B complete — Phase 9C deployment/resilience next
+Active subphase: Phase 9C — deployment/resilience
 Recommended Codex model: `gpt-6-astra`
-Recommended reasoning: `ultra`
-Session start / five-hour stop: 2026-09-11T08:22:50-04:00 / 2026-09-11T13:22:50-04:00
+Recommended reasoning: `max`
+Phase 9C session / five-hour stop: 2026-09-11T09:55:51-04:00 / 2026-09-11T14:55:51-04:00
 
 ## Objective
 
-Add a reversible, encrypted SQLite state-transfer workflow bound to the Phase 9A topology manifest.
-Prove no-overwrite backup/restore, logical shadow equality, exclusive cutover evidence, source-drift
-denial, and rollback rehearsal without activating a remote server or second writer.
+Make local-only and remote-core placement a pinned, receipt-gated deployment choice without changing
+business logic. Add least-privilege service specifications, update/rollback state, minimal health and
+content-free telemetry, laptop offline behavior, and repeatable chaos evidence. Keep one canonical
+writer and require separate deployment authority before touching a dedicated server.
 
 ## Baseline
 
-- Git branch/HEAD: `main` at `efdadda`, equal to `origin/main`.
+- Git branch/HEAD at 9C start: `main` at `6d969d8`, equal to `origin/main`.
 - Worktree state and preserved unrelated changes: untracked
   `.codex_finish_jarvis_cleanup.ps1` belongs to the user and remains untouched.
-- Relevant installed software/hardware/provider state: Windows; Python 3.11.9; SQLite 3.45.1;
-  `cryptography` 50.0.1; `uv 0.12.5`; Git 2.55.0; Gitleaks 8.30.1; Node 24.20.0. No Phase 9
-  migration key is configured or read from the environment.
-- Existing tests and failures: focused Phase 8 identity plus Phase 9A topology suite passes 28
-  tests with one dependency deprecation warning and no product failure.
-- Prior phase evidence: Phase 8 is complete at `4a1338d`; Phase 9A is complete at `efdadda`. The
-  final private deployment uses one
+- Relevant installed software/hardware/provider state: Windows 10.0.26200; Python 3.11.9; SQLite
+  3.45.1; `cryptography` 50.0.1; `uv 0.12.5`; Git 2.55.0; Gitleaks 8.30.1; Tailscale installed;
+  `wsl.exe` present but no WSL subsystem/distribution installed. Docker and Podman are absent, so
+  native systemd and container runtime proof require a later target or CI runner. No deployment
+  receipt, server path, or remote writer is configured.
+- Existing tests and failures: Phase 9B closeout reports 927 passed, 2 skipped, 85.02% coverage and
+  no product failure. Current 9C baseline revalidation is pending.
+- Prior phase evidence: Phase 8 is complete at `4a1338d`; Phase 9A at `efdadda`; Phase 9B at
+  `6d969d8`. The final private deployment uses one
   Tailscale Serve HTTPS gateway, one loopback JARVIS process, immediate device/session revocation,
   and verified SQLite backup/restore. Multiple replicas and remote state remain prohibited.
 
 ## Acceptance checklist
+
+### Phase 9C
+
+- [x] A versioned deployment manifest pins release/image identity, exact topology manifest,
+  service role, database path, private loopback listener, resource ceilings, and health policy.
+- [x] Remote-core activation requires one authentic Phase 9B cutover receipt whose active owner,
+  accepted state, topology digest/epoch/profile, receipt chain, and restored database all match;
+  local rollback requires the chained higher-epoch rollback receipt.
+- [x] Shipped local-only, server-core, and laptop-device specifications are deny-by-default and
+  enforce one core replica, non-root execution, read-only root filesystem, dropped capabilities,
+  no-new-privileges, bounded processes/memory/CPU, explicit writable paths, and no public/admin/
+  Ollama/broker exposure.
+- [x] Minimal liveness/readiness and bounded content-free telemetry expose no credentials, user
+  content, raw identifiers, paths, request bodies, prompts, or model/tool output.
+- [x] The same provider-neutral acceptance harness passes local-only and split placement; laptop
+  partition behavior uses only declared offline capabilities and never writes server-owned state
+  or duplicates an effect.
+- [x] Deterministic chaos covers latency, packet loss, partition, core crash/restart, TLS failure,
+  stale protocol/release, overload, disk pressure/full, bad release, corrupt receipt/database, and
+  verified restore/update/rollback.
+- [x] Pinned staging update and rollback automation is idempotent, refuses drift/overwrite/floating
+  references, preserves the last known-good release and database, and records content-free evidence.
+- [ ] Dedicated-server private-TLS deployment, migration cutover, restart/partition, upgrade,
+  rollback, listener scan, and laptop offline acceptance pass under separately granted authority.
+- [ ] Operations/capacity/DR/security/setup/status documentation and full lock/sync, Ruff, mypy,
+  pytest/coverage, dependency audit, Gitleaks, doctor, package/container, and Git gates pass.
+
+Frozen Phase 9C local targets: 100 local-only and 100 split placement acceptance cycles; at least
+100 attempts for each chaos class; zero false activation, split ownership, duplicate effect,
+private-data telemetry event, unsafe fallback, bad-release acceptance, or rollback mismatch;
+deployment validation/readiness p95 <= 10 ms; deterministic partition/offline decision p95 <=
+10 ms; RSS growth <= 50 MiB; one core replica. Production targets: private request p95 <= 250 ms,
+revocation/kill denial <= 5 seconds, RPO at the exact accepted Phase 9B snapshot, operator RTO <=
+15 minutes, and rollback to the last known-good pinned release <= 5 minutes.
 
 ### Phase 9B
 
@@ -142,6 +179,39 @@ recovery time objective <= 15 minutes, and benchmark RSS growth <= 100 MiB.
   gates passed.
 - Remaining: Phase 9C deployment/resilience; no 9B work remains.
 
+### Phase 9C Milestone 1 — pinned placement and startup fencing
+
+- Status: complete locally.
+- Changes: added immutable deployment and activation-state contracts, exact release/Python/topology/
+  owner/database verification, safe bounded control-document loading, non-root single-replica
+  hardening assertions, and composition-root validation before any writable store opens.
+- Evidence: focused unit/security tests cover valid local/server activation, normal database growth,
+  incomplete configuration, digest/path/receipt/topology/release/database tamper, duplicate keys,
+  symlinks, oversized documents, public/root service relaxation, and low-disk denial.
+- Remaining: authorized server activation evidence only.
+
+### Phase 9C Milestone 2 — health, offline behavior, update, and rollback
+
+- Status: complete locally.
+- Changes: added status-only liveness/readiness, bounded typed telemetry, explicit disconnected
+  capability decisions, immutable artifact staging, compare-and-swap release promotion/rollback,
+  last-known-good retention, CLI automation, and hardened systemd/Tailscale Serve specifications.
+- Evidence: tests and fixed benchmark reject shared offline writes, device effects, stale state,
+  bad releases, failed probes, overwrite, and rollback mismatch; runtime remains one replica on
+  loopback and public health contains no configuration/provider/private detail.
+- Remaining: authorized live TLS/listener/revocation/update/rollback measurement.
+
+### Phase 9C Milestone 3 — chaos, operations documentation, and closeout
+
+- Status: implemented; live closeout pending.
+- Changes: added 100-cycle dual-placement benchmark, deterministic chaos classes, deployment/
+  capacity/DR/security runbook, ADR 0005, environment template, and architecture/setup/status docs.
+- Evidence: local benchmark passes every frozen local threshold with zero false accepts/mismatches;
+  958 tests pass with 3 intentional skips and 85.03% coverage; lock/sync, format, lint, types,
+  dependency audit, secret scan, doctor, build, and whitespace gates pass.
+- Remaining: dedicated-server and laptop acceptance needs separate deployment authority; container
+  proof needs an authorized target/CI runner because Docker and Podman are absent locally.
+
 ## Decisions
 
 - Decision: keep the executable runtime profile hard-locked to `local-only` during 9A.
@@ -164,6 +234,22 @@ recovery time objective <= 15 minutes, and benchmark RSS growth <= 100 MiB.
 - Alternatives: unsigned discovery, tailnet membership as authorization, and caller-declared
   capabilities are rejected.
 - Reversible later: a dedicated mTLS/SPIFFE adapter may implement the same owned negotiation port.
+
+- Decision: permit remote topology only through complete pinned deployment enforcement while
+  retaining local-only as default.
+- Reason: a migration receipt alone cannot prove executable release, service role, database path,
+  runtime Python, or currently selected deployment state.
+- Alternatives: configuration-only activation, floating packages, and automatic owner election are
+  rejected.
+- Reversible later: a different deployment adapter may consume the same immutable contract.
+
+- Decision: retain one SQLite core replica behind loopback Tailscale Serve.
+- Reason: current state, replay, rate, task, and session ownership is process-local; no measurement
+  justifies PostgreSQL or distributed coordination.
+- Alternatives: multi-primary SQLite, public ingress, Funnel, and automatic laptop promotion are
+  rejected.
+- Reversible later: measured capacity/concurrency need may trigger a separately designed database
+  or coordination phase.
 
 ## Verification evidence
 
@@ -199,6 +285,28 @@ gitleaks detect --source . --redact --no-banner: 37 commits / ~4.07 MB, no leaks
 uv build: source distribution and wheel passed; wheel contains jarvis/remote/migration.py
 git diff --check: passed
 uv run jarvis doctor: ready; migration boundary PASS, local-only, no key or remote writer enabled
+
+Phase 9C focused and benchmark gates, 2026-09-11:
+uv run pytest --no-cov -q tests/unit/test_config.py tests/unit/test_phase9_resilience.py
+  tests/unit/test_phase9_resilience_cli.py tests/security/test_phase9_resilience_security.py
+  tests/integration/test_web.py: 56 passed, 1 intentional skip
+uv run mypy src scripts/phase9c-resilience-benchmark.py: 124 source files, no issues
+uv run ruff check .: passed
+uv run python scripts/phase9c-resilience-benchmark.py
+  --output runtime/phase9c-resilience-benchmark.json: passed
+
+Phase 9C final local gates, 2026-09-11:
+uv lock --check: 119 packages resolved
+uv sync --locked: 68 packages checked
+uv run ruff format --check .: 293 files formatted
+uv run mypy src: 123 source files, no issues
+uv run pytest: 958 passed, 3 intentional skips, 85.03% coverage
+uv run pip-audit: no known vulnerabilities
+gitleaks detect --source . --redact --no-banner: 38 commits / ~4.19 MB, no leaks
+uv build: source distribution and wheel passed; wheel contains jarvis/remote/resilience.py
+uv run jarvis doctor: ready; local-only, no deployment receipt or remote writer enabled
+git diff --check: passed
+systemd-analyze/container runtime: unavailable locally; static hardened-unit tests passed
 ```
 
 ## Benchmarks
@@ -231,6 +339,24 @@ uv run jarvis doctor: ready; migration boundary PASS, local-only, no key or remo
   AES-256-GCM; remote manifest epoch 7 and local rollback epoch 8; no runtime topology activation.
 - Resource growth: 9.180 MiB RSS against <= 100 MiB.
 
+### Phase 9C deployment/resilience
+
+- Samples: 100 local-only and 100 split activation validations; 100 attempts for each of bad
+  release, crash/restart, core partition, corrupt receipt/state, declared offline, disk pressure/
+  full, latency, overload, packet loss, shared-write/effect partition, stale protocol/topology, TLS
+  failure, wrong database, update, failed promotion, and rollback.
+- Cold/warm: warm in-process contract/SQLite integrity validation; process restart behavior is
+  covered separately by composition-root tests and health-state reconstruction.
+- p50: local-only 8.4909 ms; split 8.5918 ms.
+- p95: local-only 9.8300 ms and split 9.4975 ms against <= 10 ms; rollback 3.2149 ms.
+- Errors/failures: zero valid failures, false accepts, bad-release promotions, rollback mismatches,
+  or private telemetry markers.
+- Hardware/runtime/model/device versions: Windows 10.0.26200 laptop; Python 3.11.9; SQLite 3.45.1;
+  synthetic local/server/laptop nodes; no model/provider/network call.
+- Relevant settings: one core, loopback listener, exact canonical digests, 256 MiB minimum free
+  space, 256 bounded health events, no remote deployment activated.
+- Resource growth: 5.7305 MiB RSS against <= 50 MiB.
+
 ## Security and privacy
 
 - Threats tested: stale/skew/revoke/replay, wrong host/device/session/audience, unknown node,
@@ -260,16 +386,35 @@ uv run jarvis doctor: ready; migration boundary PASS, local-only, no key or remo
 - Secret scan: Gitleaks passed across 37 commits and the worktree; tests also confirm a private
   marker and the migration key are absent from bundle-visible bytes.
 
+### Phase 9C additions
+
+- Threats tested: release/state/topology/receipt/database tamper, wrong path, duplicate/oversized/
+  symlink control input, root/public/capability relaxation, low/full disk, stale protocol, TLS loss,
+  overload, crash/restart, packet loss/partition, unsafe offline write/effect, bad promotion, stale
+  compare-and-swap, overwrite, and rollback mismatch.
+- Data boundaries: deployment telemetry contains enum/count/latency/readiness only; public probes
+  return one status value. Neither accepts request content, paths, identifiers, credentials, prompt,
+  model/tool output, or exception text.
+- Permissions/approvals: manifest/receipt creation grants no host access. Real Tailscale, systemd,
+  firewall, file transfer, service start, cutover, and rollback require separate deployment authority.
+- Audit/retention/deletion: root-owned manifests and chained states are content-free control evidence;
+  operators retain last-known-good release/database and incident receipts per the 9C runbook.
+- Secret scan: Gitleaks passed across 38 commits and the worktree; deployment templates contain no
+  credentials, private keys, user content, or host-specific server coordinates.
+
 ## Blockers
 
-- None for Phase 9B local implementation. Server purchase/deployment remains outside this subphase
-  and requires Phase 9C execution authority.
+- Phase 9C live closeout is blocked on separate authority and coordinates for the dedicated server,
+  Tailscale policy, systemd installation, encrypted data transfer, service start, listener scan,
+  laptop test, live upgrade, and rollback. None were inferred or performed.
+- Container proof is unavailable on this host because Docker and Podman are absent. Native systemd
+  is the selected deployment path; run container gates only if an authorized target requires them.
 
 ## Known limits and deferred scope
 
-- Receipts prove a safe transition candidate but do not activate topology. Server deployment,
-  pinned packaging, TLS/key rotation automation, health/telemetry, network chaos, offline parity,
-  PostgreSQL, multi-replica operation, and failover remain Phase 9C or later scope.
+- Receipt-gated activation exists, but no actual remote writer is active. Multi-replica operation,
+  automatic failover/election, public ingress, PostgreSQL, and remote/offline effect replay remain
+  prohibited deferred scope.
 - RPO is the exact accepted snapshot, not later source writes. RTO <= 15 minutes is an operator
   objective supported by the fast local rehearsal, not a production-server measurement.
 
@@ -282,14 +427,17 @@ uv run jarvis doctor: ready; migration boundary PASS, local-only, no key or remo
   Roll back by restoring the accepted state to a new local path and creating a chained rollback
   receipt under a higher-epoch local-only manifest. Never reuse a nonce/key pair, overwrite a
   destination, or treat a receipt as automatic authority.
+- Phase 9C recovery additionally builds a local-core manifest consuming that rollback receipt,
+  chains a deployment rollback state, pins both digests, verifies remote writer fencing, and starts
+  exactly one local core. Release rollback uses compare-and-swap state and exact artifact probes.
 
 ## Final handoff
 
-- Final status: Phase 9A and Phase 9B complete; aggregate Phase 9 remains in progress.
-- Files changed: encrypted migration contracts/workflow and CLI, recovery diagnostics, fixed
-  benchmark, unit/security tests, migration runbook, and architecture/security/setup/status docs.
-- Next recommended phase: Phase 9C deployment/resilience. Do not activate split mode or a remote
-  writer until pinned deployment, receipt enforcement, health, chaos, offline, and rollback gates
-  pass.
-- Commit/push status: authorized by standing repository instruction; final gated Phase 9B change
-  set is committed and pushed to configured `origin/main` after this report is finalized.
+- Final status: Phase 9A-9B complete; Phase 9C implemented locally with live closeout pending.
+- Files changed: receipt-gated runtime/configuration, deployment/resilience contracts and CLI,
+  minimal health, hardened systemd/Tailscale specs, chaos benchmark, unit/security/integration tests,
+  ADR/runbook, and architecture/security/setup/status documentation.
+- Next recommended action: grant or decline explicit dedicated-server deployment authority and
+  provide exact target/ACL coordinates. Until then keep local-only default and no remote writer.
+- Commit/push status: final gated Phase 9C local change set is authorized for `origin/main`; live
+  deployment remains separately gated.

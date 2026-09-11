@@ -1,0 +1,35 @@
+[Unit]
+Description=Private Tailscale HTTPS gateway for JARVIS
+Documentation=https://tailscale.com/docs/features/tailscale-serve
+Wants=tailscaled.service jarvis-core.service
+After=tailscaled.service jarvis-core.service
+PartOf=jarvis-core.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/tailscale serve --bg --https=443 http://127.0.0.1:8765
+ExecStop=/usr/bin/tailscale serve --https=443 http://127.0.0.1:8765 off
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+LockPersonality=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+TasksMax=32
+MemoryMax=128M
+CPUQuota=25%
+LimitNOFILE=128
+
+[Install]
+WantedBy=multi-user.target

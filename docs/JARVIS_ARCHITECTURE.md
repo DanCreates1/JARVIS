@@ -595,8 +595,8 @@ Phase 9A makes future placement explicit without activating it. An immutable top
 defines `local-only`, `split`, or `server-primary`; exact primary-core/gateway/device/offline roles;
 and one owner for each identity, session/replay, conversation, memory, research, task, permission,
 audit, device-setting, computer-effect, and media-capture domain. Shared durable domains require the
-one primary core. Device-local domains require a device node. The shipped `Settings` type accepts
-only `local-only`, whose single laptop node owns every domain.
+one primary core. Device-local domains require a device node. `Settings` defaults to `local-only`;
+remote profiles require complete Phase 9C pinned deployment enforcement.
 
 `POST /api/v1/topology/negotiate` is additive protocol `1.0`. The existing Phase 8 signature and
 private TLS authenticate the request before the negotiator binds host/device/session/audience,
@@ -612,8 +612,13 @@ bundle, and streaming AES-256-GCM authenticates a private manifest plus snapshot
 manifest binds topology/epoch/owners, packaged migrations, schema, database hash, table counts, and
 logical fingerprints. Restore authenticates fully before use and verifies both SQLite integrity and
 foreign keys. Cutover and rollback require equal logical shadows under writer locks and emit
-chained one-owner receipts; they do not alter either database or enable a runtime profile. Phase 9C
-owns deployment enforcement, remote processes, and resilience.
+chained one-owner receipts; they do not alter either database or enable a runtime profile.
+
+Phase 9C adds the deployment adapter: immutable release/topology/ownership manifests, monotonic
+activation state, exact Python/database verification before stores open, one loopback core,
+status-only health, typed bounded telemetry, deterministic offline denial, and last-known-good
+release promotion/rollback. Hardened systemd and Tailscale Serve specifications are checked in.
+Actual remote activation still requires separate operator authority and live acceptance evidence.
 
 Remote access defaults to Tailscale/private networking with deny-by-default grants, plus JARVIS application authentication. Private networking is not sufficient authorization. Use TLS, per-device credentials, session expiry, replay protection, rate limits, and revocation. Do not expose Ollama, the privilege broker, or an unauthenticated JARVIS port to the public Internet.
 

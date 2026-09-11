@@ -46,10 +46,23 @@ from jarvis.planning import (
     ValueTaskHandler,
 )
 from jarvis.remote import (
+    DeploymentActivation,
+    DeploymentError,
+    DeploymentErrorCode,
+    DeploymentHealthMonitor,
+    DeploymentRole,
+    HealthReason,
+    OwnershipDomain,
     RemoteIdentityService,
     SQLiteRemoteIdentityStore,
+    TopologyManifest,
     TopologyNegotiator,
     build_local_only_manifest,
+    load_deployment_manifest,
+    load_deployment_state,
+    load_ownership_receipt,
+    load_topology_manifest,
+    verify_runtime_deployment,
 )
 from jarvis.research import (
     BoundedResearchOrchestrator,
@@ -99,8 +112,12 @@ class RuntimeComponents:
     remote_store: SQLiteRemoteIdentityStore | None = None
     remote_identity: RemoteIdentityService | None = None
     topology: TopologyNegotiator | None = None
+    deployment: DeploymentActivation | None = None
+    deployment_health: DeploymentHealthMonitor | None = None
 
     async def close(self) -> None:
+        if self.deployment_health is not None:
+            self.deployment_health.observe(HealthReason.SHUTTING_DOWN, healthy=False)
         try:
             if self.tasks is not None:
                 await self.tasks.close()
@@ -146,6 +163,7 @@ class RuntimeComponents:
 
 async def build_runtime(settings: Settings) -> RuntimeComponents:
     """Construct and initialize every runtime adapter exactly once."""
+    topology_manifest, deployment, deployment_health = _deployment_context(settings)
     store = SQLiteConversationStore(settings.database_path)
     memory_store = SQLiteMemoryStore(settings.database_path)
     research_store = SQLiteResearchStore(settings.database_path)
@@ -386,18 +404,90 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
         remote_store=remote_store,
         remote_identity=RemoteIdentityService(remote_store),
         topology=TopologyNegotiator(
-            build_local_only_manifest(
-                host_id=memory_host_id,
-                node_id=settings.topology_node_id,
-                capabilities=settings.topology_capabilities,
-                epoch=settings.topology_epoch,
-            ),
-            server_node_id=settings.topology_node_id,
+            topology_manifest,
+            server_node_id=topology_manifest.owner_for(OwnershipDomain.IDENTITY),
         ),
+        deployment=deployment,
+        deployment_health=deployment_health,
         provider=provider,
         service=service,
         computer=computer,
     )
+
+
+def _deployment_context(
+    settings: Settings,
+) -> tuple[TopologyManifest, DeploymentActivation | None, DeploymentHealthMonitor]:
+    if not settings.deployment_enforced:
+        topology = build_local_only_manifest(
+            host_id=local_memory_host_id(),
+            node_id=settings.topology_node_id,
+            capabilities=settings.topology_capabilities,
+            epoch=settings.topology_epoch,
+        )
+        health = DeploymentHealthMonitor()
+        health.observe(HealthReason.READY, healthy=True)
+        return topology, None, health
+
+    required = {
+        "topology manifest": settings.topology_manifest_path,
+        "deployment manifest": settings.deployment_manifest_path,
+        "deployment manifest digest": settings.deployment_manifest_sha256,
+        "deployment state": settings.deployment_state_path,
+        "deployment state digest": settings.deployment_state_sha256,
+        "release artifact": settings.release_artifact_path,
+    }
+    if any(value is None for value in required.values()):
+        raise DeploymentError(
+            DeploymentErrorCode.INVALID_INPUT, "pinned deployment configuration is incomplete"
+        )
+    topology_path = settings.topology_manifest_path
+    deployment_path = settings.deployment_manifest_path
+    deployment_sha256 = settings.deployment_manifest_sha256
+    state_path = settings.deployment_state_path
+    state_sha256 = settings.deployment_state_sha256
+    release_path = settings.release_artifact_path
+    assert topology_path is not None
+    assert deployment_path is not None
+    assert deployment_sha256 is not None
+    assert state_path is not None
+    assert state_sha256 is not None
+    assert release_path is not None
+
+    topology = load_topology_manifest(topology_path)
+    manifest = load_deployment_manifest(deployment_path)
+    state = load_deployment_state(state_path)
+    ownership = (
+        load_ownership_receipt(settings.ownership_receipt_path)
+        if settings.ownership_receipt_path is not None
+        else None
+    )
+    expected_role = DeploymentRole(settings.deployment_role)
+    if (
+        manifest.role is not expected_role
+        or manifest.node_id != settings.topology_node_id
+        or manifest.topology_profile.value != settings.topology_profile
+        or manifest.topology_epoch != settings.topology_epoch
+        or manifest.hardening.bind_host != settings.web_host
+        or manifest.hardening.bind_port != settings.web_port
+    ):
+        raise DeploymentError(
+            DeploymentErrorCode.TOPOLOGY_MISMATCH,
+            "runtime configuration does not match deployment manifest",
+        )
+    activation = verify_runtime_deployment(
+        deployment=manifest,
+        expected_deployment_sha256=deployment_sha256,
+        state=state,
+        expected_state_sha256=state_sha256,
+        topology=topology,
+        release_artifact=release_path,
+        database=settings.database_path,
+        ownership_receipt=ownership,
+    )
+    health = DeploymentHealthMonitor(max_events=manifest.telemetry_event_limit)
+    health.observe(HealthReason.READY, healthy=True)
+    return topology, activation, health
 
 
 def _fast_profile(settings: Settings) -> ModelProfile:

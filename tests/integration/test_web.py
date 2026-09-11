@@ -134,13 +134,9 @@ def test_loopback_web_chat_stream_memory_deletion_and_security_headers(tmp_path:
         assert index.headers["x-frame-options"] == "DENY"
 
         health = client.get("/api/health").json()
-        assert health == {
-            "status": "ready",
-            "cloud_policy": "privacy_aware",
-            "max_cloud_cost_usd": 0.0,
-            "roles": ["local"],
-            "task_execution_enabled": False,
-        }
+        assert health == {"status": "ready"}
+        assert client.get("/api/health/live").json() == {"status": "live"}
+        assert client.get("/api/health/ready").json() == {"status": "ready"}
 
         chat = client.post(
             "/api/chat",

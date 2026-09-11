@@ -565,6 +565,18 @@ backup, restore, drift, cutover, and rollback sequence in
 [Phase 9B Migration and Recovery](PHASE_9B_MIGRATION.md). Phase 9C must enforce the reviewed receipt
 before deployment can widen runtime placement.
 
+## Phase 9C receipt-gated runtime
+
+Local Windows startup remains unchanged because `JARVIS_DEPLOYMENT_ENFORCED=false`. A remote
+profile is rejected unless enforcement is true and topology/deployment/state/release paths plus
+both expected digests are complete. Server core additionally requires the Phase 9B ownership
+receipt. Validation occurs before any SQLite store opens.
+
+Use `uv run jarvis remote deployment --help` to create, activate, verify, stage, promote, and roll
+back reviewed artifacts. Do not set remote values on this laptop merely to test them. The complete
+Linux systemd/Tailscale procedure, health checks, partition policy, update order, RPO/RTO, and live
+authority boundary are in [Phase 9C Deployment and Recovery](PHASE_9C_DEPLOYMENT.md).
+
 ## Optional free-tier cloud roles
 
 Local Ollama works without cloud credentials. To activate Groq, inject a key from

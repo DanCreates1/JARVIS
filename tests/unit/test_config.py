@@ -96,6 +96,15 @@ def test_safe_summary_contains_only_declared_diagnostics(tmp_path: Path) -> None
         "topology_node_id",
         "topology_epoch",
         "topology_capabilities",
+        "deployment_enforced",
+        "deployment_role",
+        "topology_manifest_path",
+        "deployment_manifest_path",
+        "deployment_manifest_sha256",
+        "deployment_state_path",
+        "deployment_state_sha256",
+        "ownership_receipt_path",
+        "release_artifact_path",
         "computer_access_enabled",
         "computer_access_policy_path",
         "memory_retrieval_enabled",
@@ -145,15 +154,51 @@ def test_phase_seven_capture_is_disabled_by_default(tmp_path: Path) -> None:
     assert settings.vision_settings_path == tmp_path / "vision-settings.json"
 
 
-def test_phase_nine_runtime_is_hard_locked_local_only(tmp_path: Path) -> None:
+def test_phase_nine_remote_runtime_requires_complete_receipt_enforcement(tmp_path: Path) -> None:
     settings = Settings(data_dir=tmp_path, _env_file=None)
 
     assert settings.topology_profile == "local-only"
     assert settings.topology_node_id == "node:local-core"
     assert settings.topology_epoch == 1
     assert "core.identity" in settings.topology_capabilities
-    with pytest.raises(ValidationError):
+    assert settings.deployment_enforced is False
+    with pytest.raises(ValidationError, match="deployment receipt enforcement"):
         Settings(data_dir=tmp_path, topology_profile="split", _env_file=None)
+    digest = "a" * 64
+    remote = Settings(
+        data_dir=tmp_path,
+        topology_profile="split",
+        topology_node_id="node:server",
+        topology_epoch=2,
+        deployment_enforced=True,
+        deployment_role="server-core",
+        topology_manifest_path=tmp_path / "topology.json",
+        deployment_manifest_path=tmp_path / "deployment.json",
+        deployment_manifest_sha256=digest,
+        deployment_state_path=tmp_path / "deployment-state.json",
+        deployment_state_sha256=digest,
+        ownership_receipt_path=tmp_path / "cutover.json",
+        release_artifact_path=tmp_path / "jarvis.whl",
+        _env_file=None,
+    )
+    assert remote.deployment_enforced is True
+    rollback = Settings(
+        data_dir=tmp_path,
+        topology_profile="local-only",
+        topology_node_id="node:laptop",
+        topology_epoch=3,
+        deployment_enforced=True,
+        deployment_role="local-core",
+        topology_manifest_path=tmp_path / "local-topology.json",
+        deployment_manifest_path=tmp_path / "local-deployment.json",
+        deployment_manifest_sha256=digest,
+        deployment_state_path=tmp_path / "local-state.json",
+        deployment_state_sha256=digest,
+        ownership_receipt_path=tmp_path / "rollback.json",
+        release_artifact_path=tmp_path / "jarvis.whl",
+        _env_file=None,
+    )
+    assert rollback.ownership_receipt_path == tmp_path / "rollback.json"
     with pytest.raises(ValidationError, match="topology capabilities"):
         Settings(
             data_dir=tmp_path,

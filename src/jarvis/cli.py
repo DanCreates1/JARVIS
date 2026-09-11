@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import platform
 import secrets
 import sqlite3
 from contextlib import suppress
@@ -118,6 +119,12 @@ migration_app = typer.Typer(
     no_args_is_help=True,
 )
 remote_app.add_typer(migration_app, name="migration")
+deployment_app = typer.Typer(
+    name="deployment",
+    help="Pinned manifests, receipt-gated activation, release staging, and rollback.",
+    no_args_is_help=True,
+)
+remote_app.add_typer(deployment_app, name="deployment")
 console = Console(highlight=False, legacy_windows=False)
 
 
@@ -2209,6 +2216,304 @@ def _load_topology_manifest(path: Path) -> TopologyManifest:
 def _render_migration_error(exc: MigrationError) -> Never:
     console.print(f"[bold red]Migration blocked.[/] {exc.code.value}: {exc}")
     raise typer.Exit(code=2) from None
+
+
+def _render_deployment_error(exc: Exception) -> Never:
+    from jarvis.remote import DeploymentError
+
+    if isinstance(exc, DeploymentError):
+        console.print(f"[bold red]Deployment blocked.[/] {exc.code.value}: {exc}")
+    else:
+        console.print("[bold red]Deployment blocked.[/] invalid deployment input")
+    raise typer.Exit(code=2) from None
+
+
+@deployment_app.command("manifest")
+def deployment_manifest(
+    destination: Annotated[Path, typer.Argument(dir_okay=False, resolve_path=True)],
+    topology_path: Annotated[
+        Path,
+        typer.Option("--topology", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    release_artifact: Annotated[
+        Path,
+        typer.Option("--release", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    role: Annotated[str, typer.Option("--role")],
+    node_id: Annotated[str, typer.Option("--node-id")],
+    database: Annotated[
+        Path | None, typer.Option("--database", dir_okay=False, resolve_path=True)
+    ] = None,
+    ownership_receipt_path: Annotated[
+        Path | None,
+        typer.Option(
+            "--ownership-receipt",
+            exists=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+        ),
+    ] = None,
+    python_version: Annotated[str, typer.Option("--python-version")] = platform.python_version(),
+) -> None:
+    """Create one no-overwrite manifest binding exact topology, release, role, and database."""
+    from jarvis.remote import (
+        DeploymentError,
+        DeploymentRole,
+        build_deployment_manifest,
+        load_ownership_receipt,
+        load_topology_manifest,
+        write_deployment_manifest,
+    )
+
+    try:
+        topology = load_topology_manifest(topology_path)
+        ownership = (
+            load_ownership_receipt(ownership_receipt_path)
+            if ownership_receipt_path is not None
+            else None
+        )
+        manifest = build_deployment_manifest(
+            topology=topology,
+            role=DeploymentRole(role),
+            node_id=node_id,
+            release_artifact=release_artifact,
+            python_version=python_version,
+            database_path=database,
+            ownership_receipt=ownership,
+        )
+        write_deployment_manifest(destination, manifest)
+    except (DeploymentError, OSError, ValueError) as exc:
+        _render_deployment_error(exc)
+    console.print(manifest.model_dump_json(indent=2))
+    console.print(json.dumps({"deployment_manifest_sha256": manifest.digest}, indent=2))
+
+
+@deployment_app.command("activate")
+def deployment_activate(
+    destination: Annotated[Path, typer.Argument(dir_okay=False, resolve_path=True)],
+    manifest_path: Annotated[
+        Path,
+        typer.Option("--manifest", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    topology_path: Annotated[
+        Path,
+        typer.Option("--topology", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    release_artifact: Annotated[
+        Path,
+        typer.Option("--release", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    database: Annotated[
+        Path | None, typer.Option("--database", dir_okay=False, resolve_path=True)
+    ] = None,
+    ownership_receipt_path: Annotated[
+        Path | None,
+        typer.Option(
+            "--ownership-receipt",
+            exists=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+        ),
+    ] = None,
+    previous_state_path: Annotated[
+        Path | None,
+        typer.Option(
+            "--previous-state", exists=True, dir_okay=False, readable=True, resolve_path=True
+        ),
+    ] = None,
+    transition: Annotated[str, typer.Option("--transition")] = "activate",
+) -> None:
+    """Verify exact inputs and issue one chained, no-overwrite activation receipt."""
+    from jarvis.remote import (
+        DeploymentError,
+        DeploymentTransition,
+        create_deployment_state,
+        load_deployment_manifest,
+        load_deployment_state,
+        load_ownership_receipt,
+        load_topology_manifest,
+    )
+
+    try:
+        manifest = load_deployment_manifest(manifest_path)
+        topology = load_topology_manifest(topology_path)
+        ownership = (
+            load_ownership_receipt(ownership_receipt_path)
+            if ownership_receipt_path is not None
+            else None
+        )
+        previous = (
+            load_deployment_state(previous_state_path) if previous_state_path is not None else None
+        )
+        state = create_deployment_state(
+            destination,
+            deployment=manifest,
+            topology=topology,
+            release_artifact=release_artifact,
+            database=database,
+            ownership_receipt=ownership,
+            previous_state=previous,
+            transition=DeploymentTransition(transition),
+        )
+    except (DeploymentError, OSError, ValueError) as exc:
+        _render_deployment_error(exc)
+    console.print(state.model_dump_json(indent=2))
+    console.print(json.dumps({"deployment_state_sha256": state.digest}, indent=2))
+
+
+@deployment_app.command("verify")
+def deployment_verify(
+    manifest_path: Annotated[
+        Path,
+        typer.Option("--manifest", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    manifest_sha256: Annotated[str, typer.Option("--manifest-sha256")],
+    state_path: Annotated[
+        Path,
+        typer.Option("--state", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    state_sha256: Annotated[str, typer.Option("--state-sha256")],
+    topology_path: Annotated[
+        Path,
+        typer.Option("--topology", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    release_artifact: Annotated[
+        Path,
+        typer.Option("--release", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    database: Annotated[
+        Path | None, typer.Option("--database", dir_okay=False, resolve_path=True)
+    ] = None,
+    ownership_receipt_path: Annotated[
+        Path | None,
+        typer.Option(
+            "--ownership-receipt",
+            exists=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+        ),
+    ] = None,
+) -> None:
+    """Fail closed unless pinned deployment, state, release, topology, owner, and DB agree."""
+    from jarvis.remote import (
+        DeploymentError,
+        load_deployment_manifest,
+        load_deployment_state,
+        load_ownership_receipt,
+        load_topology_manifest,
+        verify_runtime_deployment,
+    )
+
+    try:
+        manifest = load_deployment_manifest(manifest_path)
+        state = load_deployment_state(state_path)
+        topology = load_topology_manifest(topology_path)
+        ownership = (
+            load_ownership_receipt(ownership_receipt_path)
+            if ownership_receipt_path is not None
+            else None
+        )
+        activation = verify_runtime_deployment(
+            deployment=manifest,
+            expected_deployment_sha256=manifest_sha256,
+            state=state,
+            expected_state_sha256=state_sha256,
+            topology=topology,
+            release_artifact=release_artifact,
+            database=database,
+            ownership_receipt=ownership,
+        )
+    except (DeploymentError, OSError, ValueError) as exc:
+        _render_deployment_error(exc)
+    console.print(activation.model_dump_json(indent=2))
+
+
+@deployment_app.command("stage")
+def deployment_stage(
+    release_artifact: Annotated[
+        Path, typer.Argument(exists=True, dir_okay=False, readable=True, resolve_path=True)
+    ],
+    release_root: Annotated[
+        Path, typer.Option("--release-root", exists=True, file_okay=False, resolve_path=True)
+    ],
+    expected_sha256: Annotated[str, typer.Option("--sha256")],
+) -> None:
+    """Stage one immutable release artifact under its exact SHA-256 directory."""
+    from jarvis.remote import DeploymentError, stage_release
+
+    try:
+        staged = stage_release(release_artifact, release_root, expected_sha256=expected_sha256)
+    except (DeploymentError, OSError, ValueError) as exc:
+        _render_deployment_error(exc)
+    console.print(json.dumps({"staged_path": str(staged), "sha256": expected_sha256}, indent=2))
+
+
+def _probe_staged_release(release_root: Path, digest: str) -> bool:
+    release_dir = release_root / digest
+    try:
+        if release_dir.is_symlink() or not release_dir.is_dir():
+            return False
+        artifacts = tuple(release_dir.iterdir())
+        if len(artifacts) != 1 or artifacts[0].is_symlink() or not artifacts[0].is_file():
+            return False
+        actual = hashlib.sha256(artifacts[0].read_bytes()).hexdigest()
+        return actual == digest
+    except OSError:
+        return False
+
+
+@deployment_app.command("promote")
+def deployment_promote(
+    candidate_sha256: Annotated[str, typer.Argument()],
+    state_path: Annotated[Path, typer.Option("--state", dir_okay=False, resolve_path=True)],
+    release_root: Annotated[
+        Path, typer.Option("--release-root", exists=True, file_okay=False, resolve_path=True)
+    ],
+    expected_current_sha256: Annotated[
+        str | None, typer.Option("--expected-current-sha256")
+    ] = None,
+) -> None:
+    """Promote one staged digest only after a deterministic local artifact probe."""
+    from jarvis.remote import DeploymentError, promote_release
+
+    try:
+        state = promote_release(
+            state_path,
+            candidate_sha256=candidate_sha256,
+            expected_current_sha256=expected_current_sha256,
+            probe=lambda digest: _probe_staged_release(release_root, digest),
+        )
+    except (DeploymentError, OSError, ValueError) as exc:
+        _render_deployment_error(exc)
+    console.print(state.model_dump_json(indent=2))
+
+
+@deployment_app.command("rollback")
+def deployment_rollback(
+    expected_current_sha256: Annotated[str, typer.Argument()],
+    state_path: Annotated[
+        Path,
+        typer.Option("--state", exists=True, dir_okay=False, readable=True, resolve_path=True),
+    ],
+    release_root: Annotated[
+        Path, typer.Option("--release-root", exists=True, file_okay=False, resolve_path=True)
+    ],
+) -> None:
+    """Atomically return to the last healthy pinned digest after an exact probe."""
+    from jarvis.remote import DeploymentError, rollback_release
+
+    try:
+        state = rollback_release(
+            state_path,
+            expected_current_sha256=expected_current_sha256,
+            probe=lambda digest: _probe_staged_release(release_root, digest),
+        )
+    except (DeploymentError, OSError, ValueError) as exc:
+        _render_deployment_error(exc)
+    console.print(state.model_dump_json(indent=2))
 
 
 @migration_app.command("manifest")

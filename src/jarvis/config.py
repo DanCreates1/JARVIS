@@ -93,7 +93,7 @@ class Settings(BaseSettings):
     remote_public_requests_per_minute: int = Field(default=20, ge=1, le=1_000)
     remote_authenticated_requests_per_minute: int = Field(default=240, ge=1, le=10_000)
     remote_rate_limit_entries: int = Field(default=4_096, ge=128, le=100_000)
-    topology_profile: Literal["local-only"] = "local-only"
+    topology_profile: Literal["local-only", "split", "server-primary"] = "local-only"
     topology_node_id: str = Field(
         default="node:local-core", pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$"
     )
@@ -110,6 +110,15 @@ class Settings(BaseSettings):
         "node.voice",
         "transport.events",
     )
+    deployment_enforced: bool = False
+    deployment_role: Literal["local-core", "server-core"] = "local-core"
+    topology_manifest_path: Path | None = None
+    deployment_manifest_path: Path | None = None
+    deployment_manifest_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    deployment_state_path: Path | None = None
+    deployment_state_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    ownership_receipt_path: Path | None = None
+    release_artifact_path: Path | None = None
     computer_access_enabled: bool = False
     memory_retrieval_enabled: bool = True
     research_enabled: bool = True
@@ -152,7 +161,15 @@ class Settings(BaseSettings):
             return Path(value).expanduser()
         return value
 
-    @field_validator("voice_wake_model_path", mode="before")
+    @field_validator(
+        "voice_wake_model_path",
+        "topology_manifest_path",
+        "deployment_manifest_path",
+        "deployment_state_path",
+        "ownership_receipt_path",
+        "release_artifact_path",
+        mode="before",
+    )
     @classmethod
     def expand_voice_wake_model_path(cls, value: object) -> object:
         if isinstance(value, (str, Path)):
@@ -267,6 +284,39 @@ class Settings(BaseSettings):
             )
         if self.context_recent_message_limit > self.context_message_limit:
             raise ValueError("recent context limit cannot exceed context message limit")
+        required_deployment_inputs = (
+            self.topology_manifest_path,
+            self.deployment_manifest_path,
+            self.deployment_manifest_sha256,
+            self.deployment_state_path,
+            self.deployment_state_sha256,
+            self.release_artifact_path,
+        )
+        configured_deployment_inputs = (*required_deployment_inputs, self.ownership_receipt_path)
+        if self.topology_profile != "local-only" and not self.deployment_enforced:
+            raise ValueError("remote topology requires deployment receipt enforcement")
+        if self.deployment_enforced and any(value is None for value in required_deployment_inputs):
+            raise ValueError("deployment enforcement requires every pinned deployment input")
+        if not self.deployment_enforced and any(
+            value is not None for value in configured_deployment_inputs
+        ):
+            raise ValueError("pinned deployment inputs require deployment enforcement")
+        if self.topology_profile == "local-only":
+            if self.deployment_role != "local-core":
+                raise ValueError("local-only topology requires local-core deployment role")
+            if self.topology_epoch == 1 and self.ownership_receipt_path is not None:
+                raise ValueError("initial local-only deployment cannot use ownership receipt")
+            if (
+                self.deployment_enforced
+                and self.topology_epoch > 1
+                and self.ownership_receipt_path is None
+            ):
+                raise ValueError("post-migration local core requires rollback receipt")
+        else:
+            if self.deployment_role != "server-core":
+                raise ValueError("remote core topology requires server-core deployment role")
+            if self.ownership_receipt_path is None:
+                raise ValueError("remote core topology requires ownership receipt")
         if (
             self.groq_base_url.scheme != "https"
             or self.gemini_base_url.scheme != "https"
@@ -374,6 +424,15 @@ class Settings(BaseSettings):
             "topology_node_id": self.topology_node_id,
             "topology_epoch": self.topology_epoch,
             "topology_capabilities": ",".join(self.topology_capabilities),
+            "deployment_enforced": self.deployment_enforced,
+            "deployment_role": self.deployment_role,
+            "topology_manifest_path": str(self.topology_manifest_path or ""),
+            "deployment_manifest_path": str(self.deployment_manifest_path or ""),
+            "deployment_manifest_sha256": self.deployment_manifest_sha256 or "",
+            "deployment_state_path": str(self.deployment_state_path or ""),
+            "deployment_state_sha256": self.deployment_state_sha256 or "",
+            "ownership_receipt_path": str(self.ownership_receipt_path or ""),
+            "release_artifact_path": str(self.release_artifact_path or ""),
             "computer_access_enabled": self.computer_access_enabled,
             "memory_retrieval_enabled": self.memory_retrieval_enabled,
             "research_enabled": self.research_enabled,

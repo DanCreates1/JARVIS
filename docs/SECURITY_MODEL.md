@@ -398,6 +398,15 @@ stale epoch, altered predecessor, or owner ambiguity. Chained receipts contain n
 grant no runtime authority. Runtime remains one local owner until Phase 9C adds explicit receipt
 enforcement and deployment.
 
+Phase 9C adds that enforcement without changing the default. Any remote core must present complete
+root-pinned deployment/state digests whose topology, release bytes, Python patch, database path and
+integrity, Phase 9B owner receipt, node, epoch, and single-owner assignment all match before stores
+open. Hardened service specifications require a fixed non-root service user, read-only system tree,
+empty capabilities, no-new-privileges, loopback binding, resource ceilings, and one replica.
+Tailscale Serve supplies private TLS; Funnel/public ingress remains prohibited. Partition cannot
+promote the laptop or replay shared writes/effects. Status-only public probes and bounded typed
+telemetry prevent operational data from becoming a private-content channel.
+
 ## 14. Memory, research, audio, and vision privacy
 
 Data minimization:

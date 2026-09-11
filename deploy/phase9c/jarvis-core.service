@@ -1,0 +1,53 @@
+[Unit]
+Description=JARVIS receipt-gated private core
+Documentation=file:/opt/jarvis/current/docs/PHASE_9C_DEPLOYMENT.md
+Wants=network-online.target tailscaled.service
+After=network-online.target tailscaled.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=jarvis
+Group=jarvis
+WorkingDirectory=/opt/jarvis/current
+StateDirectory=jarvis
+RuntimeDirectory=jarvis
+EnvironmentFile=/etc/jarvis/jarvis.env
+ExecStart=/opt/jarvis/current/.venv/bin/jarvis serve
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=90
+TimeoutStopSec=30
+UMask=0077
+
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+PrivateDevices=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectHostname=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+TasksMax=256
+MemoryMax=2G
+MemorySwapMax=0
+CPUQuota=200%
+LimitNOFILE=1024
+
+[Install]
+WantedBy=multi-user.target

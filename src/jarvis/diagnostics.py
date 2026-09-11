@@ -11,7 +11,12 @@ from pathlib import Path
 from typing import Protocol
 from uuid import uuid4
 
-from jarvis.bootstrap import _fast_profile, _primary_profile, _reasoning_profile
+from jarvis.bootstrap import (
+    _deployment_context,
+    _fast_profile,
+    _primary_profile,
+    _reasoning_profile,
+)
 from jarvis.computer.config import ComputerAccessConfigStore
 from jarvis.computer.windows import ExecutableEnrollment
 from jarvis.config import Settings
@@ -28,6 +33,7 @@ from jarvis.remote import (
     MIGRATION_CIPHER,
     MIGRATION_KEY_BYTES,
     TOPOLOGY_PROTOCOL_VERSION,
+    DeploymentError,
     SQLiteRemoteIdentityStore,
     build_local_only_manifest,
     iter_shared_domains,
@@ -370,6 +376,26 @@ def _pwa_shell_check() -> DiagnosticCheck:
 
 
 def _topology_check(settings: Settings) -> DiagnosticCheck:
+    if settings.deployment_enforced:
+        try:
+            manifest, activation, _health = _deployment_context(settings)
+        except DeploymentError as exc:
+            return DiagnosticCheck(
+                name="runtime topology",
+                status=DiagnosticStatus.FAIL,
+                detail=f"Receipt-gated deployment validation failed: {exc.code.value}.",
+                remediation="Keep the service stopped and repair exact pinned deployment inputs.",
+            )
+        assert activation is not None
+        return DiagnosticCheck(
+            name="runtime topology",
+            status=DiagnosticStatus.PASS,
+            detail=(
+                f"Receipt-gated {activation.topology_profile.value} deployment verifies one core, "
+                f"{len(manifest.ownership)} single-owner domains, protocol "
+                f"{TOPOLOGY_PROTOCOL_VERSION}, and a pinned release/state chain."
+            ),
+        )
     manifest = build_local_only_manifest(
         host_id=local_memory_host_id(),
         node_id=settings.topology_node_id,
@@ -380,7 +406,7 @@ def _topology_check(settings: Settings) -> DiagnosticCheck:
         name="runtime topology",
         status=DiagnosticStatus.PASS,
         detail=(
-            f"Runtime is hard-locked to {settings.topology_profile} with one node, "
+            f"Runtime defaults to {settings.topology_profile} with one node, "
             f"{len(manifest.ownership)} single-owner domains, protocol "
             f"{TOPOLOGY_PROTOCOL_VERSION}, and no remote writer."
         ),

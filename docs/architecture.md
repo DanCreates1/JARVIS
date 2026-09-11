@@ -157,6 +157,14 @@ no embedding model, vector extension, or external vector database is present.
 Runtime data defaults to the Windows local application-data directory. A
 validated `JARVIS_DATA_DIR` override exists for testing and advanced deployment.
 
+Phase 9C may place that same modular core on one server without changing business ports. Startup
+first validates an immutable deployment manifest and state receipt against exact Phase 9A topology,
+Phase 9B ownership receipt, release bytes, Python patch, database path, schema/integrity, and active
+owner. Only then are writable stores opened. One loopback process remains the sole core; Tailscale
+Serve supplies private HTTPS. Laptop-owned capture and effects never move. Partition does not elect
+a writer or queue shared mutations. See [Phase 9C deployment](PHASE_9C_DEPLOYMENT.md) and
+[ADR 0005](adr/0005-phase9c-receipt-gated-deployment.md).
+
 ### Tool boundary
 
 Tools are registered explicitly at composition time. Each tool has:

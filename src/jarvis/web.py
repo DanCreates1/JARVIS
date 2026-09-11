@@ -329,15 +329,32 @@ def create_app(
         return _CHAT_HTML
 
     @app.get("/api/health")
-    async def health(request: Request) -> dict[str, object]:
+    async def health(request: Request) -> JSONResponse:
         runtime = _runtime(request)
-        return {
-            "status": "ready",
-            "cloud_policy": runtime.settings.cloud_policy,
-            "max_cloud_cost_usd": runtime.settings.max_cloud_cost_usd,
-            "roles": [role.value for role in runtime.provider.providers],
-            "task_execution_enabled": runtime.settings.task_execution_enabled,
-        }
+        snapshot = (
+            runtime.deployment_health.snapshot() if runtime.deployment_health is not None else None
+        )
+        ready = snapshot is None or snapshot.ready
+        return JSONResponse(
+            {"status": "ready" if ready else "unavailable"},
+            status_code=200 if ready else 503,
+        )
+
+    @app.get("/api/health/live")
+    async def liveness(request: Request) -> JSONResponse:
+        runtime = _runtime(request)
+        snapshot = (
+            runtime.deployment_health.snapshot() if runtime.deployment_health is not None else None
+        )
+        live = snapshot is None or snapshot.live
+        return JSONResponse(
+            {"status": "live" if live else "stopped"},
+            status_code=200 if live else 503,
+        )
+
+    @app.get("/api/health/ready")
+    async def readiness(request: Request) -> JSONResponse:
+        return await health(request)
 
     @app.post("/api/v1/enrollments/complete", status_code=201)
     async def complete_remote_enrollment(

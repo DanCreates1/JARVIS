@@ -225,6 +225,12 @@ creation, encrypted SQLite backup, authenticated no-overwrite restore, logical s
 and chained cutover/rollback receipts. These commands add no route, remote scope, listener, or
 runtime activation. See [Phase 9B migration and recovery](PHASE_9B_MIGRATION.md).
 
+Phase 9C consumes those receipts only through exact deployment manifest/state digests. Remote
+startup fails before writable stores if release, Python, topology, owner, database path/integrity,
+or receipt chain differs. The one core still binds loopback and Tailscale Serve remains the sole
+private HTTPS gateway. Public health returns status only. See
+[Phase 9C deployment and resilience](PHASE_9C_DEPLOYMENT.md).
+
 ## Phase 8D private deployment controls
 
 Phase 8D uses Tailscale Serve as the HTTPS gateway and keeps JARVIS on
