@@ -32,7 +32,7 @@ implementation protocol, acceptance gates, safety boundaries, and completion rep
 | 6 | Bounded tasks | Complete | 6A-6C complete | `gpt-6-astra` / `ultra` aggregate |
 | 7 | Vision and gestures | Complete | 7A-7C complete | `gpt-6-astra` / `max` |
 | 8 | Secure phone/PWA | Complete | 8A-8D complete | `gpt-6-astra` / `max` |
-| 9 | Dedicated server migration | Implemented; live closeout pending | 9A-9C local gates complete; authorized server cutover pending | `gpt-6-astra` / `max` |
+| 9 | Dedicated server migration | Implementation complete; deployment blocked external | Authorized server cutover | `gpt-6-astra` / `max` |
 | 10 | Generic wearables | Not started; lower priority | 10A feasibility/license/contracts | `gpt-5.6-sol` / `high` |
 | 11 | Advanced proactive/multimodal | Not started; long-term | 11A trigger/proactivity policy | `gpt-6-astra` / `ultra` |
 
@@ -76,11 +76,10 @@ dependency is Phase 3/media privacy, but it must not be described as following a
 7. Maintain completed Phase 8 identity, signed API, durable browser cookie,
    origin/CSRF/CORS/CSP, rate-limit, local-only sensitive approval, offline-safe PWA, scoped product
    transport, bounded reconnect, tailnet-only TLS deployment, real-phone revocation, and rollback
-   boundaries. Phase 9A topology/protocol/identity and Phase 9B migration/recovery are complete:
-   runtime remains hard-locked local-only, and encrypted snapshots, exact shadow checks, fenced
-   ownership receipts, and rollback rehearsal are verified. Phase 9C adds receipt-gated startup,
-   hardened single-replica service specs, immutable release rollback, minimal health, and passing
-   local chaos gates. Real server cutover remains pending separate deployment authority.
+   boundaries. The Phase 9 repository implementation is complete: encrypted snapshots, exact
+   shadow checks, fenced ownership receipts, rollback rehearsal, receipt-gated startup, hardened
+   single-replica service specs, immutable release rollback, minimal health, and local chaos gates
+   pass. Local-only remains default. Real server cutover is blocked on an authorized target.
 
 Hands-free control is a cross-phase track: Phase 2 detects claps, Phase 7 recognizes hand
 gestures, and Phase 3 alone authorizes and executes the mapped computer action. See

@@ -14,6 +14,7 @@ from collections.abc import Iterator
 from contextlib import ExitStack, closing
 from datetime import UTC, datetime
 from enum import StrEnum
+from functools import cache
 from importlib.resources import files
 from pathlib import Path
 from typing import BinaryIO, Final, Self
@@ -125,6 +126,23 @@ class DatabaseState(BaseModel):
         if len({item.name for item in value}) != len(value):
             raise ValueError("table names must be unique")
         return tuple(sorted(value, key=lambda item: item.name))
+
+
+class DatabaseCompatibilityState(BaseModel):
+    """Content-free runtime database structure verified before opening a writer."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    database_bytes: int = Field(gt=0, le=MAX_MIGRATION_DATABASE_BYTES)
+    schema_sha256: str = Field(pattern=_DIGEST_PATTERN)
+    migrations: tuple[SchemaMigration, ...]
+
+    @field_validator("migrations")
+    @classmethod
+    def unique_migrations(cls, value: tuple[SchemaMigration, ...]) -> tuple[SchemaMigration, ...]:
+        if len({item.version for item in value}) != len(value):
+            raise ValueError("migration versions must be unique")
+        return tuple(sorted(value, key=lambda item: item.version))
 
 
 class MigrationBundleManifest(BaseModel):
@@ -289,6 +307,21 @@ def analyze_database(path: Path) -> DatabaseState:
     try:
         with closing(_connect(source, read_only=True)) as connection:
             return _analyze_connection(connection, source)
+    except MigrationError:
+        raise
+    except sqlite3.Error as exc:
+        raise MigrationError(
+            MigrationErrorCode.DATABASE_INVALID, "database validation failed"
+        ) from exc
+
+
+def analyze_database_compatibility(path: Path) -> DatabaseCompatibilityState:
+    """Validate runtime integrity and schema without unused logical content fingerprints."""
+    source = path.resolve()
+    _require_source_file(source)
+    try:
+        with closing(_connect(source, read_only=True)) as connection:
+            return _analyze_compatibility_connection(connection, source)
     except MigrationError:
         raise
     except sqlite3.Error as exc:
@@ -642,6 +675,42 @@ def _create_transition_receipt(
 
 
 def _analyze_connection(connection: sqlite3.Connection, path: Path) -> DatabaseState:
+    compatibility = _analyze_compatibility_connection(connection, path)
+    table_names = tuple(
+        str(row[0])
+        for row in connection.execute(
+            """
+            SELECT name FROM sqlite_schema
+            WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+            ORDER BY name
+            """
+        )
+    )
+    if len(table_names) > 512:
+        raise MigrationError(MigrationErrorCode.SCHEMA_MISMATCH, "database has too many tables")
+    tables = tuple(_fingerprint_table(connection, name) for name in table_names)
+    content_sha256 = hashlib.sha256(
+        _canonical_json(
+            {
+                "schema_sha256": compatibility.schema_sha256,
+                "migrations": [item.model_dump(mode="json") for item in compatibility.migrations],
+                "tables": [item.model_dump(mode="json") for item in tables],
+            }
+        )
+    ).hexdigest()
+    return DatabaseState(
+        database_bytes=compatibility.database_bytes,
+        database_sha256=_sha256_file(path),
+        schema_sha256=compatibility.schema_sha256,
+        content_sha256=content_sha256,
+        migrations=compatibility.migrations,
+        tables=tables,
+    )
+
+
+def _analyze_compatibility_connection(
+    connection: sqlite3.Connection, path: Path
+) -> DatabaseCompatibilityState:
     size = path.stat().st_size
     if not 0 < size <= MAX_MIGRATION_DATABASE_BYTES:
         code = (
@@ -668,41 +737,16 @@ def _analyze_connection(connection: sqlite3.Connection, path: Path) -> DatabaseS
             """
         )
     )
-    table_names = tuple(
-        str(row[0])
-        for row in connection.execute(
-            """
-            SELECT name FROM sqlite_schema
-            WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
-            ORDER BY name
-            """
-        )
-    )
-    if len(table_names) > 512:
-        raise MigrationError(MigrationErrorCode.SCHEMA_MISMATCH, "database has too many tables")
     migrations = _read_migrations(connection)
     if migrations != _expected_migrations():
         raise MigrationError(
             MigrationErrorCode.SCHEMA_MISMATCH, "database migrations do not match this release"
         )
-    tables = tuple(_fingerprint_table(connection, name) for name in table_names)
     schema_sha256 = hashlib.sha256(_canonical_json(schema_rows)).hexdigest()
-    content_sha256 = hashlib.sha256(
-        _canonical_json(
-            {
-                "schema_sha256": schema_sha256,
-                "migrations": [item.model_dump(mode="json") for item in migrations],
-                "tables": [item.model_dump(mode="json") for item in tables],
-            }
-        )
-    ).hexdigest()
-    return DatabaseState(
+    return DatabaseCompatibilityState(
         database_bytes=size,
-        database_sha256=_sha256_file(path),
         schema_sha256=schema_sha256,
-        content_sha256=content_sha256,
         migrations=migrations,
-        tables=tables,
     )
 
 
@@ -718,6 +762,7 @@ def _read_migrations(connection: sqlite3.Connection) -> tuple[SchemaMigration, .
     return tuple(SchemaMigration(version=int(row[0]), name=str(row[1])) for row in rows)
 
 
+@cache
 def _expected_migrations() -> tuple[SchemaMigration, ...]:
     expected: list[SchemaMigration] = []
     for resource in files("jarvis.memory.migrations").iterdir():

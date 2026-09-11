@@ -25,7 +25,9 @@ The expected deployment and state digests live in root-owned service configurati
 document changes its canonical digest and blocks startup. A valid first activation receipt permits
 normal database growth after activation; it does not require the live database to remain frozen at
 the original snapshot. Owner, path, schema/integrity, release, topology, and receipt bindings still
-revalidate on every process start.
+revalidate on every process start. Restart verification checks integrity, foreign keys, exact schema,
+and the migration ledger without recomputing unused per-table content fingerprints; activation and
+ownership rollback still require the full accepted-state fingerprint.
 
 ## Hardening baseline
 

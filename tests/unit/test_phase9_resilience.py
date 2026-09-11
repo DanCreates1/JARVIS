@@ -10,6 +10,7 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
+import jarvis.remote.resilience as resilience_module
 from jarvis.bootstrap import build_runtime
 from jarvis.config import Settings
 from jarvis.core.models import Message, MessageRole
@@ -266,6 +267,36 @@ def test_runtime_restart_allows_authorized_database_growth(tmp_path: Path) -> No
         await store.close()
 
     asyncio.run(add_state())
+    activation = verify_runtime_deployment(
+        deployment=deployment,
+        expected_deployment_sha256=deployment.digest,
+        state=state,
+        expected_state_sha256=state.digest,
+        topology=topology,
+        release_artifact=artifact,
+        database=target,
+        ownership_receipt=receipt,
+    )
+    assert activation.active_owner_node_id == "node:server"
+
+
+def test_runtime_restart_skips_unused_content_fingerprint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    topology, _, target, receipt, artifact, deployment = _remote_fixture(tmp_path)
+    state = create_deployment_state(
+        tmp_path / "state.json",
+        deployment=deployment,
+        topology=topology,
+        release_artifact=artifact,
+        database=target,
+        ownership_receipt=receipt,
+    )
+
+    def reject_full_fingerprint(_path: Path) -> None:
+        raise AssertionError("runtime restart must not fingerprint unused logical content")
+
+    monkeypatch.setattr(resilience_module, "analyze_database", reject_full_fingerprint)
     activation = verify_runtime_deployment(
         deployment=deployment,
         expected_deployment_sha256=deployment.digest,

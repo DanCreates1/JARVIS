@@ -14,17 +14,19 @@ from contextlib import contextmanager, suppress
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import BinaryIO, Final, Self, TypeVar
+from typing import BinaryIO, Final, Literal, Self, TypeVar, overload
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from jarvis.remote.migration import (
+    DatabaseCompatibilityState,
     DatabaseState,
     OwnershipTransition,
     OwnershipTransitionReceipt,
     SchemaMigration,
     analyze_database,
+    analyze_database_compatibility,
 )
 from jarvis.remote.topology import (
     OwnershipDomain,
@@ -482,6 +484,7 @@ def create_deployment_state(
         require_snapshot_match=(
             previous_state is None or transition is DeploymentTransition.ROLLBACK
         ),
+        analyze_content=True,
     )
     if previous_state is None:
         if transition is not DeploymentTransition.ACTIVATE:
@@ -554,6 +557,7 @@ def verify_runtime_deployment(
         database=database,
         ownership_receipt=ownership_receipt,
         require_snapshot_match=False,
+        analyze_content=False,
     )
     requires_state = deployment.role is not DeploymentRole.LAPTOP_DEVICE
     if requires_state:
@@ -752,6 +756,7 @@ def load_ownership_receipt(path: Path) -> OwnershipTransitionReceipt:
     return _load_document(path, OwnershipTransitionReceipt)
 
 
+@overload
 def _verify_deployment_inputs(
     *,
     deployment: DeploymentManifest,
@@ -760,7 +765,33 @@ def _verify_deployment_inputs(
     database: Path | None,
     ownership_receipt: OwnershipTransitionReceipt | None,
     require_snapshot_match: bool,
-) -> DatabaseState | None:
+    analyze_content: Literal[True],
+) -> DatabaseState | None: ...
+
+
+@overload
+def _verify_deployment_inputs(
+    *,
+    deployment: DeploymentManifest,
+    topology: TopologyManifest,
+    release_artifact: Path,
+    database: Path | None,
+    ownership_receipt: OwnershipTransitionReceipt | None,
+    require_snapshot_match: Literal[False],
+    analyze_content: Literal[False],
+) -> DatabaseCompatibilityState | None: ...
+
+
+def _verify_deployment_inputs(
+    *,
+    deployment: DeploymentManifest,
+    topology: TopologyManifest,
+    release_artifact: Path,
+    database: Path | None,
+    ownership_receipt: OwnershipTransitionReceipt | None,
+    require_snapshot_match: bool,
+    analyze_content: bool,
+) -> DatabaseState | DatabaseCompatibilityState | None:
     if platform.python_version() != deployment.python_version:
         raise DeploymentError(
             DeploymentErrorCode.RELEASE_MISMATCH, "runtime Python version does not match"
@@ -799,12 +830,20 @@ def _verify_deployment_inputs(
     if database is None or str(database.resolve()) != str(Path(deployment.database_path).resolve()):
         raise DeploymentError(DeploymentErrorCode.DATABASE_MISMATCH, "database path does not match")
     try:
-        state = analyze_database(database)
+        state = (
+            analyze_database(database)
+            if analyze_content
+            else analyze_database_compatibility(database)
+        )
     except Exception as exc:
         raise DeploymentError(
             DeploymentErrorCode.DATABASE_MISMATCH, "database verification failed"
         ) from exc
     if ownership_receipt is not None and require_snapshot_match:
+        if not isinstance(state, DatabaseState):
+            raise DeploymentError(
+                DeploymentErrorCode.DATABASE_MISMATCH, "snapshot verification is unavailable"
+            )
         if state.content_sha256 != ownership_receipt.accepted_state_sha256:
             raise DeploymentError(
                 DeploymentErrorCode.DATABASE_MISMATCH, "accepted database state does not match"

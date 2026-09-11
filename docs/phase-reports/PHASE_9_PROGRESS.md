@@ -1,9 +1,9 @@
-# Phase 9 Dedicated Server Migration Progress Report
+# Phase 9 Dedicated Server Migration Closeout Report
 
-Status: `in-progress`
+Status: `blocked-external`
 Started: 2026-09-10
 Updated: 2026-09-11
-Active subphase: Phase 9C — deployment/resilience
+Active subphase: authorized dedicated-server deployment
 Recommended Codex model: `gpt-6-astra`
 Recommended reasoning: `max`
 Phase 9C session / five-hour stop: 2026-09-11T09:55:51-04:00 / 2026-09-11T14:55:51-04:00
@@ -25,8 +25,8 @@ writer and require separate deployment authority before touching a dedicated ser
   `wsl.exe` present but no WSL subsystem/distribution installed. Docker and Podman are absent, so
   native systemd and container runtime proof require a later target or CI runner. No deployment
   receipt, server path, or remote writer is configured.
-- Existing tests and failures: Phase 9B closeout reports 927 passed, 2 skipped, 85.02% coverage and
-  no product failure. Current 9C baseline revalidation is pending.
+- Existing tests and failures: final repository closeout passes 959 tests with 3 intentional skips
+  and 85.02% coverage. No product failure remains.
 - Prior phase evidence: Phase 8 is complete at `4a1338d`; Phase 9A at `efdadda`; Phase 9B at
   `6d969d8`. The final private deployment uses one
   Tailscale Serve HTTPS gateway, one loopback JARVIS process, immediate device/session revocation,
@@ -57,8 +57,9 @@ writer and require separate deployment authority before touching a dedicated ser
   references, preserves the last known-good release and database, and records content-free evidence.
 - [ ] Dedicated-server private-TLS deployment, migration cutover, restart/partition, upgrade,
   rollback, listener scan, and laptop offline acceptance pass under separately granted authority.
-- [ ] Operations/capacity/DR/security/setup/status documentation and full lock/sync, Ruff, mypy,
-  pytest/coverage, dependency audit, Gitleaks, doctor, package/container, and Git gates pass.
+- [x] Operations/capacity/DR/security/setup/status documentation and full lock/sync, Ruff, mypy,
+  pytest/coverage, dependency audit, Gitleaks, doctor, package, static native-service, and Git gates
+  pass. Container proof is not applicable to the selected native systemd path.
 
 Frozen Phase 9C local targets: 100 local-only and 100 split placement acceptance cycles; at least
 100 attempts for each chaos class; zero false activation, split ownership, duplicate effect,
@@ -201,14 +202,16 @@ recovery time objective <= 15 minutes, and benchmark RSS growth <= 100 MiB.
   loopback and public health contains no configuration/provider/private detail.
 - Remaining: authorized live TLS/listener/revocation/update/rollback measurement.
 
-### Phase 9C Milestone 3 — chaos, operations documentation, and closeout
+### Phase 9C Milestone 3 — chaos, operations documentation, and repository closeout
 
-- Status: implemented; live closeout pending.
+- Status: complete locally; live deployment blocked external.
 - Changes: added 100-cycle dual-placement benchmark, deterministic chaos classes, deployment/
   capacity/DR/security runbook, ADR 0005, environment template, and architecture/setup/status docs.
 - Evidence: local benchmark passes every frozen local threshold with zero false accepts/mismatches;
-  958 tests pass with 3 intentional skips and 85.03% coverage; lock/sync, format, lint, types,
-  dependency audit, secret scan, doctor, build, and whitespace gates pass.
+  restart verification avoids unused logical content fingerprints while preserving integrity,
+  foreign-key, schema, and migration checks; 959 tests pass with 3 intentional skips and 85.02%
+  coverage; lock/sync, format, lint, types, dependency audit, secret scan, doctor, build, and
+  whitespace gates pass.
 - Remaining: dedicated-server and laptop acceptance needs separate deployment authority; container
   proof needs an authorized target/CI runner because Docker and Podman are absent locally.
 
@@ -300,9 +303,9 @@ uv lock --check: 119 packages resolved
 uv sync --locked: 68 packages checked
 uv run ruff format --check .: 293 files formatted
 uv run mypy src: 123 source files, no issues
-uv run pytest: 958 passed, 3 intentional skips, 85.03% coverage
+uv run pytest: 959 passed, 3 intentional skips, 85.02% coverage
 uv run pip-audit: no known vulnerabilities
-gitleaks detect --source . --redact --no-banner: 38 commits / ~4.19 MB, no leaks
+gitleaks detect --source . --redact --no-banner: 39 commits / ~4.34 MB, no leaks
 uv build: source distribution and wheel passed; wheel contains jarvis/remote/resilience.py
 uv run jarvis doctor: ready; local-only, no deployment receipt or remote writer enabled
 git diff --check: passed
@@ -347,15 +350,15 @@ systemd-analyze/container runtime: unavailable locally; static hardened-unit tes
   failure, wrong database, update, failed promotion, and rollback.
 - Cold/warm: warm in-process contract/SQLite integrity validation; process restart behavior is
   covered separately by composition-root tests and health-state reconstruction.
-- p50: local-only 8.4909 ms; split 8.5918 ms.
-- p95: local-only 9.8300 ms and split 9.4975 ms against <= 10 ms; rollback 3.2149 ms.
+- p50: local-only 4.3258 ms; split 4.5230 ms.
+- p95: local-only 4.5583 ms and split 5.3953 ms against <= 10 ms; rollback 2.8231 ms.
 - Errors/failures: zero valid failures, false accepts, bad-release promotions, rollback mismatches,
   or private telemetry markers.
 - Hardware/runtime/model/device versions: Windows 10.0.26200 laptop; Python 3.11.9; SQLite 3.45.1;
   synthetic local/server/laptop nodes; no model/provider/network call.
 - Relevant settings: one core, loopback listener, exact canonical digests, 256 MiB minimum free
   space, 256 bounded health events, no remote deployment activated.
-- Resource growth: 5.7305 MiB RSS against <= 50 MiB.
+- Resource growth: 3.8555 MiB RSS against <= 50 MiB.
 
 ## Security and privacy
 
@@ -433,11 +436,12 @@ systemd-analyze/container runtime: unavailable locally; static hardened-unit tes
 
 ## Final handoff
 
-- Final status: Phase 9A-9B complete; Phase 9C implemented locally with live closeout pending.
+- Final status: Phase 9A-9C repository implementation complete; live dedicated-server deployment
+  blocked external.
 - Files changed: receipt-gated runtime/configuration, deployment/resilience contracts and CLI,
   minimal health, hardened systemd/Tailscale specs, chaos benchmark, unit/security/integration tests,
   ADR/runbook, and architecture/security/setup/status documentation.
-- Next recommended action: grant or decline explicit dedicated-server deployment authority and
-  provide exact target/ACL coordinates. Until then keep local-only default and no remote writer.
-- Commit/push status: final gated Phase 9C local change set is authorized for `origin/main`; live
-  deployment remains separately gated.
+- Next recommended action: provide an authorized Linux/systemd server target and exact tailnet ACL
+  coordinates. Until then keep local-only default and no remote writer.
+- Commit/push status: Phase 9 closeout changes are ready for `origin/main`; live deployment remains
+  separately gated.

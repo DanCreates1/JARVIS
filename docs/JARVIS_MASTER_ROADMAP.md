@@ -535,11 +535,13 @@ closed with content-free audit. Phase 9B is complete: the eight shared durable d
 online SQLite snapshot protected by HKDF-separated AES-256-GCM; authenticated private manifests,
 current schema/migration/integrity/foreign-key verification, logical shadow fingerprints,
 source-drift locks, and chained cutover/rollback receipts fail closed. The fixed 100-cycle plus
-64 MiB rehearsal passed with zero failures, false accepts, or mismatches. Phase 9C local
-implementation now adds exact release/deployment-state pins, fail-before-store receipt enforcement,
+64 MiB rehearsal passed with zero failures, false accepts, or mismatches. Phase 9C repository
+implementation adds exact release/deployment-state pins, fail-before-store receipt enforcement,
 hardened one-replica systemd/Tailscale specs, status-only health, deterministic offline behavior,
-and atomic last-known-good update/rollback. Local chaos gates pass. No actual server deployment,
-PostgreSQL, second replica, or active remote cutover exists without separate operator authority.
+and atomic last-known-good update/rollback. Local chaos gates pass, including runtime validation p95
+below 5.4 ms after removing unused restart-time content fingerprints. Phase 9 implementation is
+complete; live deployment is blocked on an authorized server target. No actual server deployment,
+PostgreSQL, second replica, or active remote cutover exists.
 
 **Goal**  
 Move intelligence and durable state to a server while laptop becomes a capability node.

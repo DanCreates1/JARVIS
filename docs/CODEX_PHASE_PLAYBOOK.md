@@ -211,8 +211,8 @@ the disabled Windows Store alias; repository commands use `uv run`.
 
 Actual status, reconciled 2026-09-11: Phase 1 has an external hosted-latency blocker and a fresh
 local-cold revalidation miss; Phases 2-3 are implemented with current authorized live effects
-pending; Phases 4-8 and Phase 9A-9B are complete; Phase 9C is implemented locally with authorized
-server closeout pending; Phase 10 onward is not implemented. No root
+pending; Phases 4-8 and the Phase 9 repository implementation are complete; Phase 9 live
+deployment is blocked on an authorized server target; Phase 10 onward is not implemented. No root
 license exists, so copying external code is blocked on an owner licensing decision. No external
 code was copied. See
 [External Repository Comparison](EXTERNAL_REPOSITORY_COMPARISON.md).
@@ -616,7 +616,7 @@ internet or weakening local privacy/permission boundaries.
 ## 15. Phase 9 — Dedicated server migration
 
 Recommended execution: **`gpt-6-astra`, `ultra`**
-Baseline status: **implemented-closeout-pending; 9A-9B complete, 9C local gates complete**
+Baseline status: **implementation complete; live deployment blocked external**
 Prerequisite: stable internal ports, Phase 8 identity/network model
 
 ### Read first
