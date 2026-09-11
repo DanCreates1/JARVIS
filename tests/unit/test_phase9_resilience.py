@@ -645,6 +645,13 @@ def test_stage_promote_failed_update_and_rollback_are_atomic(tmp_path: Path) -> 
         expected_current_sha256=None,
         probe=lambda value: value == first_digest,
     )
+    with pytest.raises(DeploymentError) as missing_previous:
+        rollback_release(
+            state_path,
+            expected_current_sha256=first_digest,
+            probe=lambda _value: True,
+        )
+    assert missing_previous.value.code is DeploymentErrorCode.STATE_CONFLICT
     before = state_path.read_bytes()
     with pytest.raises(DeploymentError) as failed:
         promote_release(
@@ -662,6 +669,15 @@ def test_stage_promote_failed_update_and_rollback_are_atomic(tmp_path: Path) -> 
         expected_current_sha256=first_digest,
         probe=lambda value: value == second_digest,
     )
+    before_rollback = state_path.read_bytes()
+    with pytest.raises(DeploymentError) as failed_rollback:
+        rollback_release(
+            state_path,
+            expected_current_sha256=second_digest,
+            probe=lambda _value: False,
+        )
+    assert failed_rollback.value.code is DeploymentErrorCode.HEALTH_CHECK_FAILED
+    assert state_path.read_bytes() == before_rollback
     rolled_back = rollback_release(
         state_path,
         expected_current_sha256=second_digest,
@@ -672,6 +688,24 @@ def test_stage_promote_failed_update_and_rollback_are_atomic(tmp_path: Path) -> 
     assert rolled_back.generation == 3
     assert rolled_back.current_release_sha256 == first_digest
     assert rolled_back.previous_release_sha256 == second_digest
+
+
+def test_stage_release_removes_partial_copy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "releases"
+    root.mkdir()
+    source = _artifact(tmp_path / "candidate.whl", b"candidate")
+    digest = hashlib.sha256(b"candidate").hexdigest()
+
+    def fail_copy(_source: object, _target: object, *, length: int) -> None:
+        assert length == 1_048_576
+        raise OSError("simulated interrupted copy")
+
+    monkeypatch.setattr(shutil, "copyfileobj", fail_copy)
+    with pytest.raises(OSError, match="simulated interrupted copy"):
+        stage_release(source, root, expected_sha256=digest)
+    assert not (root / digest).exists()
 
 
 def test_release_update_lock_refuses_concurrent_writer_without_removing_lock(

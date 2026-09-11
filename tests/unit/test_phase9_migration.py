@@ -7,14 +7,19 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
+import jarvis.remote.migration as migration_module
 from jarvis.memory import SQLiteConversationStore
 from jarvis.remote import (
+    DatabaseCompatibilityState,
     MigrationError,
     MigrationErrorCode,
     OwnershipTransition,
+    SchemaMigration,
     TopologyProfile,
     analyze_database,
+    analyze_database_compatibility,
     build_local_only_manifest,
     build_remote_manifest,
     compare_shadow,
@@ -33,6 +38,35 @@ SERVER_ID = "node:server"
 KEY_ID = "phase9b-test-key"
 KEY = bytes(range(32))
 NOW = datetime(2026, 9, 11, 12, 0, tzinfo=UTC)
+
+
+def test_database_compatibility_state_rejects_duplicate_migrations() -> None:
+    duplicate = (
+        SchemaMigration(version=1, name="001_first.sql"),
+        SchemaMigration(version=1, name="001_duplicate.sql"),
+    )
+    with pytest.raises(ValidationError, match="migration versions must be unique"):
+        DatabaseCompatibilityState(
+            database_bytes=1,
+            schema_sha256="0" * 64,
+            migrations=duplicate,
+        )
+
+
+def test_database_compatibility_wraps_sqlite_open_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    database = tmp_path / "unavailable.db"
+    database.write_bytes(b"not-empty")
+
+    def fail_connect(_path: Path, *, read_only: bool) -> None:
+        assert read_only
+        raise sqlite3.OperationalError("synthetic open failure")
+
+    monkeypatch.setattr(migration_module, "_connect", fail_connect)
+    with pytest.raises(MigrationError) as caught:
+        analyze_database_compatibility(database)
+    assert caught.value.code is MigrationErrorCode.DATABASE_INVALID
 
 
 def _remote_topology(epoch: int = 7):  # type: ignore[no-untyped-def]
