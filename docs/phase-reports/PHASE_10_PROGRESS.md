@@ -2,7 +2,7 @@
 
 Status: `in-progress`
 Started: 2026-09-11
-Updated: 2026-09-11
+Updated: 2026-09-12
 Active subphase: Phase 10B — externally blocked pending term review/platform authority
 Recommended Codex model: `gpt-5.6-sol`
 Recommended reasoning: `high`
@@ -12,6 +12,7 @@ Session start / five-hour stop: 2026-09-11T23:18:30-04:00 / 2026-09-12T04:18:30-
 
 Establish a dated, evidence-based wearable feasibility and licensing decision plus owned generic
 audio, display, camera, input, notification, and health contracts with hardware-independent fakes.
+Add explicit live-knowledge freshness/offline semantics and proposal-first controlled maintenance.
 Do not install or copy vendor SDK code, accept vendor terms, enroll hardware, or grant authority.
 
 ## Baseline
@@ -39,6 +40,12 @@ Do not install or copy vendor SDK code, accept vendor terms, enroll hardware, or
 - [x] ADR selects a feasible legal slice or records the exact external blocker.
 - [x] Targeted functional/security tests and full repository release gates.
 - [x] Architecture/security/roadmap/status documentation matches observed behavior.
+- [x] Live knowledge exposes citations, source timestamps, earliest expiry, conflicts, and explicit
+  live/fresh-cache/stale-offline status with fail-closed expiration.
+- [x] Suggestion mode grants no implementation authority; restricted autonomous maintenance is
+  allowlisted, isolated, fully checked, audited, rollback-bound, and production-unauthorized.
+- [x] Autonomous policy cannot change safety/permissions/identity, install software, spend money,
+  contact people, or approve production.
 
 ## Milestones
 
@@ -69,6 +76,17 @@ Do not install or copy vendor SDK code, accept vendor terms, enroll hardware, or
   failures, zero false accepts, zero retained payloads, and zero cloud disclosures.
 - Remaining: Phase 10B requires external authority described below.
 
+### Phase 10A Milestone 4 — live knowledge and controlled maintenance requirements
+
+- Status: complete.
+- Changes: Phase 5 freshness/offline wrapper, maintenance policy/candidate contracts, 16 focused
+  tests, and cross-cutting product/security documentation.
+- Evidence: fresh live/fresh-cache/stale-offline classification, expiry, conflict disclosure,
+  protected paths, proposal-only mode, explicit low-risk allowlist, eight required checks,
+  version/rollback binding, audit IDs, and immutable no-production/no-install/no-spend/no-contact
+  fields pass targeted tests.
+- Remaining: later product-surface integration requires separate review.
+
 ## Decisions
 
 - Decision: vendor SDK source and binaries remain outside this repository during Phase 10A.
@@ -81,16 +99,17 @@ Do not install or copy vendor SDK code, accept vendor terms, enroll hardware, or
 
 ```text
 Targeted pytest: 21 passed in 0.27s
+Knowledge/maintenance targeted pytest: 18 passed in 0.31s
 Targeted Ruff format/check: passed
 Targeted mypy: passed (4 source files)
 uv lock --check: passed (119 packages resolved)
 uv sync --locked: passed (68 packages checked)
-Ruff format --check: passed (303 files)
+Ruff format --check: passed (308 files)
 Ruff check: passed
-mypy src: passed (127 source files)
-pytest: 983 passed, 3 skipped in 55.50s; coverage 85.15%
+mypy src: passed (129 source files)
+pytest: 1001 passed, 3 skipped in 52.40s; coverage 85.24%
 pip-audit --strict: no known vulnerabilities
-Gitleaks staged patch: no leaks in 69.44 KB
+Gitleaks staged patches: no leaks in 69.44 KB Phase 10A base or 39.33 KB requirement amendment
 jarvis doctor: ready; all checks passed
 git diff --check: passed
 ```
@@ -115,6 +134,8 @@ git diff --check: passed
 - Data boundaries: media and health are sensitive; no vendor/cloud disclosure in Phase 10A.
 - Permissions/approvals: discovery and negotiation grant nothing; host-issued exact capability
   authorization will be required by contract.
+- Knowledge/maintenance: retrieval content remains untrusted; expired evidence cannot appear live;
+  maintenance evidence is digest-only; production always requires separate trusted user approval.
 - Audit/retention/deletion: content-free receipts and ephemeral-only operations are enforced by
   immutable models and tested; the simulator retains no payload.
 - Secret scan: staged-patch Gitleaks scan passed. A prior whole-directory scan traversed ignored
@@ -130,8 +151,8 @@ git diff --check: passed
 
 ## Known limits and deferred scope
 
-- Vendor adapter, phone bridge, enrollment, real media, live health data, and hardware measurements
-  belong to Phases 10B-10C.
+- Vendor adapter, phone bridge, enrollment, real media, live health data, hardware measurements,
+  product-surface knowledge routing, and any real maintenance worker belong to later reviewed work.
 
 ## Recovery and rollback
 
@@ -141,7 +162,8 @@ git diff --check: passed
 ## Final handoff
 
 - Final status: Phase 10A implementation complete; aggregate Phase 10 remains in progress.
-- Files changed: wearable contracts/simulator, 21 tests, benchmark, feasibility matrix, ADR,
+- Files changed: wearable contracts/simulator, knowledge freshness wrapper, controlled-maintenance
+  policy, 39 focused tests, benchmark, product/feasibility documents, ADR,
   architecture/security/README/status/roadmap/playbook, and this report.
 - Next recommended phase: Phase 10B after owner term review and platform authorization.
 - Commit/push status: all gates passed; commit and push follow report finalization.

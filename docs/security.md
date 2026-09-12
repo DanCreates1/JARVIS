@@ -256,6 +256,16 @@ ephemeral, cloud disclosure is disabled, and receipts contain metadata only—ne
 notification text, input values, or health measurements. No vendor SDK, credential, telemetry,
 hardware enrollment, or legal-term acceptance is present in Phase 10A.
 
+Live knowledge does not turn source text into authority. Material claims remain cited; source
+retrieval/check/publication timestamps and expiry are explicit; stale offline answers are labeled
+and bounded; hidden conflicts fail closed. Suggestion mode creates proposals only. Restricted
+autonomous maintenance can prepare isolated candidates solely for explicitly preapproved low-risk
+categories, after full format/lint/type/unit/security/regression/dependency/secret checks. It never
+authorizes merge or deployment. Safety rules, permissions, identity, protected core/broker/remote
+paths, CI authority, dependency manifests, software installation, spending, and external contact
+are outside autonomous authority. Production changes always require trusted user approval and keep
+base/candidate/rollback revisions plus audit receipt IDs.
+
 ## Supply chain and release checks
 
 - Python dependencies are resolved in `uv.lock`; CI rejects a stale lock.

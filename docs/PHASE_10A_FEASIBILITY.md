@@ -62,6 +62,10 @@ upgrade incompatibility. No vendor type may cross `jarvis.wearables`.
 5. Media remains local and ephemeral with a tested hardware indicator and bystander policy.
 6. Health stays disabled unless a separate consent, retention, deletion, export, and cloud-routing
    policy is approved.
+7. Current-fact responses use the Phase 5 live-research path with citations, source timestamps,
+   expiry, conflict disclosure, and explicit offline fallback status.
+8. Logs or feedback may create maintenance suggestions only. Any preapproved low-risk isolated
+   implementation remains production-unauthorized until trusted user approval.
 
 ## Revalidation
 

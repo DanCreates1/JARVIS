@@ -16,6 +16,15 @@ from jarvis.research.contracts import (
     SearchProvider,
 )
 from jarvis.research.fetch import HttpDocumentFetcher, ResearchFetchError
+from jarvis.research.freshness import (
+    KnowledgeFreshnessError,
+    KnowledgeFreshnessErrorCode,
+    KnowledgeRequest,
+    KnowledgeRetrievalMode,
+    KnowledgeSnapshot,
+    KnowledgeSourceStamp,
+    evaluate_knowledge_report,
+)
 from jarvis.research.models import (
     Citation,
     CitationValidationCode,
@@ -90,6 +99,12 @@ __all__ = [
     "FetchRequest",
     "FetchedDocument",
     "HttpDocumentFetcher",
+    "KnowledgeFreshnessError",
+    "KnowledgeFreshnessErrorCode",
+    "KnowledgeRequest",
+    "KnowledgeRetrievalMode",
+    "KnowledgeSnapshot",
+    "KnowledgeSourceStamp",
     "MediaWikiSearchProvider",
     "ParsedDocument",
     "PendingResearchRun",
@@ -138,5 +153,6 @@ __all__ = [
     "UnansweredQuestionStatus",
     "UntrustedDocumentParser",
     "ValidatedResearchUrl",
+    "evaluate_knowledge_report",
     "research_report_digest",
 ]

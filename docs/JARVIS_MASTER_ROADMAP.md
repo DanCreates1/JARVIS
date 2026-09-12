@@ -577,6 +577,12 @@ receipts, replay denial, revocation, removal, and adapter independence are enfor
 Meta DAT is the provisional Phase 10B phone-bridge candidate. Vendor integration is blocked until
 the owner can review and accept the authenticated current terms and authorize the target mobile
 platform; no vendor SDK, credential, device enrollment, media, or health data is present.
+Phase 10A also codifies live-knowledge freshness around Phase 5 reports and a controlled maintenance
+boundary. Current claims carry citations, retrieval/check/publication timestamps, explicit expiry,
+visible conflicts, and labeled bounded offline fallback. Default maintenance is suggestion-only;
+restricted autonomous mode can prepare only preapproved low-risk isolated candidates with complete
+verification/audit/rollback evidence and can never authorize production or alter safety,
+permissions, identity, dependencies, spending, or external communications.
 
 **Goal**  
 Add supported glasses as one generic device client, without making JARVIS Meta-dependent.
@@ -592,6 +598,10 @@ Add supported glasses as one generic device client, without making JARVIS Meta-d
 - Meta Wearables Device Access Toolkit feasibility spike against current program/API availability.
 - Consent, capture indication, bandwidth, battery, disconnection, and privacy behavior.
 - Phone-bridge fallback when direct device integration is unavailable.
+- Live cited knowledge with source timestamps, expiry, conflict visibility, and bounded offline
+  fallback on every wearable surface.
+- Suggestion-only improvement proposals plus optional preapproved low-risk isolated maintenance;
+  trusted user approval remains mandatory before production change.
 
 **Dependencies**  
 Phases 7–9 and vendor developer access.

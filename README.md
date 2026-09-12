@@ -265,6 +265,14 @@ until current authenticated vendor terms are reviewed and accepted by the owner.
 See [Phase 10A Feasibility, Access, and License Matrix](docs/PHASE_10A_FEASIBILITY.md) and
 [ADR 0006](docs/adr/0006-generic-wearable-boundary.md).
 
+Phase 10A also freezes two cross-cutting product boundaries. `jarvis.research.freshness` labels
+cited answers as live, fresh cache, or bounded stale-offline using explicit source timestamps and
+expiration; expired online evidence requires refresh and conflicts stay visible. `jarvis.maintenance`
+supports default proposal-only suggestions and optional allowlisted low-risk isolated work. It
+cannot authorize production, alter protected safety/permission/identity surfaces, install software,
+spend money, or contact people. See
+[Phase 10A Live Knowledge and Controlled Maintenance](docs/PHASE_10A_PRODUCT_REQUIREMENTS.md).
+
 ## Model strategy
 
 | Role | Target default | Use |
@@ -518,6 +526,7 @@ always performs secret scanning.
 - [Phase 7 completion evidence](docs/phase-reports/PHASE_7_COMPLETION.md)
 - [Phase 9C deployment/resilience runbook](docs/PHASE_9C_DEPLOYMENT.md)
 - [Phase 10A feasibility/access/license matrix](docs/PHASE_10A_FEASIBILITY.md)
+- [Phase 10A live-knowledge and controlled-maintenance requirements](docs/PHASE_10A_PRODUCT_REQUIREMENTS.md)
 - [Phase 10 progress evidence](docs/phase-reports/PHASE_10_PROGRESS.md)
 - [Codex phase execution playbook](docs/CODEX_PHASE_PLAYBOOK.md)
 - [External repository comparison](docs/EXTERNAL_REPOSITORY_COMPARISON.md)

@@ -673,6 +673,11 @@ core depend on Meta or any single vendor.
 - Per-capability permission, enrollment, revocation, visible camera/mic state, and bystander policy.
 - Battery/network-aware streaming and explicit unsupported-capability errors.
 - Vendor adapter isolated from core protocols; simulator/fakes for CI.
+- Current-fact requests reuse Phase 5 live retrieval with citations, source timestamps, expiry,
+  conflict visibility, and explicitly labeled bounded offline fallback.
+- Logs/user feedback may generate proposals. Restricted autonomous maintenance is default-off,
+  allowlisted to low-risk categories, isolated, fully checked/audited/rollback-bound, and never
+  production-authorized without trusted user approval.
 
 ### Testing and exit
 
@@ -708,6 +713,9 @@ JARVIS is safe, reliable, inspectable, and easy to disable.
 - Notification relevance controls, snooze, disable, deletion, and feedback.
 - Cost, privacy, power, and attention budgets enforced outside models.
 - Full provenance explaining why JARVIS acted/suggested and which data/tools were used.
+- Suggestion mode by default. Restricted autonomous maintenance may prepare only preapproved
+  low-risk isolated candidates; it cannot merge, deploy, change safety/permissions/identity,
+  install software, spend money, or contact people.
 
 ### Testing and exit
 
@@ -908,7 +916,8 @@ reasoning, and rationale. Universal requirements still apply.
   replicas. M: operations/security/overview/report. A/E: local/split parity and rollback. N: 1.
   R: `gpt-6-astra` `max`, deployment resilience.
 - **10A Feasibility/license/contract (`complete`)** — O/S/D: dated vendor access/capability/
-  license matrix, generic audio/display/camera/input/notification/health contract/fakes, ADR. P:
+  license matrix, generic audio/display/camera/input/notification/health contract/fakes, ADR,
+  cited live-knowledge freshness/offline wrapper, proposal/restricted-maintenance policy. P:
   Phases 7-8, official sources/device. X: marketing/inaccessible claims. Q: sources -> inventory ->
   threat/license -> contract. T: missing/version/deny/simulator/remove. SP: capability grants
   nothing; classify health/media. M: ADR/matrix/report. A/E: feasible legal slice or external

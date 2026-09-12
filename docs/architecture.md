@@ -175,6 +175,14 @@ SDKs, mobile bridges, payload storage, network transports, and vendor types rema
 See [Phase 10A feasibility](PHASE_10A_FEASIBILITY.md) and
 [ADR 0006](adr/0006-generic-wearable-boundary.md).
 
+Current-fact answers reuse Phase 5 research and pass through `jarvis.research.freshness`. The
+wrapper binds citations to source URL/retrieval/publication/check timestamps, computes expiry from
+the earliest source, distinguishes live retrieval from fresh or stale offline cache, and refuses
+hidden conflicts. `jarvis.maintenance` is a separate proposal/candidate boundary. Suggestion mode
+cannot implement; restricted autonomous mode can prepare only host-preapproved low-risk work in an
+isolated branch/sandbox. Every candidate remains production-unauthorized until trusted user review.
+See [Phase 10A product requirements](PHASE_10A_PRODUCT_REQUIREMENTS.md).
+
 ### Tool boundary
 
 Tools are registered explicitly at composition time. Each tool has:

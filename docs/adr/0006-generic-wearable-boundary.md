@@ -41,6 +41,10 @@ generated code, binary, account, term acceptance, or device registration is part
 - Camera/microphone are always media and indicator-gated; health is always health-classified.
 - A mobile bridge, live device, vendor terms, telemetry settings, and distribution remain explicit
   Phase 10B/10C gates.
+- Wearable current-fact answers inherit Phase 5 citations plus explicit freshness/expiration,
+  conflict disclosure, and bounded offline fallback.
+- Logs and feedback can produce maintenance proposals. Only explicitly preapproved low-risk work
+  may reach an isolated branch/sandbox; production always requires trusted user approval.
 - The generic API is intentionally conservative: no background operation, retained payload, raw
   health value, cloud route, or vendor-specific display tree is represented in Phase 10A.
 
