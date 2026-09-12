@@ -212,7 +212,9 @@ the disabled Windows Store alias; repository commands use `uv run`.
 Actual status, reconciled 2026-09-11: Phase 1 has an external hosted-latency blocker and a fresh
 local-cold revalidation miss; Phases 2-3 are implemented with current authorized live effects
 pending; Phases 4-8 and the Phase 9 repository implementation are complete; Phase 9 live
-deployment is blocked on an authorized server target; Phase 10 onward is not implemented. No root
+deployment is blocked on an authorized server target; Phase 10A's generic contract, simulator,
+dated vendor matrix, and ADR are complete, while vendor adapter work is externally blocked on
+authenticated term review and platform authority. Phase 11 is not implemented. No root
 license exists, so copying external code is blocked on an owner licensing decision. No external
 code was copied. See
 [External Repository Comparison](EXTERNAL_REPOSITORY_COMPARISON.md).
@@ -905,7 +907,7 @@ reasoning, and rationale. Universal requirements still apply.
   non-root/read-only/drop capabilities/process/network limits; shared replay/session/rate before
   replicas. M: operations/security/overview/report. A/E: local/split parity and rollback. N: 1.
   R: `gpt-6-astra` `max`, deployment resilience.
-- **10A Feasibility/license/contract (`not-started`)** — O/S/D: dated vendor access/capability/
+- **10A Feasibility/license/contract (`complete`)** — O/S/D: dated vendor access/capability/
   license matrix, generic audio/display/camera/input/notification/health contract/fakes, ADR. P:
   Phases 7-8, official sources/device. X: marketing/inaccessible claims. Q: sources -> inventory ->
   threat/license -> contract. T: missing/version/deny/simulator/remove. SP: capability grants

@@ -567,6 +567,17 @@ Core location changes through configuration/deployment, not business-logic rewri
 
 ### Phase 10 — Wearables and Meta glasses (Large, P3)
 
+**Current implementation (2026-09-11)**
+Phase 10A is complete. A dated official-source matrix records Meta DAT, Wear OS, Apple Watch, and
+Garmin access, capability, simulation, distribution, and license boundaries. The owned
+`WearableClient` contract and deterministic simulator cover seven generic capabilities while
+making negotiation structurally non-authoritative. Exact expiring grants, immutable media/health
+classification, visible capture indication, bounded ephemeral local operation, content-free
+receipts, replay denial, revocation, removal, and adapter independence are enforced and tested.
+Meta DAT is the provisional Phase 10B phone-bridge candidate. Vendor integration is blocked until
+the owner can review and accept the authenticated current terms and authorize the target mobile
+platform; no vendor SDK, credential, device enrollment, media, or health data is present.
+
 **Goal**  
 Add supported glasses as one generic device client, without making JARVIS Meta-dependent.
 

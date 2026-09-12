@@ -251,6 +251,20 @@ pinned path and digest plus a valid Phase 9B owner receipt. One core replica and
 remain mandatory. Real server/Tailscale/systemd activation still needs separate operator authority.
 See [Phase 9C Deployment and Recovery](docs/PHASE_9C_DEPLOYMENT.md).
 
+## Implemented Phase 10A foundation
+
+The vendor-neutral `jarvis.wearables` boundary defines versioned audio input/output, display,
+camera, input, notification, and health capabilities. Discovery and negotiation grant no execution
+authority. Every operation requires an exact, expiring host/device/session/capability grant plus
+fixed data classification, purpose, resource limits, visible camera/microphone indication,
+ephemeral retention, and no cloud disclosure. A deterministic simulator provides disconnect,
+revocation, removal, replay, version, permission, and resource-limit coverage without vendor code
+or hardware. Meta DAT is the provisional phone-bridge candidate, but adapter work remains blocked
+until current authenticated vendor terms are reviewed and accepted by the owner.
+
+See [Phase 10A Feasibility, Access, and License Matrix](docs/PHASE_10A_FEASIBILITY.md) and
+[ADR 0006](docs/adr/0006-generic-wearable-boundary.md).
+
 ## Model strategy
 
 | Role | Target default | Use |
@@ -503,6 +517,8 @@ always performs secret scanning.
 - [Phase 7B synthetic dataset card](docs/PHASE_7B_DATASET_CARD.md)
 - [Phase 7 completion evidence](docs/phase-reports/PHASE_7_COMPLETION.md)
 - [Phase 9C deployment/resilience runbook](docs/PHASE_9C_DEPLOYMENT.md)
+- [Phase 10A feasibility/access/license matrix](docs/PHASE_10A_FEASIBILITY.md)
+- [Phase 10 progress evidence](docs/phase-reports/PHASE_10_PROGRESS.md)
 - [Codex phase execution playbook](docs/CODEX_PHASE_PLAYBOOK.md)
 - [External repository comparison](docs/EXTERNAL_REPOSITORY_COMPARISON.md)
 - [Hands-free control plan](docs/HANDS_FREE_CONTROL.md)

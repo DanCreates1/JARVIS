@@ -244,6 +244,18 @@ bounded, and content-free.
 An API caller cannot approve its own privileged tool request without a separate,
 user-visible approval flow.
 
+## Wearable boundary
+
+Wearable discovery and capability negotiation are untrusted facts, never permission or execution
+authority. Phase 10A operations require a trusted, exact, expiring authorization bound to the
+request host, device, session, and capability. Requests are single-use and foreground-only;
+replays, forged grants, version mismatch, permission denial, revocation, disconnect, removal, and
+limit violations fail closed. Camera and microphone are always `media` and require a visible
+indicator. Health is always `health`. Adapters cannot downgrade either class. Retention is
+ephemeral, cloud disclosure is disabled, and receipts contain metadata only—never media,
+notification text, input values, or health measurements. No vendor SDK, credential, telemetry,
+hardware enrollment, or legal-term acceptance is present in Phase 10A.
+
 ## Supply chain and release checks
 
 - Python dependencies are resolved in `uv.lock`; CI rejects a stale lock.

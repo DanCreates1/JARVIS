@@ -33,7 +33,7 @@ implementation protocol, acceptance gates, safety boundaries, and completion rep
 | 7 | Vision and gestures | Complete | 7A-7C complete | `gpt-6-astra` / `max` |
 | 8 | Secure phone/PWA | Complete | 8A-8D complete | `gpt-6-astra` / `max` |
 | 9 | Dedicated server migration | Implementation complete; deployment blocked external | Authorized server cutover | `gpt-6-astra` / `max` |
-| 10 | Generic wearables | Not started; lower priority | 10A feasibility/license/contracts | `gpt-5.6-sol` / `high` |
+| 10 | Generic wearables | 10A complete; vendor adapter blocked external | 10B term review/platform authorization | `gpt-6-astra` / `xhigh` |
 | 11 | Advanced proactive/multimodal | Not started; long-term | 11A trigger/proactivity policy | `gpt-6-astra` / `ultra` |
 
 ## Phase 1 latency disposition

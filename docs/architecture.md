@@ -165,6 +165,16 @@ Serve supplies private HTTPS. Laptop-owned capture and effects never move. Parti
 a writer or queue shared mutations. See [Phase 9C deployment](PHASE_9C_DEPLOYMENT.md) and
 [ADR 0005](adr/0005-phase9c-receipt-gated-deployment.md).
 
+Phase 10A adds a vendor-neutral `jarvis.wearables` port. Immutable, protocol-versioned descriptors
+advertise audio input/output, display, camera, input, notification, and health support, limits,
+permission state, classification, and indicator requirements. Negotiation always grants zero
+authority. Execution requires an exact host-issued grant bound to host, device, session, capability,
+purpose, expiry, and fixed media/health classification. The in-process simulator implements the
+same port for deterministic failure, replay, revocation, removal, and resource-limit tests. Vendor
+SDKs, mobile bridges, payload storage, network transports, and vendor types remain outside core.
+See [Phase 10A feasibility](PHASE_10A_FEASIBILITY.md) and
+[ADR 0006](adr/0006-generic-wearable-boundary.md).
+
 ### Tool boundary
 
 Tools are registered explicitly at composition time. Each tool has:
