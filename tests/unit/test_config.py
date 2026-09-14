@@ -126,6 +126,11 @@ def test_safe_summary_contains_only_declared_diagnostics(tmp_path: Path) -> None
         "task_max_concurrency",
         "proactivity_enabled",
         "proactivity_enabled_features",
+        "proactivity_runner_enabled",
+        "proactivity_task_handoff_enabled",
+        "proactivity_runner_lease_seconds",
+        "proactivity_notification_ttl_seconds",
+        "proactivity_max_snooze_seconds",
         "proactivity_max_candidates_per_hour",
         "proactivity_max_candidates_per_day",
         "proactivity_max_attention_seconds_per_day",
@@ -172,6 +177,11 @@ def test_phase_eleven_proactivity_is_disabled_and_hard_bounded(tmp_path: Path) -
 
     assert settings.proactivity_enabled is False
     assert settings.proactivity_enabled_features == ()
+    assert settings.proactivity_runner_enabled is False
+    assert settings.proactivity_task_handoff_enabled is False
+    assert settings.proactivity_runner_lease_seconds == 30
+    assert settings.proactivity_notification_ttl_seconds == 3_600
+    assert settings.proactivity_max_snooze_seconds == 86_400
     assert settings.proactivity_max_cost_usd == 0
     assert settings.proactivity_max_concurrency == 1
     with pytest.raises(ValidationError):

@@ -131,3 +131,112 @@ def test_proactivity_status_is_default_off_and_has_no_runner(
     assert result.exit_code == 0
     assert "Suggestion-only proactivity: disabled" in output.getvalue()
     assert "No background runner" in output.getvalue()
+    assert "Foreground runner: disabled" in output.getvalue()
+
+
+def test_proactivity_cli_foreground_tick_and_local_inbox(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = StringIO()
+    monkeypatch.setattr(cli, "console", Console(file=output, force_terminal=False, width=160))
+    monkeypatch.setenv("JARVIS_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("JARVIS_PROACTIVITY_ENABLED", "true")
+    monkeypatch.setenv("JARVIS_PROACTIVITY_RUNNER_ENABLED", "true")
+    monkeypatch.setenv("JARVIS_PROACTIVITY_ENABLED_FEATURES", '["daily.briefing"]')
+    now = datetime.now(UTC)
+    schedule = (now - timedelta(minutes=1)).time().replace(tzinfo=None, microsecond=0)
+    proposal_path = tmp_path / "runner-proposal.json"
+    proposal_path.write_text(
+        json.dumps(
+            {
+                "title": "Local reminder",
+                "feature": "daily.briefing",
+                "schedule": {
+                    "kind": "daily",
+                    "timezone": "UTC",
+                    "local_time": schedule.isoformat(),
+                },
+                "provenance": {
+                    "source_type": "host",
+                    "source_id": "cli:runner",
+                    "untrusted": True,
+                },
+                "created_at": now.isoformat(),
+                "expires_at": (now + timedelta(days=1)).isoformat(),
+            }
+        ),
+        encoding="utf-8",
+    )
+    runner = CliRunner()
+    assert runner.invoke(cli.app, ["proactive", "create", str(proposal_path)]).exit_code == 0
+    text = output.getvalue()
+    rule_id = re.search(r"Rule: (proactivity:[0-9a-f-]+)", text)
+    digest = re.search(r"Proposal SHA-256: ([0-9a-f]{64})", text)
+    phrase = re.search(r"Activation phrase: (ACTIVATE [0-9a-f]{8})", text)
+    assert rule_id and digest and phrase
+    activated = runner.invoke(
+        cli.app,
+        [
+            "proactive",
+            "activate",
+            rule_id.group(1),
+            "--expected-version",
+            "1",
+            "--expected-digest",
+            digest.group(1),
+            "--confirm",
+            phrase.group(1),
+        ],
+    )
+    assert activated.exit_code == 0
+    tick = runner.invoke(cli.app, ["proactive", "tick"])
+    assert tick.exit_code == 0
+    assert "notifications=1" in output.getvalue()
+    inbox = runner.invoke(cli.app, ["proactive", "inbox", "--active-only"])
+    assert inbox.exit_code == 0
+    rendered = output.getvalue()
+    assert "daily.briefing" in rendered
+    candidate = re.search(r"suggestion:[0-9a-f-]+", rendered)
+    assert candidate
+
+    events = runner.invoke(cli.app, ["proactive", "runner-events", candidate.group(0)])
+    assert events.exit_code == 0
+    assert "notification_ready" in output.getvalue()
+    snoozed = runner.invoke(
+        cli.app,
+        [
+            "proactive",
+            "snooze",
+            candidate.group(0),
+            "--expected-version",
+            "2",
+            "--minutes",
+            "1",
+        ],
+    )
+    assert snoozed.exit_code == 0
+    dismissed = runner.invoke(
+        cli.app,
+        [
+            "proactive",
+            "dismiss",
+            candidate.group(0),
+            "--expected-version",
+            "3",
+        ],
+    )
+    assert dismissed.exit_code == 0
+
+    incomplete_event = runner.invoke(cli.app, ["proactive", "tick", "--event-name", "task.changed"])
+    assert incomplete_event.exit_code == 2
+    denied_cancel = runner.invoke(
+        cli.app,
+        [
+            "proactive",
+            "cancel",
+            candidate.group(0),
+            "--expected-version",
+            "4",
+        ],
+    )
+    assert denied_cancel.exit_code == 1

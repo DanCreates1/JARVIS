@@ -146,6 +146,11 @@ class HostProactivityPolicy:
             scheduled_for=scheduled_for,
         )
 
+    def is_quiet_time(self, rule: ProactivityRule, *, at: datetime) -> bool:
+        """Return whether an instant falls inside the rule's host-authored quiet hours."""
+        local = _aware(at).astimezone(_timezone(rule.proposal.schedule.timezone))
+        return any(_in_quiet_hours(local, quiet) for quiet in rule.proposal.quiet_hours)
+
     def _resolve_occurrence(
         self,
         rule: ProactivityRule,

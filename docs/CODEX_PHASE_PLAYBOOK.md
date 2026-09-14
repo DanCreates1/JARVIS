@@ -215,7 +215,8 @@ pending; Phases 4-8 and the Phase 9 repository implementation are complete; Phas
 deployment is blocked on an authorized server target; Phase 10A's generic contract, simulator,
 dated vendor matrix, and ADR are complete, while vendor adapter work is externally blocked on
 authenticated term review and platform authority. Phase 11A suggestion-only trigger policy is
-complete; aggregate Phase 11 remains in progress with Phase 11B next. No root
+complete; Phase 11B foreground runner/local inbox is complete; aggregate Phase 11 remains in
+progress with Phase 11C next. No root
 license exists, so copying external code is blocked on an owner licensing decision. No external
 code was copied. See
 [External Repository Comparison](EXTERNAL_REPOSITORY_COMPARISON.md).
@@ -691,7 +692,7 @@ core depend on Meta or any single vendor.
 ## 17. Phase 11 — Advanced JARVIS
 
 Recommended execution: **`gpt-6-astra`, `ultra`**
-Baseline status: **in progress; Phase 11A complete, Phase 11B next**
+Baseline status: **in progress; Phases 11A–11B complete, Phase 11C next**
 Prerequisites: dependable permissions, memory, research, agents, clients, and observability
 
 ### Read first
@@ -710,9 +711,14 @@ JARVIS is safe, reliable, inspectable, and easy to disable.
 Implemented user-authored once/daily/event trigger contracts, deterministic preview, exact trusted
 activation, timezone/DST/expiry/quiet-hour/skew/rate/attention policy, restart-safe host isolation
 and deduplication, inert content-free candidates, lifecycle audit, export, disable, and deletion.
-Global and per-feature controls default off. No runner, task/provider/tool/effect execution, approval
-creation, notification send, cloud disclosure, or candidate-content retention was added. Phase 11B
-must preserve this boundary while adding the separately gated runner and user-facing feedback loop.
+Global and per-feature controls default off.
+
+### Phase 11B completion boundary (2026-09-14)
+
+Phase 11B preserves the 11A boundary with separately gated explicit foreground ticks, bounded
+leases/recovery, generic local inbox feedback, and exact Phase 6 handoff recording. No daemon,
+task/provider/tool/effect execution, approval creation/binding, external notification send, cloud
+disclosure, or candidate-content retention was added.
 
 ### Required design
 
@@ -943,13 +949,13 @@ reasoning, and rationale. Universal requirements still apply.
   versions -> live/loss/revoke/indicator -> battery/latency -> remove -> gates. T: aggregate real
   matrix. SP: indicator/bystander/delete/disconnect. M: hardware/privacy/overview/report. A/E: one
   real generic flow and adapter-removal pass. N: 1. R: `gpt-6-astra` `max`, live media/vendor risk.
-- **11A Trigger/proactivity policy (`not-started`)** — O/S/D: user schedules/triggers,
+- **11A Trigger/proactivity policy (`complete`)** — O/S/D: user schedules/triggers,
   suggestions, timezone/expiry/quiet/rate/attention, deterministic policy/preview. P: Phases 4/6.
   X: runner/model-created grant. Q: threat/usefulness -> contracts/store -> controls -> clock abuse.
   T: DST/skew/duplicate/noise/stale/expiry/disable/delete/restart. SP: suggestion not authority; host
   budgets. M: policy/config/report. A/E: trigger cannot execute/outlive scope. N: 1. R:
   `gpt-6-astra` `ultra`, autonomy boundary.
-- **11B Durable runner/notifications (`not-started`)** — O/S/D: bounded evaluation/task handoff/
+- **11B Durable runner/notifications (`complete`)** — O/S/D: bounded evaluation/task handoff/
   dedup/notify/snooze/cancel/recovery/checkpoints. P: 11A/Phase 6/8 when remote. X: hidden work or
   sensitive preview. Q: clock fake -> candidate -> task boundary -> notify -> recovery. T: restart/
   duplicate/offline/failure/cancel/budget. SP: audience classification/fresh grants/private preview.

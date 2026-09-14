@@ -521,6 +521,8 @@ def _bounded_task_check(settings: Settings) -> DiagnosticCheck:
 
 def _proactivity_check(settings: Settings) -> DiagnosticCheck:
     state = "enabled" if settings.proactivity_enabled else "disabled"
+    runner = "enabled" if settings.proactivity_runner_enabled else "disabled"
+    handoff = "enabled" if settings.proactivity_task_handoff_enabled else "disabled"
     features = len(settings.proactivity_enabled_features)
     return DiagnosticCheck(
         name="proactivity policy",
@@ -531,7 +533,9 @@ def _proactivity_check(settings: Settings) -> DiagnosticCheck:
             f"{settings.proactivity_max_candidates_per_day}/day, "
             f"{settings.proactivity_max_attention_seconds_per_day}s attention/day, "
             f"{settings.proactivity_max_concurrency} candidate, and "
-            f"${settings.proactivity_max_cost_usd:g} cloud cost. No runner is installed."
+            f"${settings.proactivity_max_cost_usd:g} cloud cost. Explicit foreground runner is "
+            f"{runner}; task handoff is {handoff}. No daemon, automatic task execution, approval "
+            "creation, external notification sender, or cloud disclosure is installed."
         ),
     )
 

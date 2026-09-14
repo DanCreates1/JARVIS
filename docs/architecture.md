@@ -2,7 +2,7 @@
 
 ## Status
 
-This document describes the implemented modular Python application through Phase 11A:
+This document describes the implemented modular Python application through Phase 11B:
 with deterministic local privacy routing, NVIDIA/Groq/Gemini/Ollama adapters, SQLite,
 audited tools, CLI, loopback browser/API interfaces, optional local push-to-talk voice, and an
 opt-in controlled Windows action broker, plus host-isolated candidate/committed memory with FTS5
@@ -49,11 +49,16 @@ their own providers or stores.
 ### Proactivity policy boundary
 
 `jarvis.proactivity` owns strict proposals, deterministic schedule preview/evaluation, exact
-trusted activation, host budgets, occurrence deduplication, and SQLite lifecycle state. Its only
-positive output is an inert content-free suggestion candidate. It does not import the task
-scheduler, provider router, tool registry, permission grant service, broker, or notification
-transport. Phase 11B must add any runner as a separate consumer that rechecks current policy and
-uses existing Phase 3/6 authority rather than extending a trigger into authority.
+trusted activation, host budgets, occurrence deduplication, and SQLite lifecycle state. Phase 11A's
+policy output remains an inert content-free suggestion candidate. Phase 11B's separate
+`ForegroundProactivityRunner` consumes candidates only during an explicit caller-owned tick. Its
+SQLite store uses bounded leases, one dispatch/inbox row per candidate, optimistic versions,
+terminal feedback states, content-free checkpoints, and restart recovery.
+
+The runner imports the Phase 6 task store only to verify and record one exact optional handoff. It
+does not invoke the scheduler, mutate task status, bind an approval, call a provider/tool/broker, or
+send through a notification transport. Global policy, runner, feature, and task-handoff gates are
+independent and default off. Remote delivery and multi-device ownership remain Phase 11C scope.
 
 ### Core runtime
 

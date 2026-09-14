@@ -6,7 +6,9 @@ import pytest
 from pydantic import ValidationError
 
 from jarvis.proactivity import (
+    CandidateDispatch,
     HostProactivityPolicy,
+    LocalNotification,
     ProactivityBudget,
     ProactivityPolicyError,
     ProactivityProposal,
@@ -51,6 +53,41 @@ def test_unknown_and_extra_authority_fields_fail_closed() -> None:
                 "interface": "model",
                 "approved_at": NOW,
                 "expires_at": NOW + timedelta(minutes=1),
+            }
+        )
+
+
+def test_runner_contracts_reject_content_and_authority_injection() -> None:
+    with pytest.raises(ValidationError):
+        LocalNotification.model_validate(
+            {
+                "id": "notice:1",
+                "host_id": "host:1",
+                "rule_id": "rule:1",
+                "candidate_id": "candidate:1",
+                "dispatch_version": 1,
+                "feature": "briefing",
+                "state": "active",
+                "available_at": NOW,
+                "expires_at": NOW + timedelta(minutes=1),
+                "created_at": NOW,
+                "updated_at": NOW,
+                "title": "secret content",
+            }
+        )
+    with pytest.raises(ValidationError):
+        CandidateDispatch.model_validate(
+            {
+                "candidate_id": "candidate:1",
+                "host_id": "host:1",
+                "rule_id": "rule:1",
+                "state": "claimed",
+                "version": 1,
+                "attempts": 1,
+                "expires_at": NOW + timedelta(minutes=1),
+                "created_at": NOW,
+                "updated_at": NOW,
+                "execute_task": True,
             }
         )
 

@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import json
+import platform
 import shutil
 import sqlite3
 from datetime import UTC, datetime, timedelta
@@ -90,7 +91,7 @@ def _remote_fixture(tmp_path: Path):  # type: ignore[no-untyped-def]
         role=DeploymentRole.SERVER_CORE,
         node_id="node:server",
         release_artifact=artifact,
-        python_version="3.11.9",
+        python_version=platform.python_version(),
         database_path=target,
         ownership_receipt=receipt,
     )
@@ -430,7 +431,7 @@ def test_release_update_chains_state_without_requiring_old_snapshot(tmp_path: Pa
         role=DeploymentRole.SERVER_CORE,
         node_id="node:server",
         release_artifact=replacement,
-        python_version="3.11.9",
+        python_version=platform.python_version(),
         database_path=target,
         ownership_receipt=receipt,
     )
@@ -481,7 +482,7 @@ def test_deployment_state_chains_remote_to_local_rollback(tmp_path: Path) -> Non
         role=DeploymentRole.LOCAL_CORE,
         node_id="node:laptop",
         release_artifact=artifact,
-        python_version="3.11.9",
+        python_version=platform.python_version(),
         database_path=restored_local,
         ownership_receipt=rollback,
     )
@@ -507,7 +508,7 @@ def test_laptop_device_offline_policy_never_changes_owner_or_effects(tmp_path: P
         role=DeploymentRole.LAPTOP_DEVICE,
         node_id="node:laptop",
         release_artifact=artifact,
-        python_version="3.11.9",
+        python_version=platform.python_version(),
     )
     activation = verify_runtime_deployment(
         deployment=deployment,
@@ -558,7 +559,7 @@ def test_local_owner_remains_available_without_network(tmp_path: Path) -> None:
         role=DeploymentRole.LOCAL_CORE,
         node_id="node:laptop",
         release_artifact=artifact,
-        python_version="3.11.9",
+        python_version=platform.python_version(),
         database_path=database,
     )
     state = create_deployment_state(

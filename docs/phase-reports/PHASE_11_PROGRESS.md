@@ -3,29 +3,31 @@
 Status: `in-progress`
 Started: 2026-09-14
 Updated: 2026-09-14
-Active subphase: Phase 11A complete; Phase 11B next
+Active subphase: Phase 11B — complete; Phase 11C next
 Recommended Codex model: `gpt-6-astra`
 Recommended reasoning: `ultra`
-Session start / five-hour stop: 2026-09-14T10:29:23-04:00 / 2026-09-14T15:29:23-04:00
+Phase 11B session / five-hour stop: 2026-09-14T15:10:00-04:00 / 2026-09-14T20:10:00-04:00
 
 ## Objective
 
-Deliver host-authored schedules and triggers as durable, previewed, suggestion-only policy. Enforce
-timezone, DST, expiry, quiet hours, rate, attention, privacy, task, provider, tool, and zero-cost
-ceilings outside model output. A trigger may create only an inert suggestion candidate; Phase 11A
-must not run tasks, send notifications, execute tools, mint approval, or start background work.
+Extend the completed suggestion-only policy with an explicit foreground, single-owner runner. It
+may evaluate due rules, claim one candidate, create a content-minimized local notification inbox
+item, and prepare an exact Phase 6 task handoff. It must support snooze, dismiss, accept, cancel,
+leases, checkpoints, restart recovery, and deduplication without a hidden daemon, cloud disclosure,
+approval creation, automatic task execution, external notification adapter, or retained sensitive
+preview.
 
 ## Baseline
 
-- Git branch/HEAD: `main` at `4fb511812f30df3a25605d8685997372d36ec810`, equal to
-  `origin/main`.
-- Worktree state and preserved unrelated changes: untracked `.codex_finish_jarvis_cleanup.ps1`
-  belongs to user and remains untouched.
+- Git branch/HEAD: `main` at `2bc80b9b2b8622f3e435a3b45c63e6278a60ab44`, equal to
+  `origin/main` after restoring the configured checkout from the existing upstream.
+- Worktree state and preserved unrelated changes: clean; ignored `runtime/` evidence preserved.
 - Relevant installed software/hardware/provider state: Windows 11 Home `10.0.26200`; ASUS TUF
   Gaming F15 FX506HF; 16,888,967,168 bytes RAM; Python 3.11.9; uv 0.12.5; Git 2.55.0;
   Gitleaks installed; Node 24.20.0. No Phase 11 credential or external service is required.
-- Existing tests and failures: locked resolution passes. Phase 4/6 prerequisite model, store,
-  scheduler, and adversarial baseline: 63 passed in 2.52 seconds; no observed failure.
+- Existing tests and failures: Phase 11A closeout reported 1,026 passed, 3 skipped, 85.01%
+  coverage. Phase 11B restored the locked environment in this configured checkout; focused runner,
+  CLI, policy, migration, and security suites pass with no product failure.
 - Prior phase evidence: Phases 4, 5, 6, and 8 are complete. Phase 9 repository implementation is
   complete with live deployment externally blocked. Phase 10A is complete; vendor work is
   owner-deferred. Phase 6 remains foreground-only and has no scheduler daemon.
@@ -73,6 +75,28 @@ must not run tasks, send notifications, execute tools, mint approval, or start b
 - [x] Full lock/sync, Ruff, mypy, pytest/coverage, dependency audit, Gitleaks, doctor, package, and
   Git whitespace gates pass.
 
+### Phase 11B durable runner and notification inbox
+
+- [x] One explicit foreground tick atomically owns each candidate with a bounded lease, records
+  before/after checkpoints, and never starts a hidden/background daemon.
+- [x] Restart reclaims expired pre-delivery leases, but never redelivers a notification or repeats
+  a task handoff after durable completion evidence.
+- [x] Local inbox items contain generic metadata only. Sensitive/private title, memory, research,
+  task arguments/output, provider content, and tool receipts are never copied into notification
+  or checkpoint rows.
+- [x] Snooze is exact, bounded, and quiet-hour/expiry aware; dismiss/cancel is terminal; disable
+  prevents new evaluation and cancels unhanded work without deleting audit evidence.
+- [x] Accept may bind only the exact host-owned Phase 6 task named by the activated rule, after
+  checking current rule, candidate, task status, task deadline, and the intersection of Phase 11
+  and Phase 6 budgets. It does not execute the task or create/bind an approval.
+- [x] At most one handoff exists per candidate and one candidate owns a task. Duplicate ticks,
+  concurrent claims, process restart, notification failure, offline sink, cancellation, and budget
+  denial produce zero duplicate effects.
+- [x] Fixed benchmark runs at least 10,000 runner operations plus 10,000 duplicate/restart/denial
+  cases; warm p95 <= 10 ms, zero duplicate deliveries/handoffs/effects, and RSS growth <= 50 MiB.
+- [x] Runner/inbox controls, migration, recovery, architecture, security, diagnostics, status,
+  benchmark, full release, dependency, secret, package, and Git gates pass.
+
 ## Milestones
 
 ### Phase 11A Milestone 1 — threat model, contracts, and frozen policy
@@ -103,6 +127,34 @@ must not run tasks, send notifications, execute tools, mint approval, or start b
   85.01% coverage; dependency and secret scans pass; source/wheel build succeeds.
 - Remaining: none for milestone.
 
+### Phase 11B Milestone 1 — runner state, ownership, and frozen notification boundary
+
+- Status: complete
+- Changes: froze scope, failure matrix, data boundary, and targets; added migration 012, strict
+  dispatch/inbox/checkpoint contracts, atomic leases, terminal states, bounded recovery, and
+  content-minimized export/deletion integration.
+- Evidence: concurrent ten-way claim produces one owner; expired lease recovery produces one inbox
+  item; ten-attempt exhaustion fails terminally; raw rows exclude private proposal title.
+- Remaining: none for milestone.
+
+### Phase 11B Milestone 2 — foreground workflow and exact task boundary
+
+- Status: complete
+- Changes: added independently gated `proactive tick`, `inbox`, `runner-events`, `snooze`, `dismiss`,
+  `cancel`, and `accept`; integrated quiet-time recheck and transitive disable cancellation.
+- Evidence: duplicate tick produces no delivery; accept records one exact task/version/digest while
+  leaving the task proposed with zero node attempts; wrong task and budget expansion fail closed.
+- Remaining: none for milestone.
+
+### Phase 11B Milestone 3 — benchmark, documentation, and closeout
+
+- Status: complete
+- Changes: added fixed runner/abuse benchmark; updated configuration, diagnostics, operator,
+  architecture, security, setup, overview, roadmap, playbook, and progress documentation.
+- Evidence: 10,000 inbox operations plus 10,000 duplicate claims pass at 0.4008 ms and 0.8379 ms
+  p95, 0.676 MiB RSS growth, zero duplicates/handoffs/effects; full release gates pass.
+- Remaining: none for milestone.
+
 ## Decisions
 
 - Decision: Phase 11A produces inert suggestion candidates only.
@@ -111,6 +163,11 @@ must not run tasks, send notifications, execute tools, mint approval, or start b
 - Alternatives: hidden daemon, automatic task execution, and notification sending are excluded.
 - Reversible later: Phase 11B may consume the stable candidate contract behind fresh policy and
   authority checks.
+- Decision: Phase 11B runner lifetime is owned by the explicit CLI tick; no scheduler or daemon.
+- Reason: foreground lifetime gives visible control and preserves Phase 6/8 ownership boundaries.
+- Alternatives: browser push, service installation, periodic process, and remote delivery deferred
+  to Phase 11C rather than simulated.
+- Reversible later: Phase 11C may add an approved adapter behind the durable dispatch boundary.
 
 ## Verification evidence
 
@@ -144,6 +201,35 @@ PASS: JARVIS ready; proactivity disabled, zero features, no runner
 
 rtk uv build
 PASS: source distribution and wheel built
+
+Phase 11B restored-checkout release gates:
+
+rtk uv lock --check
+PASS: 119 packages resolved
+
+rtk .venv/Scripts/python.exe -m ruff format --check .
+PASS: 325 files already formatted
+
+rtk .venv/Scripts/python.exe -m ruff check .
+PASS: all checks passed
+
+rtk .venv/Scripts/python.exe -m mypy src
+PASS: no issues in 136 source files
+
+rtk .venv/Scripts/python.exe -m pytest --basetemp runtime/pytest-phase11b-full-03
+PASS: 1,038 passed, 3 skipped, 85.08% coverage in 50.84 s
+
+rtk .venv/Scripts/python.exe -m pip_audit --strict
+PASS: no known vulnerabilities
+
+rtk gitleaks detect --source . --redact --no-banner
+PASS: 39 commits and 4.54 MB scanned; no leaks found
+
+rtk .venv/Scripts/python.exe -m jarvis doctor
+PASS: JARVIS ready with workspace-local private runtime path; policy, runner, and handoff disabled
+
+rtk uv build
+PASS: source distribution and wheel built
 ```
 
 ## Benchmarks
@@ -158,35 +244,49 @@ PASS: source distribution and wheel built
   synthetic trigger fixtures; no model, provider, network, or device.
 - Relevant settings: global proactivity default off; zero cost; one candidate concurrency.
 
+Phase 11B runner benchmark:
+
+- Samples: 10,000 valid active-inbox reads plus 10,000 duplicate/restart claim attempts.
+- p50: valid 0.2526 ms; abuse 0.5482 ms.
+- p95: valid 0.4008 ms; abuse 0.8379 ms; target <= 10 ms passes.
+- Errors/failures: zero valid failures, false claims, duplicate notifications, unexpected events,
+  task handoffs, or effects. RSS growth 0.676 MiB.
+- Hardware/runtime: Windows laptop, Python 3.11.16, SQLite WAL, deterministic clock, no model,
+  provider, network, task execution, or device.
+
 ## Security and privacy
 
 - Threats tested: forged/model activation, budget escalation, host crossover, replay, skew, stale and
-  duplicate occurrence, invalid/gap/fold times, disable/expiry/restart, and concurrent evaluation.
-- Data boundaries: control metadata only; candidate content and execution are outside 11A.
-- Permissions/approvals: exact trusted host activation only; suggestion is not approval.
-- Audit/retention/deletion: content-free lifecycle audit and candidate ledger; exclusive export;
-  transitive rule/activation/candidate/event deletion with content-free tombstone verified.
+  duplicate occurrence, invalid/gap/fold times, disable/expiry/restart, concurrent evaluation/claim,
+  lease crash/exhaustion, duplicate handoff, wrong task, and authority-field injection.
+- Data boundaries: candidate, dispatch, local inbox, and runner audit persist control metadata only.
+- Permissions/approvals: exact trusted host activation only; suggestion and handoff are not approval;
+  pre-bound grants are rejected and the runner never invokes a task/effect.
+- Audit/retention/deletion: content-free lifecycle and runner audit; exclusive export; transitive
+  rule/activation/candidate/dispatch/inbox/event deletion with content-free tombstone verified.
 - Secret scan: full working-tree Gitleaks pass.
 
 ## Blockers
 
-- None for Phase 11A local implementation.
+- None for Phases 11A–11B local implementation.
 
 ## Known limits and deferred scope
 
-- Background evaluation, task handoff, notification delivery/snooze, remote multi-device
-  ownership, adapters, and long-duration usefulness evaluation remain Phases 11B–11D.
+- Background/service evaluation is deliberately absent. Remote notification transport,
+  multi-device ownership, approved adapters, and long-duration usefulness evaluation remain
+  Phases 11C–11D.
 
 ## Recovery and rollback
 
-- Keep global proactivity disabled. Rollback will disable new evaluation while retaining local
-  inspect/export/delete controls; additive migration must not be removed from an existing database.
+- Disable runner and handoff gates first, then the global policy gate. Stop the invoking foreground
+  process; inspect inbox/runner events; disable exact rules to cancel unhanded state; export before
+  deletion. Additive migrations 011/012 must not be removed from an existing database.
 
 ## Final handoff
 
-- Final status: Phase 11A complete; aggregate Phase 11 remains in progress.
+- Final status: Phases 11A–11B complete; aggregate Phase 11 remains in progress.
 - Files changed: proactivity contracts/policy/store/migration, configuration, CLI, diagnostics,
   benchmark/tests, operator/security/architecture/setup/roadmap/playbook documentation, and report.
-- Next recommended phase: Phase 11B durable runner/task handoff/notifications.
+- Next recommended phase: Phase 11C multi-device ownership and approved scoped adapters.
 - Commit/push status: completed under standing repository authorization; exact commit is repository
   `HEAD` and is pushed to `origin/main`.

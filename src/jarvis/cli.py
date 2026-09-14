@@ -54,18 +54,29 @@ from jarvis.planning import (
     TaskStatus,
 )
 from jarvis.proactivity import (
+    CandidateDispatch,
+    ForegroundProactivityRunner,
     HostProactivityPolicy,
     ProactivityConflictError,
     ProactivityEvent,
     ProactivityExportReceipt,
+    ProactivityHandoffDeniedError,
     ProactivityNotFoundError,
     ProactivityPolicyError,
     ProactivityProposal,
     ProactivityRule,
+    ProactivityRunnerDisabledError,
     ProactivityStateError,
     RuleDeletionReceipt,
     RuleStatus,
+    RunnerConflictError,
+    RunnerEvent,
+    RunnerNotFoundError,
+    RunnerStateError,
+    RunnerTickResult,
+    SQLiteProactivityRunnerStore,
     SQLiteProactivityStore,
+    TriggerEvent,
     TrustedActivation,
 )
 from jarvis.remote.migration import MigrationError, MigrationErrorCode
@@ -124,7 +135,7 @@ task_app = typer.Typer(
 app.add_typer(task_app, name="task")
 proactive_app = typer.Typer(
     name="proactive",
-    help="Preview and control suggestion-only schedules/triggers; no runner or notification send.",
+    help="Control suggestion schedules, explicit foreground ticks, local inbox, and task handoff.",
     no_args_is_help=True,
 )
 app.add_typer(proactive_app, name="proactive")
@@ -187,7 +198,7 @@ def _proactivity_policy(settings: Settings) -> HostProactivityPolicy:
 
 @proactive_app.command("status")
 def proactive_status() -> None:
-    """Show global suggestion policy without opening a runner or evaluating a trigger."""
+    """Show suggestion, foreground-runner, inbox, and handoff policy."""
     settings = _load_settings()
     state = "enabled" if settings.proactivity_enabled else "disabled"
     features = ", ".join(settings.proactivity_enabled_features) or "none"
@@ -199,8 +210,285 @@ def proactive_status() -> None:
         f"{settings.proactivity_max_attention_seconds_per_day}s attention/day, "
         f"${settings.proactivity_max_cost_usd:g} cost, "
         f"concurrency={settings.proactivity_max_concurrency}\n"
-        "No background runner, task execution, approval creation, or notification sender "
-        "is installed."
+        f"Foreground runner: {'enabled' if settings.proactivity_runner_enabled else 'disabled'}; "
+        f"task handoff: {'enabled' if settings.proactivity_task_handoff_enabled else 'disabled'}\n"
+        "No background runner or daemon, automatic task execution, approval creation, external "
+        "sender, or cloud disclosure is installed."
+    )
+
+
+def _foreground_proactivity_runner(
+    settings: Settings,
+    *,
+    policy_store: SQLiteProactivityStore,
+    runner_store: SQLiteProactivityRunnerStore,
+    task_store: SQLiteTaskStore,
+) -> ForegroundProactivityRunner:
+    return ForegroundProactivityRunner(
+        policy_store=policy_store,
+        runner_store=runner_store,
+        task_store=task_store,
+        policy=_proactivity_policy(settings),
+        runner_enabled=settings.proactivity_runner_enabled,
+        task_handoff_enabled=settings.proactivity_task_handoff_enabled,
+        lease_seconds=settings.proactivity_runner_lease_seconds,
+        notification_ttl_seconds=settings.proactivity_notification_ttl_seconds,
+        max_snooze_seconds=settings.proactivity_max_snooze_seconds,
+    )
+
+
+@proactive_app.command("tick")
+def proactive_tick(
+    event_name: Annotated[str | None, typer.Option(help="Exact event-trigger name.")] = None,
+    event_id: Annotated[str | None, typer.Option(help="Unique source event ID.")] = None,
+    occurred_at: Annotated[
+        str | None, typer.Option(help="Timezone-aware ISO event occurrence time.")
+    ] = None,
+) -> None:
+    """Run one explicit foreground evaluation and local-inbox delivery pass."""
+    settings = _load_settings()
+    values = (event_name, event_id, occurred_at)
+    if any(value is not None for value in values) and not all(
+        value is not None for value in values
+    ):
+        console.print(
+            "[bold red]Event tick requires --event-name, --event-id, and --occurred-at.[/]"
+        )
+        raise typer.Exit(code=2)
+    try:
+        event = None
+        if all(value is not None for value in values):
+            assert event_name is not None and event_id is not None and occurred_at is not None
+            event = TriggerEvent(
+                id=event_id,
+                name=event_name,
+                occurred_at=datetime.fromisoformat(occurred_at),
+            )
+    except (ValueError, ValidationError):
+        console.print("[bold red]Event envelope is invalid.[/]")
+        raise typer.Exit(code=2) from None
+
+    async def run() -> RunnerTickResult:
+        async with (
+            SQLiteProactivityStore(settings.database_path) as policy_store,
+            SQLiteProactivityRunnerStore(settings.database_path) as runner_store,
+            SQLiteTaskStore(settings.database_path) as task_store,
+        ):
+            runner = _foreground_proactivity_runner(
+                settings,
+                policy_store=policy_store,
+                runner_store=runner_store,
+                task_store=task_store,
+            )
+            return await runner.tick(
+                host_id=local_memory_host_id(),
+                runner_id=f"foreground:{secrets.token_hex(16)}",
+                event=event,
+            )
+
+    try:
+        result = asyncio.run(run())
+    except ProactivityRunnerDisabledError as exc:
+        console.print(f"[bold red]Runner blocked.[/] {exc}")
+        raise typer.Exit(code=1) from None
+    except Exception:
+        console.print("[bold red]Foreground tick failed closed.[/] No task or effect executed.")
+        raise typer.Exit(code=1) from None
+    console.print(
+        f"[bold green]Foreground tick complete.[/] rules={result.rules_evaluated} "
+        f"candidates={result.candidates_created} notifications={result.notifications_ready} "
+        f"recovered_leases={result.recovered_leases} denied={result.denied} effects=0"
+    )
+
+
+@proactive_app.command("inbox")
+def proactive_inbox(
+    active_only: Annotated[bool, typer.Option(help="Show active notices only.")] = False,
+    limit: Annotated[int, typer.Option(min=1, max=500)] = 100,
+) -> None:
+    """List content-minimized local notification state."""
+    settings = _load_settings()
+
+    async def run() -> tuple[object, ...]:
+        async with SQLiteProactivityRunnerStore(settings.database_path) as store:
+            return tuple(
+                await store.list_notifications(
+                    host_id=local_memory_host_id(), active_only=active_only, limit=limit
+                )
+            )
+
+    try:
+        notices = asyncio.run(run())
+    except Exception:
+        console.print("[bold red]Local proactivity inbox is unavailable.[/]")
+        raise typer.Exit(code=1) from None
+    table = Table(title="Local proactivity inbox — generic metadata only")
+    table.add_column("Candidate / version")
+    table.add_column("State")
+    table.add_column("Feature")
+    table.add_column("Available / expires")
+    for item in notices:
+        from jarvis.proactivity import LocalNotification
+
+        assert isinstance(item, LocalNotification)
+        table.add_row(
+            f"{item.candidate_id}\nv{item.dispatch_version}",
+            item.state.value,
+            item.feature,
+            f"{item.available_at.isoformat(timespec='seconds')}\n"
+            f"{item.expires_at.isoformat(timespec='seconds')}",
+        )
+    console.print(table)
+
+
+@proactive_app.command("runner-events")
+def proactive_runner_events(
+    candidate_id: Annotated[str, typer.Argument(help="Exact candidate ID.")],
+    limit: Annotated[int, typer.Option(min=1, max=2_000)] = 500,
+) -> None:
+    """Show content-free claim, notification, snooze, cancel, and handoff events."""
+    settings = _load_settings()
+
+    async def run() -> tuple[RunnerEvent, ...]:
+        async with SQLiteProactivityRunnerStore(settings.database_path) as store:
+            return tuple(
+                await store.list_events(
+                    host_id=local_memory_host_id(), candidate_id=candidate_id, limit=limit
+                )
+            )
+
+    try:
+        events = asyncio.run(run())
+    except Exception:
+        console.print("[bold red]Runner audit is unavailable.[/]")
+        raise typer.Exit(code=1) from None
+    table = Table(title="Proactivity runner audit — content-free")
+    table.add_column("Seq / time")
+    table.add_column("Event")
+    table.add_column("Reason")
+    for event in events:
+        table.add_row(
+            f"{event.sequence}\n{event.created_at.isoformat(timespec='seconds')}",
+            event.event_type.value,
+            event.reason_code,
+        )
+    console.print(table)
+
+
+@proactive_app.command("snooze")
+def proactive_snooze(
+    candidate_id: Annotated[str, typer.Argument(help="Exact candidate ID.")],
+    expected_version: Annotated[int, typer.Option(min=1)],
+    minutes: Annotated[int, typer.Option(min=1, max=1_440)] = 15,
+) -> None:
+    """Snooze one local notice within host and notification expiry ceilings."""
+    settings = _load_settings()
+
+    async def run() -> CandidateDispatch:
+        async with SQLiteProactivityRunnerStore(settings.database_path) as store:
+            return await store.snooze(
+                host_id=local_memory_host_id(),
+                candidate_id=candidate_id,
+                expected_version=expected_version,
+                until=datetime.now(UTC) + timedelta(minutes=minutes),
+                max_snooze_seconds=settings.proactivity_max_snooze_seconds,
+            )
+
+    try:
+        dispatch = asyncio.run(run())
+    except (RunnerNotFoundError, RunnerConflictError, RunnerStateError) as exc:
+        console.print(f"[bold red]Snooze denied.[/] {exc}")
+        raise typer.Exit(code=1) from None
+    console.print(f"[bold green]Snoozed[/] {candidate_id} · v{dispatch.version}")
+
+
+def _proactive_terminal_transition(
+    *, candidate_id: str, expected_version: int, action: str
+) -> None:
+    settings = _load_settings()
+
+    async def run() -> CandidateDispatch:
+        async with SQLiteProactivityRunnerStore(settings.database_path) as store:
+            method = store.dismiss if action == "dismiss" else store.cancel
+            return await method(
+                host_id=local_memory_host_id(),
+                candidate_id=candidate_id,
+                expected_version=expected_version,
+            )
+
+    try:
+        dispatch = asyncio.run(run())
+    except (RunnerNotFoundError, RunnerConflictError, RunnerStateError) as exc:
+        console.print(f"[bold red]{action.title()} denied.[/] {exc}")
+        raise typer.Exit(code=1) from None
+    console.print(f"[bold green]{action.title()}ed[/] {candidate_id} · v{dispatch.version}")
+
+
+@proactive_app.command("dismiss")
+def proactive_dismiss(
+    candidate_id: Annotated[str, typer.Argument(help="Exact candidate ID.")],
+    expected_version: Annotated[int, typer.Option(min=1)],
+) -> None:
+    """Dismiss one notice terminally; no task starts."""
+    _proactive_terminal_transition(
+        candidate_id=candidate_id, expected_version=expected_version, action="dismiss"
+    )
+
+
+@proactive_app.command("cancel")
+def proactive_cancel(
+    candidate_id: Annotated[str, typer.Argument(help="Exact candidate ID.")],
+    expected_version: Annotated[int, typer.Option(min=1)],
+) -> None:
+    """Cancel one unhanded runner item terminally."""
+    _proactive_terminal_transition(
+        candidate_id=candidate_id, expected_version=expected_version, action="cancel"
+    )
+
+
+@proactive_app.command("accept")
+def proactive_accept(
+    candidate_id: Annotated[str, typer.Argument(help="Exact candidate ID.")],
+    task_id: Annotated[str, typer.Option(help="Exact task ID bound by the activated rule.")],
+    expected_version: Annotated[int, typer.Option(min=1)],
+) -> None:
+    """Create one exact Phase 6 handoff; never run the task or bind approval."""
+    settings = _load_settings()
+
+    async def run() -> CandidateDispatch:
+        async with (
+            SQLiteProactivityStore(settings.database_path) as policy_store,
+            SQLiteProactivityRunnerStore(settings.database_path) as runner_store,
+            SQLiteTaskStore(settings.database_path) as task_store,
+        ):
+            runner = _foreground_proactivity_runner(
+                settings,
+                policy_store=policy_store,
+                runner_store=runner_store,
+                task_store=task_store,
+            )
+            return await runner.accept_handoff(
+                host_id=local_memory_host_id(),
+                candidate_id=candidate_id,
+                task_id=task_id,
+                expected_version=expected_version,
+            )
+
+    try:
+        dispatch = asyncio.run(run())
+    except (
+        ProactivityHandoffDeniedError,
+        ProactivityNotFoundError,
+        TaskNotFoundError,
+        RunnerNotFoundError,
+        RunnerConflictError,
+        RunnerStateError,
+    ) as exc:
+        console.print(f"[bold red]Task handoff denied.[/] {exc}")
+        raise typer.Exit(code=1) from None
+    console.print(
+        f"[bold green]Task handoff prepared.[/] candidate={candidate_id} task={task_id} "
+        f"v{dispatch.version}; task not executed and no approval created"
     )
 
 

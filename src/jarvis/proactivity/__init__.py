@@ -1,4 +1,4 @@
-"""Phase 11A suggestion-only proactivity boundary."""
+"""Phase 11A policy and Phase 11B explicit foreground runner boundary."""
 
 from .models import (
     DataClass,
@@ -24,6 +24,28 @@ from .models import (
     TrustedActivation,
 )
 from .policy import HostProactivityPolicy, ProactivityPolicyError, local_day_bounds
+from .runner import (
+    ForegroundProactivityRunner,
+    ProactivityHandoffDeniedError,
+    ProactivityRunnerDisabledError,
+)
+from .runner_models import (
+    CandidateDispatch,
+    DispatchState,
+    LocalNotification,
+    NotificationState,
+    RunnerEvent,
+    RunnerEventType,
+    RunnerTickResult,
+)
+from .runner_store import (
+    ProactivityRunnerStoreError,
+    RunnerConflictError,
+    RunnerCorruptionError,
+    RunnerNotFoundError,
+    RunnerStateError,
+    SQLiteProactivityRunnerStore,
+)
 from .sqlite_store import (
     ProactivityConflictError,
     ProactivityCorruptionError,
@@ -34,21 +56,29 @@ from .sqlite_store import (
 )
 
 __all__ = [
+    "CandidateDispatch",
     "DataClass",
+    "DispatchState",
     "EvaluationCode",
     "EvaluationDecision",
+    "ForegroundProactivityRunner",
     "HostProactivityPolicy",
+    "LocalNotification",
+    "NotificationState",
     "ProactivityBudget",
     "ProactivityConflictError",
     "ProactivityCorruptionError",
     "ProactivityEvent",
     "ProactivityEventType",
     "ProactivityExportReceipt",
+    "ProactivityHandoffDeniedError",
     "ProactivityNotFoundError",
     "ProactivityPolicyError",
     "ProactivityProposal",
     "ProactivityProvenance",
     "ProactivityRule",
+    "ProactivityRunnerDisabledError",
+    "ProactivityRunnerStoreError",
     "ProactivityScope",
     "ProactivityStateError",
     "ProactivityStoreError",
@@ -57,6 +87,14 @@ __all__ = [
     "RuleDeletionReceipt",
     "RulePreview",
     "RuleStatus",
+    "RunnerConflictError",
+    "RunnerCorruptionError",
+    "RunnerEvent",
+    "RunnerEventType",
+    "RunnerNotFoundError",
+    "RunnerStateError",
+    "RunnerTickResult",
+    "SQLiteProactivityRunnerStore",
     "SQLiteProactivityStore",
     "SuggestionCandidate",
     "TriggerEvent",

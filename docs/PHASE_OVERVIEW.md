@@ -82,11 +82,12 @@ dependency is Phase 3/media privacy, but it must not be described as following a
    pass. Local-only remains default. Real server cutover is blocked on an authorized target.
 8. Keep Phase 10A's generic wearable boundary. Meta glasses, mobile bridge, vendor SDK, and live
    wearable work are owner-deferred future candidates and no longer block active roadmap work.
-9. Maintain completed Phase 11A trigger/proactivity policy: global/per-feature default-off controls,
-   exact trusted activation, timezone/DST/quiet-hour/expiry/rate/attention policy, restart-safe
-   deduplication, inert candidates, audit/export/disable/delete, and no runner or execution authority.
-   Begin Phase 11B scheduled-runner and notification design next; it must consume the inert candidate
-   contract without weakening Phase 3 or Phase 6 authority boundaries.
+9. Maintain completed Phases 11A–11B proactivity: global/per-feature/runner/handoff default-off
+   controls; exact trusted activation; timezone/DST/quiet-hour/expiry/rate/attention policy;
+   restart-safe candidates and single-owner foreground leases; generic local inbox; bounded
+   snooze/dismiss/cancel; exact Phase 6 handoff recording; audit/export/delete; and no daemon, task
+   execution, approval binding, external notification, or effect authority. Phase 11C multi-device
+   ownership and adapters are next.
 
 Hands-free control is a cross-phase track: Phase 2 detects claps, Phase 7 recognizes hand
 gestures, and Phase 3 alone authorizes and executes the mapped computer action. See

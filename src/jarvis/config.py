@@ -150,6 +150,11 @@ class Settings(BaseSettings):
     proactivity_max_tokens: int = Field(default=10_000, ge=0, le=10_000)
     proactivity_max_cost_usd: float = Field(default=0, ge=0, le=0)
     proactivity_max_concurrency: Literal[1] = 1
+    proactivity_runner_enabled: bool = False
+    proactivity_task_handoff_enabled: bool = False
+    proactivity_runner_lease_seconds: int = Field(default=30, ge=1, le=60)
+    proactivity_notification_ttl_seconds: int = Field(default=3_600, ge=60, le=86_400)
+    proactivity_max_snooze_seconds: int = Field(default=86_400, ge=60, le=86_400)
     vision_capture_enabled: bool = False
     voice_always_listening_enabled: Literal[False] = False
     voice_acoustic_always_listening_enabled: Literal[False] = False
@@ -489,6 +494,11 @@ class Settings(BaseSettings):
             "proactivity_max_tokens": self.proactivity_max_tokens,
             "proactivity_max_cost_usd": self.proactivity_max_cost_usd,
             "proactivity_max_concurrency": self.proactivity_max_concurrency,
+            "proactivity_runner_enabled": self.proactivity_runner_enabled,
+            "proactivity_task_handoff_enabled": self.proactivity_task_handoff_enabled,
+            "proactivity_runner_lease_seconds": self.proactivity_runner_lease_seconds,
+            "proactivity_notification_ttl_seconds": (self.proactivity_notification_ttl_seconds),
+            "proactivity_max_snooze_seconds": self.proactivity_max_snooze_seconds,
             "vision_capture_enabled": self.vision_capture_enabled,
             "computer_access_policy_path": str(self.computer_access_policy_path),
             "voice_always_listening_enabled": self.voice_always_listening_enabled,

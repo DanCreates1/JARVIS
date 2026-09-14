@@ -338,6 +338,54 @@ class SQLiteProactivityStore:
                     reason_code="trusted_host_disabled",
                     created_at=timestamp,
                 )
+                async with connection.execute(
+                    """
+                    SELECT candidate_id FROM proactivity_dispatches
+                    WHERE host_id = ? AND rule_id = ?
+                      AND state IN ('claimed', 'notified', 'snoozed')
+                    """,
+                    (host_id, rule_id),
+                ) as cursor:
+                    active_dispatches = await cursor.fetchall()
+                for dispatch in active_dispatches:
+                    await connection.execute(
+                        """
+                        UPDATE proactivity_dispatches
+                        SET state = 'cancelled', version = version + 1,
+                            lease_id = NULL, lease_expires_at = NULL,
+                            snoozed_until = NULL, updated_at = ?
+                        WHERE candidate_id = ?
+                        """,
+                        (
+                            timestamp.isoformat(timespec="microseconds"),
+                            dispatch["candidate_id"],
+                        ),
+                    )
+                    await connection.execute(
+                        """
+                        UPDATE proactivity_notifications
+                        SET state = 'cancelled', updated_at = ? WHERE candidate_id = ?
+                        """,
+                        (
+                            timestamp.isoformat(timespec="microseconds"),
+                            dispatch["candidate_id"],
+                        ),
+                    )
+                    await connection.execute(
+                        """
+                        INSERT INTO proactivity_runner_events
+                            (id, host_id, rule_id, candidate_id, event_type,
+                             reason_code, created_at)
+                        VALUES (?, ?, ?, ?, 'cancelled', 'rule_disabled_kill_switch', ?)
+                        """,
+                        (
+                            f"proactivity-runner-event:{uuid4()}",
+                            host_id,
+                            rule_id,
+                            dispatch["candidate_id"],
+                            timestamp.isoformat(timespec="microseconds"),
+                        ),
+                    )
                 await connection.commit()
             except BaseException:
                 await connection.rollback()
@@ -588,6 +636,14 @@ class SQLiteProactivityStore:
                     "SELECT COUNT(*) FROM proactivity_events WHERE host_id = ? AND rule_id = ?",
                     (host_id, rule_id),
                 )
+                events += await _scalar(
+                    connection,
+                    """
+                    SELECT COUNT(*) FROM proactivity_runner_events
+                    WHERE host_id = ? AND rule_id = ?
+                    """,
+                    (host_id, rule_id),
+                )
                 await connection.execute(
                     "DELETE FROM proactivity_rules WHERE host_id = ? AND id = ?",
                     (host_id, rule_id),
@@ -628,11 +684,12 @@ class SQLiteProactivityStore:
             event_rows.extend(await self.list_events(host_id=host_id, rule_id=rule.id, limit=2_000))
         destination = Path(path)
         payload = {
-            "schema": "jarvis-proactivity-export-v1",
+            "schema": "jarvis-proactivity-export-v2",
             "exported_at": timestamp.isoformat(timespec="microseconds"),
             "rules": [rule.model_dump(mode="json") for rule in rules],
             "candidates": [candidate.model_dump(mode="json") for candidate in candidates],
             "events": [event.model_dump(mode="json") for event in event_rows],
+            "runner": await self._export_runner_rows(host_id=host_id),
         }
         await asyncio.to_thread(_write_exclusive_json, destination, payload)
         return ProactivityExportReceipt(
@@ -642,6 +699,23 @@ class SQLiteProactivityStore:
             event_count=len(event_rows),
             exported_at=timestamp,
         )
+
+    async def _export_runner_rows(self, *, host_id: str) -> dict[str, list[dict[str, object]]]:
+        async with self._operation_lock:
+            connection = await self._get_connection()
+            tables = {
+                "dispatches": "proactivity_dispatches",
+                "notifications": "proactivity_notifications",
+                "events": "proactivity_runner_events",
+            }
+            exported: dict[str, list[dict[str, object]]] = {}
+            for label, table in tables.items():
+                async with connection.execute(
+                    f"SELECT * FROM {table} WHERE host_id = ? ORDER BY rowid", (host_id,)
+                ) as cursor:
+                    rows = await cursor.fetchall()
+                exported[label] = [dict(row) for row in rows]
+            return exported
 
     async def _get_connection(self) -> aiosqlite.Connection:
         if self._connection is None:
