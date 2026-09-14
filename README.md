@@ -259,8 +259,8 @@ authority. Every operation requires an exact, expiring host/device/session/capab
 fixed data classification, purpose, resource limits, visible camera/microphone indication,
 ephemeral retention, and no cloud disclosure. A deterministic simulator provides disconnect,
 revocation, removal, replay, version, permission, and resource-limit coverage without vendor code
-or hardware. Meta DAT is the provisional phone-bridge candidate, but adapter work remains blocked
-until current authenticated vendor terms are reviewed and accepted by the owner.
+or hardware. Meta glasses integration is owner-deferred to the future-feature backlog. No Meta SDK,
+phone bridge, mobile project, credential, device enrollment, media, or health integration is active.
 
 See [Phase 10A Feasibility, Access, and License Matrix](docs/PHASE_10A_FEASIBILITY.md) and
 [ADR 0006](docs/adr/0006-generic-wearable-boundary.md).

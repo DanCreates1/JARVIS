@@ -1,19 +1,18 @@
 # Phase 10 Generic Wearables Progress Report
 
-Status: `in-progress`
+Status: `blocked-external`
 Started: 2026-09-11
-Updated: 2026-09-12
-Active subphase: Phase 10B — externally blocked pending term review/platform authority
-Recommended Codex model: `gpt-5.6-sol`
-Recommended reasoning: `high`
-Session start / five-hour stop: 2026-09-11T23:18:30-04:00 / 2026-09-12T04:18:30-04:00
+Updated: 2026-09-14
+Active subphase: None — Phase 10B/10C owner-deferred to future-feature backlog
+Recommended Codex model: `gpt-6-astra`
+Recommended reasoning: `xhigh`
+Phase 10B session / five-hour stop: 2026-09-12T14:31:01-04:00 / 2026-09-12T19:31:01-04:00
 
 ## Objective
 
-Establish a dated, evidence-based wearable feasibility and licensing decision plus owned generic
-audio, display, camera, input, notification, and health contracts with hardware-independent fakes.
-Add explicit live-knowledge freshness/offline semantics and proposal-first controlled maintenance.
-Do not install or copy vendor SDK code, accept vendor terms, enroll hardware, or grant authority.
+Preserve the completed Phase 10A feasibility evidence, vendor-neutral wearable contract, simulator,
+knowledge-freshness rules, and controlled-maintenance boundary. Meta phone-bridge, mobile SDK, and
+real-device work are owner-deferred future candidates. Do not treat them as active roadmap blockers.
 
 ## Baseline
 
@@ -28,6 +27,11 @@ Do not install or copy vendor SDK code, accept vendor terms, enroll hardware, or
   intentional skips. Phase 10A adds 21 targeted functional/security tests.
 - Prior phase evidence: Phase 7 capture/privacy/contracts and Phase 8 identity/PWA are complete.
   Phase 9 implementation is complete; live deployment remains externally blocked.
+- Phase 10B start: `main` at `17bc6ba`, two Phase 10A commits ahead of `origin/main`; only the
+  user-owned untracked cleanup script is otherwise present. The 21-test wearable contract/security
+  baseline passes. Java 8 is installed; Android SDK/ADB, Gradle, and Xcode are unavailable on this
+  Windows host. Phase 8 records a physical iPhone, but no Phase 10 mobile platform or glasses model
+  has been selected or authorized.
 
 ## Acceptance checklist
 
@@ -46,6 +50,26 @@ Do not install or copy vendor SDK code, accept vendor terms, enroll hardware, or
   allowlisted, isolated, fully checked, audited, rollback-bound, and production-unauthorized.
 - [x] Autonomous policy cannot change safety/permissions/identity, install software, spend money,
   contact people, or approve production.
+
+### Phase 10B acceptance
+
+Owner disposition on 2026-09-14: deferred. These unchecked gates remain the re-entry checklist for
+a possible future Meta feature; they are not current work.
+
+- [x] Revalidate current official SDK version, preview/publishing status, supported device/market
+  claims, default telemetry, license pointer, and authenticated term availability.
+- [ ] Owner reviews and explicitly accepts the current Meta Wearables Developer Terms and
+  Acceptable Use Policy; acceptance is never inferred from this phase command.
+- [ ] Owner selects and authorizes iOS or Android, confirms supported account country and exact
+  glasses model, and authorizes creation of the mobile adapter project.
+- [ ] Pin the selected SDK and transitive licenses; disable SDK analytics and crash reporting by
+  default where supported.
+- [ ] Implement the Meta phone bridge behind `WearableClient`, binding Phase 8 enrollment/session
+  revocation and granting no scope from vendor discovery or pairing.
+- [ ] Enforce resource, battery, thermal, network, disconnect, foreground, visible media-indicator,
+  ephemeral-retention, and health-disabled boundaries.
+- [ ] Add SDK mock/device fixture, duplicate/replay/version/revoke/phone-loss tests, adapter-removal
+  proof, benchmarks, setup/security/recovery documentation, and complete release gates.
 
 ## Milestones
 
@@ -87,6 +111,24 @@ Do not install or copy vendor SDK code, accept vendor terms, enroll hardware, or
   fields pass targeted tests.
 - Remaining: later product-surface integration requires separate review.
 
+### Phase 10B Milestone 1 — current vendor and platform entry gate
+
+- Status: stopped; owner-deferred to future-feature backlog on 2026-09-14.
+- Changes: revalidated official public Meta sources on 2026-09-12 and refreshed this durable
+  baseline. No SDK, plugin, vendor source, binary, credential, account, mobile project, or device
+  registration was created or downloaded.
+- Evidence: official FAQ still describes DAT as an iOS/Android mobile-app extension, supports a
+  Mock Device Kit, requires the Meta AI app for pairing, limits full capability access to supported
+  countries, and says publishing remains unavailable during Developer Preview. Official iOS and
+  Android sources still identify `0.9.0` dated 2026-08-03 as current. Repository license text says
+  SDK use accepts the Meta Wearables Developer Terms including the Acceptable Use Policy; both
+  policy pages return `Not Logged In`. The iOS repository states analytics and crash reporting are
+  enabled by default and documents explicit opt-outs.
+- Remaining: owner must review the authenticated terms, explicitly accept or decline them, select
+  iOS or Android, confirm supported account country and exact glasses model, and authorize a mobile
+  project. iOS additionally requires a Mac/Xcode build host; Android requires a current JDK,
+  Android SDK/ADB, and Gradle toolchain.
+
 ## Decisions
 
 - Decision: vendor SDK source and binaries remain outside this repository during Phase 10A.
@@ -95,10 +137,19 @@ Do not install or copy vendor SDK code, accept vendor terms, enroll hardware, or
 - Alternatives: vendor SDK integration belongs to Phase 10B after exact terms/access review.
 - Reversible later: yes; adapters implement the stable generic port.
 
+- Decision: do not create a documentation-guessed Meta adapter before the authenticated term and
+  platform gate clears.
+- Reason: using the SDK accepts unavailable authenticated terms, preview APIs changed materially
+  through `0.9.0`, and neither supported mobile toolchain exists on this host.
+- Alternatives: retain the owned `WearableClient` simulator and begin implementation immediately
+  after exact authority and platform selection.
+- Reversible later: yes; no external state or vendor artifact was created.
+
 ## Verification evidence
 
 ```text
 Targeted pytest: 21 passed in 0.27s
+Phase 10B baseline targeted pytest: 21 passed in 0.20s
 Knowledge/maintenance targeted pytest: 18 passed in 0.31s
 Targeted Ruff format/check: passed
 Targeted mypy: passed (4 source files)
@@ -143,8 +194,15 @@ git diff --check: passed
 
 ## Blockers
 
+Phase 10B/10C are not active. The items below become blockers only if the owner later requests Meta
+integration again.
+
 - Meta Wearables Developer Terms and Acceptable Use Policy currently require authenticated access;
-  no acceptance is inferred. SDK integration remains blocked until owner review/acceptance.
+  no acceptance is inferred. The public repository states that SDK use accepts both. Integration
+  remains blocked until owner review and explicit acceptance.
+- Target platform, supported account country, and exact glasses model are unconfirmed. No mobile
+  adapter project is authorized. This Windows host has neither an Android toolchain nor Mac/Xcode;
+  only Java 8 was found.
 - Garmin Connect is enterprise/business access; Garmin Health commercial use can require a license
   fee or minimum device order. No program application or paid term is authorized.
 - No real wearable/device enrollment is authorized in Phase 10A.
@@ -152,7 +210,8 @@ git diff --check: passed
 ## Known limits and deferred scope
 
 - Vendor adapter, phone bridge, enrollment, real media, live health data, hardware measurements,
-  product-surface knowledge routing, and any real maintenance worker belong to later reviewed work.
+  product-surface knowledge routing, and any real maintenance worker remain deferred until the
+  Phase 10B external entry gate clears.
 
 ## Recovery and rollback
 
@@ -165,5 +224,7 @@ git diff --check: passed
 - Files changed: wearable contracts/simulator, knowledge freshness wrapper, controlled-maintenance
   policy, 39 focused tests, benchmark, product/feasibility documents, ADR,
   architecture/security/README/status/roadmap/playbook, and this report.
-- Next recommended phase: Phase 10B after owner term review and platform authorization.
-- Commit/push status: all gates passed; commit and push follow report finalization.
+- Next recommended phase: Phase 11A trigger/proactivity policy. It can proceed locally from
+  completed Phase 4 and Phase 6 boundaries without Meta, wearable hardware, or vendor terms.
+- Commit/push status: Phase 10A is locally committed two commits ahead of `origin/main`; this
+  Phase 10B initiation report is uncommitted while the external entry decision is pending.

@@ -30,8 +30,9 @@ Create an owned `jarvis.wearables` boundary before any vendor adapter:
   disconnect/removal behavior; and
 - a deterministic simulator implementing the same port for CI.
 
-Meta DAT phone bridge is the provisional Phase 10B adapter candidate. No Meta package, source,
-generated code, binary, account, term acceptance, or device registration is part of this decision.
+Meta DAT was evaluated as a provisional Phase 10B adapter candidate, then owner-deferred on
+2026-09-14. It remains a future candidate only. No Meta package, source, generated code, binary,
+account, term acceptance, mobile project, or device registration is part of this decision.
 
 ## Consequences
 

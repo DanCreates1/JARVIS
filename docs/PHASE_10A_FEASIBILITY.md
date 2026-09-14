@@ -6,11 +6,11 @@ vendor code copy, device enrollment, health import, or media capture.
 
 ## Decision summary
 
-The owned generic contract and simulator are feasible now. A Meta Device Access Toolkit phone
-bridge is the preferred Phase 10B prototype candidate because it matches the glasses objective,
-supports iOS and Android, exposes a mock device, and keeps the vendor SDK in a mobile adapter.
-Vendor integration is not yet authorized: the toolkit remains Developer Preview, publishing is not
-available, and the binding Developer Terms and Acceptable Use Policy require authenticated access.
+The owned generic contract and simulator are feasible now. Meta Device Access Toolkit was evaluated
+as a possible phone-bridge adapter because it matches the glasses objective, supports iOS and
+Android, exposes a mock device, and keeps the vendor SDK in a mobile adapter. The owner deferred all
+Meta implementation on 2026-09-14. It is now a future candidate only; no term review, SDK use,
+mobile project, or hardware work is active.
 
 Wear OS is the strongest public alternative for a distributable generic watch client, but its Data
 Layer requires Wear OS plus a paired Android device and may route through Google-owned servers.
@@ -22,7 +22,7 @@ commercial terms may create cost, and health data needs a separate privacy/reten
 
 | Candidate | Official access and current version | Confirmed capabilities and transport | Simulation/testing | Distribution/license boundary | Phase 10 disposition |
 | --- | --- | --- | --- | --- | --- |
-| Meta Wearables Device Access Toolkit | Public [iOS](https://github.com/facebook/meta-wearables-dat-ios) and [Android](https://github.com/facebook/meta-wearables-dat-android) repositories; latest documented/tagged version `0.9.0` dated 2026-08-03 | Mobile-app extension. Toolkit camera/photo/video; microphone and speakers through iOS/Android Bluetooth profiles; display only on supported display glasses. Meta AI app performs pairing. | Official Mock Device Kit simulates registration, permission, state, and media. It does not support display glasses. | [Meta FAQ](https://developers.meta.com/wearables/faq/) says Developer Preview permits build/test but not end-user publishing; sharing uses release channels. Repository license delegates to authenticated [Developer Terms](https://wearables.developer.meta.com/terms) and [Acceptable Use Policy](https://wearables.developer.meta.com/acceptable-use-policy). Analytics and crash reporting default on unless explicitly opted out. | Preferred provisional 10B prototype. Blocked until owner reviews/accepts exact current terms, confirms supported market/account access, and authorizes a mobile adapter project. No SDK code or binary enters core. |
+| Meta Wearables Device Access Toolkit | Public [iOS](https://github.com/facebook/meta-wearables-dat-ios) and [Android](https://github.com/facebook/meta-wearables-dat-android) repositories; latest documented/tagged version `0.9.0` dated 2026-08-03 | Mobile-app extension. Toolkit camera/photo/video; microphone and speakers through iOS/Android Bluetooth profiles; display only on supported display glasses. Meta AI app performs pairing. | Official Mock Device Kit simulates registration, permission, state, and media. It does not support display glasses. | [Meta FAQ](https://developers.meta.com/wearables/faq/) says Developer Preview permits build/test but not end-user publishing; sharing uses release channels. Repository license delegates to authenticated [Developer Terms](https://wearables.developer.meta.com/terms) and [Acceptable Use Policy](https://wearables.developer.meta.com/acceptable-use-policy). Analytics and crash reporting default on unless explicitly opted out. | Owner-deferred future candidate. No SDK code, binary, mobile project, credential, or device enrollment enters active scope. |
 | Wear OS Data Layer | Public Android SDK documentation; official dependency example `com.google.android.gms:play-services-wearable:20.0.1` reviewed 2026-09-11 | Capability discovery, messages, state/data/file transfer between matching package/signature on Android handheld and Wear OS. Bluetooth or network/cloud relay; cloud path is end-to-end encrypted but Google-operated. Notifications can bridge automatically. | Wear OS emulator supported; connection and Doze cases still need device tests. | Android documentation/code is governed by its [content license](https://developer.android.com/license); Google Play services and distribution terms remain separately applicable. Data Layer does not work for a Wear OS watch paired to iOS. | Viable alternate adapter, not current first choice. Requires Android bridge and explicit cloud-route privacy classification. |
 | Apple Watch / WatchConnectivity | Public [WatchConnectivity](https://developer.apple.com/documentation/watchconnectivity) APIs; platform versions follow installed Apple SDK | Two-way app context, immediate messages, queued user info, file transfers, and complication updates between companion iOS/watchOS apps. | Apple requires physical iPhone/Watch for authoritative transfer tests; some file transfers are unsupported in Simulator. | Apple SDK use/distribution requires acceptance of current [Apple Developer agreements](https://developer.apple.com/support/terms). Xcode/Apple SDKs may not be run on this Windows host. | Feasible architecture, externally blocked on Mac/Xcode, developer-team terms, and Apple Watch hardware. |
 | Garmin Connect Developer Program | Application/approval required; enterprise/business use only | OAuth 2.0 cloud-to-cloud Health, Activity, Women’s Health, Training, and Courses APIs. Not a generic real-time device client. | Production environment with throttled developer access after approval. | [Program FAQ](https://developer.garmin.com/gc-developer-program/program-faq/) says no general licensing/maintenance fee, but some commercial metrics can require a fee or minimum device order. | Defer. No application, credential, business representation, or paid term authorized. Manual FIT/TCX/GPX/CSV import remains safer future fallback. |
@@ -51,7 +51,7 @@ upgrade incompatibility. No vendor type may cross `jarvis.wearables`.
 - Receipts contain identifiers, counts, timing, and indicator state only. They contain no media,
   notification text, input value, or health metric.
 
-## Phase 10B entry requirements
+## Future Meta integration re-entry requirements
 
 1. Owner reviews and explicitly accepts the exact vendor terms for the selected adapter.
 2. Owner confirms intended platform, supported country/account access, device model, and whether a

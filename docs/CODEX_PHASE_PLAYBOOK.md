@@ -652,7 +652,7 @@ laptop retains defined offline capability and no business-logic rewrite is requi
 ## 16. Phase 10 — Wearables and Meta glasses
 
 Recommended execution: **`gpt-6-astra`, `max`**
-Baseline status: **not started; lower priority**  
+Baseline status: **10A complete; 10B/10C owner-deferred to future backlog**  
 Prerequisites: Phase 8 secure client protocol; Phase 7 media controls
 
 ### Read first
@@ -922,13 +922,13 @@ reasoning, and rationale. Universal requirements still apply.
   threat/license -> contract. T: missing/version/deny/simulator/remove. SP: capability grants
   nothing; classify health/media. M: ADR/matrix/report. A/E: feasible legal slice or external
   blocker. N: 1. R: `gpt-5.6-sol` `high`, evidence-heavy research.
-- **10B Adapter/phone bridge (`not-started`)** — O/S/D: chosen adapter behind generic contract,
+- **10B Adapter/phone bridge (`not-started`; owner-deferred)** — O/S/D: chosen adapter behind generic contract,
   enrollment/revoke/resource limits/CI fake. P: 10A/Phase 8/SDK. X: vendor core/unapproved
   unofficial path. Q: contract -> enrollment -> bridge -> limits -> removal. T: disconnect/revoke/
   version/battery/network/phone/duplicate. SP: scoped grants, secure storage, visible capture,
   minimal retention. M: setup/security/recovery/report. A/E: fake and bounded device fixture pass.
   N: 1. R: `gpt-6-astra` `xhigh`, cross-device identity/streaming.
-- **10C Real-device closeout (`not-started`)** — O/S/D: functional/privacy/resource sanitized
+- **10C Real-device closeout (`not-started`; owner-deferred)** — O/S/D: functional/privacy/resource sanitized
   proof. P: 10A-B/live authority. X: personal health/media retention or unapproved cloud. Q: freeze
   versions -> live/loss/revoke/indicator -> battery/latency -> remove -> gates. T: aggregate real
   matrix. SP: indicator/bystander/delete/disconnect. M: hardware/privacy/overview/report. A/E: one

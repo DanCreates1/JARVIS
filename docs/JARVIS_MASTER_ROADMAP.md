@@ -565,18 +565,18 @@ State split-brain, network dependence, weak device identity, expensive underused
 **Exit criteria**  
 Core location changes through configuration/deployment, not business-logic rewrite; laptop retains defined offline capabilities.
 
-### Phase 10 — Wearables and Meta glasses (Large, P3)
+### Phase 10 — Generic wearables; Meta integration deferred (Large, P3)
 
-**Current implementation (2026-09-11)**
+**Current implementation (2026-09-14)**
 Phase 10A is complete. A dated official-source matrix records Meta DAT, Wear OS, Apple Watch, and
 Garmin access, capability, simulation, distribution, and license boundaries. The owned
 `WearableClient` contract and deterministic simulator cover seven generic capabilities while
 making negotiation structurally non-authoritative. Exact expiring grants, immutable media/health
 classification, visible capture indication, bounded ephemeral local operation, content-free
 receipts, replay denial, revocation, removal, and adapter independence are enforced and tested.
-Meta DAT is the provisional Phase 10B phone-bridge candidate. Vendor integration is blocked until
-the owner can review and accept the authenticated current terms and authorize the target mobile
-platform; no vendor SDK, credential, device enrollment, media, or health data is present.
+The owner deferred Meta DAT, phone-bridge, and real-device integration on 2026-09-14. They remain
+future candidates only and do not block active roadmap work. No vendor SDK, credential, mobile
+project, device enrollment, media, or health data is present.
 Phase 10A also codifies live-knowledge freshness around Phase 5 reports and a controlled maintenance
 boundary. Current claims carry citations, retrieval/check/publication timestamps, explicit expiry,
 visible conflicts, and labeled bounded offline fallback. Default maintenance is suggestion-only;
@@ -585,7 +585,8 @@ verification/audit/rollback evidence and can never authorize production or alter
 permissions, identity, dependencies, spending, or external communications.
 
 **Goal**  
-Add supported glasses as one generic device client, without making JARVIS Meta-dependent.
+Preserve a vendor-neutral wearable boundary. Add a real wearable only after a new explicit owner
+request selects a vendor, platform, device, legal terms, privacy policy, and live-test authority.
 
 **Deliverables**
 
@@ -595,7 +596,8 @@ Add supported glasses as one generic device client, without making JARVIS Meta-d
   deletion controls, and no credentials or raw health data exposed to model providers. Prefer an
   approved official API when available; permit an explicitly enabled unofficial connector only
   with documented reliability and vendor-policy risk, plus manual FIT/TCX/GPX/CSV import fallback.
-- Meta Wearables Device Access Toolkit feasibility spike against current program/API availability.
+- Completed Meta Wearables Device Access Toolkit feasibility spike; any implementation is deferred
+  to the future-feature backlog.
 - Consent, capture indication, bandwidth, battery, disconnection, and privacy behavior.
 - Phone-bridge fallback when direct device integration is unavailable.
 - Live cited knowledge with source timestamps, expiry, conflict visibility, and bounded offline
@@ -604,7 +606,8 @@ Add supported glasses as one generic device client, without making JARVIS Meta-d
   trusted user approval remains mandatory before production change.
 
 **Dependencies**  
-Phases 7–9 and vendor developer access.
+Phase 10A is complete. Any future vendor implementation requires Phases 7–9, current vendor
+developer access, exact platform/device selection, and fresh owner authorization.
 
 **Verification**  
 Capability matrix is confirmed on real hardware; unsupported features fail explicitly; revocation and camera/mic indicators are tested.
@@ -613,7 +616,8 @@ Capability matrix is confirmed on real hardware; unsupported features fail expli
 API limitations, program access changes, battery, latency, vendor policy, bystander privacy.
 
 **Exit criteria**  
-At least one wearable interaction works through generic interfaces; removal of the Meta adapter does not affect core behavior.
+Phase 10A's generic boundary remains maintained. Aggregate Phase 10 stays incomplete until a future
+authorized adapter supplies one real wearable interaction and passes adapter-removal proof.
 
 ### Phase 11 — Advanced JARVIS (Very Large, P2/P3)
 
@@ -753,11 +757,13 @@ After contracts in step 2: voice harness, control panel, security fixtures, memo
 
 Privacy-routing correctness, free-tier availability, preview-model churn, laptop fallback limits, low-latency duplex audio, prompt injection, permission correctness, memory quality, secure remote access, and bounded autonomy.
 
-### Features intentionally deferred
+### Features intentionally deferred / future candidates
 
-Native mobile app, Garmin Connect synchronization, Meta glasses, smart home, custom voice,
-fine-tuning, proactive agents, large local models, PostgreSQL, Redis, microservices, and multi-GPU
-serving.
+Native mobile app, Garmin Connect synchronization, Meta glasses integration, Meta DAT phone bridge,
+wearable hardware enrollment, smart home, custom voice, user fine-tuning, large local models,
+PostgreSQL, Redis, microservices, and multi-GPU serving. Revisit Meta only after an explicit owner
+request names the platform and device and authorizes current term review, mobile-project creation,
+SDK use, privacy controls, and live testing.
 
 ### JARVIS MVP definition
 
