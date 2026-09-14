@@ -2,7 +2,7 @@
 
 Status: required controls and security architecture  
 Planning date: 2026-08-20
-Last reconciled with Phase 1-8A implementation: 2026-09-10
+Last reconciled with Phase 11A implementation: 2026-09-14
 
 Current implementation retains these fail-closed controls. The clean-Windows bootstrap and exact
 repository CI gate now pass independently; remaining Phase 1–3 blockers are latency/provider
@@ -523,6 +523,16 @@ Audit requirements:
 
 Implemented setup, retention boundary, kill path, recovery, and Windows limits are documented in
 [Controlled Computer Access](CONTROLLED_COMPUTER_ACCESS.md).
+
+Phase 11A proactivity preserves this authority boundary. User/model/research/API proposals are
+untrusted data. An exact short-lived trusted-local activation may change only a draft rule to active;
+it cannot create a permission grant or start work. Deterministic policy enforces global and
+per-feature opt-in, proposal expiry, timezone/DST validity, clock skew, quiet hours, host and rule
+rate/attention limits, one active candidate, and occurrence uniqueness. Eligible triggers store
+only inert content-free candidate metadata. No runner, task/provider/tool invocation, approval
+creation, effect, notification send, cloud disclosure, or candidate-content retention is present.
+Immediate disable and transitive delete remain available; deletion leaves a content-free tombstone.
+See [Suggestion-only Proactivity](PROACTIVITY.md).
 
 ## 16. Supply chain and model security
 

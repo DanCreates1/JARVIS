@@ -171,6 +171,8 @@ async def run_diagnostics(
 
     checks.append(_bounded_task_check(settings))
 
+    checks.append(_proactivity_check(settings))
+
     checks.append(_vision_capture_check(settings))
 
     checks.append(_pwa_shell_check())
@@ -513,6 +515,23 @@ def _bounded_task_check(settings: Settings) -> DiagnosticCheck:
             f"{settings.task_max_wall_seconds:g}s wall time, {settings.task_max_retries} retries, "
             f"{settings.task_max_tool_calls} tool calls, {settings.task_max_concurrency} "
             f"read-only workers, and ${settings.task_max_cost_usd:g} cloud cost."
+        ),
+    )
+
+
+def _proactivity_check(settings: Settings) -> DiagnosticCheck:
+    state = "enabled" if settings.proactivity_enabled else "disabled"
+    features = len(settings.proactivity_enabled_features)
+    return DiagnosticCheck(
+        name="proactivity policy",
+        status=DiagnosticStatus.PASS,
+        detail=(
+            f"Suggestion-only proactivity is {state} with {features} enabled features; "
+            f"ceilings are {settings.proactivity_max_candidates_per_hour}/hour, "
+            f"{settings.proactivity_max_candidates_per_day}/day, "
+            f"{settings.proactivity_max_attention_seconds_per_day}s attention/day, "
+            f"{settings.proactivity_max_concurrency} candidate, and "
+            f"${settings.proactivity_max_cost_usd:g} cloud cost. No runner is installed."
         ),
     )
 

@@ -9,7 +9,7 @@ import platform
 import secrets
 import sqlite3
 from contextlib import suppress
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Annotated, Never
 
@@ -52,6 +52,21 @@ from jarvis.planning import (
     TaskRecord,
     TaskStateError,
     TaskStatus,
+)
+from jarvis.proactivity import (
+    HostProactivityPolicy,
+    ProactivityConflictError,
+    ProactivityEvent,
+    ProactivityExportReceipt,
+    ProactivityNotFoundError,
+    ProactivityPolicyError,
+    ProactivityProposal,
+    ProactivityRule,
+    ProactivityStateError,
+    RuleDeletionReceipt,
+    RuleStatus,
+    SQLiteProactivityStore,
+    TrustedActivation,
 )
 from jarvis.remote.migration import MigrationError, MigrationErrorCode
 from jarvis.remote.topology import TopologyManifest
@@ -107,6 +122,12 @@ task_app = typer.Typer(
     no_args_is_help=True,
 )
 app.add_typer(task_app, name="task")
+proactive_app = typer.Typer(
+    name="proactive",
+    help="Preview and control suggestion-only schedules/triggers; no runner or notification send.",
+    no_args_is_help=True,
+)
+app.add_typer(proactive_app, name="proactive")
 remote_app = typer.Typer(
     name="remote",
     help="Trusted-local device enrollment, inventory, revocation, and identity audit.",
@@ -144,6 +165,313 @@ def _load_settings() -> Settings:
         raise typer.Exit(code=2) from None
     configure_logging(settings.log_level)
     return settings
+
+
+def _proactivity_policy(settings: Settings) -> HostProactivityPolicy:
+    return HostProactivityPolicy(
+        enabled=settings.proactivity_enabled,
+        enabled_features=frozenset(settings.proactivity_enabled_features),
+        max_candidates_per_hour=settings.proactivity_max_candidates_per_hour,
+        max_candidates_per_day=settings.proactivity_max_candidates_per_day,
+        max_attention_seconds_per_day=settings.proactivity_max_attention_seconds_per_day,
+        max_rule_lifetime_days=settings.proactivity_max_rule_lifetime_days,
+        clock_skew_seconds=settings.proactivity_clock_skew_seconds,
+        max_task_steps=settings.proactivity_max_task_steps,
+        max_provider_requests=settings.proactivity_max_provider_requests,
+        max_tool_calls=settings.proactivity_max_tool_calls,
+        max_tokens=settings.proactivity_max_tokens,
+        max_cost_usd=int(settings.proactivity_max_cost_usd),
+        max_concurrency=settings.proactivity_max_concurrency,
+    )
+
+
+@proactive_app.command("status")
+def proactive_status() -> None:
+    """Show global suggestion policy without opening a runner or evaluating a trigger."""
+    settings = _load_settings()
+    state = "enabled" if settings.proactivity_enabled else "disabled"
+    features = ", ".join(settings.proactivity_enabled_features) or "none"
+    console.print(
+        f"[bold cyan]Suggestion-only proactivity: {state}[/]\n"
+        f"Enabled features: {features}\n"
+        f"Host ceilings: {settings.proactivity_max_candidates_per_hour}/hour, "
+        f"{settings.proactivity_max_candidates_per_day}/day, "
+        f"{settings.proactivity_max_attention_seconds_per_day}s attention/day, "
+        f"${settings.proactivity_max_cost_usd:g} cost, "
+        f"concurrency={settings.proactivity_max_concurrency}\n"
+        "No background runner, task execution, approval creation, or notification sender "
+        "is installed."
+    )
+
+
+@proactive_app.command("create")
+def proactive_create(
+    proposal_path: Annotated[Path, typer.Argument(help="UTF-8 JSON trigger proposal.")],
+) -> None:
+    """Validate, preview, and persist an inert draft; never activate or evaluate it."""
+    settings = _load_settings()
+    try:
+        proposal = ProactivityProposal.model_validate_json(
+            proposal_path.read_text(encoding="utf-8")
+        )
+        preview = _proactivity_policy(settings).preview(proposal, now=datetime.now(UTC))
+    except (OSError, ValidationError, ValueError, ProactivityPolicyError):
+        console.print("[bold red]Proactivity proposal is unreadable or invalid.[/]")
+        raise typer.Exit(code=2) from None
+
+    async def run() -> ProactivityRule:
+        async with SQLiteProactivityStore(settings.database_path) as store:
+            return await store.create_rule(
+                host_id=local_memory_host_id(), preview=preview, now=datetime.now(UTC)
+            )
+
+    try:
+        rule = asyncio.run(run())
+    except Exception:
+        console.print("[bold red]Proactivity draft storage failed.[/] No activity started.")
+        raise typer.Exit(code=1) from None
+    _render_proactivity_rule(rule, settings=settings)
+    console.print("[dim]Draft only. Exact trusted activation is a separate command.[/]")
+
+
+@proactive_app.command("list")
+def proactive_list(
+    status: Annotated[RuleStatus | None, typer.Option(help="Optional rule status.")] = None,
+    limit: Annotated[int, typer.Option(min=1, max=500)] = 100,
+) -> None:
+    """List host-scoped trigger metadata without evaluating anything."""
+    settings = _load_settings()
+
+    async def run() -> tuple[ProactivityRule, ...]:
+        async with SQLiteProactivityStore(settings.database_path) as store:
+            return tuple(
+                await store.list_rules(host_id=local_memory_host_id(), status=status, limit=limit)
+            )
+
+    try:
+        rules = asyncio.run(run())
+    except Exception:
+        console.print("[bold red]Proactivity state is unavailable.[/]")
+        raise typer.Exit(code=1) from None
+    table = Table(title="Suggestion-only rules")
+    table.add_column("Rule / version")
+    table.add_column("Status")
+    table.add_column("Feature")
+    table.add_column("Schedule")
+    table.add_column("Expires")
+    for rule in rules:
+        table.add_row(
+            f"{rule.id}\nv{rule.version}",
+            rule.status.value,
+            rule.proposal.feature,
+            rule.proposal.schedule.kind.value,
+            rule.proposal.expires_at.isoformat(timespec="seconds"),
+        )
+    console.print(table)
+
+
+@proactive_app.command("show")
+def proactive_show(rule_id: Annotated[str, typer.Argument(help="Exact rule ID.")]) -> None:
+    """Show exact schedule, digest, limits, scope, and activation phrase."""
+    settings = _load_settings()
+
+    async def run() -> ProactivityRule:
+        async with SQLiteProactivityStore(settings.database_path) as store:
+            return await store.require_rule(host_id=local_memory_host_id(), rule_id=rule_id)
+
+    try:
+        rule = asyncio.run(run())
+    except ProactivityNotFoundError:
+        console.print("[bold red]Proactivity rule not found.[/]")
+        raise typer.Exit(code=1) from None
+    _render_proactivity_rule(rule, settings=settings)
+
+
+@proactive_app.command("activate")
+def proactive_activate(
+    rule_id: Annotated[str, typer.Argument(help="Exact draft rule ID.")],
+    expected_version: Annotated[int, typer.Option(min=1, help="Exact displayed version.")],
+    expected_digest: Annotated[str, typer.Option(help="Exact displayed proposal SHA-256.")],
+    confirm: Annotated[
+        str,
+        typer.Option(help="Exact ACTIVATE phrase displayed by `proactive show`."),
+    ],
+) -> None:
+    """Activate one exact preview from this trusted local terminal; still no runner starts."""
+    settings = _load_settings()
+    expected_phrase = f"ACTIVATE {rule_id.rsplit(':', maxsplit=1)[-1][-8:]}"
+    if not secrets.compare_digest(confirm, expected_phrase):
+        console.print("[bold red]Activation confirmation does not match exact displayed phrase.[/]")
+        raise typer.Exit(code=2)
+    now = datetime.now(UTC)
+    approval = TrustedActivation(
+        approval_id=f"proactivity-activation:{secrets.token_hex(16)}",
+        host_id=local_memory_host_id(),
+        rule_id=rule_id,
+        expected_version=expected_version,
+        expected_proposal_sha256=expected_digest,
+        approved_at=now,
+        expires_at=now + timedelta(minutes=5),
+    )
+
+    async def run() -> ProactivityRule:
+        async with SQLiteProactivityStore(settings.database_path) as store:
+            return await store.activate(
+                approval, policy=_proactivity_policy(settings), now=datetime.now(UTC)
+            )
+
+    try:
+        rule = asyncio.run(run())
+    except (
+        ProactivityNotFoundError,
+        ProactivityConflictError,
+        ProactivityStateError,
+        ProactivityPolicyError,
+    ) as exc:
+        console.print(f"[bold red]Activation denied.[/] {exc}")
+        raise typer.Exit(code=1) from None
+    _render_proactivity_rule(rule, settings=settings)
+    console.print("[bold green]Rule activated.[/] No runner, task, or notification started.")
+
+
+@proactive_app.command("disable")
+def proactive_disable(
+    rule_id: Annotated[str, typer.Argument(help="Exact rule ID.")],
+    expected_version: Annotated[int, typer.Option(min=1, help="Exact displayed version.")],
+) -> None:
+    """Disable one exact rule immediately."""
+    settings = _load_settings()
+
+    async def run() -> ProactivityRule:
+        async with SQLiteProactivityStore(settings.database_path) as store:
+            return await store.disable(
+                host_id=local_memory_host_id(),
+                rule_id=rule_id,
+                expected_version=expected_version,
+            )
+
+    try:
+        rule = asyncio.run(run())
+    except (ProactivityNotFoundError, ProactivityConflictError, ProactivityStateError) as exc:
+        console.print(f"[bold red]Disable failed.[/] {exc}")
+        raise typer.Exit(code=1) from None
+    console.print(f"[bold green]Disabled[/] {rule.id} · v{rule.version}")
+
+
+@proactive_app.command("events")
+def proactive_events(
+    rule_id: Annotated[str, typer.Argument(help="Exact rule ID.")],
+    limit: Annotated[int, typer.Option(min=1, max=2_000)] = 500,
+) -> None:
+    """Show content-free lifecycle events for one rule."""
+    settings = _load_settings()
+
+    async def run() -> tuple[ProactivityEvent, ...]:
+        async with SQLiteProactivityStore(settings.database_path) as store:
+            return tuple(
+                await store.list_events(
+                    host_id=local_memory_host_id(), rule_id=rule_id, limit=limit
+                )
+            )
+
+    try:
+        events = asyncio.run(run())
+    except ProactivityNotFoundError:
+        console.print("[bold red]Proactivity rule not found.[/]")
+        raise typer.Exit(code=1) from None
+    table = Table(title="Proactivity lifecycle audit")
+    table.add_column("Seq / time")
+    table.add_column("Event")
+    table.add_column("Reason")
+    table.add_column("Candidate")
+    for event in events:
+        table.add_row(
+            f"{event.sequence}\n{event.created_at.isoformat(timespec='seconds')}",
+            event.event_type.value,
+            event.reason_code,
+            event.candidate_id or "-",
+        )
+    console.print(table)
+
+
+@proactive_app.command("export")
+def proactive_export(path: Annotated[Path, typer.Argument(help="New JSON export path.")]) -> None:
+    """Export current host rules and content-free candidate/audit metadata without overwrite."""
+    settings = _load_settings()
+
+    async def run() -> ProactivityExportReceipt:
+        async with SQLiteProactivityStore(settings.database_path) as store:
+            return await store.export(host_id=local_memory_host_id(), path=path)
+
+    try:
+        receipt = asyncio.run(run())
+    except FileExistsError:
+        console.print("[bold red]Export path already exists; refusing overwrite.[/]")
+        raise typer.Exit(code=1) from None
+    except Exception:
+        console.print("[bold red]Proactivity export failed.[/]")
+        raise typer.Exit(code=1) from None
+    console.print(
+        f"[bold green]Exported[/] {receipt.rule_count} rules · "
+        f"{receipt.candidate_count} candidates · {receipt.event_count} events · {receipt.path}"
+    )
+
+
+@proactive_app.command("delete")
+def proactive_delete(
+    rule_id: Annotated[str, typer.Argument(help="Exact rule ID.")],
+    confirm_rule_id: Annotated[
+        str,
+        typer.Option(
+            help="Repeat exact rule ID; deletion removes rule, approvals, and candidates."
+        ),
+    ],
+) -> None:
+    """Delete one rule transitively, leaving a content-free tombstone."""
+    if confirm_rule_id != rule_id:
+        console.print("[bold red]Deletion confirmation does not match.[/]")
+        raise typer.Exit(code=2)
+    settings = _load_settings()
+
+    async def run() -> RuleDeletionReceipt:
+        async with SQLiteProactivityStore(settings.database_path) as store:
+            return await store.delete_rule(host_id=local_memory_host_id(), rule_id=rule_id)
+
+    try:
+        receipt = asyncio.run(run())
+    except ProactivityNotFoundError:
+        console.print("[bold red]Proactivity rule not found.[/]")
+        raise typer.Exit(code=1) from None
+    console.print(
+        f"[bold green]Deleted[/] {receipt.rule_id} · "
+        f"candidates={receipt.deleted_candidates} · events={receipt.deleted_events}"
+    )
+
+
+def _render_proactivity_rule(rule: ProactivityRule, *, settings: Settings) -> None:
+    schedule = rule.proposal.schedule
+    preview = _proactivity_policy(settings).preview(rule.proposal, now=rule.created_at)
+    next_occurrence = (
+        preview.next_occurrence_at.isoformat(timespec="seconds")
+        if preview.next_occurrence_at is not None
+        else "event-driven"
+    )
+    confirmation = f"ACTIVATE {rule.id.rsplit(':', maxsplit=1)[-1][-8:]}"
+    console.print(
+        f"[bold cyan]{rule.proposal.title}[/]\n"
+        f"Rule: {rule.id} · status={rule.status.value} · version={rule.version}\n"
+        f"Feature: {rule.proposal.feature} · trigger={schedule.kind.value} · "
+        f"timezone={schedule.timezone}\n"
+        f"Proposal SHA-256: {rule.proposal_sha256}\n"
+        f"Next occurrence: {next_occurrence} · expires={rule.proposal.expires_at.isoformat()}\n"
+        f"Budget: {rule.proposal.budget.max_candidates_per_hour}/hour, "
+        f"{rule.proposal.budget.max_candidates_per_day}/day, "
+        f"{rule.proposal.budget.max_attention_seconds_per_day}s attention/day, "
+        f"${rule.proposal.budget.max_cost_usd} cost, "
+        f"concurrency={rule.proposal.budget.max_concurrency}\n"
+        "Authority: suggestion only; execution=false, notification=false, approval=false\n"
+        f"Activation phrase: {confirmation}"
+    )
 
 
 @remote_app.command("enroll")

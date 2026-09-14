@@ -2,12 +2,13 @@
 
 ## Status
 
-This document describes implemented Phases 1–6: one modular Python application
+This document describes the implemented modular Python application through Phase 11A:
 with deterministic local privacy routing, NVIDIA/Groq/Gemini/Ollama adapters, SQLite,
 audited tools, CLI, loopback browser/API interfaces, optional local push-to-talk voice, and an
 opt-in controlled Windows action broker, plus host-isolated candidate/committed memory with FTS5
 retrieval and transitive deletion, bounded cited public research with explicit storage approval,
-and durable default-off foreground task graphs with hard budgets and effect reconciliation.
+durable default-off foreground task graphs with hard budgets and effect reconciliation, and a
+separate default-off suggestion-only trigger policy with no background runner or execution path.
 Current release status and external gates are tracked in
 `docs/PHASE_OVERVIEW.md`; implementation presence alone is not a completion claim.
 
@@ -44,6 +45,15 @@ Terminal CLI        Browser + local API       Voice / future vision adapters
 
 The application is composed once at its entry point. Interfaces do not construct
 their own providers or stores.
+
+### Proactivity policy boundary
+
+`jarvis.proactivity` owns strict proposals, deterministic schedule preview/evaluation, exact
+trusted activation, host budgets, occurrence deduplication, and SQLite lifecycle state. Its only
+positive output is an inert content-free suggestion candidate. It does not import the task
+scheduler, provider router, tool registry, permission grant service, broker, or notification
+transport. Phase 11B must add any runner as a separate consumer that rechecks current policy and
+uses existing Phase 3/6 authority rather than extending a trigger into authority.
 
 ### Core runtime
 

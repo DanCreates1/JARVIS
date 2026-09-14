@@ -1,10 +1,11 @@
 # JARVIS
 
-JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–8 and Phases 9A–9C implement a
+JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–8, Phases 9A–9C, and Phase 11A implement a
 local deterministic privacy gate, configurable NVIDIA/Groq/Gemini/Ollama roles,
 zero-cost fallback routing, durable SQLite state, audited read-only tools, CLI,
 loopback browser chat, local push-to-talk speech, opt-in controlled Windows actions, bounded cited
-public research, durable budgeted task graphs, and a loopback-only authenticated device identity
+public research, durable budgeted task graphs, default-off suggestion-only trigger policy, and a
+loopback-only authenticated device identity
 API, deny-by-default trusted browser boundary, offline-safe PWA shell with scoped resumable
 transport, and tailnet-only TLS deployment. Sensitive and uncertain work remains local.
 
@@ -13,7 +14,7 @@ runtime databases, logs, generated media, and secrets do not belong in Git.
 
 ## Current verification status
 
-As of 2026-09-11, Phases 4–8 and the Phase 9 repository implementation are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
+As of 2026-09-14, Phases 4–8, the Phase 9 repository implementation, and Phase 11A are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
 optimized local latency evidence pass; Phase 1 remains formally blocked by fixed hosted NVIDIA
 latency gates. The preserved 20/20 NVIDIA states still miss one or both targets. Fresh instrumented
 requests place the long delay before response headers, while adaptive routing protects normal
@@ -273,6 +274,17 @@ cannot authorize production, alter protected safety/permission/identity surfaces
 spend money, or contact people. See
 [Phase 10A Live Knowledge and Controlled Maintenance](docs/PHASE_10A_PRODUCT_REQUIREMENTS.md).
 
+## Implemented Phase 11A
+
+Suggestion-only proactivity adds strict user-authored once, daily, and event trigger contracts;
+IANA timezone, DST-fold, expiry, quiet-hour, clock-skew, feature, rate, attention, and duplicate
+policy; exact trusted-terminal activation bound to rule version and proposal digest; host-isolated
+restart-safe SQLite lifecycle state; and content-free audit, export, disable, and transitive deletion.
+Global and per-feature controls default off. An eligible occurrence creates only an inert metadata
+candidate. No background runner, task execution, provider/tool call, approval creation, effect,
+notification sender, cloud disclosure, or candidate-content retention exists in Phase 11A. See
+[Suggestion-only Proactivity](docs/PROACTIVITY.md).
+
 ## Model strategy
 
 | Role | Target default | Use |
@@ -462,6 +474,13 @@ The main settings are:
 | `JARVIS_RESEARCH_ENABLED` | `true` | Enable bounded public research; `false` retains approved ledger data for recovery |
 | `JARVIS_RESEARCH_SEARCH_PROVIDER` | `wikimedia` | Account-free discovery adapter; currently Wikimedia only |
 | `JARVIS_RESEARCH_PENDING_TTL_SECONDS` | `900` | Expiry for volatile reports awaiting exact storage approval |
+| `JARVIS_PROACTIVITY_ENABLED` | `false` | Global Phase 11A policy gate; activation still starts no runner |
+| `JARVIS_PROACTIVITY_ENABLED_FEATURES` | `[]` | JSON array of exact enabled features; empty denies all features |
+| `JARVIS_PROACTIVITY_MAX_CANDIDATES_PER_HOUR` | `6` | Fixed host candidate ceiling |
+| `JARVIS_PROACTIVITY_MAX_CANDIDATES_PER_DAY` | `24` | Fixed host candidate ceiling |
+| `JARVIS_PROACTIVITY_MAX_ATTENTION_SECONDS_PER_DAY` | `300` | Fixed host attention ceiling |
+| `JARVIS_PROACTIVITY_MAX_RULE_LIFETIME_DAYS` | `30` | Maximum proposal lifetime |
+| `JARVIS_PROACTIVITY_CLOCK_SKEW_SECONDS` | `300` | Maximum accepted trigger clock skew |
 | `JARVIS_LOG_LEVEL` | `INFO` | Application log verbosity |
 | `JARVIS_VOICE_STT_MODEL` | `base.en` | Local faster-whisper model downloaded by explicit voice setup |
 | `JARVIS_VOICE_STT_CPU_THREADS` | `4` | CPU threads reserved for local transcription |
@@ -528,6 +547,8 @@ always performs secret scanning.
 - [Phase 10A feasibility/access/license matrix](docs/PHASE_10A_FEASIBILITY.md)
 - [Phase 10A live-knowledge and controlled-maintenance requirements](docs/PHASE_10A_PRODUCT_REQUIREMENTS.md)
 - [Phase 10 progress evidence](docs/phase-reports/PHASE_10_PROGRESS.md)
+- [Phase 11A suggestion-only proactivity guide](docs/PROACTIVITY.md)
+- [Phase 11 progress evidence](docs/phase-reports/PHASE_11_PROGRESS.md)
 - [Codex phase execution playbook](docs/CODEX_PHASE_PLAYBOOK.md)
 - [External repository comparison](docs/EXTERNAL_REPOSITORY_COMPARISON.md)
 - [Hands-free control plan](docs/HANDS_FREE_CONTROL.md)

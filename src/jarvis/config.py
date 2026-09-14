@@ -137,6 +137,19 @@ class Settings(BaseSettings):
     task_max_tool_calls: int = Field(default=100, ge=0, le=1_000)
     task_max_cost_usd: float = Field(default=0, ge=0, le=0)
     task_max_concurrency: int = Field(default=4, ge=1, le=4)
+    proactivity_enabled: bool = False
+    proactivity_enabled_features: tuple[str, ...] = ()
+    proactivity_max_candidates_per_hour: int = Field(default=6, ge=1, le=6)
+    proactivity_max_candidates_per_day: int = Field(default=24, ge=1, le=24)
+    proactivity_max_attention_seconds_per_day: int = Field(default=300, ge=1, le=300)
+    proactivity_max_rule_lifetime_days: int = Field(default=30, ge=1, le=30)
+    proactivity_clock_skew_seconds: int = Field(default=300, ge=0, le=300)
+    proactivity_max_task_steps: int = Field(default=10, ge=0, le=10)
+    proactivity_max_provider_requests: int = Field(default=2, ge=0, le=2)
+    proactivity_max_tool_calls: int = Field(default=5, ge=0, le=5)
+    proactivity_max_tokens: int = Field(default=10_000, ge=0, le=10_000)
+    proactivity_max_cost_usd: float = Field(default=0, ge=0, le=0)
+    proactivity_max_concurrency: Literal[1] = 1
     vision_capture_enabled: bool = False
     voice_always_listening_enabled: Literal[False] = False
     voice_acoustic_always_listening_enabled: Literal[False] = False
@@ -250,6 +263,16 @@ class Settings(BaseSettings):
         if any(re.fullmatch(r"[a-z][a-z0-9_.-]{0,127}", item) is None for item in value):
             raise ValueError("invalid topology capability")
         return tuple(sorted(value))
+
+    @field_validator("proactivity_enabled_features")
+    @classmethod
+    def validate_proactivity_features(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        normalized = tuple(item.strip() for item in value)
+        if len(normalized) > 64 or len(normalized) != len(set(normalized)):
+            raise ValueError("proactivity features must be at most 64 unique names")
+        if any(re.fullmatch(r"[a-z][a-z0-9_.-]{0,99}", item) is None for item in normalized):
+            raise ValueError("invalid proactivity feature name")
+        return tuple(sorted(normalized))
 
     @model_validator(mode="after")
     def require_explicit_remote_opt_in(self) -> Settings:
@@ -451,6 +474,21 @@ class Settings(BaseSettings):
             "task_max_tool_calls": self.task_max_tool_calls,
             "task_max_cost_usd": self.task_max_cost_usd,
             "task_max_concurrency": self.task_max_concurrency,
+            "proactivity_enabled": self.proactivity_enabled,
+            "proactivity_enabled_features": ",".join(self.proactivity_enabled_features),
+            "proactivity_max_candidates_per_hour": self.proactivity_max_candidates_per_hour,
+            "proactivity_max_candidates_per_day": self.proactivity_max_candidates_per_day,
+            "proactivity_max_attention_seconds_per_day": (
+                self.proactivity_max_attention_seconds_per_day
+            ),
+            "proactivity_max_rule_lifetime_days": self.proactivity_max_rule_lifetime_days,
+            "proactivity_clock_skew_seconds": self.proactivity_clock_skew_seconds,
+            "proactivity_max_task_steps": self.proactivity_max_task_steps,
+            "proactivity_max_provider_requests": self.proactivity_max_provider_requests,
+            "proactivity_max_tool_calls": self.proactivity_max_tool_calls,
+            "proactivity_max_tokens": self.proactivity_max_tokens,
+            "proactivity_max_cost_usd": self.proactivity_max_cost_usd,
+            "proactivity_max_concurrency": self.proactivity_max_concurrency,
             "vision_capture_enabled": self.vision_capture_enabled,
             "computer_access_policy_path": str(self.computer_access_policy_path),
             "voice_always_listening_enabled": self.voice_always_listening_enabled,

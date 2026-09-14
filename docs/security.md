@@ -3,13 +3,21 @@
 JARVIS processes private conversations and will eventually control local devices.
 Security therefore belongs in the runtime architecture, not only in prompts.
 
-This document describes implemented Phases 1–6 controls, including local sensitivity
+This document describes implemented controls through Phase 11A, including local sensitivity
 classification, zero-cost NVIDIA/Groq/Gemini/Ollama routing, local push-to-talk speech, and
 default-off controlled computer access, plus candidate-only host-isolated memory, provenance,
 conflict visibility, transitive deletion, and bounded cited public research. Independent
 clean-Windows bootstrap/repository CI
 passes; current latency/provider-capacity and separately authorized live-effect limitations remain
 explicit in `docs/PHASE_OVERVIEW.md` and are not security-gate waivers.
+
+Phase 11A adds no autonomous execution. Trigger proposals from every source remain untrusted.
+Exact trusted-local-terminal activation binds one draft version and SHA-256 digest but starts no
+runner. Global/per-feature gates, expiry, timezone/DST, clock-skew, quiet-hour, rate, attention,
+single-active-candidate, and duplicate controls execute outside models. A positive decision stores
+only inert content-free candidate metadata. No provider/tool call, task execution, approval
+creation, effect, notification send, cloud disclosure, or candidate-content retention is possible.
+See `docs/PROACTIVITY.md`.
 
 Phase 6 adds host-scoped immutable task graphs. Planner output cannot define authority metadata,
 raise host budgets, register tools, or start execution. Task execution is default-off and explicit
@@ -243,6 +251,10 @@ bounded, and content-free.
 
 An API caller cannot approve its own privileged tool request without a separate,
 user-visible approval flow.
+
+Proactivity has no browser/API activation endpoint and no evaluation command. The trusted local
+CLI can create, inspect, activate, disable, export, and delete rules. Host isolation applies to all
+rule, activation, candidate, event, export, and deletion operations.
 
 ## Wearable boundary
 

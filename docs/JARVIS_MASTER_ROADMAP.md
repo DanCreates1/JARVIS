@@ -621,6 +621,15 @@ authorized adapter supplies one real wearable interaction and passes adapter-rem
 
 ### Phase 11 — Advanced JARVIS (Very Large, P2/P3)
 
+**Current status (2026-09-14)**
+Phase 11A is complete. It implements user-authored once/daily/event trigger policy, deterministic
+preview, exact trusted activation, timezone/DST/expiry/quiet-hour/rate/attention controls,
+restart-safe host-isolated deduplication, inert content-free suggestion candidates, lifecycle audit,
+export, immediate disable, and transitive deletion. Global and per-feature controls default off.
+There is no runner, task handoff, provider/tool call, approval creation, notification sender, cloud
+disclosure, or effect authority. Aggregate Phase 11 remains in progress; Phase 11B owns runner,
+foreground task handoff, notification relevance, snooze/feedback, and long-duration acceptance.
+
 **Goal**  
 Add proactive, scheduled, multi-device, and deeper multimodal help after safety and reliability are proven.
 

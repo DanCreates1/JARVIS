@@ -124,6 +124,19 @@ def test_safe_summary_contains_only_declared_diagnostics(tmp_path: Path) -> None
         "task_max_tool_calls",
         "task_max_cost_usd",
         "task_max_concurrency",
+        "proactivity_enabled",
+        "proactivity_enabled_features",
+        "proactivity_max_candidates_per_hour",
+        "proactivity_max_candidates_per_day",
+        "proactivity_max_attention_seconds_per_day",
+        "proactivity_max_rule_lifetime_days",
+        "proactivity_clock_skew_seconds",
+        "proactivity_max_task_steps",
+        "proactivity_max_provider_requests",
+        "proactivity_max_tool_calls",
+        "proactivity_max_tokens",
+        "proactivity_max_cost_usd",
+        "proactivity_max_concurrency",
         "vision_capture_enabled",
         "voice_always_listening_enabled",
         "voice_acoustic_always_listening_enabled",
@@ -152,6 +165,25 @@ def test_phase_seven_capture_is_disabled_by_default(tmp_path: Path) -> None:
 
     assert settings.vision_capture_enabled is False
     assert settings.vision_settings_path == tmp_path / "vision-settings.json"
+
+
+def test_phase_eleven_proactivity_is_disabled_and_hard_bounded(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path, _env_file=None)
+
+    assert settings.proactivity_enabled is False
+    assert settings.proactivity_enabled_features == ()
+    assert settings.proactivity_max_cost_usd == 0
+    assert settings.proactivity_max_concurrency == 1
+    with pytest.raises(ValidationError):
+        Settings(data_dir=tmp_path, proactivity_max_cost_usd=0.01, _env_file=None)
+    with pytest.raises(ValidationError):
+        Settings(data_dir=tmp_path, proactivity_max_concurrency=2, _env_file=None)
+    with pytest.raises(ValidationError, match="feature"):
+        Settings(
+            data_dir=tmp_path,
+            proactivity_enabled_features=("valid.feature", "../../escape"),
+            _env_file=None,
+        )
 
 
 def test_phase_nine_remote_runtime_requires_complete_receipt_enforcement(tmp_path: Path) -> None:

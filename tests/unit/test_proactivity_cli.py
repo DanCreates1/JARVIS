@@ -1,0 +1,133 @@
+from __future__ import annotations
+
+import json
+import re
+from datetime import UTC, datetime, timedelta
+from io import StringIO
+from pathlib import Path
+
+import pytest
+from rich.console import Console
+from typer.testing import CliRunner
+
+import jarvis.cli as cli
+
+
+def test_proactivity_cli_preview_activate_disable_export_delete(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = StringIO()
+    monkeypatch.setattr(cli, "console", Console(file=output, force_terminal=False, width=160))
+    monkeypatch.setenv("JARVIS_DATA_DIR", str(tmp_path / "data"))
+    now = datetime.now(UTC)
+    scheduled = now + timedelta(days=1)
+    proposal_path = tmp_path / "proposal.json"
+    proposal_path.write_text(
+        json.dumps(
+            {
+                "title": "Tomorrow briefing",
+                "feature": "daily.briefing",
+                "schedule": {
+                    "kind": "once",
+                    "timezone": "UTC",
+                    "local_date": scheduled.date().isoformat(),
+                    "local_time": scheduled.time().replace(tzinfo=None).isoformat(),
+                },
+                "provenance": {
+                    "source_type": "host",
+                    "source_id": "cli:test",
+                    "untrusted": True,
+                },
+                "created_at": now.isoformat(),
+                "expires_at": (now + timedelta(days=2)).isoformat(),
+            }
+        ),
+        encoding="utf-8",
+    )
+    runner = CliRunner()
+
+    created = runner.invoke(cli.app, ["proactive", "create", str(proposal_path)])
+    assert created.exit_code == 0
+    text = output.getvalue()
+    rule_id = re.search(r"Rule: (proactivity:[0-9a-f-]+)", text)
+    digest = re.search(r"Proposal SHA-256: ([0-9a-f]{64})", text)
+    phrase = re.search(r"Activation phrase: (ACTIVATE [0-9a-f]{8})", text)
+    assert rule_id and digest and phrase
+
+    output.seek(0)
+    output.truncate(0)
+    denied = runner.invoke(
+        cli.app,
+        [
+            "proactive",
+            "activate",
+            rule_id.group(1),
+            "--expected-version",
+            "1",
+            "--expected-digest",
+            digest.group(1),
+            "--confirm",
+            "ACTIVATE wrong",
+        ],
+    )
+    assert denied.exit_code == 2
+    assert "confirmation does not match" in output.getvalue()
+
+    output.seek(0)
+    output.truncate(0)
+    activated = runner.invoke(
+        cli.app,
+        [
+            "proactive",
+            "activate",
+            rule_id.group(1),
+            "--expected-version",
+            "1",
+            "--expected-digest",
+            digest.group(1),
+            "--confirm",
+            phrase.group(1),
+        ],
+    )
+    assert activated.exit_code == 0
+    assert "No runner, task, or notification started" in output.getvalue()
+
+    listed = runner.invoke(cli.app, ["proactive", "list"])
+    assert listed.exit_code == 0
+
+    disabled = runner.invoke(
+        cli.app,
+        ["proactive", "disable", rule_id.group(1), "--expected-version", "2"],
+    )
+    assert disabled.exit_code == 0
+
+    export_path = tmp_path / "proactivity-export.json"
+    exported = runner.invoke(cli.app, ["proactive", "export", str(export_path)])
+    assert exported.exit_code == 0
+    assert export_path.exists()
+
+    deleted = runner.invoke(
+        cli.app,
+        [
+            "proactive",
+            "delete",
+            rule_id.group(1),
+            "--confirm-rule-id",
+            rule_id.group(1),
+        ],
+    )
+    assert deleted.exit_code == 0
+
+
+def test_proactivity_status_is_default_off_and_has_no_runner(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = StringIO()
+    monkeypatch.setattr(cli, "console", Console(file=output, force_terminal=False, width=160))
+    monkeypatch.setenv("JARVIS_DATA_DIR", str(tmp_path))
+
+    result = CliRunner().invoke(cli.app, ["proactive", "status"])
+
+    assert result.exit_code == 0
+    assert "Suggestion-only proactivity: disabled" in output.getvalue()
+    assert "No background runner" in output.getvalue()

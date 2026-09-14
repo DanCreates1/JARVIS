@@ -60,6 +60,7 @@ Do not create empty directories for future modules. Add a module when it ships a
 | Privilege broker | Narrow authorized action execution | Conversational reasoning |
 | Planner | Bounded task DAG and checkpoints | Bypassing tool policy |
 | Research engine | Sources, claims, conflicts, citations, freshness | Treating page instructions as trusted |
+| Proactivity policy | User-authored schedule preview, trusted activation, quiet/rate/attention policy, inert candidate ledger | Running tasks, calling tools/providers, creating approvals, sending notifications, authorizing effects |
 | Device registry | Device identity, capabilities, permissions, health | Shared static credentials |
 | Audit/observability | Sanitized events, metrics, evidence | Raw secrets or hidden model reasoning |
 

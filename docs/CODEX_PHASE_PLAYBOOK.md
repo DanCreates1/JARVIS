@@ -209,12 +209,13 @@ Audited 2026-09-08 at `96143e7` before this rewrite: Python 3.11 modular monolit
 included `uv 0.12.5`, Git 2.55.0, Gitleaks 8.30.1, and Node 24.20.0. Bare `python` resolved only to
 the disabled Windows Store alias; repository commands use `uv run`.
 
-Actual status, reconciled 2026-09-11: Phase 1 has an external hosted-latency blocker and a fresh
+Actual status, reconciled 2026-09-14: Phase 1 has an external hosted-latency blocker and a fresh
 local-cold revalidation miss; Phases 2-3 are implemented with current authorized live effects
 pending; Phases 4-8 and the Phase 9 repository implementation are complete; Phase 9 live
 deployment is blocked on an authorized server target; Phase 10A's generic contract, simulator,
 dated vendor matrix, and ADR are complete, while vendor adapter work is externally blocked on
-authenticated term review and platform authority. Phase 11 is not implemented. No root
+authenticated term review and platform authority. Phase 11A suggestion-only trigger policy is
+complete; aggregate Phase 11 remains in progress with Phase 11B next. No root
 license exists, so copying external code is blocked on an owner licensing decision. No external
 code was copied. See
 [External Repository Comparison](EXTERNAL_REPOSITORY_COMPARISON.md).
@@ -690,7 +691,7 @@ core depend on Meta or any single vendor.
 ## 17. Phase 11 — Advanced JARVIS
 
 Recommended execution: **`gpt-6-astra`, `ultra`**
-Baseline status: **not started; long-term**  
+Baseline status: **in progress; Phase 11A complete, Phase 11B next**
 Prerequisites: dependable permissions, memory, research, agents, clients, and observability
 
 ### Read first
@@ -703,6 +704,15 @@ Prerequisites: dependable permissions, memory, research, agents, clients, and ob
 
 Add proactive, scheduled, multi-device, and deeper multimodal assistance only after on-demand
 JARVIS is safe, reliable, inspectable, and easy to disable.
+
+### Phase 11A completion boundary (2026-09-14)
+
+Implemented user-authored once/daily/event trigger contracts, deterministic preview, exact trusted
+activation, timezone/DST/expiry/quiet-hour/skew/rate/attention policy, restart-safe host isolation
+and deduplication, inert content-free candidates, lifecycle audit, export, disable, and deletion.
+Global and per-feature controls default off. No runner, task/provider/tool/effect execution, approval
+creation, notification send, cloud disclosure, or candidate-content retention was added. Phase 11B
+must preserve this boundary while adding the separately gated runner and user-facing feedback loop.
 
 ### Required design
 

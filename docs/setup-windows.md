@@ -621,6 +621,18 @@ uv run jarvis doctor
 
 Do not point `JARVIS_DATA_DIR` at the repository.
 
+Phase 11A proactivity is suggestion-only and disabled by default. Inspect its fixed ceilings and
+confirm that no runner is installed:
+
+```powershell
+uv run jarvis proactive status
+uv run jarvis doctor
+```
+
+Do not enable the global or per-feature gates as a substitute for the unimplemented Phase 11B
+runner. Draft, trusted activation, inspection, disable, export, deletion, timezone/DST behavior,
+and recovery are documented in [Suggestion-only Proactivity](PROACTIVITY.md).
+
 ## Development checks
 
 ```powershell
