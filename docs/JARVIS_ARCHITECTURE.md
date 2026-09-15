@@ -7,8 +7,9 @@ Last reconciled with Phase 1-8A implementation: 2026-09-10
 Phases 4-7 and Phase 8A currently satisfy their completion gates. Phase 1 clean-host/bootstrap/repository
 and prior optimized-local evidence pass, while hosted NVIDIA fixed latency remains an external
 blocker despite preserved complete 20-sample states. Fresh 2026-09-08 local-cold revalidation also
-missed its p50 target. Phase 2 and Phase 3 await separately authorized current live
-device/effect checks. See `docs/PHASE_OVERVIEW.md`; these status limits do not alter the
+missed its p50 target. Phase 2 passed its separately authorized current live device/kill closeout
+on 2026-09-15. Phase 3 still awaits separately authorized current live effect checks. See
+`docs/PHASE_OVERVIEW.md`; these status limits do not alter the
 architecture boundaries below.
 
 ## 1. Architectural style

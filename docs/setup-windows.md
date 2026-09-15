@@ -287,9 +287,11 @@ CC BY-NC-SA 4.0; JARVIS does not redistribute it. Review the
 
 On the audited ASUS TUF Gaming F15 FX506HF, the official FX506H-series manual identifies
 **Fn+F4** as the microphone on/off hotkey. Confirm its on-screen/keyboard indication before regular
-use. A headset hardware mute or Windows **Settings > Privacy & security > Microphone** access control
-is a secondary path. Physical mute is independent of JARVIS and cannot be actuated by voice
-diagnostics. See the [ASUS FX506H manual](https://dlcdnets.asus.com/pub/ASUS/GamingNB/FX506HM/E18920_FX506H_FX706H_EM_V3.pdf).
+use. The 2026-09-15 closeout captured only near-zero signal while the owner-stated mute was active,
+then left the software kill switch disabled. A headset hardware mute or Windows
+**Settings > Privacy & security > Microphone** access control is a secondary path. Physical mute is
+independent of JARVIS and cannot be actuated by voice diagnostics. See the
+[current ASUS FX506H/FX707H manual](https://dlcdnets.asus.com/pub/ASUS/GamingNB/FX506HM/0409_E21220_FX506H_FX706H_V4_A.pdf?model=FX506HC).
 
 Wake-word and acoustic always-listening settings are intentionally fixed to `false`. Do not bypass
 them. Phase 2 ships detectors and evaluation evidence, not an always-on service.

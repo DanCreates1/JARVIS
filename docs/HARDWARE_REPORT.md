@@ -5,6 +5,26 @@ Hosted-model strategy verified: 2026-08-20
 Method: lightweight Windows CIM/PnP queries, installed-command checks, Phase 1/2 benchmarks, and
 Phase 3 read-only capability probes plus disposable controlled-root benchmark
 
+## Phase 2C current-device closeout — 2026-09-15
+
+- Current Windows inventory exposed 20 capture and 24 render endpoints. The persisted Realtek
+  microphone array and Microsoft Sound Mapper output resolved across separate processes and the
+  selected input accepted mono 16 kHz signed 16-bit PCM.
+- With explicit owner authority and the owner-stated microphone mute active, one bounded Realtek
+  capture completed for 960 ms with zero dropped frames and RMS/peak 0.000015/0.000031. PCM was
+  discarded. One silent 22.05 kHz mono render completed; no audible phrase was played.
+- Thirty silent output-cancellation samples passed at 9.51/21.03 ms p50/p95 against the 250 ms
+  p95 gate. Active-capture software kill completed in 559.8 ms, emitted the typed kill event,
+  persisted disabled, and retained no raw audio.
+- Fresh CPU/int8 `base.en` STT with resident local `qwen3:0.6b` passed 30/30: short interactive
+  p50/p95 453.66/479.23 ms, all-file RTF p95 0.2566, quiet/noisy WER 0%, accented WER 17.25%,
+  480,858,112-byte voice-process RSS growth, zero GPU-memory growth, and zero adapter errors.
+- Wake and clap each passed 20/20 with zero false accepts in one simulated hour. The current
+  1,800.03-second soak processed 19,224 frames and 1,800 state turns with zero failures,
+  149,348,352-byte peak RSS growth, final idle, and no retained PCM. All seven aggregate voice
+  artifacts verify true. Continuous wake/clap listening remains hard-disabled; final voice state
+  is software-disabled.
+
 ## Phase 7A capture-boundary update — 2026-09-08
 
 - The healthy `USB2.0 HD UVC WebCam` completed one authorized 640 x 480 RGB24 frame at `(0,0)` in
@@ -88,8 +108,9 @@ Phase 3 read-only capability probes plus disposable controlled-root benchmark
 - Fresh Phase 4 memory benchmark: warm 500-query p50/p95 1.2383/37.0088 ms; cold 20-query
   p50/p95 41.0982/80.0949 ms; 2,500 records at 2,157.7728 bytes/record; 100 concurrent operations
   with zero failures; deletion completeness 1.0.
-- Current live microphone/render/kill and app/volume/media repetitions require separate authority.
-  Existing 2026-08-22/26 live results remain historical evidence only.
+- Phase 2 current live microphone/render/kill repetition passed on 2026-09-15. Phase 3 current
+  app/volume/media repetitions still require separate authority; its 2026-08-26 live results remain
+  historical evidence only.
 
 ## Phase 1 Nemotron acceptance update — 2026-08-22
 

@@ -22,8 +22,9 @@ product interaction without representing NVIDIA as faster. Phase 7A's implementa
 privacy gates, and bounded current camera/screen closeout pass. Phase 7 is complete with a pinned
 local OpenCV DNN hand detector, diverse public real-image evaluation, a passing 30-minute target
 camera soak, and Phase 7C's default-off gesture-to-proposal boundary. Clean-Windows bootstrap
-and repository gates pass on an independent fresh GitHub Windows runner. Phases 2 and 3 pass current safe local gates but
-still require separately authorized current real-device/application smokes. See
+and repository gates pass on an independent fresh GitHub Windows runner. Phase 2 now passes its
+current authorized real-device, quality, kill, and soak closeout; Phase 3 still requires a
+separately authorized current application/device smoke. See
 [Phase Overview](docs/PHASE_OVERVIEW.md) and the phase reports for exact evidence. No threshold or
 privacy/authority gate is waived by implementation status.
 

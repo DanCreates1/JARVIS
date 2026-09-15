@@ -25,7 +25,7 @@ implementation protocol, acceptance gates, safety boundaries, and completion rep
 | --- | --- | --- | --- | --- |
 | 0 | Repository baseline | Complete | Continuous audit | `gpt-5.6-sol` / `medium` |
 | 1 | Privacy-aware text core | Blocked external | 1D NVIDIA gate plus local-cold revalidation | `gpt-6-astra` / `max` |
-| 2 | Local-first voice | Implemented; closeout pending | 2C authorized device closeout | `gpt-5.6-sol` / `high` |
+| 2 | Local-first voice | Complete | 2A-2C complete | `gpt-6-astra` / `xhigh` aggregate |
 | 3 | Controlled computer access | Implemented; closeout pending | 3C authorized live closeout | `gpt-6-astra` / `max` |
 | 4 | Durable memory | Complete | 4A-4C complete | `gpt-6-astra` / `xhigh` aggregate |
 | 5 | Research | Complete | 5A-5C complete | `gpt-6-astra` / `xhigh` aggregate |
@@ -64,8 +64,9 @@ dependency is Phase 3/media privacy, but it must not be described as following a
 1. Keep Phase 1 formally blocked. Retry the fixed NVIDIA gate only when free-endpoint tail latency
    improves, and recheck the fresh local-cold regression. Retain all prior evidence rather than
    replacing it with routed product latency.
-2. With separate authority, repeat Phase 2 live device and Phase 3 live application/device smokes.
-3. Maintain completed Phase 4 memory and the safe local Phase 2/3 baselines.
+2. Maintain completed Phase 2 voice evidence and its default-off continuous-listening boundary.
+   With separate authority, repeat the Phase 3 live application/device smokes.
+3. Maintain completed Phase 4 memory and the safe local Phase 3 baseline.
 4. Maintain completed Phase 5 research and its untrusted-evidence/storage-approval boundary. Phase
    1 NVIDIA latency is an accepted known limitation, but its unchanged formal gate remains
    `blocked-external`.

@@ -105,6 +105,11 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def local_model_is_loaded(settings: Settings, loaded_models: list[str]) -> bool:
+    """Match Ollama residency against the runtime's resolved local-model alias."""
+    return settings.effective_local_model in loaded_models
+
+
 async def prepare(runtime_dir: Path) -> None:
     corpus_dir = runtime_dir / "corpus"
     quiet_dir = corpus_dir / "quiet"
@@ -245,7 +250,7 @@ async def benchmark_stt(runtime_dir: Path, *, enforce: bool) -> None:
         "rtf_p95": percentile(all_rtf, 0.95) <= 1.0,
         "rss_growth": max(0, peak_rss - start_rss) <= 4 * 1_024 * 1_024 * 1_024,
         "gpu_growth": gpu_growth_mib is not None and gpu_growth_mib <= 512,
-        "local_llm_loaded": settings.local_model in loaded_ollama_models,
+        "local_llm_loaded": local_model_is_loaded(settings, loaded_ollama_models),
         "no_errors": not any(item["error"] for item in results),
     }
     report = {

@@ -210,8 +210,8 @@ included `uv 0.12.5`, Git 2.55.0, Gitleaks 8.30.1, and Node 24.20.0. Bare `pytho
 the disabled Windows Store alias; repository commands use `uv run`.
 
 Actual status, reconciled 2026-09-15: Phase 1 has an external hosted-latency blocker and a fresh
-local-cold revalidation miss; Phases 2-3 are implemented with current authorized live effects
-pending; Phases 4-8 and the Phase 9 repository implementation are complete; Phase 9 live
+local-cold revalidation miss; Phase 2 is complete; Phase 3 is implemented with current authorized
+live effects pending; Phases 4-8 and the Phase 9 repository implementation are complete; Phase 9 live
 deployment is blocked on an authorized server target; Phase 10A's generic contract, simulator,
 dated vendor matrix, and ADR are complete, while vendor adapter work is externally blocked on
 authenticated term review and platform authority. Phase 11A suggestion-only trigger policy,
@@ -333,7 +333,7 @@ measurable behavior.
 ## 8. Phase 2 — Voice
 
 Recommended execution: **`gpt-6-astra`, `xhigh`**
-Baseline status: **implemented-closeout-pending; current live device evidence requires authority**
+Baseline status: **complete; current device closeout passed 2026-09-15**
 Prerequisite: Phase 1 event stream/cancellation stable
 
 ### Read first
@@ -822,7 +822,7 @@ reasoning, and rationale. Universal requirements still apply.
   -> cancel -> duplex -> detector -> soak. T: every transition, music/TV/typing/noise, stuck worker/
   leak. SP: acoustic input untrusted; kill dominates. M: voice/hands-free/security. A/E: prompt stop,
   recovery, detector bounds. N: 1. R: `gpt-6-astra` `xhigh`, races plus capture privacy.
-- **2C Device closeout (`implemented-closeout-pending`)** — O/S: current Windows device proof. P:
+- **2C Device closeout (`complete`, 2026-09-15)** — O/S: current Windows device proof. P:
   2A-B plus mic/render authority. D: sanitized evidence/report. X: personal recordings/hidden
   enablement. Q: inventory -> live/loss/barge/kill -> load/soak -> gates. T: selection/reconnect/
   offline/LLM contention. SP: consent, visible/ephemeral, cloud off. M: hardware/setup/overview/

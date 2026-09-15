@@ -276,10 +276,11 @@ Representative scenarios cover safe simple, normal, reasoning, sensitive-local, 
 
 ### Phase 2 — Voice (Large)
 
-**Status (2026-08-31): Implemented; current closeout pending.** Current local STT, trigger,
-failure, and 30-minute synthetic soak gates pass. The 2026-08-22 live device evidence remains
-valid historical evidence, but live microphone/render/kill checks were not repeated without
-separate real-device authorization. Continuous wake/clap listening remains hard-disabled.
+**Status (2026-09-15): Complete.** Current local STT, trigger, failure, authorized Windows-device,
+software/physical-kill, aggregate-verifier, and 30-minute synthetic soak gates pass. The closeout
+used one 960 ms muted Realtek capture, silent-only output, 30 bounded cancellation samples, and an
+active-capture kill; it retained no PCM and left voice disabled. Continuous wake/clap listening
+remains hard-disabled.
 
 **Goal**  
 Natural push-to-talk first, then wake-word conversation with streaming speech and barge-in.

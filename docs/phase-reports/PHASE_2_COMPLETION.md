@@ -1,9 +1,11 @@
 # Phase 2 Voice Completion Report
 
-Status: `implemented-closeout-pending`
+Status: `complete`
 Started: 2026-08-22
-Updated: 2026-08-31
-Recommended Sol thinking: Extra high
+Updated: 2026-09-15
+Active subphase: Phase 2C complete
+Recommended Codex model: `gpt-5.6-sol`
+Recommended reasoning: `high`
 
 ## Objective
 
@@ -11,6 +13,54 @@ Deliver local-first push-to-talk with provider-neutral audio/VAD/STT/TTS/wake/ev
 timestamped transcript/audio events, duplex interruption, persistent device selection, diagnostics,
 and text fallback. Keep wake-word and clap always-listening hard-disabled; Phase 2 evaluates their
 foundations but does not ship a resident listener or action authority.
+
+## 2026-09-15 Phase 2C closeout
+
+The owner explicitly authorized the bounded current-device closeout and stated that the microphone
+was muted for the physical-path check. One 960 ms Realtek capture recorded only sanitized
+RMS/peak 0.000015/0.000031 with zero drops and discarded PCM. One silent SAPI render completed.
+Thirty silent barge-stop samples passed at 9.51/21.03 ms p50/p95. Active-capture software kill
+completed in 559.8 ms, emitted the kill event, persisted disabled, and retained no audio. The final
+voice doctor confirmed the software kill, 20 capture/24 render endpoints, persisted Realtek input,
+persisted Microsoft Sound Mapper output, mono 16 kHz input support, and every local voice provider.
+
+Fresh CPU/int8 `base.en` STT with resident local `qwen3:0.6b` passed all 30 public/synthetic
+samples: quiet/noisy WER 0%, accented WER 17.25%, short interactive p50/p95 453.66/479.23 ms,
+RTF p95 0.2566, 480,858,112-byte RSS growth, zero GPU-memory growth, and zero adapter errors. The
+benchmark initially exposed a false resident-model failure because it compared the optional
+`Settings.local_model` field rather than the runtime's `effective_local_model`; the harness and two
+regression tests now cover default-alias and explicit-override behavior.
+
+Wake/clap each passed 20/20 with zero false accepts over the fixed one-hour negative corpus. The
+1,800.03-second soak processed 19,224 frames and 1,800 complete state turns with zero failures,
+final idle, no deadlock, 149,348,352-byte peak RSS growth, and no retained audio. The aggregate
+verifier marks all seven STT/trigger/barge/device/kill/pipeline/soak artifacts true. Runtime evidence
+remains ignored outside Git; reports contain no audio, transcript content, credentials, or personal
+paths.
+
+Current repository evidence:
+
+```text
+rtk uv lock --check                         PASS: 119-package resolution
+rtk uv sync --locked                        PASS: base environment
+rtk uv run ruff format --check .            PASS: 334 files
+rtk uv run ruff check .                     PASS
+rtk uv run mypy src                         BLOCKED: Windows Application Control, OS 4551
+locked Python -m mypy src                   PASS: 139 source files
+rtk uv run pytest                           BLOCKED: Windows Application Control, OS 4551
+locked Python -m pytest                     PASS: 1,054 passed, 3 skipped; 85.02% coverage
+rtk uv run pip-audit                        BLOCKED: Windows Application Control, OS 4551
+locked Python -m pip_audit                  PASS: base and voice extra; no vulnerabilities
+gitleaks detect --source . --redact ...     PASS: 42 commits, 4.87 MB, no leaks
+rtk git diff --check                        PASS
+rtk uv run jarvis doctor                    BLOCKED: Windows Application Control, OS 4551
+locked Python -m jarvis doctor              PASS
+locked Python -m jarvis voice doctor        PASS outside sandbox; all voice rows healthy
+```
+
+The three capability skips are the existing Windows symlink/settings capability cases, not Phase 2
+failures. Exact console launchers were not called passing. Their locked module entry points pass;
+prior independent clean-Windows exact-command evidence remains preserved.
 
 ## 2026-08-31 revalidation
 
@@ -250,11 +300,9 @@ uv run pip-audit (voice extra installed)             PASS: no known vulnerabilit
 
 ## Blockers
 
-- Current live microphone capture, silent render, interruption, and kill-switch smoke require
-  separate real-device authorization. Historical 2026-08-22 live evidence remains recorded, but
-  it cannot substitute for a current playbook-required live check.
-- Phase 1 formal prerequisite closeout remains externally blocked by local/hosted latency and
-  intermittent NVIDIA capacity. Independent clean-Windows/bootstrap/repository gates now pass.
+- None for Phase 2. Phase 1 remains independently `blocked-external` on its provider-specific
+  NVIDIA latency and local-cold revalidation gates; its event-stream/cancellation interface required
+  by Phase 2 is stable and tested.
 
 ## Known limits and deferred scope
 
@@ -279,11 +327,13 @@ uv run pip-audit (voice extra installed)             PASS: no known vulnerabilit
 
 ## Final handoff
 
-- Final status: `implemented-closeout-pending`; safe current checks pass, but current live-device
-  and Phase 1 prerequisite closeout gates remain unresolved.
+- Final status: `complete`; Phase 2A-2C implementation, current authorized Windows-device proof,
+  privacy/kill behavior, fixed quality/resource targets, aggregate verifier, soak, and repository
+  gates pass.
 - Files changed: voice package/CLI/config/core cancellation, optional dependency lock, benchmark
   harness, 52 additional tests over baseline, and setup/architecture/security/hardware/roadmap docs.
-- Next recommended action: with separate authorization, repeat the bounded live device smokes after
-  Phase 1 external blockers are resolved or explicitly accepted as release limitations.
-- Commit/push status: Phase 1–4 implementation, CI hardening, and final evidence reconciliation are
-  committed and pushed to `origin/main`; remote SHA verification is recorded in the final handoff.
+- Next recommended action: maintain completed Phase 2 with continuous listeners disabled; perform
+  Phase 3C's separately authorized current live application/device closeout when requested.
+- Commit/push status: final gates passed; the Phase 2C release was committed and pushed under the
+  standing repository authorization, with final local/tracking/remote SHA equality checked during
+  handoff.
