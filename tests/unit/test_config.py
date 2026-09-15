@@ -128,6 +128,8 @@ def test_safe_summary_contains_only_declared_diagnostics(tmp_path: Path) -> None
         "proactivity_enabled_features",
         "proactivity_runner_enabled",
         "proactivity_task_handoff_enabled",
+        "proactivity_pwa_adapter_enabled",
+        "proactivity_device_lease_seconds",
         "proactivity_runner_lease_seconds",
         "proactivity_notification_ttl_seconds",
         "proactivity_max_snooze_seconds",

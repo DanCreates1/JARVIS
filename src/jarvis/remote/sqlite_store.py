@@ -501,6 +501,55 @@ class SQLiteRemoteIdentityStore:
                     """,
                     (_timestamp(revoked_at), device_id),
                 )
+                await connection.execute(
+                    """
+                    UPDATE proactivity_device_bindings
+                    SET state = 'revoked', version = version + 1, updated_at = ?
+                    WHERE host_id = ? AND device_id = ? AND state = 'active'
+                    """,
+                    (_timestamp(revoked_at), host_id, device_id),
+                )
+                async with connection.execute(
+                    """
+                    SELECT * FROM proactivity_ownerships
+                    WHERE host_id = ? AND owner_kind = 'device' AND owner_device_id = ?
+                    """,
+                    (host_id, device_id),
+                ) as ownership_cursor:
+                    ownership_rows = await ownership_cursor.fetchall()
+                for ownership in ownership_rows:
+                    next_version = int(ownership["version"]) + 1
+                    await connection.execute(
+                        """
+                        UPDATE proactivity_ownerships
+                        SET owner_kind = 'local_host', owner_id = host_id,
+                            owner_device_id = NULL, lease_expires_at = NULL,
+                            version = ?, updated_at = ?
+                        WHERE candidate_id = ? AND version = ?
+                        """,
+                        (
+                            next_version,
+                            _timestamp(revoked_at),
+                            ownership["candidate_id"],
+                            ownership["version"],
+                        ),
+                    )
+                    await connection.execute(
+                        """
+                        INSERT INTO proactivity_ownership_events
+                            (id, host_id, candidate_id, event_type, reason_code,
+                             owner_kind, owner_device_id, version, created_at)
+                        VALUES (?, ?, ?, 'device_revoked', 'remote_identity_revoked',
+                                'local_host', NULL, ?, ?)
+                        """,
+                        (
+                            f"proactivity-owner-event:{uuid4()}",
+                            host_id,
+                            ownership["candidate_id"],
+                            next_version,
+                            _timestamp(revoked_at),
+                        ),
+                    )
                 await self._insert_audit(
                     connection,
                     event_type="device.revoked",

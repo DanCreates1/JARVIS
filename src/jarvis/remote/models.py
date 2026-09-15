@@ -35,6 +35,8 @@ class RemoteScope(StrEnum):
     CLIENT_CHAT = "client.chat"
     CLIENT_TASKS_READ = "client.tasks.read"
     CLIENT_STATUS_READ = "client.status.read"
+    CLIENT_PROACTIVITY_READ = "client.proactivity.read"
+    CLIENT_PROACTIVITY_MANAGE = "client.proactivity.manage"
     TOPOLOGY_NEGOTIATE = "topology.negotiate"
 
 

@@ -31,6 +31,13 @@ from jarvis.memory import (
     explicit_provenance,
 )
 from jarvis.planning import TaskNotFoundError, TaskPlanProposal, TaskStateError, TaskStatus
+from jarvis.proactivity import (
+    CandidateOwnership,
+    DeviceOwnershipConflictError,
+    DeviceOwnershipDeniedError,
+    DeviceOwnershipNotFoundError,
+    PWAProactivityAdapter,
+)
 from jarvis.remote import (
     BrowserOriginError,
     BrowserOriginPolicy,
@@ -171,6 +178,16 @@ class PWAChatInput(BaseModel):
     conversation_id: str | None = Field(default=None, max_length=200)
     model_role: ModelRole | None = None
     reasoning_level: ReasoningLevel | None = None
+
+
+class ProactivityOwnershipInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int = Field(ge=1)
+
+
+class ProactivityHandoffInput(ProactivityOwnershipInput):
+    target_device_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$")
 
 
 def create_app(
@@ -557,6 +574,75 @@ def create_app(
             )
             for record in records
         ]
+
+    @app.get("/api/v1/client/proactivity")
+    async def list_pwa_proactivity(
+        request: Request,
+        limit: Annotated[int, Query(ge=1, le=100)] = 100,
+    ) -> list[dict[str, object]]:
+        context = _remote_context(request)
+        _require_remote_host(_runtime(request), context)
+        try:
+            records = await _proactivity_pwa(request).list_visible(
+                context=context,
+                limit=limit,
+            )
+        except DeviceOwnershipDeniedError:
+            raise HTTPException(status_code=403, detail="Proactivity adapter denied") from None
+        return [record.model_dump(mode="json") for record in records]
+
+    @app.post("/api/v1/client/proactivity/{candidate_id}/claim")
+    async def claim_pwa_proactivity(
+        candidate_id: Annotated[str, Path(min_length=1, max_length=200)],
+        payload: ProactivityOwnershipInput,
+        request: Request,
+    ) -> dict[str, object]:
+        return await _pwa_ownership_operation(
+            request,
+            operation="claim",
+            candidate_id=candidate_id,
+            expected_version=payload.expected_version,
+        )
+
+    @app.post("/api/v1/client/proactivity/{candidate_id}/renew")
+    async def renew_pwa_proactivity(
+        candidate_id: Annotated[str, Path(min_length=1, max_length=200)],
+        payload: ProactivityOwnershipInput,
+        request: Request,
+    ) -> dict[str, object]:
+        return await _pwa_ownership_operation(
+            request,
+            operation="renew",
+            candidate_id=candidate_id,
+            expected_version=payload.expected_version,
+        )
+
+    @app.post("/api/v1/client/proactivity/{candidate_id}/release")
+    async def release_pwa_proactivity(
+        candidate_id: Annotated[str, Path(min_length=1, max_length=200)],
+        payload: ProactivityOwnershipInput,
+        request: Request,
+    ) -> dict[str, object]:
+        return await _pwa_ownership_operation(
+            request,
+            operation="release",
+            candidate_id=candidate_id,
+            expected_version=payload.expected_version,
+        )
+
+    @app.post("/api/v1/client/proactivity/{candidate_id}/handoff")
+    async def handoff_pwa_proactivity(
+        candidate_id: Annotated[str, Path(min_length=1, max_length=200)],
+        payload: ProactivityHandoffInput,
+        request: Request,
+    ) -> dict[str, object]:
+        return await _pwa_ownership_operation(
+            request,
+            operation="handoff",
+            candidate_id=candidate_id,
+            expected_version=payload.expected_version,
+            target_device_id=payload.target_device_id,
+        )
 
     @app.post("/api/v1/client/subscriptions", status_code=201)
     async def create_pwa_subscription(
@@ -1235,6 +1321,78 @@ def _pwa_hub(request: Request) -> PWAEventHub:
     return hub
 
 
+def _proactivity_pwa(request: Request) -> PWAProactivityAdapter:
+    adapter = _runtime(request).proactivity_pwa
+    if adapter is None:
+        raise HTTPException(status_code=503, detail="Proactivity adapter is unavailable")
+    return adapter
+
+
+async def _pwa_ownership_operation(
+    request: Request,
+    *,
+    operation: str,
+    candidate_id: str,
+    expected_version: int,
+    target_device_id: str | None = None,
+) -> dict[str, object]:
+    context = _remote_context(request)
+    _require_remote_host(_runtime(request), context)
+    adapter = _proactivity_pwa(request)
+    try:
+        if operation == "claim":
+            record = await adapter.claim(
+                context=context,
+                candidate_id=candidate_id,
+                expected_version=expected_version,
+            )
+        elif operation == "renew":
+            record = await adapter.renew(
+                context=context,
+                candidate_id=candidate_id,
+                expected_version=expected_version,
+            )
+        elif operation == "release":
+            record = await adapter.release(
+                context=context,
+                candidate_id=candidate_id,
+                expected_version=expected_version,
+            )
+        elif operation == "handoff" and target_device_id is not None:
+            record = await adapter.handoff(
+                context=context,
+                candidate_id=candidate_id,
+                target_device_id=target_device_id,
+                expected_version=expected_version,
+            )
+        else:
+            raise HTTPException(status_code=400, detail="Invalid ownership operation")
+    except DeviceOwnershipNotFoundError:
+        raise HTTPException(status_code=404, detail="Proactivity state unavailable") from None
+    except DeviceOwnershipConflictError:
+        raise HTTPException(status_code=409, detail="Proactivity ownership changed") from None
+    except DeviceOwnershipDeniedError:
+        raise HTTPException(status_code=403, detail="Proactivity ownership denied") from None
+    return _safe_ownership_payload(record, device_id=context.device_id)
+
+
+def _safe_ownership_payload(record: CandidateOwnership, *, device_id: str) -> dict[str, object]:
+    return cast(
+        dict[str, object],
+        jsonable_encoder(
+            {
+                "candidate_id": record.candidate_id,
+                "owner_kind": record.owner_kind,
+                "owned_by_this_device": record.owner_device_id == device_id,
+                "ownership_version": record.version,
+                "lease_expires_at": record.lease_expires_at,
+                "updated_at": record.updated_at,
+                "generic_content_only": True,
+            }
+        ),
+    )
+
+
 def _require_remote_host(runtime: RuntimeComponents, context: RemoteIdentityContext) -> None:
     if runtime.memory_host_id is None or runtime.memory_host_id != context.host_id:
         raise HTTPException(status_code=403, detail="Remote host denied")
@@ -1274,6 +1432,10 @@ def _remote_scope_for_request(method: str, path: str) -> tuple[bool, RemoteScope
         return True, None
     if method == "DELETE" and path.startswith("/api/v1/client/subscriptions/"):
         return False, RemoteScope.EVENTS_READ
+    if path == "/api/v1/client/proactivity" and method == "GET":
+        return False, RemoteScope.CLIENT_PROACTIVITY_READ
+    if path.startswith("/api/v1/client/proactivity/") and method == "POST":
+        return False, RemoteScope.CLIENT_PROACTIVITY_MANAGE
     return False, {
         "/api/v1/identity": RemoteScope.IDENTITY_READ,
         "/api/v1/events": RemoteScope.EVENTS_READ,

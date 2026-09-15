@@ -538,6 +538,19 @@ cloud disclosure, or candidate-content retention is present. Immediate disable a
 delete remain available; deletion leaves a content-free tombstone. See
 [Bounded foreground proactivity](PROACTIVITY.md).
 
+Phase 11C assigns each ready candidate exactly one durable owner. Local ownership has no lease;
+device ownership has a 30–300 second renewable lease and every transition uses an atomic
+optimistic version check. Expiry reclaims locally, so healed stale devices cannot alter old
+ownership. The only adapter is the existing Phase 8 PWA/API and it defaults off. Effective access
+intersects the global feature allowlist, process adapter gate, persistent trusted-local control,
+exact `jarvis-api` audience, active enrolled identity, current session scopes, and exact expiring
+device/feature binding. Manage requires both proactivity read and manage scope. Binding/device
+revocation and the local kill switch immediately reclaim device ownership. Remote payloads and
+append-only ownership events contain generic control metadata only; no title, prompt, task,
+memory/research, provider/tool, credential, approval, destination, notification body, or effect
+authority crosses the adapter. No push sender, broad discovery, new vendor capability, task
+execution, or permission grant is added.
+
 ## 16. Supply chain and model security
 
 - Lock Python dependencies and review lock changes.

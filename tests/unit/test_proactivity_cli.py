@@ -134,6 +134,38 @@ def test_proactivity_status_is_default_off_and_has_no_runner(
     assert "Foreground runner: disabled" in output.getvalue()
 
 
+def test_proactivity_adapter_cli_confirmation_kill_and_status(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = StringIO()
+    monkeypatch.setattr(cli, "console", Console(file=output, force_terminal=False, width=160))
+    monkeypatch.setenv("JARVIS_DATA_DIR", str(tmp_path))
+    runner = CliRunner()
+
+    denied = runner.invoke(
+        cli.app,
+        ["proactive", "adapter-enable", "--confirm", "ENABLE WRONG"],
+    )
+    assert denied.exit_code == 2
+    enabled = runner.invoke(
+        cli.app,
+        [
+            "proactive",
+            "adapter-enable",
+            "--confirm",
+            "ENABLE PWA PROACTIVITY",
+        ],
+    )
+    assert enabled.exit_code == 0
+    assert "exact device scopes" in output.getvalue()
+    status = runner.invoke(cli.app, ["proactive", "ownership"])
+    assert status.exit_code == 0
+    assert "persistent state: enabled" in output.getvalue()
+    disabled = runner.invoke(cli.app, ["proactive", "adapter-disable"])
+    assert disabled.exit_code == 0
+    assert "ownership reclaimed locally" in output.getvalue()
+
+
 def test_proactivity_cli_foreground_tick_and_local_inbox(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -7,8 +7,10 @@ from pydantic import ValidationError
 
 from jarvis.proactivity import (
     CandidateDispatch,
+    CandidateOwnership,
     HostProactivityPolicy,
     LocalNotification,
+    OwnershipKind,
     ProactivityBudget,
     ProactivityPolicyError,
     ProactivityProposal,
@@ -18,6 +20,7 @@ from jarvis.proactivity import (
     TriggerKind,
     TriggerSchedule,
     TrustedActivation,
+    VisibleProactivityState,
 )
 
 NOW = datetime(2026, 9, 14, 14, 0, tzinfo=UTC)
@@ -115,3 +118,34 @@ def test_policy_rejects_host_ceiling_expansion_and_future_timestamp() -> None:
         policy.preview(proposal, now=NOW)
     with pytest.raises(ValueError):
         HostProactivityPolicy(max_task_steps=11)
+
+
+def test_device_coordination_contracts_reject_content_and_inconsistent_owners() -> None:
+    with pytest.raises(ValidationError):
+        VisibleProactivityState.model_validate(
+            {
+                "candidate_id": "candidate:1",
+                "feature": "task.checkin",
+                "dispatch_state": "notified",
+                "notification_state": "active",
+                "owner_kind": "local_host",
+                "owned_by_this_device": False,
+                "ownership_version": 1,
+                "available_at": NOW,
+                "expires_at": NOW + timedelta(minutes=1),
+                "title": "private",
+            }
+        )
+    with pytest.raises(ValidationError):
+        CandidateOwnership(
+            candidate_id="candidate:1",
+            host_id="host:1",
+            rule_id="rule:1",
+            owner_kind=OwnershipKind.DEVICE,
+            owner_id="device:1",
+            owner_device_id=None,
+            version=1,
+            lease_expires_at=None,
+            created_at=NOW,
+            updated_at=NOW,
+        )

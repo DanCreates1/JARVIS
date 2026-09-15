@@ -215,8 +215,8 @@ pending; Phases 4-8 and the Phase 9 repository implementation are complete; Phas
 deployment is blocked on an authorized server target; Phase 10A's generic contract, simulator,
 dated vendor matrix, and ADR are complete, while vendor adapter work is externally blocked on
 authenticated term review and platform authority. Phase 11A suggestion-only trigger policy is
-complete; Phase 11B foreground runner/local inbox is complete; aggregate Phase 11 remains in
-progress with Phase 11C next. No root
+complete; Phase 11B foreground runner/local inbox and Phase 11C scoped PWA ownership are complete;
+aggregate Phase 11 remains in progress with Phase 11D next. No root
 license exists, so copying external code is blocked on an owner licensing decision. No external
 code was copied. See
 [External Repository Comparison](EXTERNAL_REPOSITORY_COMPARISON.md).
@@ -692,7 +692,7 @@ core depend on Meta or any single vendor.
 ## 17. Phase 11 — Advanced JARVIS
 
 Recommended execution: **`gpt-6-astra`, `ultra`**
-Baseline status: **in progress; Phases 11A–11B complete, Phase 11C next**
+Baseline status: **in progress; Phases 11A–11C complete, Phase 11D next**
 Prerequisites: dependable permissions, memory, research, agents, clients, and observability
 
 ### Read first
@@ -719,6 +719,15 @@ Phase 11B preserves the 11A boundary with separately gated explicit foreground t
 leases/recovery, generic local inbox feedback, and exact Phase 6 handoff recording. No daemon,
 task/provider/tool/effect execution, approval creation/binding, external notification send, cloud
 disclosure, or candidate-content retention was added.
+
+### Phase 11C completion boundary (2026-09-14)
+
+Phase 11C adds exactly one durable owner per ready candidate, bounded renewable device leases,
+atomic optimistic claim/renew/release/handoff, expiry/local reclaim, and immediate binding/device/
+adapter-kill recovery. The existing authenticated Phase 8 PWA/API is the only adapter. It requires
+exact audience, identity/session scopes, configured feature, local binding, and two default-off
+adapter gates; it exposes only generic state and adds no push, discovery, task/effect, approval, or
+private-content surface.
 
 ### Required design
 
@@ -961,7 +970,7 @@ reasoning, and rationale. Universal requirements still apply.
   duplicate/offline/failure/cancel/budget. SP: audience classification/fresh grants/private preview.
   M: operations/controls/report. A/E: single candidate ownership/no duplicate effect. N: 1. R:
   `gpt-6-astra` `ultra`, time-driven effects.
-- **11C Multi-device/adapters (`not-started`)** — O/S/D: single ownership/handoff/dedup/visible
+- **11C Multi-device/adapters (`complete`)** — O/S/D: single ownership/handoff/dedup/visible
   state and approved scoped adapters. P: 11A-B/relevant 7-10. X: broad discovery/new capability.
   Q: ownership fakes -> handoff -> one adapter -> partition/revoke. T: simultaneous/stale owner,
   partition/heal/revoke/conflict/removal. SP: scope intersection, required audience, local kill.

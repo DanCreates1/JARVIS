@@ -73,6 +73,11 @@ device again with a new key if access should return.
 | `GET /api/v1/client/events?subscription_id=...&after=N` | browser cookie + exact origin | `events.read` | finite SSE page with monotonic cursor headers |
 | `DELETE /api/v1/client/subscriptions/ID` | browser cookie + exact origin + CSRF | `events.read` | clear exact owned subscription buffer |
 | `POST /api/v1/client/chat` | browser cookie + exact origin + CSRF | `client.chat` | idempotent request result plus streamed private in-memory events |
+| `GET /api/v1/client/proactivity` | browser cookie + exact origin | `client.proactivity.read` plus local adapter/feature binding | generic active ownership state only |
+| `POST /api/v1/client/proactivity/ID/claim` | browser cookie + exact origin + CSRF | proactivity read + manage plus local adapter/feature binding | short leased ownership via current version |
+| `POST /api/v1/client/proactivity/ID/renew` | browser cookie + exact origin + CSRF | same as claim | renew current caller-owned lease |
+| `POST /api/v1/client/proactivity/ID/release` | browser cookie + exact origin + CSRF | same as claim | return current caller-owned candidate locally |
+| `POST /api/v1/client/proactivity/ID/handoff` | browser cookie + exact origin + CSRF | same as claim; exact target must have active manage binding | atomic exact-device handoff |
 
 Every signed request sends exactly one of each header:
 
@@ -159,6 +164,8 @@ uv run jarvis remote enroll "My PWA" `
   --scope client.chat `
   --scope client.tasks.read `
   --scope client.status.read `
+  --scope client.proactivity.read `
+  --scope client.proactivity.manage `
   --risk-ceiling 1
 ```
 
@@ -180,6 +187,18 @@ available. Other tabs remain read-only until they acquire ownership or establish
 Notifications require an explicit user gesture and browser permission. They are non-persistent,
 silent, and always use generic text: `JARVIS has an update.` Message/task content, identifiers, and
 links are excluded. Remote voice capture is not enabled by Phase 8C.
+
+## Phase 11C PWA ownership boundary
+
+Proactivity scopes grant nothing by themselves. `JARVIS_PROACTIVITY_ENABLED`, the exact feature
+allowlist, and `JARVIS_PROACTIVITY_PWA_ADAPTER_ENABLED` must be configured; the operator must then
+run `jarvis proactive adapter-enable` from the trusted local terminal and create an exact expiring
+device/feature binding. The PWA may list generic ready state and use current optimistic versions to
+claim, renew, release, or hand off one candidate. Device ownership lasts 30–300 seconds and returns
+locally after expiry. Binding revocation, Phase 8 device revocation, and `adapter-disable` reclaim
+immediately. Responses never expose another device ID or notification/task/private content. Phase
+11C installs no push sender, discovery, wearable/vendor adapter, background worker, task execution,
+approval binding, or effect route. See [Bounded foreground proactivity](PROACTIVITY.md).
 
 Online logout revokes the durable browser session, clears its server event/request buffers, deletes
 the host-only cookie, returns `Clear-Site-Data` for cache/cookies/storage, and makes the client erase

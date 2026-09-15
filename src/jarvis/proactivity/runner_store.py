@@ -282,6 +282,39 @@ class SQLiteProactivityRunnerStore:
                         encoded_now,
                     ),
                 )
+                ownership_cursor = await connection.execute(
+                    """
+                    INSERT OR IGNORE INTO proactivity_ownerships
+                        (candidate_id, host_id, rule_id, owner_kind, owner_id,
+                         owner_device_id, version, lease_expires_at, created_at, updated_at)
+                    VALUES (?, ?, ?, 'local_host', ?, NULL, 1, NULL, ?, ?)
+                    """,
+                    (
+                        candidate_id,
+                        host_id,
+                        row["rule_id"],
+                        host_id,
+                        encoded_now,
+                        encoded_now,
+                    ),
+                )
+                if ownership_cursor.rowcount == 1:
+                    await connection.execute(
+                        """
+                        INSERT INTO proactivity_ownership_events
+                            (id, host_id, candidate_id, event_type, reason_code,
+                             owner_kind, owner_device_id, version, created_at)
+                        VALUES (?, ?, ?, 'local_owner_created',
+                                'generic_local_notification_owner',
+                                'local_host', NULL, 1, ?)
+                        """,
+                        (
+                            f"proactivity-owner-event:{uuid4()}",
+                            host_id,
+                            candidate_id,
+                            encoded_now,
+                        ),
+                    )
                 cursor = await connection.execute(
                     """
                     UPDATE proactivity_dispatches

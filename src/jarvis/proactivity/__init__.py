@@ -1,5 +1,24 @@
 """Phase 11A policy and Phase 11B explicit foreground runner boundary."""
 
+from .device_adapter import PWAProactivityAdapter
+from .device_models import (
+    CandidateOwnership,
+    DeviceBindingState,
+    OwnershipEvent,
+    OwnershipEventType,
+    OwnershipKind,
+    ProactivityAdapterControl,
+    ProactivityDeviceBinding,
+    VisibleProactivityState,
+)
+from .device_store import (
+    DeviceOwnershipConflictError,
+    DeviceOwnershipCorruptionError,
+    DeviceOwnershipDeniedError,
+    DeviceOwnershipNotFoundError,
+    ProactivityDeviceStoreError,
+    SQLiteProactivityDeviceStore,
+)
 from .models import (
     DataClass,
     EvaluationCode,
@@ -57,7 +76,13 @@ from .sqlite_store import (
 
 __all__ = [
     "CandidateDispatch",
+    "CandidateOwnership",
     "DataClass",
+    "DeviceBindingState",
+    "DeviceOwnershipConflictError",
+    "DeviceOwnershipCorruptionError",
+    "DeviceOwnershipDeniedError",
+    "DeviceOwnershipNotFoundError",
     "DispatchState",
     "EvaluationCode",
     "EvaluationDecision",
@@ -65,9 +90,16 @@ __all__ = [
     "HostProactivityPolicy",
     "LocalNotification",
     "NotificationState",
+    "OwnershipEvent",
+    "OwnershipEventType",
+    "OwnershipKind",
+    "PWAProactivityAdapter",
+    "ProactivityAdapterControl",
     "ProactivityBudget",
     "ProactivityConflictError",
     "ProactivityCorruptionError",
+    "ProactivityDeviceBinding",
+    "ProactivityDeviceStoreError",
     "ProactivityEvent",
     "ProactivityEventType",
     "ProactivityExportReceipt",
@@ -94,6 +126,7 @@ __all__ = [
     "RunnerNotFoundError",
     "RunnerStateError",
     "RunnerTickResult",
+    "SQLiteProactivityDeviceStore",
     "SQLiteProactivityRunnerStore",
     "SQLiteProactivityStore",
     "SuggestionCandidate",
@@ -101,5 +134,6 @@ __all__ = [
     "TriggerKind",
     "TriggerSchedule",
     "TrustedActivation",
+    "VisibleProactivityState",
     "local_day_bounds",
 ]

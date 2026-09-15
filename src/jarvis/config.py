@@ -155,6 +155,8 @@ class Settings(BaseSettings):
     proactivity_runner_lease_seconds: int = Field(default=30, ge=1, le=60)
     proactivity_notification_ttl_seconds: int = Field(default=3_600, ge=60, le=86_400)
     proactivity_max_snooze_seconds: int = Field(default=86_400, ge=60, le=86_400)
+    proactivity_pwa_adapter_enabled: bool = False
+    proactivity_device_lease_seconds: int = Field(default=60, ge=30, le=300)
     vision_capture_enabled: bool = False
     voice_always_listening_enabled: Literal[False] = False
     voice_acoustic_always_listening_enabled: Literal[False] = False
@@ -499,6 +501,8 @@ class Settings(BaseSettings):
             "proactivity_runner_lease_seconds": self.proactivity_runner_lease_seconds,
             "proactivity_notification_ttl_seconds": (self.proactivity_notification_ttl_seconds),
             "proactivity_max_snooze_seconds": self.proactivity_max_snooze_seconds,
+            "proactivity_pwa_adapter_enabled": self.proactivity_pwa_adapter_enabled,
+            "proactivity_device_lease_seconds": self.proactivity_device_lease_seconds,
             "vision_capture_enabled": self.vision_capture_enabled,
             "computer_access_policy_path": str(self.computer_access_policy_path),
             "voice_always_listening_enabled": self.voice_always_listening_enabled,

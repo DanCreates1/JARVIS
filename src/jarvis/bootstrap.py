@@ -45,6 +45,7 @@ from jarvis.planning import (
     TaskScheduler,
     ValueTaskHandler,
 )
+from jarvis.proactivity import PWAProactivityAdapter, SQLiteProactivityDeviceStore
 from jarvis.remote import (
     DeploymentActivation,
     DeploymentError,
@@ -111,6 +112,8 @@ class RuntimeComponents:
     tasks: TaskScheduler | None = None
     remote_store: SQLiteRemoteIdentityStore | None = None
     remote_identity: RemoteIdentityService | None = None
+    proactivity_device_store: SQLiteProactivityDeviceStore | None = None
+    proactivity_pwa: PWAProactivityAdapter | None = None
     topology: TopologyNegotiator | None = None
     deployment: DeploymentActivation | None = None
     deployment_health: DeploymentHealthMonitor | None = None
@@ -125,29 +128,33 @@ class RuntimeComponents:
                 await self.task_store.close()
         finally:
             try:
-                if self.remote_store is not None:
-                    await self.remote_store.close()
+                if self.proactivity_device_store is not None:
+                    await self.proactivity_device_store.close()
             finally:
                 try:
-                    await self.provider.close()
+                    if self.remote_store is not None:
+                        await self.remote_store.close()
                 finally:
                     try:
-                        if self.research is not None:
-                            await self.research.close()
+                        await self.provider.close()
                     finally:
                         try:
-                            if self.computer is not None:
-                                await self.computer.close()
+                            if self.research is not None:
+                                await self.research.close()
                         finally:
                             try:
-                                if self.research_store is not None:
-                                    await self.research_store.close()
+                                if self.computer is not None:
+                                    await self.computer.close()
                             finally:
                                 try:
-                                    if self.memory_store is not None:
-                                        await self.memory_store.close()
+                                    if self.research_store is not None:
+                                        await self.research_store.close()
                                 finally:
-                                    await self.store.close()
+                                    try:
+                                        if self.memory_store is not None:
+                                            await self.memory_store.close()
+                                    finally:
+                                        await self.store.close()
 
     async def __aenter__(self) -> RuntimeComponents:
         return self
@@ -169,28 +176,33 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
     research_store = SQLiteResearchStore(settings.database_path)
     task_store = SQLiteTaskStore(settings.database_path)
     remote_store = SQLiteRemoteIdentityStore(settings.database_path)
+    proactivity_device_store = SQLiteProactivityDeviceStore(settings.database_path)
     try:
         await store.initialize()
         await memory_store.initialize()
         await research_store.initialize()
         await task_store.initialize()
         await remote_store.initialize()
+        await proactivity_device_store.initialize()
         memory_host_id = local_memory_host_id()
         memory = MemoryManager(memory_store, host_id=memory_host_id)
     except BaseException:
         try:
-            await remote_store.close()
+            await proactivity_device_store.close()
         finally:
             try:
-                await task_store.close()
+                await remote_store.close()
             finally:
                 try:
-                    await research_store.close()
+                    await task_store.close()
                 finally:
                     try:
-                        await memory_store.close()
+                        await research_store.close()
                     finally:
-                        await store.close()
+                        try:
+                            await memory_store.close()
+                        finally:
+                            await store.close()
         raise
     provider: ModelRouter | None = None
     computer: ComputerRuntimeComponents | None = None
@@ -380,15 +392,18 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
                     await task_store.close()
             finally:
                 try:
-                    await remote_store.close()
+                    await proactivity_device_store.close()
                 finally:
                     try:
-                        await research_store.close()
+                        await remote_store.close()
                     finally:
                         try:
-                            await memory_store.close()
+                            await research_store.close()
                         finally:
-                            await store.close()
+                            try:
+                                await memory_store.close()
+                            finally:
+                                await store.close()
         raise
     assert provider is not None
     return RuntimeComponents(
@@ -403,6 +418,14 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
         tasks=tasks,
         remote_store=remote_store,
         remote_identity=RemoteIdentityService(remote_store),
+        proactivity_device_store=proactivity_device_store,
+        proactivity_pwa=PWAProactivityAdapter(
+            proactivity_device_store,
+            configured_enabled=settings.proactivity_pwa_adapter_enabled,
+            policy_enabled=settings.proactivity_enabled,
+            enabled_features=frozenset(settings.proactivity_enabled_features),
+            lease_seconds=settings.proactivity_device_lease_seconds,
+        ),
         topology=TopologyNegotiator(
             topology_manifest,
             server_node_id=topology_manifest.owner_for(OwnershipDomain.IDENTITY),

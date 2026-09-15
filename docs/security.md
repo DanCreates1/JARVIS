@@ -266,6 +266,16 @@ record an exact task handoff, disable, export, and delete. Host isolation applie
 activation, candidate, dispatch, inbox, event, handoff, export, and deletion operation. Runner and
 task-handoff gates are separate, default off, and activation does not enable either.
 
+Phase 11C adds browser/API routes only for generic visible state and candidate ownership. They
+cannot activate rules, run ticks, send notifications, execute tasks, approve actions, or invoke
+effects. Read requires `client.proactivity.read`; mutation requires that plus
+`client.proactivity.manage`. Access also requires enrolled identity, current session scope, exact
+`jarvis-api` audience, host, feature allowlist, expiring trusted-local device binding, the
+default-off process gate, and persistent local control. Compare-and-swap versions and short leases
+prevent split ownership. Adapter disable, binding revocation, and device revocation reclaim
+ownership locally. Responses deliberately omit another owner's device identifier and all private
+payload.
+
 ## Wearable boundary
 
 Wearable discovery and capability negotiation are untrusted facts, never permission or execution

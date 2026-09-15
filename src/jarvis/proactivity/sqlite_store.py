@@ -644,6 +644,15 @@ class SQLiteProactivityStore:
                     """,
                     (host_id, rule_id),
                 )
+                events += await _scalar(
+                    connection,
+                    """
+                    SELECT COUNT(*) FROM proactivity_ownership_events AS e
+                    JOIN proactivity_candidates AS c ON c.id = e.candidate_id
+                    WHERE e.host_id = ? AND c.rule_id = ?
+                    """,
+                    (host_id, rule_id),
+                )
                 await connection.execute(
                     "DELETE FROM proactivity_rules WHERE host_id = ? AND id = ?",
                     (host_id, rule_id),
@@ -684,12 +693,13 @@ class SQLiteProactivityStore:
             event_rows.extend(await self.list_events(host_id=host_id, rule_id=rule.id, limit=2_000))
         destination = Path(path)
         payload = {
-            "schema": "jarvis-proactivity-export-v2",
+            "schema": "jarvis-proactivity-export-v3",
             "exported_at": timestamp.isoformat(timespec="microseconds"),
             "rules": [rule.model_dump(mode="json") for rule in rules],
             "candidates": [candidate.model_dump(mode="json") for candidate in candidates],
             "events": [event.model_dump(mode="json") for event in event_rows],
             "runner": await self._export_runner_rows(host_id=host_id),
+            "devices": await self._export_device_rows(host_id=host_id),
         }
         await asyncio.to_thread(_write_exclusive_json, destination, payload)
         return ProactivityExportReceipt(
@@ -707,6 +717,24 @@ class SQLiteProactivityStore:
                 "dispatches": "proactivity_dispatches",
                 "notifications": "proactivity_notifications",
                 "events": "proactivity_runner_events",
+            }
+            exported: dict[str, list[dict[str, object]]] = {}
+            for label, table in tables.items():
+                async with connection.execute(
+                    f"SELECT * FROM {table} WHERE host_id = ? ORDER BY rowid", (host_id,)
+                ) as cursor:
+                    rows = await cursor.fetchall()
+                exported[label] = [dict(row) for row in rows]
+            return exported
+
+    async def _export_device_rows(self, *, host_id: str) -> dict[str, list[dict[str, object]]]:
+        async with self._operation_lock:
+            connection = await self._get_connection()
+            tables = {
+                "control": "proactivity_adapter_controls",
+                "bindings": "proactivity_device_bindings",
+                "ownerships": "proactivity_ownerships",
+                "events": "proactivity_ownership_events",
             }
             exported: dict[str, list[dict[str, object]]] = {}
             for label, table in tables.items():

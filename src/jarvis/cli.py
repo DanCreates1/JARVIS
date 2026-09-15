@@ -8,6 +8,7 @@ import json
 import platform
 import secrets
 import sqlite3
+from collections.abc import Sequence
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -55,9 +56,15 @@ from jarvis.planning import (
 )
 from jarvis.proactivity import (
     CandidateDispatch,
+    CandidateOwnership,
+    DeviceOwnershipConflictError,
+    DeviceOwnershipDeniedError,
+    DeviceOwnershipNotFoundError,
     ForegroundProactivityRunner,
     HostProactivityPolicy,
+    ProactivityAdapterControl,
     ProactivityConflictError,
+    ProactivityDeviceBinding,
     ProactivityEvent,
     ProactivityExportReceipt,
     ProactivityHandoffDeniedError,
@@ -74,6 +81,7 @@ from jarvis.proactivity import (
     RunnerNotFoundError,
     RunnerStateError,
     RunnerTickResult,
+    SQLiteProactivityDeviceStore,
     SQLiteProactivityRunnerStore,
     SQLiteProactivityStore,
     TriggerEvent,
@@ -489,6 +497,215 @@ def proactive_accept(
     console.print(
         f"[bold green]Task handoff prepared.[/] candidate={candidate_id} task={task_id} "
         f"v{dispatch.version}; task not executed and no approval created"
+    )
+
+
+@proactive_app.command("adapter-enable")
+def proactive_adapter_enable(
+    confirm: Annotated[str, typer.Option(help='Must equal "ENABLE PWA PROACTIVITY".')],
+) -> None:
+    """Persistently enable the already configured PWA adapter from trusted local terminal."""
+    if confirm != "ENABLE PWA PROACTIVITY":
+        console.print("[bold red]Adapter enable confirmation is invalid.[/]")
+        raise typer.Exit(code=2)
+    settings = _load_settings()
+
+    async def run() -> ProactivityAdapterControl:
+        async with SQLiteProactivityDeviceStore(settings.database_path) as store:
+            return await store.set_control(host_id=local_memory_host_id(), enabled=True)
+
+    control = asyncio.run(run())
+    console.print(
+        f"[bold green]PWA proactivity adapter enabled locally.[/] v{control.version}; "
+        "process configuration, exact device scopes, and feature bindings still required"
+    )
+
+
+@proactive_app.command("adapter-disable")
+def proactive_adapter_disable() -> None:
+    """Activate persistent local kill and reclaim every device-owned candidate."""
+    settings = _load_settings()
+
+    async def run() -> ProactivityAdapterControl:
+        async with SQLiteProactivityDeviceStore(settings.database_path) as store:
+            return await store.set_control(host_id=local_memory_host_id(), enabled=False)
+
+    control = asyncio.run(run())
+    console.print(
+        f"[bold green]PWA proactivity adapter disabled.[/] kill_generation="
+        f"{control.kill_generation}; device ownership reclaimed locally"
+    )
+
+
+@proactive_app.command("device-bind")
+def proactive_device_bind(
+    device_id: Annotated[str, typer.Argument(help="Exact enrolled device ID.")],
+    feature: Annotated[str, typer.Option(help="Exact enabled proactivity feature.")],
+    allow_manage: Annotated[
+        bool, typer.Option(help="Permit claim, renew, release, and exact handoff.")
+    ] = False,
+    minutes: Annotated[int, typer.Option(min=1, max=43_200)] = 1_440,
+    confirm_device_id: Annotated[str, typer.Option(help="Must exactly match the device ID.")] = "",
+) -> None:
+    """Bind one enrolled device to one feature; discovery grants nothing."""
+    if confirm_device_id != device_id:
+        console.print("[bold red]Device binding confirmation does not match device ID.[/]")
+        raise typer.Exit(code=2)
+    settings = _load_settings()
+    if feature not in settings.proactivity_enabled_features:
+        console.print("[bold red]Feature is not in configured proactivity allowlist.[/]")
+        raise typer.Exit(code=2)
+
+    async def run() -> ProactivityDeviceBinding:
+        async with SQLiteProactivityDeviceStore(settings.database_path) as store:
+            return await store.bind_device(
+                host_id=local_memory_host_id(),
+                device_id=device_id,
+                feature=feature,
+                allow_manage=allow_manage,
+                expires_at=datetime.now(UTC) + timedelta(minutes=minutes),
+            )
+
+    try:
+        binding = asyncio.run(run())
+    except DeviceOwnershipDeniedError as exc:
+        console.print(f"[bold red]Device binding denied.[/] {exc}")
+        raise typer.Exit(code=1) from None
+    console.print(
+        f"[bold green]Device feature bound.[/] device={binding.device_id} "
+        f"feature={binding.feature} manage={binding.allow_manage} v{binding.version}"
+    )
+
+
+@proactive_app.command("device-unbind")
+def proactive_device_unbind(
+    device_id: Annotated[str, typer.Argument(help="Exact enrolled device ID.")],
+    feature: Annotated[str, typer.Option(help="Exact bound feature.")],
+    expected_version: Annotated[int, typer.Option(min=1)],
+) -> None:
+    """Revoke one feature binding and immediately reclaim matching ownership."""
+    settings = _load_settings()
+
+    async def run() -> ProactivityDeviceBinding:
+        async with SQLiteProactivityDeviceStore(settings.database_path) as store:
+            return await store.revoke_binding(
+                host_id=local_memory_host_id(),
+                device_id=device_id,
+                feature=feature,
+                expected_version=expected_version,
+            )
+
+    try:
+        binding = asyncio.run(run())
+    except DeviceOwnershipConflictError as exc:
+        console.print(f"[bold red]Device unbind denied.[/] {exc}")
+        raise typer.Exit(code=1) from None
+    console.print(
+        f"[bold green]Device feature binding revoked.[/] device={binding.device_id} "
+        f"feature={binding.feature} v{binding.version}; ownership reclaimed locally"
+    )
+
+
+@proactive_app.command("ownership")
+def proactive_ownership() -> None:
+    """Show exact local candidate ownership without notification content."""
+    settings = _load_settings()
+
+    async def run() -> tuple[
+        ProactivityAdapterControl,
+        Sequence[ProactivityDeviceBinding],
+        Sequence[CandidateOwnership],
+    ]:
+        async with SQLiteProactivityDeviceStore(settings.database_path) as store:
+            return (
+                await store.get_control(host_id=local_memory_host_id()),
+                await store.list_bindings(host_id=local_memory_host_id()),
+                await store.list_ownerships(host_id=local_memory_host_id()),
+            )
+
+    control, bindings, ownerships = asyncio.run(run())
+    console.print(
+        f"PWA adapter persistent state: {'enabled' if control.enabled else 'disabled'}; "
+        f"v{control.version}; kill_generation={control.kill_generation}; "
+        f"process gate={'enabled' if settings.proactivity_pwa_adapter_enabled else 'disabled'}"
+    )
+    table = Table(title="Proactivity ownership")
+    table.add_column("Candidate")
+    table.add_column("Owner")
+    table.add_column("Version")
+    table.add_column("Lease expiry")
+    for record in ownerships:
+        table.add_row(
+            record.candidate_id,
+            record.owner_id,
+            str(record.version),
+            record.lease_expires_at.isoformat() if record.lease_expires_at else "local",
+        )
+    console.print(table)
+    console.print(f"Device feature bindings: {len(bindings)}")
+
+
+@proactive_app.command("owner-handoff")
+def proactive_owner_handoff(
+    candidate_id: Annotated[str, typer.Argument(help="Exact candidate ID.")],
+    target_device_id: Annotated[str, typer.Option(help="Exact bound target device ID.")],
+    expected_version: Annotated[int, typer.Option(min=1)],
+) -> None:
+    """Transfer local ownership to one exact bound device under a short lease."""
+    settings = _load_settings()
+
+    async def run() -> CandidateOwnership:
+        async with SQLiteProactivityDeviceStore(settings.database_path) as store:
+            return await store.local_handoff(
+                host_id=local_memory_host_id(),
+                target_device_id=target_device_id,
+                candidate_id=candidate_id,
+                expected_version=expected_version,
+                lease_seconds=settings.proactivity_device_lease_seconds,
+            )
+
+    try:
+        ownership = asyncio.run(run())
+    except (
+        DeviceOwnershipConflictError,
+        DeviceOwnershipDeniedError,
+        DeviceOwnershipNotFoundError,
+    ) as exc:
+        console.print(f"[bold red]Ownership handoff denied.[/] {exc}")
+        raise typer.Exit(code=1) from None
+    console.print(
+        f"[bold green]Ownership handed off.[/] candidate={candidate_id} "
+        f"device={target_device_id} v{ownership.version}; no task or effect executed"
+    )
+
+
+@proactive_app.command("owner-reclaim")
+def proactive_owner_reclaim(
+    candidate_id: Annotated[str, typer.Argument(help="Exact candidate ID.")],
+    expected_version: Annotated[int, typer.Option(min=1)],
+) -> None:
+    """Reclaim one device-owned candidate to local host."""
+    settings = _load_settings()
+
+    async def run() -> CandidateOwnership:
+        async with SQLiteProactivityDeviceStore(settings.database_path) as store:
+            return await store.local_reclaim(
+                host_id=local_memory_host_id(),
+                candidate_id=candidate_id,
+                expected_version=expected_version,
+            )
+
+    try:
+        ownership = asyncio.run(run())
+    except (
+        DeviceOwnershipConflictError,
+        DeviceOwnershipDeniedError,
+        DeviceOwnershipNotFoundError,
+    ) as exc:
+        console.print(f"[bold red]Ownership reclaim denied.[/] {exc}")
+        raise typer.Exit(code=1) from None
+    console.print(
+        f"[bold green]Ownership reclaimed locally.[/] candidate={candidate_id} v{ownership.version}"
     )
 
 

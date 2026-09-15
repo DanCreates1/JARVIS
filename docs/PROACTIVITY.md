@@ -1,12 +1,13 @@
 # Bounded foreground proactivity
 
-Status: Phases 11A–11B implemented; Phase 11C remote adapters not implemented
+Status: Phases 11A–11C implemented; Phase 11D long-duration evaluation remains
 Last verified: 2026-09-14
 
 Phase 11A stores and evaluates bounded trigger policy. Phase 11B adds an explicit foreground tick,
-single-owner leases, a generic local inbox, snooze/dismiss/cancel, bounded crash recovery, and an
-optional exact Phase 6 task handoff. A tick runs only when the operator invokes it. Handoff records
-intent but never starts a task. No background daemon or external notification sender is installed.
+a generic local inbox, snooze/dismiss/cancel, bounded crash recovery, and an optional exact Phase 6
+task handoff. Phase 11C adds durable candidate ownership and one approved adapter: the existing
+authenticated Phase 8 PWA/API. A tick runs only when the operator invokes it. Handoffs change
+metadata but never start a task. No background daemon or external notification sender is installed.
 
 ## Safety boundary
 
@@ -22,6 +23,12 @@ intent but never starts a task. No background daemon or external notification se
   titles, prompts, task arguments/results, provider content, tool receipts, and approval grants.
 - One candidate has one durable dispatch and one inbox item. A 1–60 second lease allows one owner.
   Expired leases recover up to ten attempts; exhaustion fails terminally.
+- Each ready candidate has exactly one durable owner. Local ownership is unleased. Device ownership
+  is a 30–300 second renewable lease guarded by optimistic compare-and-swap. Expiry returns ownership
+  locally; stale devices cannot renew, release, or hand off it.
+- PWA access requires all gates: global policy, process adapter, persistent trusted-local enable,
+  exact `jarvis-api` audience, active enrolled identity, session scopes, and active feature binding.
+  Manage operations require both `client.proactivity.read` and `client.proactivity.manage`.
 - Accept requires the exact host-owned task ID named by the activated rule, current task
   version/digest, safe task state/deadline, and intersected Phase 6/11 budgets. It creates no fresh
   grant, binds no existing grant, executes no node, and authorizes no effect.
@@ -37,6 +44,8 @@ JARVIS_PROACTIVITY_ENABLED=false
 JARVIS_PROACTIVITY_ENABLED_FEATURES=[]
 JARVIS_PROACTIVITY_RUNNER_ENABLED=false
 JARVIS_PROACTIVITY_TASK_HANDOFF_ENABLED=false
+JARVIS_PROACTIVITY_PWA_ADAPTER_ENABLED=false
+JARVIS_PROACTIVITY_DEVICE_LEASE_SECONDS=60
 JARVIS_PROACTIVITY_RUNNER_LEASE_SECONDS=30
 JARVIS_PROACTIVITY_NOTIFICATION_TTL_SECONDS=3600
 JARVIS_PROACTIVITY_MAX_SNOOZE_SECONDS=86400
@@ -56,7 +65,60 @@ JARVIS_PROACTIVITY_MAX_CONCURRENCY=1
 `JARVIS_PROACTIVITY_ENABLED_FEATURES` is a JSON array such as
 `["task.checkin","device.health"]`. An empty list denies every feature even if the global gate is enabled.
 Cost must remain `0` and concurrency must remain `1`. Enabling policy alone does not enable ticks;
-enabling the runner does not enable task handoff.
+enabling the runner does not enable task handoff or the PWA adapter. The process adapter gate also
+does not replace persistent trusted-local enablement or exact device binding.
+
+## Scoped PWA ownership adapter
+
+Enroll only the intended browser/phone with the Phase 8C scopes plus:
+
+```powershell
+uv run jarvis remote enroll "My PWA" --type browser `
+  --scope browser.session --scope events.read --scope session.revoke `
+  --scope client.status.read --scope client.tasks.read --scope client.chat `
+  --scope client.proactivity.read --scope client.proactivity.manage --risk-ceiling 1
+```
+
+Set `JARVIS_PROACTIVITY_PWA_ADAPTER_ENABLED=true`, while keeping the global feature allowlist exact.
+Then, from the trusted local terminal, enable and bind one device/feature:
+
+```powershell
+uv run jarvis proactive adapter-enable --confirm "ENABLE PWA PROACTIVITY"
+uv run jarvis proactive device-bind <device-id> --feature task.checkin --allow-manage `
+  --minutes 1440 --confirm-device-id <device-id>
+uv run jarvis proactive ownership
+```
+
+Authenticated PWA routes expose only candidate ID, feature, dispatch/notification state, generic
+owner relation, version, and expiry:
+
+```text
+GET  /api/v1/client/proactivity
+POST /api/v1/client/proactivity/{candidate}/claim
+POST /api/v1/client/proactivity/{candidate}/renew
+POST /api/v1/client/proactivity/{candidate}/release
+POST /api/v1/client/proactivity/{candidate}/handoff
+```
+
+Every mutation supplies the current `expected_version`; handoff also supplies one exact bound
+`target_device_id`. HTTP 409 means ownership changed and the caller must refresh. The adapter does
+not expose notification text, title, prompt, task data, memory/research data, approval, destination,
+provider/tool data, credential, or effect authority. It does not implement push.
+
+Trusted-local recovery and ownership operations:
+
+```powershell
+uv run jarvis proactive owner-handoff <candidate-id> --target-device-id <device-id> `
+  --expected-version <version>
+uv run jarvis proactive owner-reclaim <candidate-id> --expected-version <version>
+uv run jarvis proactive device-unbind <device-id> --feature task.checkin `
+  --expected-version <binding-version>
+uv run jarvis proactive adapter-disable
+```
+
+Binding revocation, device revocation, and `adapter-disable` immediately reclaim matching ownership
+to the local host. Device disconnect requires no discovery or callback: its short lease expires and
+the next ownership read/mutation reclaims locally.
 
 ## Create and activate a rule
 
@@ -193,15 +255,18 @@ transactional uniqueness prevent duplicate candidates across retries and restart
 
 ## Recovery
 
-1. Set `JARVIS_PROACTIVITY_RUNNER_ENABLED=false` and
+1. Run `uv run jarvis proactive adapter-disable`; then set
+   `JARVIS_PROACTIVITY_PWA_ADAPTER_ENABLED=false`.
+2. Set `JARVIS_PROACTIVITY_RUNNER_ENABLED=false` and
    `JARVIS_PROACTIVITY_TASK_HANDOFF_ENABLED=false`; stop the invoking foreground command.
-2. Set `JARVIS_PROACTIVITY_ENABLED=false` to deny new candidate evaluation.
-3. Inspect `proactive inbox`, `runner-events`, `list`, `show`, and `events`.
-4. Disable the exact active rule with its current version; unhanded runner state becomes cancelled.
-5. Export before deletion if evidence or portability is needed.
-6. Run `uv run jarvis doctor`; it must report the runner and handoff gates disabled.
+3. Set `JARVIS_PROACTIVITY_ENABLED=false` to deny new candidate evaluation.
+4. Inspect `proactive ownership`, `inbox`, `runner-events`, `list`, `show`, and `events`.
+5. Revoke a lost device with `jarvis remote revoke`; its bindings and ownership are reclaimed.
+6. Disable the exact active rule with its current version; unhanded runner state becomes cancelled.
+7. Export before deletion if evidence or portability is needed.
+8. Run `uv run jarvis doctor`; it must report runner, handoff, and process adapter gates disabled.
 
 Database corruption fails closed. Restore the main JARVIS database only from a verified backup;
 never edit authority rows manually. Expired pre-delivery leases are reclaimed by the next explicit
-tick. Already-notified, handed-off, dismissed, cancelled, expired, or failed candidates are never
-claimed again.
+tick; expired device ownership leases are reclaimed by the next ownership operation. Already-
+notified, handed-off, dismissed, cancelled, expired, or failed candidates are never redelivered.

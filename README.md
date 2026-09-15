@@ -1,6 +1,6 @@
 # JARVIS
 
-JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–8, Phases 9A–9C, and Phases 11A–11B implement a
+JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–8, Phases 9A–9C, and Phases 11A–11C implement a
 local deterministic privacy gate, configurable NVIDIA/Groq/Gemini/Ollama roles,
 zero-cost fallback routing, durable SQLite state, audited read-only tools, CLI,
 loopback browser chat, local push-to-talk speech, opt-in controlled Windows actions, bounded cited
@@ -14,7 +14,7 @@ runtime databases, logs, generated media, and secrets do not belong in Git.
 
 ## Current verification status
 
-As of 2026-09-14, Phases 4–8, the Phase 9 repository implementation, and Phases 11A–11B are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
+As of 2026-09-14, Phases 4–8, the Phase 9 repository implementation, and Phases 11A–11C are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
 optimized local latency evidence pass; Phase 1 remains formally blocked by fixed hosted NVIDIA
 latency gates. The preserved 20/20 NVIDIA states still miss one or both targets. Fresh instrumented
 requests place the long delay before response headers, while adaptive routing protects normal
@@ -274,7 +274,7 @@ cannot authorize production, alter protected safety/permission/identity surfaces
 spend money, or contact people. See
 [Phase 10A Live Knowledge and Controlled Maintenance](docs/PHASE_10A_PRODUCT_REQUIREMENTS.md).
 
-## Implemented Phases 11A–11B
+## Implemented Phases 11A–11C
 
 Bounded proactivity adds strict user-authored once, daily, and event trigger contracts;
 IANA timezone, DST-fold, expiry, quiet-hour, clock-skew, feature, rate, attention, and duplicate
@@ -286,6 +286,12 @@ one generic local inbox item. Optional accept records an exact budget-checked Ph
 does not execute the task or bind approval. No daemon, provider/tool call, effect, external
 notification sender, cloud disclosure, or candidate-content retention exists. See
 [Bounded Foreground Proactivity](docs/PROACTIVITY.md).
+
+Phase 11C gives each ready candidate one durable local/device owner. The existing authenticated PWA
+is the sole adapter. Device claims, renewals, releases, and exact handoffs use short leases and
+optimistic versions. Access intersects process/global gates, persistent local enable, enrolled
+identity/session scope, exact audience, feature allowlist, and local device binding. Lease expiry,
+binding/device revocation, and the local kill switch reclaim ownership without executing anything.
 
 ## Model strategy
 
@@ -480,6 +486,8 @@ The main settings are:
 | `JARVIS_PROACTIVITY_ENABLED_FEATURES` | `[]` | JSON array of exact enabled features; empty denies all features |
 | `JARVIS_PROACTIVITY_RUNNER_ENABLED` | `false` | Permit only explicit foreground `proactive tick` calls; no daemon |
 | `JARVIS_PROACTIVITY_TASK_HANDOFF_ENABLED` | `false` | Permit exact task handoff recording; never execute or approve task |
+| `JARVIS_PROACTIVITY_PWA_ADAPTER_ENABLED` | `false` | Process gate for scoped Phase 8 PWA ownership API; local enable and binding remain required |
+| `JARVIS_PROACTIVITY_DEVICE_LEASE_SECONDS` | `60` | Renewable device-owner lease, constrained to 30–300 seconds |
 | `JARVIS_PROACTIVITY_RUNNER_LEASE_SECONDS` | `30` | Single-owner pre-delivery lease, constrained to 1–60 seconds |
 | `JARVIS_PROACTIVITY_NOTIFICATION_TTL_SECONDS` | `3600` | Generic local inbox lifetime, constrained to 60–86,400 seconds |
 | `JARVIS_PROACTIVITY_MAX_SNOOZE_SECONDS` | `86400` | Host snooze ceiling, constrained to 60–86,400 seconds |
@@ -554,7 +562,7 @@ always performs secret scanning.
 - [Phase 10A feasibility/access/license matrix](docs/PHASE_10A_FEASIBILITY.md)
 - [Phase 10A live-knowledge and controlled-maintenance requirements](docs/PHASE_10A_PRODUCT_REQUIREMENTS.md)
 - [Phase 10 progress evidence](docs/phase-reports/PHASE_10_PROGRESS.md)
-- [Phase 11A–11B bounded foreground proactivity guide](docs/PROACTIVITY.md)
+- [Phase 11A–11C bounded foreground proactivity guide](docs/PROACTIVITY.md)
 - [Phase 11 progress evidence](docs/phase-reports/PHASE_11_PROGRESS.md)
 - [Codex phase execution playbook](docs/CODEX_PHASE_PLAYBOOK.md)
 - [External repository comparison](docs/EXTERNAL_REPOSITORY_COMPARISON.md)

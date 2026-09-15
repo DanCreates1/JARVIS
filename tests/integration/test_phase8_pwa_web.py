@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import AsyncIterator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from cryptography.hazmat.primitives import serialization
@@ -19,6 +19,7 @@ from jarvis.core import (
     RuntimeStreamFrame,
 )
 from jarvis.memory import SQLiteConversationStore
+from jarvis.proactivity import PWAProactivityAdapter, SQLiteProactivityDeviceStore
 from jarvis.remote import (
     DeviceType,
     EnrollmentCompletion,
@@ -111,6 +112,7 @@ def _runtime_factory(
     created: dict[str, object],
     *,
     scopes: tuple[RemoteScope, ...] = ALL_SCOPES,
+    wire_proactivity: bool = False,
 ) -> object:
     async def build(_settings: Settings) -> RuntimeComponents:
         database = tmp_path / "pwa-web.db"
@@ -145,6 +147,27 @@ def _runtime_factory(
             )
         )
         created["device_id"] = device.id
+        proactivity_store = None
+        proactivity_adapter = None
+        if wire_proactivity:
+            proactivity_store = SQLiteProactivityDeviceStore(database)
+            await proactivity_store.initialize()
+            now = datetime.now(UTC)
+            await proactivity_store.set_control(host_id=HOST_ID, enabled=True, now=now)
+            await proactivity_store.bind_device(
+                host_id=HOST_ID,
+                device_id=device.id,
+                feature="task.checkin",
+                allow_manage=True,
+                expires_at=now + timedelta(days=1),
+                now=now,
+            )
+            proactivity_adapter = PWAProactivityAdapter(
+                proactivity_store,
+                configured_enabled=True,
+                policy_enabled=True,
+                enabled_features=frozenset({"task.checkin"}),
+            )
         return RuntimeComponents(
             settings=settings,
             store=store,
@@ -153,9 +176,45 @@ def _runtime_factory(
             memory_host_id=HOST_ID,
             remote_store=remote_store,
             remote_identity=remote,
+            proactivity_device_store=proactivity_store,
+            proactivity_pwa=proactivity_adapter,
         )
 
     return build
+
+
+def test_pwa_proactivity_routes_use_scoped_adapter_and_generic_errors(tmp_path: Path) -> None:
+    scopes = (
+        *ALL_SCOPES,
+        RemoteScope.CLIENT_PROACTIVITY_READ,
+        RemoteScope.CLIENT_PROACTIVITY_MANAGE,
+    )
+    settings = Settings(data_dir=tmp_path, trusted_browser_origins=(ORIGIN,), _env_file=None)
+    key = Ed25519PrivateKey.generate()
+    created: dict[str, object] = {}
+    app = create_app(
+        settings,
+        runtime_factory=_runtime_factory(
+            tmp_path,
+            settings,
+            key,
+            created,
+            scopes=scopes,
+            wire_proactivity=True,
+        ),  # type: ignore[arg-type]
+    )
+    with TestClient(app, base_url="https://testserver") as client:
+        csrf = _bootstrap(client, key, str(created["device_id"]), [scope.value for scope in scopes])
+        headers = {"Origin": ORIGIN, "X-Jarvis-CSRF": csrf}
+        response = client.get("/api/v1/client/proactivity", headers={"Origin": ORIGIN})
+        assert response.status_code == 200 and response.json() == []
+        missing = client.post(
+            "/api/v1/client/proactivity/candidate:missing/claim",
+            headers=headers,
+            json={"expected_version": 1},
+        )
+        assert missing.status_code == 404
+        assert missing.json() == {"detail": "Proactivity state unavailable"}
 
 
 def _bootstrap(client: TestClient, key: Ed25519PrivateKey, device_id: str, scopes: object) -> str:
@@ -318,6 +377,17 @@ def test_pwa_topics_and_product_routes_require_exact_scopes(tmp_path: Path) -> N
         assert denied.status_code == 403
         assert client.get("/api/v1/client/status", headers={"Origin": ORIGIN}).status_code == 403
         assert client.get("/api/v1/client/tasks", headers={"Origin": ORIGIN}).status_code == 403
+        assert (
+            client.get("/api/v1/client/proactivity", headers={"Origin": ORIGIN}).status_code == 403
+        )
+        assert (
+            client.post(
+                "/api/v1/client/proactivity/candidate:one/claim",
+                headers=headers,
+                json={"expected_version": 1},
+            ).status_code
+            == 403
+        )
         assert (
             client.post(
                 "/api/v1/client/chat",

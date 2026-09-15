@@ -621,8 +621,8 @@ uv run jarvis doctor
 
 Do not point `JARVIS_DATA_DIR` at the repository.
 
-Phases 11A–11B proactivity remains disabled by default. Inspect its fixed ceilings and confirm the
-foreground runner and task handoff are disabled:
+Phases 11A–11C proactivity remains disabled by default. Inspect fixed ceilings and confirm the
+foreground runner, task handoff, and PWA process adapter are disabled:
 
 ```powershell
 uv run jarvis proactive status
@@ -634,7 +634,11 @@ set `JARVIS_PROACTIVITY_ENABLED=true`, add the exact feature to
 `JARVIS_PROACTIVITY_ENABLED_FEATURES`, and set `JARVIS_PROACTIVITY_RUNNER_ENABLED=true`; then invoke
 one `uv run jarvis proactive tick`. Keep `JARVIS_PROACTIVITY_TASK_HANDOFF_ENABLED=false` unless an
 exact existing Phase 6 task handoff is required. Draft, trusted activation, local inbox feedback,
-disable, export, deletion, timezone/DST behavior, and recovery are documented in
+device ownership requires the additional default-off
+`JARVIS_PROACTIVITY_PWA_ADAPTER_ENABLED=true`, explicit trusted-local `adapter-enable`, exact
+enrolled-device scopes, and a time-limited device/feature binding. Disable it first with
+`uv run jarvis proactive adapter-disable`. Disable, export, deletion, timezone/DST behavior, and
+recovery are documented in
 [Bounded Foreground Proactivity](PROACTIVITY.md).
 
 ## Development checks

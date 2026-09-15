@@ -584,6 +584,16 @@ volatile buffers; the client refreshes durable conversation/task state and resub
 gap or stale cursor is explicit, never filled by guessed data. There is no offline task/action
 queue, remote approval/execution route, push service, or voice upload.
 
+Phase 11C reuses that authenticated PWA surface as the only proactivity adapter. Additive migration
+013 stores one owner row per ready candidate, expiring device/feature bindings, persistent local
+adapter control, and content-free append-only transitions. Local ownership is unleased. Device
+ownership has a 30–300 second lease and every claim, renewal, release, or exact handoff compares the
+current version inside one SQLite write transaction. Lease expiry, binding/device revocation, or
+local adapter kill returns ownership locally. Access is the intersection of global/process/local
+gates, exact feature binding, `jarvis-api` audience, enrolled identity, and browser-session scopes.
+Remote responses omit private notification/task content and another owner's device ID. This adds no
+discovery, push, execution, approval, effect, or vendor capability.
+
 Phase 8D deploys this boundary through one Tailscale Serve HTTPS gateway. Serve owns tailnet TCP
 443 and proxies only to `http://127.0.0.1:8765`; JARVIS never binds the LAN, tailnet, or public
 interface. A fail-closed planner derives the exact `.ts.net` origin from bounded live state. The
@@ -700,6 +710,8 @@ Use structured logs and OpenTelemetry-compatible concepts, but avoid an observab
 | STT failure | Ask for repeat or offer text; do not fabricate transcript |
 | TTS failure | Continue text output; reset audio state |
 | Device disconnect | Mark capability unavailable; do not crash core or redirect action silently |
+| Phase 11C device partition | Let short ownership lease expire; atomically reclaim locally; reject stale-device version |
+| Phase 11C binding/device revoke | Reclaim matching ownership locally in same durable transaction; deny later access |
 | Database failure | Roll back transaction, protect prior data, enter degraded/read-only state where safe |
 | Permission service failure | Fail closed for actions; conversation may continue |
 | Process restart | Recover persisted tasks as `needs_reconciliation`, never blindly replay side effects |
