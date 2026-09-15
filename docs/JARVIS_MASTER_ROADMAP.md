@@ -621,8 +621,8 @@ authorized adapter supplies one real wearable interaction and passes adapter-rem
 
 ### Phase 11 — Advanced JARVIS (Very Large, P2/P3)
 
-**Current status (2026-09-14)**
-Phases 11A–11C are complete. They implement user-authored once/daily/event trigger policy, deterministic
+**Current status (2026-09-15): Complete.**
+Phases 11A–11D are complete. They implement user-authored once/daily/event trigger policy, deterministic
 preview, exact trusted activation, timezone/DST/expiry/quiet-hour/rate/attention controls,
 restart-safe host-isolated deduplication, inert content-free suggestion candidates, lifecycle audit,
 export, immediate disable, and transitive deletion. Phase 11B adds a separately gated explicit
@@ -633,7 +633,10 @@ disclosure, or effect authority. Phase 11C adds one durable candidate owner, bou
 device leases, atomic versioned handoff/reclaim, immediate revoke/kill recovery, and one default-off
 Phase 8 PWA adapter under exact audience, identity/session scope, feature allowlist, and local
 binding. It adds no push sender, discovery, new device capability, or private payload exposure.
-Aggregate Phase 11 remains in progress; Phase 11D owns long-duration acceptance.
+Phase 11D passed a fixed 30-virtual-day/1,000-decision oracle, 101 recovery incidents, a
+1,800-cycle wall-clock foreground soak, sanitized provenance, exact kill/removal, zero-cost/
+zero-effect boundaries, and on-demand-core regression. No production evaluation database or
+retained evaluation content was added.
 
 **Goal**  
 Add proactive, scheduled, multi-device, and deeper multimodal help after safety and reliability are proven.
@@ -655,6 +658,9 @@ Annoyance, surveillance feel, autonomy creep, cost, accumulated memory error.
 
 **Exit criteria**  
 Proactive features meet explicit host acceptance thresholds and can be disabled without degrading core on-demand JARVIS.
+
+Exit met on 2026-09-15. See
+[Phase 11 completion evidence](phase-reports/PHASE_11_COMPLETION.md).
 
 ## 9. JARVIS MVP, V1, and long-term definition
 

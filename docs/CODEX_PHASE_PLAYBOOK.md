@@ -209,14 +209,14 @@ Audited 2026-09-08 at `96143e7` before this rewrite: Python 3.11 modular monolit
 included `uv 0.12.5`, Git 2.55.0, Gitleaks 8.30.1, and Node 24.20.0. Bare `python` resolved only to
 the disabled Windows Store alias; repository commands use `uv run`.
 
-Actual status, reconciled 2026-09-14: Phase 1 has an external hosted-latency blocker and a fresh
+Actual status, reconciled 2026-09-15: Phase 1 has an external hosted-latency blocker and a fresh
 local-cold revalidation miss; Phases 2-3 are implemented with current authorized live effects
 pending; Phases 4-8 and the Phase 9 repository implementation are complete; Phase 9 live
 deployment is blocked on an authorized server target; Phase 10A's generic contract, simulator,
 dated vendor matrix, and ADR are complete, while vendor adapter work is externally blocked on
-authenticated term review and platform authority. Phase 11A suggestion-only trigger policy is
-complete; Phase 11B foreground runner/local inbox and Phase 11C scoped PWA ownership are complete;
-aggregate Phase 11 remains in progress with Phase 11D next. No root
+authenticated term review and platform authority. Phase 11A suggestion-only trigger policy,
+Phase 11B foreground runner/local inbox, Phase 11C scoped PWA ownership, and Phase 11D
+long-duration closeout are complete; aggregate Phase 11 is complete. No root
 license exists, so copying external code is blocked on an owner licensing decision. No external
 code was copied. See
 [External Repository Comparison](EXTERNAL_REPOSITORY_COMPARISON.md).
@@ -692,7 +692,7 @@ core depend on Meta or any single vendor.
 ## 17. Phase 11 — Advanced JARVIS
 
 Recommended execution: **`gpt-6-astra`, `ultra`**
-Baseline status: **in progress; Phases 11A–11C complete, Phase 11D next**
+Baseline status: **complete; Phases 11A–11D complete**
 Prerequisites: dependable permissions, memory, research, agents, clients, and observability
 
 ### Read first
@@ -728,6 +728,14 @@ adapter-kill recovery. The existing authenticated Phase 8 PWA/API is the only ad
 exact audience, identity/session scopes, configured feature, local binding, and two default-off
 adapter gates; it exposes only generic state and adds no push, discovery, task/effect, approval, or
 private-content surface.
+
+### Phase 11D completion boundary (2026-09-15)
+
+Phase 11D freezes and passes a 30-virtual-day/1,000-decision relevance and annoyance oracle, 101
+restart/revoke/partition/kill/removal incidents, and a 1,800-cycle wall-clock foreground soak. It
+adds a local content-minimized explanation for why/data/tools/audience and retains no evaluation
+content or production evaluation schema. Cloud cost, provider/tool/task/effect/external-send counts
+remain zero; exact proactive removal leaves the on-demand core and conversation deletion intact.
 
 ### Required design
 
@@ -976,7 +984,7 @@ reasoning, and rationale. Universal requirements still apply.
   partition/heal/revoke/conflict/removal. SP: scope intersection, required audience, local kill.
   M: architecture/device/recovery/report. A/E: no split ownership/effect/leak. N: 1. R:
   `gpt-6-astra` `ultra`, system-wide coordination.
-- **11D Long-duration closeout (`not-started`)** — O/S/D: usefulness/annoyance/correctness/privacy/
+- **11D Long-duration closeout (`complete`, 2026-09-15)** — O/S/D: usefulness/annoyance/correctness/privacy/
   cost/power/recovery/removal evidence. P: 11A-C, frozen thresholds, authorized run. X: post-result
   weakening. Q: freeze -> simulation -> bounded soak -> incidents/kill/removal -> gates. T:
   aggregate phase and core regression. SP: minimal telemetry; explain why/data/tools/audience;

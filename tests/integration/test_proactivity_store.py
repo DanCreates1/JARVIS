@@ -8,6 +8,7 @@ import aiosqlite
 import pytest
 
 from jarvis.proactivity import (
+    DataClass,
     EvaluationCode,
     HostProactivityPolicy,
     ProactivityConflictError,
@@ -107,6 +108,54 @@ async def test_draft_preview_activation_restart_and_content_free_candidate(tmp_p
         )
         assert duplicate.code is EvaluationCode.DUPLICATE
         assert repeated is None
+
+
+@pytest.mark.asyncio
+async def test_candidate_explanation_is_exact_content_minimized_and_host_isolated(tmp_path) -> None:
+    database = tmp_path / "jarvis.db"
+    scoped = proposal().model_copy(
+        update={"scope": ProactivityScope(data_classes=(DataClass.TASK_STATE,))}
+    )
+    async with SQLiteProactivityStore(database) as store:
+        preview = policy().preview(scoped, now=NOW)
+        draft = await store.create_rule(host_id="host:1", preview=preview, now=NOW)
+        await store.activate(
+            activation(draft.id, draft.version, draft.proposal_sha256),
+            policy=policy(),
+            now=NOW,
+        )
+        _, candidate = await store.evaluate_and_record(
+            host_id="host:1",
+            rule_id=draft.id,
+            policy=policy(),
+            now=NOW + timedelta(minutes=1),
+        )
+        assert candidate is not None
+
+        explanation = await store.explain_candidate(host_id="host:1", candidate_id=candidate.id)
+        assert explanation.decision_reason == "inert_suggestion_only"
+        assert explanation.declared_data_classes == (DataClass.TASK_STATE,)
+        assert explanation.used_data_classes == ()
+        assert explanation.tools_used == ()
+        assert explanation.providers_used == ()
+        assert explanation.effective_audience == "local_host"
+        assert explanation.cloud_cost_usd == 0
+        assert explanation.suggestion_only is True
+        assert (
+            not {
+                "title",
+                "prompt",
+                "memory",
+                "research",
+                "task_arguments",
+                "notification_content",
+                "credentials",
+                "approval",
+            }
+            & explanation.model_dump().keys()
+        )
+        with pytest.raises(ProactivityNotFoundError):
+            await store.explain_candidate(host_id="host:2", candidate_id=candidate.id)
 
 
 @pytest.mark.asyncio

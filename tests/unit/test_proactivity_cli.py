@@ -231,6 +231,17 @@ def test_proactivity_cli_foreground_tick_and_local_inbox(
     candidate = re.search(r"suggestion:[0-9a-f-]+", rendered)
     assert candidate
 
+    output.seek(0)
+    output.truncate(0)
+    explained = runner.invoke(cli.app, ["proactive", "explain", candidate.group(0)])
+    assert explained.exit_code == 0
+    explanation = output.getvalue()
+    assert '"decision_reason": "inert_suggestion_only"' in explanation
+    assert '"effective_audience": "local_host"' in explanation
+    assert '"tools_used": []' in explanation
+    assert '"cloud_cost_usd": 0' in explanation
+    assert "Local reminder" not in explanation
+
     events = runner.invoke(cli.app, ["proactive", "runner-events", candidate.group(0)])
     assert events.exit_code == 0
     assert "notification_ready" in output.getvalue()

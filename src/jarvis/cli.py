@@ -899,6 +899,30 @@ def proactive_events(
     console.print(table)
 
 
+@proactive_app.command("explain")
+def proactive_explain(
+    candidate_id: Annotated[str, typer.Argument(help="Exact candidate ID.")],
+) -> None:
+    """Explain why, declared/used data, tools, providers, cost, and audience locally."""
+    settings = _load_settings()
+
+    async def run() -> object:
+        async with SQLiteProactivityStore(settings.database_path) as store:
+            return await store.explain_candidate(
+                host_id=local_memory_host_id(), candidate_id=candidate_id
+            )
+
+    try:
+        explanation = asyncio.run(run())
+    except ProactivityNotFoundError:
+        console.print("[bold red]Proactivity candidate not found.[/]")
+        raise typer.Exit(code=1) from None
+    from jarvis.proactivity import ProactivityExplanation
+
+    assert isinstance(explanation, ProactivityExplanation)
+    console.print(explanation.model_dump_json(indent=2))
+
+
 @proactive_app.command("export")
 def proactive_export(path: Annotated[Path, typer.Argument(help="New JSON export path.")]) -> None:
     """Export current host rules and content-free candidate/audit metadata without overwrite."""

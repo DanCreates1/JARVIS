@@ -12,6 +12,7 @@ from jarvis.proactivity import (
     LocalNotification,
     OwnershipKind,
     ProactivityBudget,
+    ProactivityExplanation,
     ProactivityPolicyError,
     ProactivityProposal,
     ProactivityProvenance,
@@ -93,6 +94,30 @@ def test_runner_contracts_reject_content_and_authority_injection() -> None:
                 "execute_task": True,
             }
         )
+
+    base_explanation = {
+        "candidate_id": "candidate:1",
+        "rule_id": "rule:1",
+        "feature": "briefing",
+        "trigger_kind": "event",
+        "scheduled_for": NOW,
+        "decision_reason": "inert_suggestion_only",
+        "proposal_source": "host",
+        "effective_audience": "local_host",
+    }
+    for injected in (
+        {"tools_used": ["computer.execute"]},
+        {"providers_used": ["cloud"]},
+        {"used_data_classes": ["memory"]},
+        {"tool_calls": 1},
+        {"task_executions": 1},
+        {"effects_executed": 1},
+        {"external_notifications_sent": 1},
+        {"cloud_cost_usd": 1},
+        {"title": "private"},
+    ):
+        with pytest.raises(ValidationError):
+            ProactivityExplanation.model_validate(base_explanation | injected)
 
 
 def test_policy_rejects_host_ceiling_expansion_and_future_timestamp() -> None:

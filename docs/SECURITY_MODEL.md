@@ -2,7 +2,7 @@
 
 Status: required controls and security architecture  
 Planning date: 2026-08-20
-Last reconciled with Phase 11B implementation: 2026-09-14
+Last reconciled with Phase 11D evaluation boundary: 2026-09-15
 
 Current implementation retains these fail-closed controls. The clean-Windows bootstrap and exact
 repository CI gate now pass independently; remaining Phase 1–3 blockers are latency/provider
@@ -550,6 +550,15 @@ append-only ownership events contain generic control metadata only; no title, pr
 memory/research, provider/tool, credential, approval, destination, notification body, or effect
 authority crosses the adapter. No push sender, broad discovery, new vendor capability, task
 execution, or permission grant is added.
+
+Phase 11D adds no authority, worker, transport, or durable evaluation schema. A strict local-only
+explanation projects existing content-minimized state into why, declared versus actually used data
+classes, tools/providers, generic audience, channel, and zero cost/task/effect/send counters. It
+rejects nonempty actual-use fields, nonzero authority/cost, and private-content additions. The fixed
+evaluation uses synthetic data in an ignored temporary directory, checks clock/relevance/noise/
+budget behavior, restart/lease/partition/revoke/kill incidents, resource bounds, transitive rule
+deletion, and on-demand core behavior after removal, then deletes temporary state. A shortened run
+cannot satisfy the enforceable completion gate.
 
 ## 16. Supply chain and model security
 

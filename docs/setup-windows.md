@@ -621,7 +621,7 @@ uv run jarvis doctor
 
 Do not point `JARVIS_DATA_DIR` at the repository.
 
-Phases 11A–11C proactivity remains disabled by default. Inspect fixed ceilings and confirm the
+Phase 11 proactivity remains disabled by default. Inspect fixed ceilings and confirm the
 foreground runner, task handoff, and PWA process adapter are disabled:
 
 ```powershell
@@ -640,6 +640,24 @@ enrolled-device scopes, and a time-limited device/feature binding. Disable it fi
 `uv run jarvis proactive adapter-disable`. Disable, export, deletion, timezone/DST behavior, and
 recovery are documented in
 [Bounded Foreground Proactivity](PROACTIVITY.md).
+
+Inspect one candidate's sanitized local provenance without exposing its title or private payload:
+
+```powershell
+uv run jarvis proactive explain <candidate-id>
+```
+
+Phase 11D closeout uses only synthetic temporary state under ignored `runtime/`. The enforced run
+lasts at least 30 minutes and refuses shortened evidence:
+
+```powershell
+uv run python scripts/phase11d-long-duration-benchmark.py --enforce `
+  --output runtime/phase11d-final/results.json
+```
+
+Stop an interrupted evaluation normally and rerun from a new output directory. The harness removes
+its temporary database; the sanitized JSON result contains aggregate test metrics only and is not a
+production restore input.
 
 ## Development checks
 

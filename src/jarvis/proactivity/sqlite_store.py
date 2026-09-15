@@ -19,6 +19,7 @@ from .models import (
     EvaluationDecision,
     ProactivityEvent,
     ProactivityEventType,
+    ProactivityExplanation,
     ProactivityExportReceipt,
     ProactivityRule,
     RuleDeletionReceipt,
@@ -593,6 +594,45 @@ class SQLiteProactivityStore:
             async with connection.execute(sql, parameters) as cursor:
                 rows = await cursor.fetchall()
         return tuple(_candidate(row) for row in rows)
+
+    async def explain_candidate(self, *, host_id: str, candidate_id: str) -> ProactivityExplanation:
+        """Return a content-minimized local explanation without granting authority."""
+        async with self._operation_lock:
+            connection = await self._get_connection()
+            async with connection.execute(
+                """
+                SELECT c.id AS candidate_id, c.rule_id, c.feature, c.scheduled_for,
+                       r.record_json,
+                       COALESCE(e.reason_code, 'inert_suggestion_only') AS decision_reason,
+                       o.owner_kind
+                FROM proactivity_candidates AS c
+                JOIN proactivity_rules AS r
+                  ON r.id = c.rule_id AND r.host_id = c.host_id
+                LEFT JOIN proactivity_events AS e
+                  ON e.candidate_id = c.id AND e.event_type = 'candidate_created'
+                LEFT JOIN proactivity_ownerships AS o ON o.candidate_id = c.id
+                WHERE c.host_id = ? AND c.id = ?
+                ORDER BY e.sequence
+                LIMIT 1
+                """,
+                (host_id, candidate_id),
+            ) as cursor:
+                row = await cursor.fetchone()
+        if row is None:
+            raise ProactivityNotFoundError("proactivity candidate not found")
+        rule = _rule(row["record_json"])
+        audience = "scoped_pwa_device" if row["owner_kind"] == "device" else "local_host"
+        return ProactivityExplanation(
+            candidate_id=row["candidate_id"],
+            rule_id=row["rule_id"],
+            feature=row["feature"],
+            trigger_kind=rule.proposal.schedule.kind,
+            scheduled_for=datetime.fromisoformat(row["scheduled_for"]),
+            decision_reason=row["decision_reason"],
+            proposal_source=rule.proposal.provenance.source_type,
+            declared_data_classes=rule.proposal.scope.data_classes,
+            effective_audience=audience,
+        )
 
     async def list_events(
         self, *, host_id: str, rule_id: str, limit: int = 500

@@ -3,7 +3,7 @@
 JARVIS processes private conversations and will eventually control local devices.
 Security therefore belongs in the runtime architecture, not only in prompts.
 
-This document describes implemented controls through Phase 11B, including local sensitivity
+This document describes implemented controls through completed Phase 11, including local sensitivity
 classification, zero-cost NVIDIA/Groq/Gemini/Ollama routing, local push-to-talk speech, and
 default-off controlled computer access, plus candidate-only host-isolated memory, provenance,
 conflict visibility, transitive deletion, and bounded cited public research. Independent
@@ -24,7 +24,7 @@ prompts, task arguments/results, provider content, tool receipts, approval grant
 data. Accept rechecks exact host/rule/candidate/task identity, version/digest, status, deadline, and
 intersected Phase 6/11 budgets. It records a handoff but cannot run a task or bind/create approval.
 No provider/tool call, effect, external notification send, cloud disclosure, or candidate-content
-retention is possible. Remote notification and multi-device ownership remain unimplemented.
+retention is possible. Phase 11C adds scoped multi-device ownership, not remote notification push.
 See `docs/PROACTIVITY.md`.
 
 Phase 6 adds host-scoped immutable task graphs. Planner output cannot define authority metadata,
@@ -275,6 +275,14 @@ default-off process gate, and persistent local control. Compare-and-swap version
 prevent split ownership. Adapter disable, binding revocation, and device revocation reclaim
 ownership locally. Responses deliberately omit another owner's device identifier and all private
 payload.
+
+Phase 11D adds one local-only explanation projection and a synthetic evaluation harness. The
+projection exposes why, declared versus actually used data classes, tools/providers, generic
+audience, and fixed zero activity/cost counters; strict schemas reject attempts to add private
+content or nonzero authority. The harness has no provider, tool, scheduler execution, OS effect,
+external sender, or production evaluation store. It confines temporary databases to ignored
+`runtime/`, verifies kill/revoke/restart/deletion behavior, proves a normal on-demand turn after
+proactive removal, and deletes temporary evaluation state.
 
 ## Wearable boundary
 

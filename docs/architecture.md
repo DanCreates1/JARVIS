@@ -2,13 +2,13 @@
 
 ## Status
 
-This document describes the implemented modular Python application through Phase 11B:
+This document describes the implemented modular Python application through completed Phase 11:
 with deterministic local privacy routing, NVIDIA/Groq/Gemini/Ollama adapters, SQLite,
 audited tools, CLI, loopback browser/API interfaces, optional local push-to-talk voice, and an
 opt-in controlled Windows action broker, plus host-isolated candidate/committed memory with FTS5
 retrieval and transitive deletion, bounded cited public research with explicit storage approval,
 durable default-off foreground task graphs with hard budgets and effect reconciliation, and a
-separate default-off suggestion-only trigger policy with no background runner or execution path.
+separate default-off suggestion-only trigger policy with no background daemon or execution path.
 Current release status and external gates are tracked in
 `docs/PHASE_OVERVIEW.md`; implementation presence alone is not a completion claim.
 
@@ -58,7 +58,17 @@ terminal feedback states, content-free checkpoints, and restart recovery.
 The runner imports the Phase 6 task store only to verify and record one exact optional handoff. It
 does not invoke the scheduler, mutate task status, bind an approval, call a provider/tool/broker, or
 send through a notification transport. Global policy, runner, feature, and task-handoff gates are
-independent and default off. Remote delivery and multi-device ownership remain Phase 11C scope.
+independent and default off. Phase 11C adds one durable owner and one scoped PWA ownership adapter,
+not remote delivery or push. Short device leases, exact scopes/audience/feature bindings, optimistic
+versions, and local revoke/kill reclaim prevent split ownership.
+
+Phase 11D adds no durable runtime authority or evaluation table. A local-only sanitized explanation
+joins existing rule/candidate/runner/ownership metadata to show why, declared versus actually used
+data classes, tools/providers, generic effective audience, and zero cost/effect counters. Its fixed
+evaluation harness uses synthetic fixtures and a temporary database for a 30-day virtual policy
+matrix, incident recovery, wall-clock foreground soak, transitive removal, and an on-demand core
+turn. Temporary evaluation state is deleted; only sanitized aggregate evidence may remain under
+ignored `runtime/`.
 
 ### Core runtime
 

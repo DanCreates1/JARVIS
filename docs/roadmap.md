@@ -107,8 +107,8 @@ Complete; revalidated on 2026-09-07:
 8. Authenticated phone/PWA access over a private network.
 9. Optional dedicated-server migration.
 10. Generic wearable clients after capability validation.
-11. Explicitly opt-in proactive and advanced multimodal assistance. Phase 11A's suggestion-only
-    trigger policy is complete; runner/notifications remain Phase 11B.
+11. Explicitly opt-in proactive and advanced multimodal assistance. Phases 11A–11D trigger policy,
+    foreground inbox runner, scoped PWA ownership, and long-duration closeout are complete.
 
 Large phases are split into resume-safe `Phase XA/B/C` sessions capped at five elapsed hours.
 `gpt-6-astra` handles architecture/security/cross-system/high-risk work; cheaper Codex models handle

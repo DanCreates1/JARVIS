@@ -1,31 +1,31 @@
-# Phase 11 Advanced JARVIS Progress Report
+# Phase 11 Advanced JARVIS Completion Report
 
-Status: `complete-through-11C`
+Status: `complete`
 Started: 2026-09-14
-Updated: 2026-09-14
-Active subphase: Phase 11C complete — Phase 11D next
+Updated: 2026-09-15
+Completed subphase: Phase 11D — long-duration closeout
 Recommended Codex model: `gpt-6-astra`
-Recommended reasoning: `ultra`
-Phase 11C session / five-hour stop: 2026-09-14T16:50:18-04:00 / 2026-09-14T21:50:18-04:00
+Recommended reasoning: `max`
+Phase 11D session / five-hour stop: 2026-09-15T09:20:46-04:00 / 2026-09-15T14:20:46-04:00
 
 ## Objective
 
-Extend completed Phases 11A–11B with durable single-owner candidate coordination and one
-default-off scoped PWA adapter. An explicitly bound enrolled device may inspect generic active
-state and claim, renew, release, or hand off ownership under exact scope, audience, feature,
-host, version, lease, revocation, and local-kill checks. No title, prompt, task data, provider/tool
-content, approval, external push, cloud disclosure, device discovery, task execution, or effect is
-added.
+Close Phase 11 with fixed long-duration evidence for usefulness, annoyance, schedule/ownership
+correctness, privacy, zero cost, bounded power/resource use, restart and incident recovery, kill
+behavior, complete evaluation-state deletion, and removal without degrading on-demand JARVIS.
+Keep all proactive capability default off, foreground only, suggestion only, and content minimized.
 
 ## Baseline
 
-- Git branch/HEAD: `main` at `c5a1138`, equal to `origin/main`.
-- Worktree state and preserved unrelated changes: clean; ignored `runtime/` evidence preserved.
+- Git branch/HEAD: `main` at `7652fca`, equal to `origin/main`.
+- Worktree state and preserved unrelated changes: clean at Phase 11D start; ignored `runtime/`
+  evidence preserved.
 - Relevant installed software/hardware/provider state: Windows 11 Home `10.0.26200`; ASUS TUF
   Gaming F15 FX506HF; 16,888,967,168 bytes RAM; Python 3.11.9; uv 0.12.5; Git 2.55.0;
   Gitleaks installed; Node 24.20.0. No Phase 11 credential or external service is required.
-- Existing tests and failures: Phase 11B closeout reported 1,038 passed, 3 skipped, 85.08%
-  coverage. Current worktree is clean; no baseline product failure is known.
+- Existing tests and failures: Phase 11C closeout reported 1,048 passed, 3 skipped, 85.03%
+  coverage. Phase 11D targeted regression passed 112 tests. The final repository suite passed
+  1,052 tests with 3 skipped and 85.02% coverage; no product failure remains.
 - Prior phase evidence: Phases 4, 5, 6, and 8 are complete. Phase 9 repository implementation is
   complete with live deployment externally blocked. Phase 10A is complete; vendor work is
   owner-deferred. Phase 6 remains foreground-only and has no scheduler daemon.
@@ -121,6 +121,31 @@ added.
   functional/security tests, and full lock/sync/Ruff/mypy/pytest/coverage/audit/Gitleaks/doctor/
   package/Git gates pass.
 
+### Phase 11D long-duration closeout
+
+- [x] A fixed deterministic evaluation covers at least 30 virtual days and 1,000 relevance,
+  schedule, quiet-hour, duplicate, stale, noisy-event, disabled, and expired decisions with 100%
+  oracle agreement, useful-suggestion precision and recall of 1.0, zero false proactivity, zero
+  quiet-hour/disabled activity, and no host rate or attention-budget breach.
+- [x] At least 100 restart, expired-lease, partition/heal, stale-owner, binding/device revoke,
+  adapter-kill, rule-disable, cancellation, and persistence-failure incidents recover or deny as
+  expected with zero duplicate ownership, notification, handoff, task execution, or effect.
+- [x] A wall-clock foreground soak runs at least 1,800 seconds and 1,800 bounded cycles. Tick p95 is
+  at most 50 ms, RSS growth at most 50 MiB, and average process CPU at most 5% of one logical core.
+- [x] Evaluation records exact sanitized provenance for why a candidate exists, declared data
+  classes, actual tools/providers used, and effective audience without title, prompt, memory,
+  research, task arguments/results, notification content, credential, approval, or private payload.
+- [x] Cloud cost remains exactly `$0`; provider requests, tool calls, task executions, OS effects,
+  external notification sends, and retained candidate content remain zero.
+- [x] Global/rule/adapter kill stops new activity and reclaims ownership. Exact rule deletion
+  removes activation, candidate, dispatch, inbox, lifecycle, ownership, and incident state; only a
+  content-free tombstone remains. Temporary evaluation state is deleted.
+- [x] After proactive removal, a normal on-demand assistant turn and conversation deletion still
+  pass against the same migrated database; default-off doctor and core regression suites pass.
+- [x] Evaluation/operator/privacy/security/architecture/setup/overview/roadmap/report documentation
+  matches evidence; full lock/sync/Ruff/mypy/pytest/coverage/audit/Gitleaks/doctor/package/Git gates
+  pass before Phase 11 completion.
+
 ## Milestones
 
 ### Phase 11A Milestone 1 — threat model, contracts, and frozen policy
@@ -208,6 +233,39 @@ added.
   p95; full release, dependency, secret, doctor, and package gates pass.
 - Remaining: none.
 
+### Phase 11D Milestone 1 — frozen evaluation contract and provenance
+
+- Status: complete
+- Changes: fixed long-duration usefulness, annoyance, correctness, privacy, cost, resource,
+  incident, kill, deletion, and on-demand-core thresholds before implementation; added a strict
+  local-only content-minimized suggestion explanation contract/store/CLI view.
+- Evidence: clean `7652fca` baseline; Phases 11A–11C report and Phase 3/4/5/6/8 prerequisite
+  evidence inspected; current security, privacy, cost, autonomy, and operator policies reconciled;
+  75-test prerequisite baseline and 20 focused explanation/benchmark/security/CLI tests pass.
+- Remaining: none.
+
+### Phase 11D Milestone 2 — simulation, incidents, soak, and removal
+
+- Status: complete
+- Changes: added fixed 30-day deterministic relevance/annoyance matrix, incident/recovery/removal
+  suite, resource-measured foreground soak, sanitized runtime evidence, and on-demand-core check.
+- Evidence: enforced run passed 1,000/1,000 oracle decisions over 30 virtual days and 101/101
+  incidents. The 1,800-cycle soak ran 1,821.9362 seconds with tick p50/p95 2.9151/3.9807 ms,
+  0.3353% average process CPU of one logical core, and 5.1992 MiB RSS growth. Zero false, quiet,
+  disabled, duplicate, cloud, tool, task, effect, external-send, cost, private-field, or retained-
+  content activity occurred. Exact rule state and temporary evaluation state were deleted; the
+  on-demand assistant turn and conversation deletion passed afterward.
+- Remaining: none.
+
+### Phase 11D Milestone 3 — aggregate regression and phase closeout
+
+- Status: complete
+- Changes: reconciled operator, architecture, security, setup, overview, roadmap, playbook, README,
+  and completion evidence; ran aggregate regression and every repository release gate.
+- Evidence: 112 targeted tests and the full 1,052-test suite pass; coverage is 85.02%; lock/sync,
+  Ruff format/check, mypy, pip-audit, Gitleaks, doctor, build, and Git whitespace gates pass.
+- Remaining: none.
+
 ## Decisions
 
 - Decision: Phase 11A produces inert suggestion candidates only.
@@ -228,6 +286,14 @@ added.
   delivery remain excluded.
 - Reversible later: a future adapter must implement the same content-free ownership boundary and
   independently pass scope, revoke, partition, removal, and no-effect gates.
+- Decision: keep Phase 11D evaluation synthetic, temporary, fixed, and outside production schema.
+- Reason: the closeout measures policy/recovery/resource boundaries without collecting human
+  behavior, private content, or granting new authority. Runtime explanation projects only existing
+  content-minimized control metadata.
+- Alternatives: retained longitudinal telemetry, hidden training collection, production evaluator,
+  and model-scored usefulness are excluded.
+- Reversible later: a separately approved human study may use a new explicit consent, retention,
+  audience, and deletion contract; it cannot weaken these fixed closeout results.
 
 ## Verification evidence
 
@@ -323,6 +389,44 @@ PASS: source distribution and wheel built
 
 rtk git diff --check
 PASS: no whitespace errors
+
+Phase 11D closeout and release gates:
+
+rtk uv run python scripts/phase11d-long-duration-benchmark.py --enforce --output runtime/phase11d-final/results.json
+PASS: 30 virtual days; 1,000/1,000 oracle decisions; 101/101 incidents; 1,800 cycles in
+1,821.9362 s; 3.9807 ms tick p95; 0.3353% average CPU of one logical core; 5.1992 MiB RSS growth;
+zero false/quiet/disabled/duplicate/provider/tool/task/effect/external-send/cost/content activity;
+exact removal, temporary-state deletion, and on-demand-core checks pass
+
+rtk uv run python -m pytest --no-cov -q <aggregate Phase 11/core targeted suites>
+PASS: 112 passed in 6.06 s
+
+rtk uv lock --check / uv sync --locked
+PASS: 119 packages resolved; 68 installed packages checked
+
+rtk uv run ruff format --check . / rtk uv run ruff check .
+PASS: 333 files already formatted; all checks passed
+
+rtk uv run python -m mypy src
+PASS: no issues in 139 source files
+
+rtk uv run python -m pytest --basetemp runtime/pytest-phase11d-full-01
+PASS: 1,052 passed, 3 skipped, 85.02% coverage in 53.21 s
+
+rtk uv run pip-audit --strict
+PASS: no known vulnerabilities
+
+rtk gitleaks detect --source . --redact --no-banner (with per-process safe.directory)
+PASS: 41 commits and 4.80 MB scanned; no leaks found
+
+rtk .venv/Scripts/python.exe -m jarvis doctor
+PASS: JARVIS ready; proactivity, runner, task handoff, PWA adapter, vision, and task execution disabled
+
+rtk uv build
+PASS: source distribution and wheel built
+
+rtk git diff --check
+PASS: no whitespace errors
 ```
 
 ## Benchmarks
@@ -359,6 +463,19 @@ Phase 11C PWA ownership benchmark:
 - Hardware/runtime: Windows laptop, Python 3.11.16, SQLite WAL, deterministic device/partition
   fixtures; no model, provider, network, push service, task execution, or real device.
 
+Phase 11D long-duration closeout:
+
+- Samples: 1,000 decisions across 30 virtual days and four IANA timezones, including DST; 101
+  recovery incidents; 1,800 wall-clock foreground cycles.
+- Correctness/usefulness: 1,000/1,000 oracle agreement, useful precision 1.0, useful recall 1.0,
+  120 true positives, zero false/quiet-hour/disabled activity, and no rate/attention breach.
+- Resource result: 1,821.9362 seconds; tick p50/p95 2.9151/3.9807 ms; 0.3353% average process CPU
+  of one logical core; 5.1992 MiB RSS growth.
+- Privacy/cost/effects: zero provider requests, tool calls, task executions, effects, external sends,
+  cloud cost, retained candidate content, duplicate notifications, or private explanation fields.
+- Recovery/removal: all incidents passed; exact transitive rule state, content-free temporary state,
+  and evaluation database were deleted; on-demand conversation and deletion passed afterward.
+
 ## Security and privacy
 
 - Threats tested: forged/model activation, budget escalation, host crossover, replay, skew, stale and
@@ -375,12 +492,15 @@ Phase 11C PWA ownership benchmark:
 
 ## Blockers
 
-- None for Phases 11A–11C local implementation.
+- None for Phase 11.
 
 ## Known limits and deferred scope
 
-- Background/service evaluation and external push remain deliberately absent. Phase 11D owns
-  long-duration usefulness, annoyance, power, privacy, kill, and removal acceptance.
+- Background/service evaluation and external push remain deliberately absent.
+- Usefulness evidence is a fixed deterministic oracle over synthetic decisions, not a retained
+  human longitudinal study. Any future study needs separate informed consent and privacy review.
+- Phase 11 provides suggestions, local inbox state, and bounded handoff recording only. It does not
+  add autonomous task execution, approvals, effects, provider calls, or external notification push.
 
 ## Recovery and rollback
 
@@ -388,12 +508,15 @@ Phase 11C PWA ownership benchmark:
   policy gates. Stop the invoking foreground process; inspect ownership/inbox/events; revoke lost
   devices or exact bindings; disable exact rules; export before deletion. Additive migrations
   011–013 must not be removed from an existing database.
+- An interrupted Phase 11D run is not evidence. Discard its ignored synthetic evaluation directory
+  and rerun the fixed command with `--enforce`; production state needs no evaluation migration.
 
 ## Final handoff
 
-- Final status: Phases 11A–11C complete; aggregate Phase 11 remains in progress.
+- Final status: Phases 11A–11D and aggregate Phase 11 complete.
 - Files changed: proactivity contracts/policy/store/migration, configuration, CLI, diagnostics,
   benchmark/tests, operator/security/architecture/setup/roadmap/playbook documentation, and report.
-- Next recommended phase: Phase 11D long-duration closeout.
-- Commit/push status: completed under standing repository authorization; exact revision is
-  repository `HEAD` and is pushed to `origin/main`.
+- Next recommended phase: none numbered. Maintain completed gates; separately authorize any
+  deferred external/live closeout or new roadmap scope.
+- Commit/push status: completed under standing repository authorization; the completion commit is
+  repository `HEAD`, pushed to `origin/main`, and verified against the remote branch ref.

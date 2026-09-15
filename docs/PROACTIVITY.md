@@ -1,7 +1,7 @@
 # Bounded foreground proactivity
 
-Status: Phases 11A–11C implemented; Phase 11D long-duration evaluation remains
-Last verified: 2026-09-14
+Status: Phase 11 complete
+Last verified: 2026-09-15
 
 Phase 11A stores and evaluates bounded trigger policy. Phase 11B adds an explicit foreground tick,
 a generic local inbox, snooze/dismiss/cancel, bounded crash recovery, and an optional exact Phase 6
@@ -220,6 +220,7 @@ Use the exact candidate ID and current dispatch version shown by `inbox`:
 
 ```powershell
 uv run jarvis proactive runner-events <candidate-id>
+uv run jarvis proactive explain <candidate-id>
 uv run jarvis proactive snooze <candidate-id> --expected-version <version> --minutes 15
 uv run jarvis proactive dismiss <candidate-id> --expected-version <version>
 uv run jarvis proactive cancel <candidate-id> --expected-version <version>
@@ -230,6 +231,13 @@ uv run jarvis proactive accept <candidate-id> --task-id <exact-task-id> `
 Snooze is bounded by the configured ceiling and notification expiry. Dismiss/cancel is terminal.
 Accept also requires `JARVIS_PROACTIVITY_TASK_HANDOFF_ENABLED=true`; it records one handoff only.
 Run or approve the task later through the existing Phase 6 trusted workflow.
+
+`proactive explain` is local-only. It reports exact rule/feature/trigger reason, scheduled time,
+proposal source class, declared versus actually used data classes, actual tools/providers, effective
+generic audience, channel, cost, and effect counters. Current foreground suggestions always report
+empty used-data/tool/provider sets and zero cost/task/effect/external-send counts. The explanation
+excludes title, prompt, memory/research content, task arguments/results, notification text,
+credentials, approvals, destinations, and device identifiers.
 
 ## Inspect, disable, export, and delete
 
@@ -270,3 +278,26 @@ Database corruption fails closed. Restore the main JARVIS database only from a v
 never edit authority rows manually. Expired pre-delivery leases are reclaimed by the next explicit
 tick; expired device ownership leases are reclaimed by the next ownership operation. Already-
 notified, handed-off, dismissed, cancelled, expired, or failed candidates are never redelivered.
+
+## Phase 11D long-duration evaluation
+
+Run only with synthetic fixtures under ignored `runtime/`; the harness creates and removes its own
+temporary SQLite state:
+
+```powershell
+uv run python scripts/phase11d-long-duration-benchmark.py --enforce `
+  --output runtime/phase11d-final/results.json
+```
+
+Frozen gate: at least 30 virtual days, 1,000 oracle decisions, 100 recovery incidents, and a
+1,800-second/1,800-cycle foreground soak. Required results: precision/recall/oracle agreement 1.0;
+zero false, quiet-hour, disabled, duplicate, cloud, tool, task, effect, external-send, cost, or
+private-content activity; tick p95 at most 50 ms; RSS growth at most 50 MiB; average process CPU at
+most 5% of one logical core; exact rule-state removal; content-free tombstone; temporary-state
+deletion; and a passing on-demand core turn after proactive removal. `--enforce` prevents a
+shortened run from being reported as phase evidence.
+
+The enforced 2026-09-15 closeout passed 1,000/1,000 decisions over 30 virtual days and 101/101
+incidents. The 1,800-cycle soak ran 1,821.9362 seconds with 3.9807 ms tick p95, 0.3353% average
+process CPU of one logical core, and 5.1992 MiB RSS growth. Every zero-activity boundary, exact
+removal, temporary-state deletion, and post-removal on-demand-core check passed.

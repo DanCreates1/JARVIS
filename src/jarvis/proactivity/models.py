@@ -328,6 +328,37 @@ class SuggestionCandidate(CoreModel):
         return self
 
 
+class ProactivityExplanation(CoreModel):
+    """Sanitized local explanation for one inert proactive suggestion."""
+
+    candidate_id: Identifier
+    rule_id: Identifier
+    feature: FeatureName
+    trigger_kind: TriggerKind
+    scheduled_for: datetime
+    decision_reason: Annotated[str, Field(min_length=1, max_length=100)]
+    proposal_source: ProposalSource
+    declared_data_classes: Annotated[tuple[DataClass, ...], Field(max_length=5)] = ()
+    used_data_classes: Annotated[tuple[DataClass, ...], Field(max_length=0)] = ()
+    tools_used: Annotated[tuple[Identifier, ...], Field(max_length=0)] = ()
+    providers_used: Annotated[tuple[Identifier, ...], Field(max_length=0)] = ()
+    effective_audience: Literal["local_host", "scoped_pwa_device"]
+    notification_channel: Literal["local_inbox"] = "local_inbox"
+    provider_requests: Literal[0] = 0
+    tool_calls: Literal[0] = 0
+    task_executions: Literal[0] = 0
+    effects_executed: Literal[0] = 0
+    external_notifications_sent: Literal[0] = 0
+    cloud_cost_usd: Literal[0] = 0
+    suggestion_only: Literal[True] = True
+    content_minimized: Literal[True] = True
+
+    @field_validator("scheduled_for")
+    @classmethod
+    def normalize_scheduled_for(cls, value: datetime) -> datetime:
+        return _aware(value)
+
+
 class ProactivityEvent(CoreModel):
     sequence: Annotated[int, Field(ge=1)]
     id: Identifier

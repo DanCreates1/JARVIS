@@ -1,6 +1,6 @@
 # JARVIS
 
-JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–8, Phases 9A–9C, and Phases 11A–11C implement a
+JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–8, Phases 9A–9C, and Phase 11 implement a
 local deterministic privacy gate, configurable NVIDIA/Groq/Gemini/Ollama roles,
 zero-cost fallback routing, durable SQLite state, audited read-only tools, CLI,
 loopback browser chat, local push-to-talk speech, opt-in controlled Windows actions, bounded cited
@@ -14,7 +14,7 @@ runtime databases, logs, generated media, and secrets do not belong in Git.
 
 ## Current verification status
 
-As of 2026-09-14, Phases 4–8, the Phase 9 repository implementation, and Phases 11A–11C are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
+As of 2026-09-15, Phases 4–8, the Phase 9 repository implementation, and Phase 11 are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
 optimized local latency evidence pass; Phase 1 remains formally blocked by fixed hosted NVIDIA
 latency gates. The preserved 20/20 NVIDIA states still miss one or both targets. Fresh instrumented
 requests place the long delay before response headers, while adaptive routing protects normal
@@ -274,7 +274,7 @@ cannot authorize production, alter protected safety/permission/identity surfaces
 spend money, or contact people. See
 [Phase 10A Live Knowledge and Controlled Maintenance](docs/PHASE_10A_PRODUCT_REQUIREMENTS.md).
 
-## Implemented Phases 11A–11C
+## Implemented Phase 11
 
 Bounded proactivity adds strict user-authored once, daily, and event trigger contracts;
 IANA timezone, DST-fold, expiry, quiet-hour, clock-skew, feature, rate, attention, and duplicate
@@ -292,6 +292,13 @@ is the sole adapter. Device claims, renewals, releases, and exact handoffs use s
 optimistic versions. Access intersects process/global gates, persistent local enable, enrolled
 identity/session scope, exact audience, feature allowlist, and local device binding. Lease expiry,
 binding/device revocation, and the local kill switch reclaim ownership without executing anything.
+
+Phase 11D closes the aggregate phase with a fixed 30-virtual-day, 1,000-decision simulation, 101
+recovery incidents, and a 1,800-cycle foreground soak. It adds a local content-minimized
+`proactive explain` view for why a candidate exists, declared versus actually used data, tools,
+providers, and effective audience. The enforced closeout produced zero false, quiet-hour, disabled,
+duplicate, cloud, tool, task, effect, external-send, cost, private-field, or retained-content
+activity. Removing all proactive state left normal on-demand conversation and deletion intact.
 
 ## Model strategy
 
@@ -562,8 +569,8 @@ always performs secret scanning.
 - [Phase 10A feasibility/access/license matrix](docs/PHASE_10A_FEASIBILITY.md)
 - [Phase 10A live-knowledge and controlled-maintenance requirements](docs/PHASE_10A_PRODUCT_REQUIREMENTS.md)
 - [Phase 10 progress evidence](docs/phase-reports/PHASE_10_PROGRESS.md)
-- [Phase 11A–11C bounded foreground proactivity guide](docs/PROACTIVITY.md)
-- [Phase 11 progress evidence](docs/phase-reports/PHASE_11_PROGRESS.md)
+- [Phase 11 bounded foreground proactivity guide](docs/PROACTIVITY.md)
+- [Phase 11 completion evidence](docs/phase-reports/PHASE_11_COMPLETION.md)
 - [Codex phase execution playbook](docs/CODEX_PHASE_PLAYBOOK.md)
 - [External repository comparison](docs/EXTERNAL_REPOSITORY_COMPARISON.md)
 - [Hands-free control plan](docs/HANDS_FREE_CONTROL.md)

@@ -1,6 +1,6 @@
 # JARVIS Phase Overview
 
-Updated: 2026-09-14
+Updated: 2026-09-15
 
 This is the concise execution view of the master roadmap. Status describes implemented code,
 not just design work. Model/reasoning values are Codex execution recommendations, not JARVIS
@@ -34,7 +34,7 @@ implementation protocol, acceptance gates, safety boundaries, and completion rep
 | 8 | Secure phone/PWA | Complete | 8A-8D complete | `gpt-6-astra` / `max` |
 | 9 | Dedicated server migration | Implementation complete; deployment blocked external | Authorized server cutover | `gpt-6-astra` / `max` |
 | 10 | Generic wearables | 10A complete; vendor integrations owner-deferred | Future-candidate backlog | `gpt-6-astra` / `xhigh` |
-| 11 | Advanced proactive/multimodal | In progress; 11A complete | 11B runner/notifications | `gpt-6-astra` / `ultra` |
+| 11 | Advanced proactive/multimodal | Complete | Maintenance only | `gpt-6-astra` / `max` |
 
 ## Phase 1 latency disposition
 
@@ -82,14 +82,15 @@ dependency is Phase 3/media privacy, but it must not be described as following a
    pass. Local-only remains default. Real server cutover is blocked on an authorized target.
 8. Keep Phase 10A's generic wearable boundary. Meta glasses, mobile bridge, vendor SDK, and live
    wearable work are owner-deferred future candidates and no longer block active roadmap work.
-9. Maintain completed Phases 11A–11C proactivity: global/per-feature/runner/handoff/PWA default-off
+9. Maintain completed Phase 11 proactivity: global/per-feature/runner/handoff/PWA default-off
    controls; exact trusted activation; timezone/DST/quiet-hour/expiry/rate/attention policy;
    restart-safe candidates and single-owner foreground leases; generic local inbox; bounded
    snooze/dismiss/cancel; exact Phase 6 handoff recording; audit/export/delete; and no daemon, task
    execution, approval binding, external push, or effect authority. Phase 11C adds one durable
    candidate owner, short device leases, optimistic handoff/reclaim, exact PWA scope/audience/
-   feature binding, immediate revoke/kill recovery, and generic visible state. Phase 11D
-   long-duration acceptance is next.
+   feature binding, immediate revoke/kill recovery, and generic visible state. Phase 11D passed its
+   fixed 30-day/1,000-decision evaluation, 101 recovery incidents, 1,800-cycle wall-clock soak,
+   sanitized provenance, exact removal, and on-demand-core regression gates.
 
 Hands-free control is a cross-phase track: Phase 2 detects claps, Phase 7 recognizes hand
 gestures, and Phase 3 alone authorizes and executes the mapped computer action. See

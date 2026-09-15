@@ -594,6 +594,14 @@ gates, exact feature binding, `jarvis-api` audience, enrolled identity, and brow
 Remote responses omit private notification/task content and another owner's device ID. This adds no
 discovery, push, execution, approval, effect, or vendor capability.
 
+Phase 11D adds a local-only `ProactivityExplanation` projection over existing durable state. It
+reports candidate/rule/feature/trigger reason, scheduled instant, source class, declared and actually
+used data classes, tools/providers, generic audience, channel, and fixed zero cost/task/effect/send
+counters. It omits proposal title and every private payload or device identifier. The phase
+evaluation harness owns no production store: it fast-forwards 30 virtual days, injects restart/
+lease/partition/revoke/kill/removal incidents, runs a 30-minute foreground soak, verifies transitive
+rule deletion and a normal core turn, then deletes its temporary database.
+
 Phase 8D deploys this boundary through one Tailscale Serve HTTPS gateway. Serve owns tailnet TCP
 443 and proxies only to `http://127.0.0.1:8765`; JARVIS never binds the LAN, tailnet, or public
 interface. A fail-closed planner derives the exact `.ts.net` origin from bounded live state. The
@@ -712,6 +720,7 @@ Use structured logs and OpenTelemetry-compatible concepts, but avoid an observab
 | Device disconnect | Mark capability unavailable; do not crash core or redirect action silently |
 | Phase 11C device partition | Let short ownership lease expire; atomically reclaim locally; reject stale-device version |
 | Phase 11C binding/device revoke | Reclaim matching ownership locally in same durable transaction; deny later access |
+| Phase 11D evaluation interruption | Discard temporary synthetic state and rerun with `--enforce`; never treat a shortened or partial soak as completion evidence |
 | Database failure | Roll back transaction, protect prior data, enter degraded/read-only state where safe |
 | Permission service failure | Fail closed for actions; conversation may continue |
 | Process restart | Recover persisted tasks as `needs_reconciliation`, never blindly replay side effects |
