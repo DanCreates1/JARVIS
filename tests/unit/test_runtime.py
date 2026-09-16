@@ -11,6 +11,7 @@ from jarvis.core import (
     ApprovalRule,
     AssistantRequest,
     AssistantService,
+    ContextProjection,
     Message,
     MessageRole,
     ModelRole,
@@ -84,6 +85,7 @@ def make_service(
     system_prompt: str = "",
     context_message_limit: int = 20,
     max_tool_iterations: int = 4,
+    current_context: object | None = None,
 ) -> tuple[
     AssistantService,
     FakeChatProvider,
@@ -103,8 +105,40 @@ def make_service(
         system_prompt=system_prompt,
         context_message_limit=context_message_limit,
         max_tool_iterations=max_tool_iterations,
+        current_context=current_context,  # type: ignore[arg-type]
     )
     return service, provider, store, tool, policy
+
+
+@pytest.mark.asyncio
+async def test_current_context_is_injected_but_never_persisted() -> None:
+    class StaticCurrentContext:
+        async def project(self, *_args: object, **_kwargs: object) -> ContextProjection:
+            return ContextProjection(
+                content="Current context:\nDate: 2026-09-15",
+                sensitivity=SensitivityClass.PUBLIC,
+                source_ids=("system-clock",),
+                source="local-current-context",
+            )
+
+    service, provider, store, _tool, _policy = make_service(
+        [ProviderResponse(content="Today is Tuesday.")],
+        current_context=StaticCurrentContext(),
+    )
+
+    result = await service.respond("What day is today?", metadata={"interface": "test"})
+
+    assert result.status is RuntimeStatus.COMPLETED
+    request_messages = provider.requests[0].messages
+    assert [message.role for message in request_messages] == [
+        MessageRole.SYSTEM,
+        MessageRole.USER,
+    ]
+    assert request_messages[0].context_source == "local-current-context"
+    assert [message.role for message in store.messages[result.conversation_id]] == [
+        MessageRole.USER,
+        MessageRole.ASSISTANT,
+    ]
 
 
 @pytest.mark.asyncio

@@ -16,6 +16,7 @@ from jarvis.core import (
     Tool,
     ToolPolicy,
 )
+from jarvis.current_context import CurrentContextService, HttpInternetProbe
 from jarvis.llm import (
     GeminiChatProvider,
     GroqChatProvider,
@@ -347,6 +348,22 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
             context_recent_message_limit=settings.context_recent_message_limit,
             context_summary_max_chars=settings.context_summary_max_chars,
             max_tool_iterations=settings.max_tool_iterations,
+            current_context=(
+                CurrentContextService(
+                    timezone=settings.current_context_timezone,
+                    home_region=settings.home_region,
+                    node_id=settings.topology_node_id,
+                    deployment_role=settings.deployment_role,
+                    inference_mode="hybrid" if settings.cloud_enabled else "local-only",
+                    internet_probe=HttpInternetProbe(
+                        str(settings.research_search_endpoint),
+                        timeout_seconds=settings.current_context_internet_timeout_seconds,
+                    ),
+                    internet_cache_seconds=settings.current_context_internet_cache_seconds,
+                )
+                if settings.current_context_enabled
+                else None
+            ),
             memory=memory if settings.memory_retrieval_enabled else None,
             sensitivity_classifier=privacy_gate,
         )

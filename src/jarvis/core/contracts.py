@@ -131,6 +131,19 @@ class MemoryContextPort(Protocol):
 
 
 @runtime_checkable
+class CurrentContextPort(Protocol):
+    async def project(
+        self,
+        query: str,
+        *,
+        metadata: Mapping[str, JsonValue],
+        requested_model_role: ModelRole | None = None,
+    ) -> ContextProjection | None:
+        """Return compact programmatic context relevant to the current request."""
+        ...
+
+
+@runtime_checkable
 class Tool(Protocol):
     @property
     def definition(self) -> ToolDefinition: ...

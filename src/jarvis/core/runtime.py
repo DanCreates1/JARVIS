@@ -13,6 +13,7 @@ from .contracts import (
     AuditStore,
     ChatProvider,
     ConversationStore,
+    CurrentContextPort,
     MemoryContextPort,
     RoutedChatProvider,
     RoutedStreamingChatProvider,
@@ -106,6 +107,7 @@ class AssistantService:
         context_recent_message_limit: int | None = None,
         context_summary_max_chars: int = 2_000,
         max_tool_iterations: int = 4,
+        current_context: CurrentContextPort | None = None,
         memory: MemoryContextPort | None = None,
         sensitivity_classifier: SensitivityClassifier | None = None,
     ) -> None:
@@ -148,6 +150,7 @@ class AssistantService:
         self.context_recent_message_limit = effective_recent_limit
         self.context_summary_max_chars = context_summary_max_chars
         self.max_tool_iterations = max_tool_iterations
+        self.current_context = current_context
         self.memory = memory
         self.sensitivity_classifier = sensitivity_classifier
 
@@ -259,7 +262,7 @@ class AssistantService:
 
         while True:
             try:
-                context = await self._context(conversation)
+                context = await self._context(conversation, request=request)
             except Exception:
                 error = RuntimeErrorDetail(
                     code=RuntimeErrorCode.STORE_ERROR,
@@ -813,7 +816,12 @@ class AssistantService:
         )
         return conversation
 
-    async def _context(self, conversation: Conversation) -> tuple[Message, ...]:
+    async def _context(
+        self,
+        conversation: Conversation,
+        *,
+        request: AssistantRequest,
+    ) -> tuple[Message, ...]:
         raw_recent = await self.store.recent_messages(
             conversation.id,
             limit=self.context_message_limit,
@@ -829,6 +837,23 @@ class AssistantService:
             summary_max_chars=self.context_summary_max_chars,
             classify=self._classify,
         )
+        current_context_message: Message | None = None
+        if self.current_context is not None:
+            projection = await self.current_context.project(
+                request.user_input,
+                metadata=request.metadata,
+                requested_model_role=request.requested_model_role,
+            )
+            if projection is not None:
+                current_context_message = Message(
+                    conversation_id=conversation.id,
+                    role=MessageRole.SYSTEM,
+                    content=projection.content,
+                    context_sensitivity=projection.sensitivity,
+                    context_source=projection.source,
+                    disclosure_sensitivity=projection.sensitivity,
+                    disclosure_source=projection.source,
+                )
         memory_message: Message | None = None
         if self.memory is not None:
             latest_user = next(
@@ -854,8 +879,11 @@ class AssistantService:
                         disclosure_sensitivity=projection.sensitivity,
                         disclosure_source=projection.source,
                     )
+        dynamic_context = tuple(
+            message for message in (current_context_message, memory_message) if message is not None
+        )
         if not self.system_prompt:
-            return ((memory_message,) if memory_message is not None else ()) + recent
+            return (*dynamic_context, *recent)
         system = Message(
             conversation_id=conversation.id,
             role=MessageRole.SYSTEM,
@@ -863,7 +891,7 @@ class AssistantService:
             disclosure_sensitivity=SensitivityClass.PUBLIC,
             disclosure_source="static-system-prompt",
         )
-        return (system, *((memory_message,) if memory_message is not None else ()), *recent)
+        return (system, *dynamic_context, *recent)
 
     async def _persist(
         self,

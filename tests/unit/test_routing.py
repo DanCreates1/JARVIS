@@ -162,6 +162,28 @@ async def test_router_direct_command_and_tool_result_do_not_call_any_model() -> 
 
 
 @pytest.mark.asyncio
+async def test_router_injects_exact_active_model_only_when_requested() -> None:
+    local = FakeModelProvider(
+        ModelRole.LOCAL,
+        cloud=False,
+        outcomes=[ProviderResponse(content="model answer"), ProviderResponse(content="plain")],
+    )
+    router = ModelRouter({ModelRole.LOCAL: local})
+
+    await router.chat(messages=[user_message("Which model is active?")], tools=[])
+    model_context = local.message_requests[0][-2]
+    assert model_context.role is MessageRole.SYSTEM
+    assert model_context.context_source == "active-model-route"
+    assert "Role: local" in model_context.content
+    assert "Provider: ollama" in model_context.content
+    assert "Model: model-local" in model_context.content
+    assert "Execution: local" in model_context.content
+
+    await router.chat(messages=[user_message("Explain photosynthesis")], tools=[])
+    assert [message.role for message in local.message_requests[1]] == [MessageRole.USER]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("legacy_role", [MessageRole.ASSISTANT, MessageRole.TOOL])
 async def test_legacy_unlabelled_non_user_history_fails_local(
     legacy_role: MessageRole,

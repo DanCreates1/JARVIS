@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import os
 import re
+import unicodedata
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import AliasChoices, AnyHttpUrl, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -79,6 +81,11 @@ class Settings(BaseSettings):
     context_message_limit: int = Field(default=40, ge=2, le=500)
     context_recent_message_limit: int = Field(default=8, ge=2, le=40)
     context_summary_max_chars: int = Field(default=2_000, ge=128, le=20_000)
+    current_context_enabled: bool = True
+    current_context_timezone: str = Field(default="local", min_length=1, max_length=100)
+    home_region: str | None = Field(default=None, min_length=1, max_length=200)
+    current_context_internet_timeout_seconds: float = Field(default=2.0, gt=0, le=10)
+    current_context_internet_cache_seconds: int = Field(default=30, ge=0, le=3_600)
     simple_local_latency_budget_ms: int = Field(default=3_000, ge=100, le=120_000)
     normal_voice_latency_budget_ms: int = Field(default=2_500, ge=100, le=120_000)
     fast_cloud_latency_budget_ms: int = Field(default=2_500, ge=100, le=120_000)
@@ -213,6 +220,32 @@ class Settings(BaseSettings):
         normalized = value.strip()
         if not normalized or len(normalized) > 200:
             raise ValueError("model ID must be non-empty and at most 200 characters")
+        return normalized
+
+    @field_validator("current_context_timezone")
+    @classmethod
+    def validate_current_context_timezone(cls, value: str) -> str:
+        normalized = value.strip()
+        if normalized.casefold() == "local":
+            return "local"
+        try:
+            ZoneInfo(normalized)
+        except (ZoneInfoNotFoundError, ValueError) as exc:
+            raise ValueError(
+                "current-context timezone must be 'local' or a valid IANA name"
+            ) from exc
+        return normalized
+
+    @field_validator("home_region")
+    @classmethod
+    def validate_home_region(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        if any(unicodedata.category(char) == "Cc" for char in value):
+            raise ValueError("home region must be nonblank text without control characters")
+        normalized = " ".join(value.split())
+        if not normalized:
+            raise ValueError("home region must be nonblank text without control characters")
         return normalized
 
     @field_validator("ollama_keep_alive")
@@ -435,6 +468,13 @@ class Settings(BaseSettings):
             "context_message_limit": self.context_message_limit,
             "context_recent_message_limit": self.context_recent_message_limit,
             "context_summary_max_chars": self.context_summary_max_chars,
+            "current_context_enabled": self.current_context_enabled,
+            "current_context_timezone": self.current_context_timezone,
+            "home_region_configured": self.home_region is not None,
+            "current_context_internet_timeout_seconds": (
+                self.current_context_internet_timeout_seconds
+            ),
+            "current_context_internet_cache_seconds": (self.current_context_internet_cache_seconds),
             "simple_local_latency_budget_ms": self.simple_local_latency_budget_ms,
             "normal_voice_latency_budget_ms": self.normal_voice_latency_budget_ms,
             "fast_cloud_latency_budget_ms": self.fast_cloud_latency_budget_ms,

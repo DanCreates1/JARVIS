@@ -29,7 +29,7 @@ Terminal CLI        Browser + local API       Voice / future vision adapters
       \                   |                          /
                  AssistantService
                         |
-       context -> local privacy gate -> ModelRouter -> tool-call loop
+       context -> current-context projection -> local privacy gate -> ModelRouter -> tool-call loop
                            |                 |              |
                 NVIDIA/Groq/Gemini/Ollama   |              |
                                   ConversationStore      ToolPolicy
@@ -45,6 +45,13 @@ Terminal CLI        Browser + local API       Voice / future vision adapters
 
 The application is composed once at its entry point. Interfaces do not construct
 their own providers or stores.
+
+`jarvis.current_context` adds only request-relevant programmatic facts. It reads the local clock,
+validated timezone and optional approximate home region, bounded runtime/session metadata, and a
+cached HTTPS reachability result. The projection is not persisted. Location and device data are
+private and therefore force local routing. Exact provider/model identity is injected inside
+`ModelRouter` after each actual route or pre-output fallback selection; it is omitted for unrelated
+queries.
 
 ### Proactivity policy boundary
 

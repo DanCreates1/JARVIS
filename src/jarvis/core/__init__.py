@@ -3,6 +3,7 @@
 from .contracts import (
     ChatProvider,
     ConversationStore,
+    CurrentContextPort,
     MemoryContextPort,
     RoutedChatProvider,
     SensitivityClassifier,
@@ -57,6 +58,7 @@ __all__ = [
     "ContextProjection",
     "Conversation",
     "ConversationStore",
+    "CurrentContextPort",
     "LatencyClass",
     "MemoryContextPort",
     "Message",

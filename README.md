@@ -42,6 +42,9 @@ The supported text vertical slice can:
   cloud work to Tier 2, and latency-tolerant difficult public reasoning to NVIDIA Tier 3;
 - reduce cloud prefill with local relevant-turn summaries, relevant approved memory, and
   query-relevant public tool schemas;
+- inject compact programmatic current context only when relevant, including local date/time/day,
+  configured approximate region, bounded internet reachability, device/session mode, and the exact
+  active provider/model selected after routing;
 - track rolling provider TTFT, completion latency, failures, `429`/`5xx`, quota, and temporary
   degradation without retaining prompt or response content;
 - keep credentials, files, memory, communications, personal data, and uncertain content local;
@@ -49,6 +52,10 @@ The supported text vertical slice can:
 - persist and explicitly delete conversations and basic memory records; and
 - expose only schema-validated, policy-approved read-only clock, system-status, and allowlisted
   text-file tools with audit records.
+
+The incremental proactive/context-aware expansion audit and A–M checklist are tracked in
+[Agentic Assistant Expansion](docs/AGENTIC_ASSISTANT_EXPANSION.md). Resume state is kept in the
+compact [JARVIS checkpoint](docs/JARVIS_CHECKPOINT.md).
 
 ## Implemented Phase 2
 

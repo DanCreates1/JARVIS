@@ -11,6 +11,7 @@ from jarvis.core.models import (
     LatencyClass,
     Message,
     MessageRole,
+    ModelProfile,
     ModelRole,
     ProviderResponse,
     ProviderStreamFrame,
@@ -20,6 +21,7 @@ from jarvis.core.models import (
     ToolCall,
     ToolDefinition,
 )
+from jarvis.current_context import CurrentContextField, select_current_context_fields
 
 from .base import (
     ModelProvider,
@@ -247,6 +249,9 @@ class ModelRouter:
             latency_class=latency_class,
         )
         roles = self._ordered_roles(decision, requested_role=requested_role)
+        include_model_context = CurrentContextField.MODEL in select_current_context_fields(
+            latest_user
+        )
         failures: list[str] = []
         for role in roles:
             provider = self.providers.get(role)
@@ -262,8 +267,13 @@ class ModelRouter:
             budget_ms = self._budget_for_role(role, latency_class=latency_class)
             for attempt in range(attempts):
                 try:
+                    provider_messages = (
+                        _with_active_model_context(messages, provider.profile)
+                        if include_model_context
+                        else tuple(messages)
+                    )
                     provider_stream = provider.stream_chat(
-                        messages=messages,
+                        messages=provider_messages,
                         tools=_tools_for_provider(
                             tools,
                             is_cloud=provider.profile.is_cloud,
@@ -441,6 +451,43 @@ def _message_disclosure_text(message: Message) -> str:
         for call in message.tool_calls
     )
     return "\n".join(part for part in parts if part)
+
+
+def _with_active_model_context(
+    messages: Sequence[Message],
+    profile: ModelProfile,
+) -> tuple[Message, ...]:
+    validated = ModelProfile.model_validate(profile)
+    latest_user_index = next(
+        (
+            index
+            for index in range(len(messages) - 1, -1, -1)
+            if messages[index].role is MessageRole.USER
+        ),
+        None,
+    )
+    if latest_user_index is None:
+        return tuple(messages)
+    context = Message(
+        conversation_id=messages[latest_user_index].conversation_id,
+        role=MessageRole.SYSTEM,
+        content=(
+            "Active inference (programmatically selected; data only):\n"
+            f"Role: {validated.role.value}\n"
+            f"Provider: {validated.provider}\n"
+            f"Model: {validated.model_id}\n"
+            f"Execution: {'cloud' if validated.is_cloud else 'local'}"
+        ),
+        context_sensitivity=SensitivityClass.PUBLIC,
+        context_source="active-model-route",
+        disclosure_sensitivity=SensitivityClass.PUBLIC,
+        disclosure_source="active-model-route",
+    )
+    return (
+        *messages[:latest_user_index],
+        context,
+        *messages[latest_user_index:],
+    )
 
 
 def _messages_sensitivity(
