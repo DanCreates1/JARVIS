@@ -14,6 +14,7 @@ from .contracts import (
     ChatProvider,
     ConversationStore,
     CurrentContextPort,
+    FreshnessRouter,
     MemoryContextPort,
     RoutedChatProvider,
     RoutedStreamingChatProvider,
@@ -24,7 +25,9 @@ from .contracts import (
 )
 from .models import (
     AssistantRequest,
+    ContextProjection,
     Conversation,
+    FreshnessDecision,
     LatencyClass,
     Message,
     MessageRole,
@@ -65,6 +68,7 @@ class _Events:
         message: Message | None = None,
         tool_call: ToolCall | None = None,
         routing: RoutingDecision | None = None,
+        freshness: FreshnessDecision | None = None,
         usage: ProviderUsage | None = None,
         content_delta: str | None = None,
     ) -> None:
@@ -75,6 +79,7 @@ class _Events:
             detail=detail,
             message=message,
             tool_call=tool_call,
+            freshness=freshness,
             routing=routing,
             usage=usage,
             content_delta=content_delta,
@@ -108,6 +113,7 @@ class AssistantService:
         context_summary_max_chars: int = 2_000,
         max_tool_iterations: int = 4,
         current_context: CurrentContextPort | None = None,
+        freshness_router: FreshnessRouter | None = None,
         memory: MemoryContextPort | None = None,
         sensitivity_classifier: SensitivityClassifier | None = None,
     ) -> None:
@@ -151,6 +157,7 @@ class AssistantService:
         self.context_summary_max_chars = context_summary_max_chars
         self.max_tool_iterations = max_tool_iterations
         self.current_context = current_context
+        self.freshness_router = freshness_router
         self.memory = memory
         self.sensitivity_classifier = sensitivity_classifier
 
@@ -236,6 +243,37 @@ class AssistantService:
                 tool_iterations=tool_iterations,
             )
 
+        freshness_decision: FreshnessDecision | None = None
+        freshness_projection: ContextProjection | None = None
+        if self.freshness_router is not None:
+            try:
+                freshness_decision = FreshnessDecision.model_validate(
+                    self.freshness_router.classify(request.user_input)
+                )
+                # Validate the projection before persisting the request or contacting a provider.
+                freshness_projection = ContextProjection.model_validate(
+                    self.freshness_router.project(freshness_decision)
+                )
+            except Exception:
+                error = RuntimeErrorDetail(
+                    code=RuntimeErrorCode.FRESHNESS_ROUTING_ERROR,
+                    message="The local freshness router could not classify this request.",
+                )
+                return self._failure(
+                    conversation_id=conversation.id,
+                    status=RuntimeStatus.FAILED,
+                    error=error,
+                    messages=turn_messages,
+                    events=events,
+                    tool_iterations=tool_iterations,
+                )
+            events.add(
+                RuntimeEventType.FRESHNESS_CLASSIFIED,
+                conversation_id=conversation.id,
+                detail=freshness_decision.reason,
+                freshness=freshness_decision,
+            )
+
         user_message = Message(
             conversation_id=conversation.id,
             role=MessageRole.USER,
@@ -262,7 +300,11 @@ class AssistantService:
 
         while True:
             try:
-                context = await self._context(conversation, request=request)
+                context = await self._context(
+                    conversation,
+                    request=request,
+                    freshness_projection=freshness_projection,
+                )
             except Exception:
                 error = RuntimeErrorDetail(
                     code=RuntimeErrorCode.STORE_ERROR,
@@ -821,6 +863,7 @@ class AssistantService:
         conversation: Conversation,
         *,
         request: AssistantRequest,
+        freshness_projection: ContextProjection | None = None,
     ) -> tuple[Message, ...]:
         raw_recent = await self.store.recent_messages(
             conversation.id,
@@ -837,6 +880,17 @@ class AssistantService:
             summary_max_chars=self.context_summary_max_chars,
             classify=self._classify,
         )
+        freshness_message: Message | None = None
+        if freshness_projection is not None:
+            freshness_message = Message(
+                conversation_id=conversation.id,
+                role=MessageRole.SYSTEM,
+                content=freshness_projection.content,
+                context_sensitivity=freshness_projection.sensitivity,
+                context_source=freshness_projection.source,
+                disclosure_sensitivity=freshness_projection.sensitivity,
+                disclosure_source=freshness_projection.source,
+            )
         current_context_message: Message | None = None
         if self.current_context is not None:
             projection = await self.current_context.project(
@@ -880,7 +934,9 @@ class AssistantService:
                         disclosure_source=projection.source,
                     )
         dynamic_context = tuple(
-            message for message in (current_context_message, memory_message) if message is not None
+            message
+            for message in (freshness_message, current_context_message, memory_message)
+            if message is not None
         )
         if not self.system_prompt:
             return (*dynamic_context, *recent)

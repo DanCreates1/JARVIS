@@ -14,7 +14,7 @@ runtime databases, logs, generated media, and secrets do not belong in Git.
 
 ## Current verification status
 
-As of 2026-09-15, Phases 4–8, the Phase 9 repository implementation, and Phase 11 are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
+As of 2026-09-16, Phases 4–8, the Phase 9 repository implementation, and Phase 11 are complete. Phase 1 genuine Ollama/NVIDIA token streaming and prior
 optimized local latency evidence pass; Phase 1 remains formally blocked by fixed hosted NVIDIA
 latency gates. The preserved 20/20 NVIDIA states still miss one or both targets. Fresh instrumented
 requests place the long delay before response headers, while adaptive routing protects normal
@@ -45,6 +45,9 @@ The supported text vertical slice can:
 - inject compact programmatic current context only when relevant, including local date/time/day,
   configured approximate region, bounded internet reachability, device/session mode, and the exact
   active provider/model selected after routing;
+- classify every production request before generation as `STATIC`, `LOCAL_CONTEXT`,
+  `WEB_REQUIRED`, `PERSONAL_DATA_REQUIRED`, or `MULTI_SOURCE`; emit the content-free decision and
+  inject bounded non-persistent guidance, with personal-data routes forced local;
 - track rolling provider TTFT, completion latency, failures, `429`/`5xx`, quota, and temporary
   degradation without retaining prompt or response content;
 - keep credentials, files, memory, communications, personal data, and uncertain content local;
@@ -56,6 +59,14 @@ The supported text vertical slice can:
 The incremental proactive/context-aware expansion audit and A–M checklist are tracked in
 [Agentic Assistant Expansion](docs/AGENTIC_ASSISTANT_EXPANSION.md). Resume state is kept in the
 compact [JARVIS checkpoint](docs/JARVIS_CHECKPOINT.md).
+
+Phase B classification does not search, fetch, authorize personal-data access, or claim that
+evidence exists. `WEB_REQUIRED` and `MULTI_SOURCE` requests receive an explicit missing-evidence
+constraint until Phase C connects them to volatile Phase 5 research. Run the fixed local gate with:
+
+```powershell
+uv run python scripts/phase-b-freshness-benchmark.py
+```
 
 ## Implemented Phase 2
 

@@ -123,6 +123,16 @@ class SensitivityClass(StrEnum):
     UNKNOWN = "unknown"
 
 
+class FreshnessRoute(StrEnum):
+    """Deterministic evidence route selected before answer generation."""
+
+    STATIC = "static"
+    LOCAL_CONTEXT = "local_context"
+    WEB_REQUIRED = "web_required"
+    PERSONAL_DATA_REQUIRED = "personal_data_required"
+    MULTI_SOURCE = "multi_source"
+
+
 class ReasoningLevel(StrEnum):
     NONE = "none"
     MODERATE = "moderate"
@@ -304,6 +314,27 @@ class ContextProjection(CoreModel):
     sensitivity: SensitivityClass
     source_ids: Annotated[tuple[Identifier, ...], Field(min_length=1, max_length=20)]
     source: Annotated[str, Field(min_length=1, max_length=100)]
+
+
+class FreshnessDecision(CoreModel):
+    """Content-free host decision describing evidence needed for one request."""
+
+    route: FreshnessRoute
+    reason: Annotated[str, Field(min_length=1, max_length=500)]
+
+    @property
+    def requires_live_evidence(self) -> bool:
+        return self.route in {FreshnessRoute.WEB_REQUIRED, FreshnessRoute.MULTI_SOURCE}
+
+    @property
+    def requires_personal_data(self) -> bool:
+        return self.route is FreshnessRoute.PERSONAL_DATA_REQUIRED
+
+    @property
+    def minimum_source_count(self) -> int:
+        if self.route is FreshnessRoute.MULTI_SOURCE:
+            return 2
+        return 1 if self.route is FreshnessRoute.WEB_REQUIRED else 0
 
 
 class ToolDefinition(CoreModel):
@@ -518,6 +549,7 @@ class RuntimeStatus(StrEnum):
 class RuntimeErrorCode(StrEnum):
     CONVERSATION_NOT_FOUND = "conversation_not_found"
     STORE_ERROR = "store_error"
+    FRESHNESS_ROUTING_ERROR = "freshness_routing_error"
     PROVIDER_ERROR = "provider_error"
     INVALID_PROVIDER_RESPONSE = "invalid_provider_response"
     UNKNOWN_TOOL = "unknown_tool"
@@ -544,6 +576,7 @@ class RuntimeEventType(StrEnum):
     CONVERSATION_CREATED = "conversation_created"
     CONVERSATION_RESUMED = "conversation_resumed"
     MESSAGE_PERSISTED = "message_persisted"
+    FRESHNESS_CLASSIFIED = "freshness_classified"
     PROVIDER_REQUESTED = "provider_requested"
     PROVIDER_RESPONDED = "provider_responded"
     ROUTING_DECIDED = "routing_decided"
@@ -567,6 +600,7 @@ class RuntimeEvent(CoreModel):
     detail: str | None = None
     message: Message | None = None
     tool_call: ToolCall | None = None
+    freshness: FreshnessDecision | None = None
     routing: RoutingDecision | None = None
     usage: ProviderUsage | None = None
     content_delta: Annotated[str, Field(min_length=1, max_length=100_000)] | None = None

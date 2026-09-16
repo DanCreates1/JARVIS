@@ -10,6 +10,7 @@ from pydantic import BaseModel, JsonValue
 from .models import (
     ContextProjection,
     Conversation,
+    FreshnessDecision,
     LatencyClass,
     Message,
     ModelRole,
@@ -140,6 +141,17 @@ class CurrentContextPort(Protocol):
         requested_model_role: ModelRole | None = None,
     ) -> ContextProjection | None:
         """Return compact programmatic context relevant to the current request."""
+        ...
+
+
+@runtime_checkable
+class FreshnessRouter(Protocol):
+    def classify(self, query: str) -> FreshnessDecision:
+        """Select the request's evidence route without calling a model or network."""
+        ...
+
+    def project(self, decision: FreshnessDecision) -> ContextProjection:
+        """Return bounded host guidance for the selected evidence route."""
         ...
 
 

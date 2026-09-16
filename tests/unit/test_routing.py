@@ -23,6 +23,7 @@ from jarvis.core import (
     ToolCall,
     ToolDefinition,
 )
+from jarvis.freshness_router import DeterministicFreshnessRouter
 from jarvis.llm import (
     LatencyBudgets,
     ModelRouter,
@@ -181,6 +182,42 @@ async def test_router_injects_exact_active_model_only_when_requested() -> None:
 
     await router.chat(messages=[user_message("Explain photosynthesis")], tools=[])
     assert [message.role for message in local.message_requests[1]] == [MessageRole.USER]
+
+
+@pytest.mark.asyncio
+async def test_personal_freshness_context_prevents_cloud_override() -> None:
+    cloud = FakeModelProvider(
+        ModelRole.FAST,
+        cloud=True,
+        outcomes=[ProviderResponse(content="must not run")],
+    )
+    local = FakeModelProvider(
+        ModelRole.LOCAL,
+        cloud=False,
+        outcomes=[ProviderResponse(content="local answer")],
+    )
+    freshness = DeterministicFreshnessRouter()
+    projection = freshness.project(freshness.classify("Read my unread email."))
+    context = Message(
+        conversation_id="conversation",
+        role=MessageRole.SYSTEM,
+        content=projection.content,
+        context_sensitivity=projection.sensitivity,
+        context_source=projection.source,
+        disclosure_sensitivity=projection.sensitivity,
+        disclosure_source=projection.source,
+    )
+    router = ModelRouter({ModelRole.FAST: cloud, ModelRole.LOCAL: local})
+
+    response = await router.chat_routed(
+        messages=[context, user_message("Read my unread email.")],
+        tools=[],
+        requested_role=ModelRole.FAST,
+    )
+
+    assert response.content == "local answer"
+    assert not cloud.requests
+    assert len(local.requests) == 1
 
 
 @pytest.mark.asyncio

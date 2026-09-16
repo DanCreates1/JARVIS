@@ -17,6 +17,7 @@ from jarvis.core import (
     ToolPolicy,
 )
 from jarvis.current_context import CurrentContextService, HttpInternetProbe
+from jarvis.freshness_router import DeterministicFreshnessRouter
 from jarvis.llm import (
     GeminiChatProvider,
     GroqChatProvider,
@@ -364,6 +365,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
                 if settings.current_context_enabled
                 else None
             ),
+            freshness_router=DeterministicFreshnessRouter(),
             memory=memory if settings.memory_retrieval_enabled else None,
             sensitivity_classifier=privacy_gate,
         )

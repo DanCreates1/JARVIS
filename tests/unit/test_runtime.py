@@ -12,6 +12,8 @@ from jarvis.core import (
     AssistantRequest,
     AssistantService,
     ContextProjection,
+    FreshnessDecision,
+    FreshnessRoute,
     Message,
     MessageRole,
     ModelRole,
@@ -31,6 +33,7 @@ from jarvis.core import (
     ToolRisk,
     ToolSideEffect,
 )
+from jarvis.freshness_router import DeterministicFreshnessRouter
 from jarvis.llm import PrivacyGate
 from tests.fakes import (
     FakeChatProvider,
@@ -86,6 +89,7 @@ def make_service(
     context_message_limit: int = 20,
     max_tool_iterations: int = 4,
     current_context: object | None = None,
+    freshness_router: object | None = None,
 ) -> tuple[
     AssistantService,
     FakeChatProvider,
@@ -106,6 +110,7 @@ def make_service(
         context_message_limit=context_message_limit,
         max_tool_iterations=max_tool_iterations,
         current_context=current_context,  # type: ignore[arg-type]
+        freshness_router=freshness_router,  # type: ignore[arg-type]
     )
     return service, provider, store, tool, policy
 
@@ -139,6 +144,80 @@ async def test_current_context_is_injected_but_never_persisted() -> None:
         MessageRole.USER,
         MessageRole.ASSISTANT,
     ]
+
+
+@pytest.mark.asyncio
+async def test_freshness_route_is_emitted_and_injected_before_provider_generation() -> None:
+    router = DeterministicFreshnessRouter()
+    service, provider, store, _tool, _policy = make_service(
+        [ProviderResponse(content="I need current cited evidence to answer that.")],
+        freshness_router=router,
+    )
+
+    result = await service.respond("What is the latest Python version?")
+
+    assert result.status is RuntimeStatus.COMPLETED
+    freshness_event = next(
+        event for event in result.events if event.type is RuntimeEventType.FRESHNESS_CLASSIFIED
+    )
+    assert freshness_event.freshness == FreshnessDecision(
+        route=FreshnessRoute.WEB_REQUIRED,
+        reason="The answer depends on volatile external information.",
+    )
+    assert [event.type for event in result.events].index(RuntimeEventType.FRESHNESS_CLASSIFIED) < [
+        event.type for event in result.events
+    ].index(RuntimeEventType.PROVIDER_REQUESTED)
+    request_messages = provider.requests[0].messages
+    assert [message.role for message in request_messages] == [
+        MessageRole.SYSTEM,
+        MessageRole.USER,
+    ]
+    assert request_messages[0].context_source == "local-freshness-router"
+    assert "Route: web_required" in request_messages[0].content
+    assert [message.role for message in store.messages[result.conversation_id]] == [
+        MessageRole.USER,
+        MessageRole.ASSISTANT,
+    ]
+
+
+@pytest.mark.asyncio
+async def test_personal_freshness_projection_forces_private_context() -> None:
+    service, provider, _store, _tool, _policy = make_service(
+        [ProviderResponse(content="Private data is not available.")],
+        freshness_router=DeterministicFreshnessRouter(),
+    )
+
+    result = await service.respond("Read my unread email.")
+
+    assert result.status is RuntimeStatus.COMPLETED
+    freshness_message = provider.requests[0].messages[0]
+    assert freshness_message.context_sensitivity is SensitivityClass.PRIVATE
+    assert freshness_message.disclosure_sensitivity is SensitivityClass.PRIVATE
+    assert "data-access authorization" in freshness_message.content
+
+
+@pytest.mark.asyncio
+async def test_freshness_router_failure_stops_before_persistence_and_provider() -> None:
+    class BrokenFreshnessRouter:
+        def classify(self, _query: str) -> FreshnessDecision:
+            raise RuntimeError("classifier unavailable")
+
+        def project(self, decision: FreshnessDecision) -> ContextProjection:
+            raise AssertionError(decision)
+
+    service, provider, store, _tool, _policy = make_service(
+        [ProviderResponse(content="must not run")],
+        freshness_router=BrokenFreshnessRouter(),
+    )
+
+    result = await service.respond("What is the latest news?")
+
+    assert result.status is RuntimeStatus.FAILED
+    assert result.error is not None
+    assert result.error.code is RuntimeErrorCode.FRESHNESS_ROUTING_ERROR
+    assert provider.requests == []
+    assert store.messages[result.conversation_id] == []
+    assert RuntimeEventType.PROVIDER_REQUESTED not in {event.type for event in result.events}
 
 
 @pytest.mark.asyncio

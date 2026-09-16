@@ -86,16 +86,19 @@ terminal, audio, or HTTP details.
 A turn follows this bounded flow:
 
 1. Accept a validated user message and conversation identifier.
-2. Persist the user message.
-3. Load a bounded context window, retain its recent tail, and locally extract only older turns
+2. Classify its evidence need locally as `STATIC`, `LOCAL_CONTEXT`, `WEB_REQUIRED`,
+   `PERSONAL_DATA_REQUIRED`, or `MULTI_SOURCE`; emit one typed decision event before generation.
+3. Persist the user message.
+4. Load a bounded context window, retain its recent tail, and locally extract only older turns
    relevant to the latest request.
-4. Add only relevant approved memory, scan the full candidate disclosure locally, select a tier,
+5. Add the non-persistent freshness projection, only relevant approved current context and memory,
+   scan the full candidate disclosure locally, select a tier,
    and ask a configured provider with only query-relevant public tool schemas on cloud routes.
-5. Forward visible token deltas as typed events; hidden reasoning is never forwarded or stored.
-6. If the response requests a tool, validate its name and arguments, apply the
+6. Forward visible token deltas as typed events; hidden reasoning is never forwarded or stored.
+7. If the response requests a tool, validate its name and arguments, apply the
    tool policy, execute it, and record an audit result.
-7. Return the tool result to the provider when another model pass is needed.
-8. Persist and return only the validated final assistant response.
+8. Return the tool result to the provider when another model pass is needed.
+9. Persist and return only the validated final assistant response.
 
 The number of tool rounds, model duration, result size, and message size must be
 bounded. A provider failure must not corrupt a conversation.
@@ -116,6 +119,14 @@ recent `429`/`5xx`, quota state, and temporary degradation. Automatic deep work 
 severely degraded NVIDIA, but explicit NVIDIA requests remain available and never count as a
 provider-specific pass unless NVIDIA itself meets the fixed benchmark. Profiles expose lifecycle,
 context, and verified capabilities.
+
+`DeterministicFreshnessRouter` runs before this provider boundary. Fixed local rules use
+security-first precedence: personal-data need, multi-source corroboration, volatile web evidence,
+local runtime context, then static knowledge. Decisions contain no query text and grant no tool,
+data, storage, or effect authority. A personal-data projection is private and therefore forces the
+existing model router local even when a caller requests a cloud role. `WEB_REQUIRED` and
+`MULTI_SOURCE` only state evidence requirements in Phase B; automatic search/fetch is Phase C.
+Classification or projection failure stops before user-message persistence and provider access.
 
 NVIDIA owns one process-lifetime pooled `httpx.AsyncClient` with explicit connection and keep-alive
 limits. Per-request milestones cover DNS probe, TCP connect, TLS, upload, headers, first SSE frame,
