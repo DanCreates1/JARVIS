@@ -102,6 +102,24 @@ Clients must sign the exact bytes sent. Path and query are not normalized; JSON 
 the body digest. The maximum authenticated body is 1 MiB. Authentication errors are deliberately
 generic over HTTP to avoid identity and token oracles.
 
+## Native mobile pairing boundary
+
+The Expo client accepts only enrollment v2 phone tickets. The pairing screen scans QR content or
+accepts pasted JSON; tickets are never accepted from a deep-link parameter. Camera permission is
+requested only when **Scan QR** is selected. Production accepts HTTPS origins only. A debug build
+may accept explicit HTTP loopback, but those credentials cannot bind a production host.
+
+The phone generates its Ed25519 seed through Expo Crypto and stores the validated identity record
+with `WHEN_UNLOCKED_THIS_DEVICE_ONLY` SecureStore accessibility. It persists server origin, device
+ID, key version, public key, and enrollment metadata with that seed. It never stores a bearer
+session token. Launch or token expiry creates a new scoped session by signing `POST /api/v1/sessions`.
+A bounded one-time retry can use the server's HTTPS `Date` header to correct device clock skew.
+
+Logout revokes only the current in-memory session and retains device enrollment. **Erase local
+credentials** attempts revocation and then deletes the SecureStore identity even if Core is
+unreachable. Changing the ticket's server origin first erases the prior local identity and requires
+fresh enrollment. Live iPhone/Tailscale validation is M2C and is not claimed by laptop tests.
+
 ## Phase 8B browser boundary
 
 Browser bootstrap is disabled by default because `JARVIS_TRUSTED_BROWSER_ORIGINS` defaults to an

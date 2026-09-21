@@ -697,8 +697,9 @@ isolated Expo/React Native shell and independent CI gate. M2A adds backward-comp
 authority-bound enrollment v2, capability negotiation metadata, migration 014, and cross-language
 signing vectors. JARVIS Core remains the canonical brain, authority, memory, model-routing, audit,
 and future health boundary. The PWA stays supported as fallback, admin/compatibility surface, and
-API-behavior reference. Pairing/key storage and live iPhone acceptance remain M2B/M2C work; no
-mobile phase broadens Core authority.
+API-behavior reference. M2B now provides QR/manual pairing, device-only SecureStore key storage,
+signed memory-only sessions, clock-skew recovery, logout, and local credential erase. Live iPhone
+and Tailscale acceptance remain M2C work; no mobile phase broadens Core authority.
 
 ## 10. What not to overengineer in V1
 

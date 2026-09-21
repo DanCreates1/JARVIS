@@ -8,13 +8,14 @@ describe("M1A native foundation", () => {
     const screen = renderApp(<IndexScreen />);
 
     expect(screen.getByText("JARVIS")).toBeOnTheScreen();
-    expect(screen.getByText("Foundation ready")).toBeOnTheScreen();
+    expect(screen.getByText("Pairing ready")).toBeOnTheScreen();
     expect(
-      screen.getByText("Offline-safe shell. No Core connection configured."),
+      screen.getByText("Offline-safe until you enroll this device with JARVIS Core."),
     ).toBeOnTheScreen();
+    expect(screen.getByText("Pair this device")).toBeOnTheScreen();
     expect(
       screen.getByText(
-        "Authentication, remote APIs, telemetry, and device permissions are not active.",
+        "Secure pairing and authenticated status are available. No telemetry or background permissions are active.",
       ),
     ).toBeOnTheScreen();
   });

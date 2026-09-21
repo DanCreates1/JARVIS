@@ -21,7 +21,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   version: "0.1.0",
   orientation: "portrait",
   userInterfaceStyle: "automatic",
-  plugins: ["expo-router"],
+  plugins: [
+    "expo-router",
+    "expo-secure-store",
+    [
+      "expo-camera",
+      {
+        cameraPermission: "Allow JARVIS to scan a one-time Core enrollment QR code.",
+        barcodeScannerEnabled: true,
+        recordAudioAndroid: false,
+      },
+    ],
+  ],
   experiments: {
     typedRoutes: true,
   },

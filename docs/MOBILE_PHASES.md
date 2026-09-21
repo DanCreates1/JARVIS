@@ -22,9 +22,11 @@ applications require fresh authority.
 9. H1A-H8C: provider-neutral health ingestion, deterministic analytics, local-private reasoning,
    mobile health UI, reports, and bounded proactivity.
 
-M1B is complete. M2A is implemented locally with authority-bound enrollment v2, additive status
-capability metadata, migration 014, and shared Python/TypeScript signing vectors. M1A physical Expo
-Go acceptance and M2B/M2C live-device work remain deferred until owner login/presence is available.
+M1B is complete. M2A and laptop-testable M2B are implemented: authority-bound enrollment v2,
+capability metadata, migration 014, shared signing vectors, SecureStore identity, Expo Crypto key
+generation, QR/manual ticket intake, signed session creation/refresh, clock-skew recovery, logout,
+and credential erase. M1A physical Expo Go smoke and M2C live-device/Tailscale acceptance remain
+deferred until owner login and physical-device presence are available. M3 cannot begin before M2C.
 
 The decision-complete scope, gates, exclusions, and acceptance criteria remain defined by the
 approved JARVIS Native Mobile Architecture and Execution Plan.

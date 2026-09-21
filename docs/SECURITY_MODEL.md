@@ -112,6 +112,12 @@ Requirements:
 - a device cannot self-add capabilities after enrollment;
 - native enrollment v2 binds one exact normalized HTTPS server origin; all later signed requests
   must match its authority, while legacy PWA enrollment v1 remains supported;
+- native Ed25519 seeds are generated with the operating-system cryptographic random source and
+  retained in device-only SecureStore while unlocked; bearer sessions remain memory-only;
+- enrollment material never enters deep links, logs, telemetry, model context, or persistent UI
+  state; camera access is requested only after the user opens the QR scanner;
+- native credential erase attempts current-session revocation and always deletes local identity,
+  including when Core is offline;
 - lost-phone flow revokes device and sessions, then confirms audit history;
 - disconnected devices are marked unavailable; actions are not silently rerouted.
 

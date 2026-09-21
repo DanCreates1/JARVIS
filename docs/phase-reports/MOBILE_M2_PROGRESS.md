@@ -1,9 +1,9 @@
 # Mobile M2 Progress Report
 
-Status: `M2A-local-complete-remote-ci-pending`  
+Status: `M2B-laptop-complete-live-acceptance-deferred`
 Started: 2026-09-21  
 Updated: 2026-09-21  
-Active subphase: M2A — Native authentication contract and enrollment v2
+Active subphase: M2B — Mobile key, session, and pairing client
 
 ## Objective
 
@@ -71,8 +71,64 @@ results must continue to classify their known unrelated failures separately.
   only the pre-existing Phase C assignment error at `src/jarvis/bootstrap.py:307`; bootstrap
   pip-audit passes.
 
-## Remaining M2A closeout
+## M2A closeout
 
-- Commit/push the isolated M2A diff and confirm GitHub Actions.
-- M2B follows after M2A closeout. M1A physical-device and M2C live acceptance remain deferred until
-  the owner can sign into Expo on the laptop and phone.
+- Isolated M2A commit `676fd08` pushed. [Mobile CI](https://github.com/DanCreates1/JARVIS/actions/runs/35636138106)
+  and [Python CI](https://github.com/DanCreates1/JARVIS/actions/runs/35636138069) both succeeded.
+
+## M2B objective and implementation
+
+Generate and retain one Ed25519 identity bound to the enrolled Core origin. Pair with a v2 ticket,
+create scoped signed API sessions, refresh them in memory, and support logout and local credential
+erase. No live account, EAS project, or physical-device proof is claimed.
+
+- Expo Crypto generates the Ed25519 seed and fresh request nonces. Expo SecureStore uses
+  `WHEN_UNLOCKED_THIS_DEVICE_ONLY` for the identity record.
+- QR scanning is foreground-only; camera permission is requested only after selecting **Scan QR**.
+  Manual JSON paste remains available. Neither ticket nor credential enters a deep link.
+- Production origins require HTTPS. Explicit debug-only loopback is separate. V2 ticket parsing
+  checks device type, required `client.status.read` scope, expiration, and bound origin.
+- Enrollment proof and every session/API request use the shared canonical Ed25519 contract.
+  Enrollment response must match the exact bound origin. Requests use fresh nonces and bind the
+  bearer-token digest; a one-time bounded clock-skew retry uses the server `Date` response.
+- Session token is process-memory-only. Restart and near-expiry recreate a scoped session. Pairing
+  requests only `client.status.read`, not every enrolled scope. Re-enrollment to the same Core is
+  rejected until local identity is explicitly erased; a changed origin erases old local identity.
+- Logout revokes the current session. Credential erase attempts revocation and always removes the
+  local identity even if remote revocation fails. UI instructs Core-side revocation on failure.
+- No provider credentials, model secrets, telemetry, background permissions, native directories,
+  EAS account identifiers, or server authority changes were added.
+
+## M2B verification evidence
+
+```text
+mobile npm run verify
+PASS: Prettier, ESLint, TypeScript, 26 Jest tests, 93.22% statements,
+87.94% branches, 94.20% functions, 95.15% lines, Expo Doctor 21/21,
+1,108 dependency license records, 0 high/critical production advisories,
+deterministic Android export (2.9 MB), deterministic iOS export (2.6 MB)
+
+uv lock --check / uv sync --locked / uv run ruff check .
+PASS
+
+bootstrap Python complete repository suite
+PASS: 1,129 passed, 3 skipped, 85.09% coverage
+
+bootstrap pip-audit / Gitleaks
+PASS: no known Python vulnerabilities; 49 commits/5.69 MB scanned; no leaks
+```
+
+Production npm audit reports 13 moderate transitive advisories; current gate rejects high/critical.
+`npm audit fix --force` would change the Expo SDK/Router compatibility line and was not applied.
+
+## M2B gate classification and owner handoff
+
+- Repository-wide Ruff format reports only two pre-existing Phase C files; M2B changed no Python
+  file. Bootstrap mypy reports only the pre-existing Phase C assignment at
+  `src/jarvis/bootstrap.py:307`.
+- Standard `uv run mypy src` and `uv run pip-audit` fail due generated mypyc import errors in the
+  local `.venv`. Standard `uv run pytest` cannot import `cryptography.exceptions` from that same
+  environment. Bootstrap Python provided equivalent full-suite, mypy, and audit evidence.
+- Phase C research changes remain unstaged and untouched. M2B files/docs alone form the commit.
+- Owner-present M1A Expo Go smoke, M2C physical iPhone/Tailscale pairing, Wi-Fi/cellular transitions,
+  server restart, revoke/rotation, and lost-phone drill remain pending. No M3 work starts before M2C.

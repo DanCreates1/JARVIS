@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Link, type Href } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { readAppConfig } from "@/config/appConfig";
 import { Screen } from "@/ui/Screen";
@@ -20,16 +21,23 @@ export default function IndexScreen() {
       </View>
 
       <StatusBanner
-        label="Foundation ready"
-        detail="Offline-safe shell. No Core connection configured."
+        label="Pairing ready"
+        detail="Offline-safe until you enroll this device with JARVIS Core."
         tone="ready"
       />
+
+      <Link href={"/pair" as Href} asChild>
+        <Pressable accessibilityRole="button" style={styles.pairButton}>
+          <Text style={styles.pairButtonText}>Pair this device</Text>
+        </Pressable>
+      </Link>
 
       <View style={styles.details}>
         <Text style={styles.detailLabel}>Environment</Text>
         <Text style={styles.detailValue}>{config.environment}</Text>
         <Text style={styles.note}>
-          Authentication, remote APIs, telemetry, and device permissions are not active.
+          Secure pairing and authenticated status are available. No telemetry or background
+          permissions are active.
         </Text>
       </View>
     </Screen>
@@ -78,6 +86,18 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 18,
     padding: 18,
+  },
+  pairButton: {
+    alignItems: "center",
+    backgroundColor: "#66e3ff",
+    borderRadius: 14,
+    marginTop: 18,
+    padding: 15,
+  },
+  pairButtonText: {
+    color: "#05131a",
+    fontSize: 16,
+    fontWeight: "800",
   },
   detailLabel: {
     color: "#8ca4b2",

@@ -229,9 +229,11 @@ Remote voice, persistent push, remote effects, and multi-replica deployment rema
 
 Mobile M1 adds an isolated Expo SDK 57, React Native 0.86, TypeScript, and Expo Router workspace
 with an independent locked quality/CI gate. M2A adds authority-bound enrollment v2, additive client
-capability metadata, and shared Python/TypeScript Ed25519 signing vectors. The current app still
-makes no network calls and stores no credentials; pairing and SecureStore identity begin in M2B.
-JARVIS Core remains the canonical brain and authority; enrollment v1 and the PWA remain supported.
+capability metadata, and shared Python/TypeScript Ed25519 signing vectors. M2B adds QR/manual pairing,
+device-only SecureStore identity, Expo Crypto key generation, signed short-session creation/refresh,
+authenticated status, logout, and credential erase. Bearer tokens remain memory-only. JARVIS Core
+remains the canonical brain and authority; enrollment v1 and the PWA remain supported. Physical
+iPhone/Expo Go/Tailscale acceptance remains owner-deferred.
 
 See [Native Mobile Architecture](docs/MOBILE_ARCHITECTURE.md),
 [Native Mobile Phases](docs/MOBILE_PHASES.md), and
