@@ -76,6 +76,7 @@ Desktop.ini
 mobile/node_modules/
 mobile/.expo/
 mobile/dist/
+mobile/coverage/
 mobile/web-build/
 mobile/.npm/
 mobile/npm-debug.log*

@@ -48,3 +48,11 @@ because PowerShell script shims are blocked by workstation execution policy.
 Current Expo Go policy requires a physical iOS device and Expo CLI to be signed into the same free
 Expo account before the device can open a development-server manifest. This authenticates manifest
 signing only; M1A does not create or link an EAS project.
+
+## Quality gate
+
+M1B adds a separate least-privilege GitHub Actions workflow for the mobile workspace. It installs
+only the committed npm lock, rejects lock drift, checks formatting, lint, strict TypeScript, Jest
+coverage, Expo package compatibility, dependency licenses, high/critical production advisories,
+and deterministic Android/iOS exports. It has read-only repository permission and receives no
+secrets. Python CI remains separate and unchanged.

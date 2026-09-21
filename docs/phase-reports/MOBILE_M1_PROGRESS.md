@@ -3,7 +3,7 @@
 Status: `implemented-closeout-pending`  
 Started: 2026-09-20  
 Updated: 2026-09-20  
-Active subphase: M1A — Expo workspace scaffold  
+Active subphase: M1B — Mobile quality and CI gate  
 Recommended Codex model: `gpt-6-astra`  
 Recommended reasoning: `max`
 
@@ -43,6 +43,17 @@ and Android exports. Do not start M1B CI or M2 authentication work.
 - Evidence: typecheck and 2 tests pass; Expo Doctor 21/21; Android and iOS exports pass; full Python
   suite passes 1,115 with 3 skips at 85.08% coverage; Gitleaks and diff checks pass.
 - Remaining: physical iPhone Expo Go smoke, completion report, isolated commit/push.
+
+### Milestone 2 — Quality and CI gate
+
+- Status: locally complete; remote CI pending push.
+- Changes: pinned ESLint/Prettier/Expo Doctor tooling, coverage thresholds, dependency-license
+  policy, production audit threshold, and separate least-privilege mobile CI workflow.
+- Evidence: format, lint, strict typecheck, 3 tests at 100% coverage, Expo Doctor 21/21, 1,098
+  package-license entries, high/critical audit threshold, and Android/iOS exports pass. A temporary
+  invalid assignment produced TS2322, proving the type gate rejects broken code; the probe was then
+  removed and the clean gate rerun.
+- Remaining: secret/diff gate, isolated commit/push, and GitHub Actions result.
 
 ## Decisions
 
@@ -89,6 +100,36 @@ PASS: 45 commits, 4.95 MB, no leaks
 
 rtk git ... diff --check
 PASS
+
+rtk npm.cmd run format:check
+PASS
+
+rtk npm.cmd run lint
+PASS
+
+rtk npm.cmd run typecheck
+PASS
+
+temporary negative probe: const mustFailTypecheck: string = 42
+PASS: typecheck rejected probe with TS2322; probe removed
+
+rtk npm.cmd run test:ci
+PASS: 3 tests; 100% statements, branches, functions, and lines
+
+rtk npm.cmd run doctor
+PASS: 21/21 checks
+
+rtk npm.cmd run license:check
+PASS: 1,098 packages; 15 reviewed license expressions
+
+rtk npm.cmd run audit:production
+PASS at configured threshold: 0 high, 0 critical; 13 moderate transitive advisories recorded
+
+rtk npm.cmd run export:android
+PASS
+
+rtk npm.cmd run export:ios
+PASS
 ```
 
 ## Security and privacy
@@ -100,6 +141,9 @@ PASS
 - Dependency audit: 13 moderate transitive Expo/Router advisories; no high or critical findings.
   npm's proposed force-fix downgrades to incompatible Expo 46/Router 5, so no unsafe force-fix was
   applied.
+- Tool compatibility: Expo 57 lint plugins require ESLint 9; ESLint 10 is not yet accepted by
+  `eslint-plugin-import` or `eslint-plugin-react`. ESLint 9.39.5 is pinned until Expo's compatible
+  dependency set advances.
 
 ## Blockers
 
@@ -114,7 +158,6 @@ PASS
 
 ## Known limits and deferred scope
 
-- M1B lint/format/CI workflow is not part of M1A.
 - Authentication, API transport, native secure storage, tabs, features, EAS linkage, and native
   signing are deferred.
 

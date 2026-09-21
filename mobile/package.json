@@ -10,10 +10,17 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
+    "format:check": "prettier --check . ../.github/workflows/mobile-ci.yml",
+    "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest --runInBand",
+    "test:ci": "jest --runInBand --coverage",
+    "doctor": "expo-doctor",
+    "audit:production": "npm audit --omit=dev --audit-level=high",
+    "license:check": "node scripts/check-licenses.mjs",
     "export:android": "expo export --platform android --output-dir dist/android",
-    "export:ios": "expo export --platform ios --output-dir dist/ios"
+    "export:ios": "expo export --platform ios --output-dir dist/ios",
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run test:ci && npm run doctor && npm run license:check && npm run audit:production && npm run export:android && npm run export:ios"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.16",
@@ -38,8 +45,13 @@
     "@types/jest": "~29.5.14",
     "@types/react": "~19.2.2",
     "babel-preset-expo": "~57.0.12",
+    "eslint": "9.39.5",
+    "eslint-config-expo": "~57.0.2",
+    "eslint-import-resolver-typescript": "3.10.1",
+    "expo-doctor": "1.20.4",
     "jest": "~29.7.0",
     "jest-expo": "~57.0.5",
+    "prettier": "3.9.8",
     "react-test-renderer": "19.2.3",
     "typescript": "~6.0.3"
   }
