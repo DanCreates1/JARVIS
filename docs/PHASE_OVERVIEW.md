@@ -1,6 +1,6 @@
 # JARVIS Phase Overview
 
-Updated: 2026-09-15
+Updated: 2026-09-20
 
 This is the concise execution view of the master roadmap. Status describes implemented code,
 not just design work. Model/reasoning values are Codex execution recommendations, not JARVIS
@@ -35,6 +35,7 @@ implementation protocol, acceptance gates, safety boundaries, and completion rep
 | 9 | Dedicated server migration | Implementation complete; deployment blocked external | Authorized server cutover | `gpt-6-astra` / `max` |
 | 10 | Generic wearables | 10A complete; vendor integrations owner-deferred | Future-candidate backlog | `gpt-6-astra` / `xhigh` |
 | 11 | Advanced proactive/multimodal | Complete | Maintenance only | `gpt-6-astra` / `max` |
+| Mobile M1 | Native Expo client foundation | In progress | M1A scaffold and live-device gate | `gpt-6-astra` / `max` |
 
 ## Phase 1 latency disposition
 

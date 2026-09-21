@@ -225,6 +225,17 @@ SQLite backup and fail-closed owned-route rollback cover recovery.
 Remote voice, persistent push, remote effects, and multi-replica deployment remain disabled. See
 [Remote Identity and API Boundary](docs/REMOTE_ACCESS.md).
 
+## Native mobile foundation
+
+Mobile M1A adds an isolated Expo SDK 57, React Native 0.86, TypeScript, and Expo Router workspace.
+The current app is intentionally only a branded offline-safe shell: it requests no permissions,
+makes no network calls, stores no credentials, and has no API, telemetry, EAS, or native-signing
+integration. JARVIS Core remains the canonical brain and authority; the PWA remains supported.
+
+See [Native Mobile Architecture](docs/MOBILE_ARCHITECTURE.md),
+[Native Mobile Phases](docs/MOBILE_PHASES.md), and
+[M1 progress evidence](docs/phase-reports/MOBILE_M1_PROGRESS.md).
+
 ## Implemented Phase 9A
 
 The server-migration boundary now adds:

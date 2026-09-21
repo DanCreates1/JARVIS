@@ -690,6 +690,14 @@ MVP plus voice with barge-in, controlled computer tools including printing, insp
 
 A server-capable, privacy-aware hybrid multimodal personal operating layer with secure device clients, calibrated memory and research, bounded agents, natural voice, optional vision/gestures/wearables, and proactive help controlled entirely by host policy.
 
+### Native mobile execution track (authorized 2026-09-20)
+
+The demonstrated PWA limits now justify a progressive native client. Mobile M1A establishes an
+isolated Expo/React Native shell while retaining JARVIS Core as the canonical brain, authority,
+memory, model-routing, audit, and future health boundary. The PWA stays supported as fallback,
+admin/compatibility surface, and API-behavior reference. Native capability moves one small gated
+subphase at a time; no mobile phase broadens Core authority.
+
 ## 10. What not to overengineer in V1
 
 - No Kubernetes, service mesh, distributed event bus, or premature microservices.
@@ -697,7 +705,8 @@ A server-capable, privacy-aware hybrid multimodal personal operating layer with 
 - No custom foundation-model training or continuous weight updates.
 - No agent swarm; one orchestrator and a few justified specialized roles.
 - No unrestricted shell, always-admin daemon, or public unauthenticated endpoint.
-- No native mobile app until PWA limits are demonstrated.
+- No duplicated mobile backend, direct provider credentials, second authority store, or premature
+  committed native projects; use the authorized Expo client and Core `/api/v1` boundary.
 - No Redis until cross-process coordination or caching has a measured requirement.
 - No permanent storage of raw audio/video by default.
 - No enormous context windows used as a substitute for retrieval.
@@ -780,8 +789,8 @@ Privacy-routing correctness, free-tier availability, preview-model churn, laptop
 
 ### Features intentionally deferred / future candidates
 
-Native mobile app, Garmin Connect synchronization, Meta glasses integration, Meta DAT phone bridge,
-wearable hardware enrollment, smart home, custom voice, user fine-tuning, large local models,
+Garmin Connect synchronization, Meta glasses integration, Meta DAT phone bridge, wearable hardware
+enrollment, smart home, custom voice, user fine-tuning, large local models,
 PostgreSQL, Redis, microservices, and multi-GPU serving. Revisit Meta only after an explicit owner
 request names the platform and device and authorizes current term review, mobile-project creation,
 SDK use, privacy controls, and live testing.

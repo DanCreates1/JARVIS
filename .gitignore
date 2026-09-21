@@ -71,3 +71,11 @@ Desktop.ini
 
 *.ts.net.crt
 *.ts.net.key
+
+# Expo / React Native local and generated output
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+mobile/.npm/
+mobile/npm-debug.log*
