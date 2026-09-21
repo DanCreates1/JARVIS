@@ -39,6 +39,7 @@ class SignedRequest:
     timestamp: datetime
     nonce: str
     session_token: str | None
+    scheme: str = "https"
 
 
 def encode_base64url(value: bytes) -> str:
@@ -67,7 +68,7 @@ def canonical_request(request: SignedRequest) -> bytes:
     if _AUTHORITY_RE.fullmatch(authority) is None:
         raise ValueError("invalid HTTP authority")
     port = authority.rpartition(":")[2]
-    if port.isdecimal() and int(port) > 65_535:
+    if port.isdecimal() and not 1 <= int(port) <= 65_535:
         raise ValueError("invalid HTTP authority port")
     if not request.path.startswith("/") or "#" in request.path or "\n" in request.path:
         raise ValueError("invalid raw request path")
@@ -113,8 +114,26 @@ def canonical_request(request: SignedRequest) -> bytes:
 
 
 def build_enrollment_proof(
-    *, enrollment_id: str, challenge: str, public_key: str, protocol_version: str
+    *,
+    enrollment_id: str,
+    challenge: str,
+    public_key: str,
+    protocol_version: str,
+    server_origin: str | None = None,
 ) -> bytes:
+    if protocol_version == "2":
+        if server_origin is None:
+            raise ValueError("enrollment v2 proof requires a server origin")
+        return _proof(
+            "jarvis-enrollment-v2",
+            enrollment_id,
+            challenge,
+            public_key,
+            protocol_version,
+            server_origin,
+        )
+    if protocol_version != "1" or server_origin is not None:
+        raise ValueError("invalid enrollment proof version or origin")
     return _proof(
         "jarvis-enrollment-v1",
         enrollment_id,

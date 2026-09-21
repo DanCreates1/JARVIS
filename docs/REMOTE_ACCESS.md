@@ -9,6 +9,9 @@ that boundary through tailnet-only Tailscale Serve HTTPS while JARVIS stays loop
 
 - A trusted local terminal creates a five-minute, one-use enrollment challenge with exact device
   type, scopes, and risk ceiling.
+- Existing enrollment v1 remains compatible. Native enrollment v2 additionally binds the exact
+  normalized HTTPS server origin into the Ed25519 proof and durable device record. Every later
+  signed request must use that origin's exact authority.
 - Each device supplies a unique Ed25519 public key and proves possession of the matching private
   key. JARVIS never creates or stores a device private key.
 - Device credentials expire after 365 days. Sessions expire after 15 minutes and store only a
@@ -34,6 +37,7 @@ Create a challenge only while controlling the Windows host:
 ```powershell
 uv run jarvis remote enroll "My phone" `
   --type phone `
+  --server-origin https://jarvis.example.ts.net `
   --scope identity.read `
   --scope events.read `
   --scope session.revoke `
@@ -41,8 +45,10 @@ uv run jarvis remote enroll "My phone" `
 ```
 
 The JSON challenge is shown once and expires in five minutes. Transfer it through a private local
-channel. Device software must generate and securely retain its Ed25519 private key, then sign the
-`jarvis-enrollment-v1` proof defined in `jarvis.remote.signing`.
+channel. Device software must generate and securely retain its Ed25519 private key. Supplying
+`--server-origin` creates enrollment v2 and the device signs `jarvis-enrollment-v2`, including that
+origin. Omitting it preserves `jarvis-enrollment-v1`. HTTP is rejected except for an explicit
+`--allow-insecure-loopback` development enrollment.
 
 Inspect or recover locally:
 
@@ -67,7 +73,7 @@ device again with a new key if access should return.
 | `DELETE /api/v1/sessions/current` | bearer token + signed request | `session.revoke` | current-session revocation |
 | `POST /api/v1/device/key` | bearer token + old-key request signature + new-key proof | `key.rotate` | rotated device metadata |
 | `POST /api/v1/topology/negotiate` | bearer token + signed request | `topology.negotiate` | Phase 9A version, configured role/ownership, and capability intersection |
-| `GET /api/v1/client/status` | browser cookie + exact origin | `client.status.read` | bounded device/session/task-count status |
+| `GET /api/v1/client/status` | browser cookie or signed bearer request | `client.status.read` | bounded device/session/task-count status plus protocol, server-time, capability, and compatibility metadata |
 | `GET /api/v1/client/tasks?limit=N` | browser cookie + exact origin | `client.tasks.read` | status-only task summaries; no objective, arguments, or outputs |
 | `POST /api/v1/client/subscriptions` | browser cookie + exact origin + CSRF | `events.read` plus each topic scope | opaque session-owned subscription and initial cursor |
 | `GET /api/v1/client/events?subscription_id=...&after=N` | browser cookie + exact origin | `events.read` | finite SSE page with monotonic cursor headers |

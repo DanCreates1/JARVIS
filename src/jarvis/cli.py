@@ -1018,6 +1018,20 @@ def remote_enroll(
         int,
         typer.Option("--risk-ceiling", min=0, max=2, help="Maximum device risk class."),
     ] = 0,
+    server_origin: Annotated[
+        str | None,
+        typer.Option(
+            "--server-origin",
+            help="Exact HTTPS origin to bind for enrollment v2 (for example https://jarvis.tail.ts.net).",
+        ),
+    ] = None,
+    allow_insecure_loopback: Annotated[
+        bool,
+        typer.Option(
+            "--allow-insecure-loopback",
+            help="Development only: allow an HTTP localhost/loopback v2 origin.",
+        ),
+    ] = False,
 ) -> None:
     """Create one short-lived enrollment challenge from this trusted local terminal."""
     from jarvis.remote import (
@@ -1047,6 +1061,8 @@ def remote_enroll(
                 device_type=selected_type,
                 approved_scopes=selected_scopes,
                 risk_ceiling=risk_ceiling,
+                server_origin=server_origin,
+                allow_insecure_loopback=allow_insecure_loopback,
             )
         finally:
             await store.close()

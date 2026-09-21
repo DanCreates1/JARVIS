@@ -51,6 +51,7 @@ def test_canonical_request_is_stable_and_binds_every_security_component() -> Non
         ("method", "G ET"),
         ("authority", "user@localhost"),
         ("authority", "localhost:99999"),
+        ("authority", "localhost:0"),
         ("path", "relative"),
         ("query", "bad\nquery"),
         ("audience", "other-api"),

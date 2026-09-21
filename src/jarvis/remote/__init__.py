@@ -6,6 +6,12 @@ from jarvis.remote.browser import (
     FixedWindowRateLimiter,
     RateLimitDecision,
 )
+from jarvis.remote.client_contract import (
+    CLIENT_API_PROTOCOL_VERSION,
+    CLIENT_CAPABILITIES,
+    CLIENT_COMPATIBILITY_FLAGS,
+    client_contract_metadata,
+)
 from jarvis.remote.deployment import (
     MAX_TAILSCALE_STATUS_BYTES,
     PrivateDeploymentError,
@@ -57,6 +63,7 @@ from jarvis.remote.models import (
     SessionCredential,
     SessionRequest,
 )
+from jarvis.remote.origin import authority_from_origin, normalize_server_origin
 from jarvis.remote.pwa import (
     MAX_PWA_EVENT_BYTES,
     MAX_PWA_EVENTS_PER_SUBSCRIPTION,
@@ -136,6 +143,9 @@ from jarvis.remote.topology import (
 )
 
 __all__ = [
+    "CLIENT_API_PROTOCOL_VERSION",
+    "CLIENT_CAPABILITIES",
+    "CLIENT_COMPATIBILITY_FLAGS",
     "DEPLOYMENT_MANIFEST_FORMAT",
     "DEPLOYMENT_STATE_FORMAT",
     "MAX_PWA_EVENTS_PER_SUBSCRIPTION",
@@ -223,6 +233,7 @@ __all__ = [
     "TopologyProfile",
     "analyze_database",
     "analyze_database_compatibility",
+    "authority_from_origin",
     "build_deployment_manifest",
     "build_enrollment_proof",
     "build_local_only_manifest",
@@ -230,6 +241,7 @@ __all__ = [
     "build_remote_manifest",
     "build_rotation_proof",
     "canonical_request",
+    "client_contract_metadata",
     "compare_shadow",
     "create_cutover_receipt",
     "create_deployment_state",
@@ -245,6 +257,7 @@ __all__ = [
     "load_tailscale_status",
     "load_topology_manifest",
     "load_transition_receipt",
+    "normalize_server_origin",
     "promote_release",
     "read_migration_key",
     "restore_encrypted_backup",

@@ -58,6 +58,7 @@ from jarvis.remote import (
     SignedRequest,
     TopologyNegotiationError,
     TopologyNegotiator,
+    client_contract_metadata,
 )
 from jarvis.research import (
     ResearchInterface,
@@ -522,6 +523,7 @@ def create_app(
             dict[str, object],
             jsonable_encoder(
                 {
+                    **client_contract_metadata(),
                     "online": True,
                     "device": {
                         "id": device.id,
@@ -1693,6 +1695,7 @@ def _signed_remote_request(
             timestamp=timestamp,
             nonce=headers["x-jarvis-nonce"],
             session_token=session_token,
+            scheme=request.url.scheme,
         )
     except (OverflowError, TypeError) as exc:
         raise ValueError("invalid remote authentication headers") from exc

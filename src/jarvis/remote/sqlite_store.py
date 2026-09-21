@@ -37,6 +37,8 @@ class StoredEnrollment:
     risk_ceiling: int
     expires_at: datetime
     consumed_at: datetime | None
+    protocol_version: str
+    server_origin: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -112,8 +114,9 @@ class SQLiteRemoteIdentityStore:
                     """
                     INSERT INTO remote_enrollments (
                         id, challenge_sha256, host_id, display_name, device_type, scopes_json,
-                        risk_ceiling, expires_at, created_at, consumed_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+                        risk_ceiling, expires_at, created_at, consumed_at,
+                        enrollment_protocol_version, server_origin
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
                     """,
                     (
                         ticket.id,
@@ -125,6 +128,8 @@ class SQLiteRemoteIdentityStore:
                         ticket.risk_ceiling,
                         _timestamp(ticket.expires_at),
                         _timestamp(created_at),
+                        ticket.protocol_version,
+                        ticket.server_origin,
                     ),
                 )
                 await self._insert_audit(
@@ -187,7 +192,9 @@ class SQLiteRemoteIdentityStore:
                     key_version=1,
                     approved_scopes=enrollment.approved_scopes,
                     risk_ceiling=enrollment.risk_ceiling,
-                    protocol_version=protocol_version,
+                    protocol_version="1",
+                    enrollment_protocol_version=protocol_version,
+                    server_origin=enrollment.server_origin,
                     state=DeviceState.ACTIVE,
                     enrolled_at=completed_at,
                     credential_expires_at=credential_expires_at,
@@ -197,8 +204,9 @@ class SQLiteRemoteIdentityStore:
                     INSERT INTO remote_devices (
                         id, host_id, display_name, device_type, public_key, key_fingerprint,
                         key_version, scopes_json, risk_ceiling, protocol_version, state,
-                        enrolled_at, credential_expires_at, last_seen_at, revoked_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)
+                        enrolled_at, credential_expires_at, last_seen_at, revoked_at,
+                        enrollment_protocol_version, server_origin
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)
                     """,
                     (
                         record.id,
@@ -214,6 +222,8 @@ class SQLiteRemoteIdentityStore:
                         record.state.value,
                         _timestamp(record.enrolled_at),
                         _timestamp(record.credential_expires_at),
+                        record.enrollment_protocol_version,
+                        record.server_origin,
                     ),
                 )
                 await self._insert_audit(
@@ -753,6 +763,8 @@ def _stored_enrollment(row: aiosqlite.Row) -> StoredEnrollment:
         consumed_at=(
             None if row["consumed_at"] is None else datetime.fromisoformat(row["consumed_at"])
         ),
+        protocol_version=str(row["enrollment_protocol_version"]),
+        server_origin=None if row["server_origin"] is None else str(row["server_origin"]),
     )
 
 
@@ -768,6 +780,8 @@ def _stored_device(row: aiosqlite.Row) -> StoredDevice:
             approved_scopes=_load_scopes(row["scopes_json"]),
             risk_ceiling=int(row["risk_ceiling"]),
             protocol_version=str(row["protocol_version"]),
+            enrollment_protocol_version=str(row["enrollment_protocol_version"]),
+            server_origin=None if row["server_origin"] is None else str(row["server_origin"]),
             state=DeviceState(row["state"]),
             enrolled_at=datetime.fromisoformat(row["enrolled_at"]),
             credential_expires_at=datetime.fromisoformat(row["credential_expires_at"]),

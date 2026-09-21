@@ -4,6 +4,7 @@ import asyncio
 import sqlite3
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from importlib.resources import files
 from pathlib import Path
 
 import pytest
@@ -49,6 +50,73 @@ def _public_key(private_key: Ed25519PrivateKey) -> str:
     )
 
 
+@pytest.mark.asyncio
+async def test_migration_014_preserves_existing_v1_device(tmp_path: Path) -> None:
+    database = tmp_path / "v1-upgrade.db"
+    applied_at = "2026-09-20T00:00:00.000000+00:00"
+    enrolled_at = "2026-09-20T00:00:00.000000+00:00"
+    expires_at = "2027-09-20T00:00:00.000000+00:00"
+    key = Ed25519PrivateKey.generate()
+    public_key = _public_key(key)
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            """
+            CREATE TABLE schema_migrations (
+                version INTEGER PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                applied_at TEXT NOT NULL
+            )
+            """
+        )
+        migration_root = files("jarvis.memory.migrations")
+        for resource in sorted(migration_root.iterdir(), key=lambda item: item.name):
+            if not resource.name.endswith(".sql") or resource.name.startswith("014_"):
+                continue
+            connection.executescript(resource.read_text(encoding="utf-8"))
+            connection.execute(
+                "INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)",
+                (int(resource.name[:3]), resource.name, applied_at),
+            )
+        connection.execute(
+            """
+            INSERT INTO remote_devices (
+                id, host_id, display_name, device_type, public_key, key_fingerprint,
+                key_version, scopes_json, risk_ceiling, protocol_version, state,
+                enrolled_at, credential_expires_at, last_seen_at, revoked_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)
+            """,
+            (
+                "device:legacy-v1",
+                "host:test",
+                "Legacy PWA",
+                "browser",
+                public_key,
+                "0" * 64,
+                1,
+                '["identity.read"]',
+                0,
+                "1",
+                "active",
+                enrolled_at,
+                expires_at,
+            ),
+        )
+        connection.commit()
+
+    store = SQLiteRemoteIdentityStore(database)
+    await store.initialize()
+    devices = await RemoteIdentityService(store).list_devices(host_id="host:test")
+    assert len(devices) == 1
+    assert devices[0].enrollment_protocol_version == "1"
+    assert devices[0].server_origin is None
+    await store.close()
+    with sqlite3.connect(database) as connection:
+        applied = connection.execute(
+            "SELECT name FROM schema_migrations WHERE version = 14"
+        ).fetchone()
+    assert applied == ("014_mobile_authority_binding.sql",)
+
+
 def _signed_request(
     *,
     private_key: Ed25519PrivateKey,
@@ -61,10 +129,11 @@ def _signed_request(
     query: str = "",
     session_token: str | None = None,
     audience: str = "jarvis-api",
+    authority: str = "localhost:8765",
 ) -> tuple[SignedRequest, str]:
     request = SignedRequest(
         method="POST" if body != b"" else "GET",
-        authority="localhost:8765",
+        authority=authority,
         path=path,
         query=query,
         body=body,
@@ -109,6 +178,97 @@ async def _enroll(
         )
     )
     return device.id, ticket.challenge
+
+
+@pytest.mark.asyncio
+async def test_enrollment_v2_binds_every_signed_request_to_exact_authority(
+    tmp_path: Path,
+) -> None:
+    clock = FakeClock()
+    database = tmp_path / "authority-bound.db"
+    store = SQLiteRemoteIdentityStore(database)
+    await store.initialize()
+    service = RemoteIdentityService(store, clock=clock)
+    key = Ed25519PrivateKey.generate()
+    ticket = await service.create_enrollment(
+        host_id="host:test",
+        display_name="Bound phone",
+        device_type=DeviceType.PHONE,
+        approved_scopes=(RemoteScope.IDENTITY_READ,),
+        server_origin="https://JARVIS.example:443/",
+    )
+    assert ticket.protocol_version == "2"
+    assert ticket.server_origin == "https://jarvis.example"
+    public_key = _public_key(key)
+    proof = build_enrollment_proof(
+        enrollment_id=ticket.id,
+        challenge=ticket.challenge,
+        public_key=public_key,
+        protocol_version=ticket.protocol_version,
+        server_origin=ticket.server_origin,
+    )
+    device = await service.complete_enrollment(
+        EnrollmentCompletion(
+            enrollment_id=ticket.id,
+            challenge=ticket.challenge,
+            public_key=public_key,
+            proof_signature=encode_base64url(key.sign(proof)),
+            protocol_version="2",
+            server_origin=ticket.server_origin,
+        )
+    )
+    assert device.enrollment_protocol_version == "2"
+    assert device.server_origin == "https://jarvis.example"
+
+    payload = SessionRequest(requested_scopes=(RemoteScope.IDENTITY_READ,))
+    body = payload.model_dump_json().encode()
+    wrong, wrong_signature = _signed_request(
+        private_key=key,
+        device_id=device.id,
+        key_version=1,
+        timestamp=clock.now,
+        nonce="V" * 22,
+        body=body,
+        path="/api/v1/sessions",
+        authority="evil.example",
+    )
+    with pytest.raises(RemoteAuthenticationError) as mismatch:
+        await service.create_session(request=wrong, signature=wrong_signature, payload=payload)
+    assert mismatch.value.code == "authority_mismatch"
+
+    correct, correct_signature = _signed_request(
+        private_key=key,
+        device_id=device.id,
+        key_version=1,
+        timestamp=clock.now,
+        nonce="V" * 22,
+        body=body,
+        path="/api/v1/sessions",
+        authority="jarvis.example",
+    )
+    session = await service.create_session(
+        request=correct,
+        signature=correct_signature,
+        payload=payload,
+    )
+    assert session.device_id == device.id
+
+    insecure = replace(correct, nonce="W" * 22, scheme="http")
+    insecure_signature = encode_base64url(key.sign(canonical_request(insecure)))
+    with pytest.raises(RemoteAuthenticationError) as scheme_mismatch:
+        await service.create_session(
+            request=insecure,
+            signature=insecure_signature,
+            payload=payload,
+        )
+    assert scheme_mismatch.value.code == "origin_mismatch"
+    with sqlite3.connect(database) as connection:
+        persisted = connection.execute(
+            "SELECT enrollment_protocol_version, server_origin FROM remote_devices WHERE id = ?",
+            (device.id,),
+        ).fetchone()
+    assert persisted == ("2", "https://jarvis.example")
+    await store.close()
 
 
 async def _session(

@@ -692,11 +692,13 @@ A server-capable, privacy-aware hybrid multimodal personal operating layer with 
 
 ### Native mobile execution track (authorized 2026-09-20)
 
-The demonstrated PWA limits now justify a progressive native client. Mobile M1A establishes an
-isolated Expo/React Native shell while retaining JARVIS Core as the canonical brain, authority,
-memory, model-routing, audit, and future health boundary. The PWA stays supported as fallback,
-admin/compatibility surface, and API-behavior reference. Native capability moves one small gated
-subphase at a time; no mobile phase broadens Core authority.
+The demonstrated PWA limits now justify a progressive native client. Mobile M1 establishes an
+isolated Expo/React Native shell and independent CI gate. M2A adds backward-compatible,
+authority-bound enrollment v2, capability negotiation metadata, migration 014, and cross-language
+signing vectors. JARVIS Core remains the canonical brain, authority, memory, model-routing, audit,
+and future health boundary. The PWA stays supported as fallback, admin/compatibility surface, and
+API-behavior reference. Pairing/key storage and live iPhone acceptance remain M2B/M2C work; no
+mobile phase broadens Core authority.
 
 ## 10. What not to overengineer in V1
 

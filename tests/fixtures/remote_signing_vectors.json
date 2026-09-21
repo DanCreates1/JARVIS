@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "private_key_seed": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31],
+  "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+  "request": {
+    "method": "post",
+    "authority": "JARVIS.Example:443",
+    "path": "/api/v1/sessions",
+    "query": "cursor=1%202&kind=identity",
+    "body_base64url": "eyJyZXF1ZXN0ZWRfc2NvcGVzIjpbImlkZW50aXR5LnJlYWQiXX0",
+    "device_id": "device:test-mobile",
+    "key_version": 2,
+    "audience": "jarvis-api",
+    "timestamp": "2026-09-21T12:34:56.123456Z",
+    "nonce": "0123456789abcdefghijkl",
+    "session_token": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq",
+    "canonical_base64url": "amFydmlzLWh0dHAtc2lnbmF0dXJlLXYxCkBtZXRob2Q6NDpQT1NUCkBhdXRob3JpdHk6MTg6amFydmlzLmV4YW1wbGU6NDQzCkBwYXRoOjE2Oi9hcGkvdjEvc2Vzc2lvbnMKQHF1ZXJ5OjI2OmN1cnNvcj0xJTIwMiZraW5kPWlkZW50aXR5CmNvbnRlbnQtZGlnZXN0OjUzOnNoYS0yNTY9OmNQVjh2MFQ5S2t2aTNFUUZ6U3RSN1ZZRHNCN0tDQm1IbW9oTzZqMDU4R286CngtamFydmlzLWRhdGU6Mjc6MjAyNi0wOS0yMVQxMjozNDo1Ni4xMjM0NTZaCngtamFydmlzLW5vbmNlOjIyOjAxMjM0NTY3ODlhYmNkZWZnaGlqa2wKeC1qYXJ2aXMtYXVkaWVuY2U6MTA6amFydmlzLWFwaQp4LWphcnZpcy1kZXZpY2U6MTg6ZGV2aWNlOnRlc3QtbW9iaWxlCngtamFydmlzLWtleS12ZXJzaW9uOjE6MgphdXRob3JpemF0aW9uLWRpZ2VzdDo0MzpkcDZObGFva2FnTFpUVWpFTDdjWVBsTWNoY1FkV3pSVzNia0FFWEV0aTljCg",
+    "signature_base64url": "9mTcuxJm3gihQaJbbxByKb8bKGGrmI86UtH2Lbnrk1khgZw1rVpz61dMSwj1rOlaEVPl8ofBKme0cMse1ABYDA"
+  },
+  "enrollment_v1": {
+    "enrollment_id": "enrollment:test-vector",
+    "challenge": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq",
+    "protocol_version": "1",
+    "proof_base64url": "amFydmlzLWVucm9sbG1lbnQtdjEKMjI6ZW5yb2xsbWVudDp0ZXN0LXZlY3Rvcgo0MzpBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWmFiY2RlZmdoaWprbG1ub3BxCjQzOkE2RUh2X1BPRUw0ZGNOMFk1MHZBbVdmazFqQ2JwUTFmSGR5R1pCSlZNYmcKMToxCg",
+    "signature_base64url": "xzGju9-e1CMiNl5SYl4uA3IQEVTsutlOVodWoQoPC98VDC7GwSHDaHmtEPigOpB9G_g5p8UaMhud6QQ8V_3-CA"
+  },
+  "enrollment_v2": {
+    "enrollment_id": "enrollment:test-vector-v2",
+    "challenge": "qrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefg",
+    "protocol_version": "2",
+    "server_origin": "https://jarvis.example",
+    "proof_base64url": "amFydmlzLWVucm9sbG1lbnQtdjIKMjU6ZW5yb2xsbWVudDp0ZXN0LXZlY3Rvci12Mgo0MzpxcnN0dXZ3eHl6QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVphYmNkZWZnCjQzOkE2RUh2X1BPRUw0ZGNOMFk1MHZBbVdmazFqQ2JwUTFmSGR5R1pCSlZNYmcKMToyCjIyOmh0dHBzOi8vamFydmlzLmV4YW1wbGUK",
+    "signature_base64url": "AOtuyoIl1GM8FTlgwn8jBhpADupgD26dkAunKcIiTDJmnf5nH6VghA8yxSks9q-npyBHt3eiQy3DLmCTOissCA"
+  }
+}

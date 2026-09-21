@@ -5,7 +5,9 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from jarvis.remote.origin import normalize_server_origin
 
 _IDENTIFIER_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$"
 _BASE64URL_PATTERN = r"^[A-Za-z0-9_-]+$"
@@ -64,6 +66,8 @@ class EnrollmentTicket(BaseModel):
     approved_scopes: tuple[RemoteScope, ...] = Field(min_length=1, max_length=16)
     risk_ceiling: int = Field(ge=0, le=2)
     expires_at: datetime
+    protocol_version: str = Field(default="1", pattern=r"^[12]$")
+    server_origin: str | None = Field(default=None, max_length=255)
 
     @field_validator("approved_scopes")
     @classmethod
@@ -71,6 +75,18 @@ class EnrollmentTicket(BaseModel):
         if len(value) != len(set(value)):
             raise ValueError("approved scopes must be unique")
         return tuple(sorted(value, key=str))
+
+    @model_validator(mode="after")
+    def validate_authority_binding(self) -> EnrollmentTicket:
+        if self.protocol_version == "1":
+            if self.server_origin is not None:
+                raise ValueError("enrollment v1 cannot bind a server origin")
+            return self
+        if self.server_origin is None:
+            raise ValueError("enrollment v2 requires a server origin")
+        normalized = normalize_server_origin(self.server_origin, allow_insecure_loopback=True)
+        object.__setattr__(self, "server_origin", normalized)
+        return self
 
 
 class EnrollmentCompletion(BaseModel):
@@ -80,7 +96,20 @@ class EnrollmentCompletion(BaseModel):
     challenge: str = Field(min_length=43, max_length=128, pattern=_BASE64URL_PATTERN)
     public_key: str = Field(min_length=43, max_length=43, pattern=_BASE64URL_PATTERN)
     proof_signature: str = Field(min_length=86, max_length=86, pattern=_BASE64URL_PATTERN)
-    protocol_version: str = Field(default="1", pattern=r"^1$")
+    protocol_version: str = Field(default="1", pattern=r"^[12]$")
+    server_origin: str | None = Field(default=None, max_length=255)
+
+    @model_validator(mode="after")
+    def validate_authority_binding(self) -> EnrollmentCompletion:
+        if self.protocol_version == "1":
+            if self.server_origin is not None:
+                raise ValueError("enrollment v1 cannot bind a server origin")
+            return self
+        if self.server_origin is None:
+            raise ValueError("enrollment v2 requires a server origin")
+        normalized = normalize_server_origin(self.server_origin, allow_insecure_loopback=True)
+        object.__setattr__(self, "server_origin", normalized)
+        return self
 
 
 class DeviceRecord(BaseModel):
@@ -95,11 +124,25 @@ class DeviceRecord(BaseModel):
     approved_scopes: tuple[RemoteScope, ...]
     risk_ceiling: int = Field(ge=0, le=2)
     protocol_version: str = Field(pattern=r"^1$")
+    enrollment_protocol_version: str = Field(default="1", pattern=r"^[12]$")
+    server_origin: str | None = Field(default=None, max_length=255)
     state: DeviceState
     enrolled_at: datetime
     credential_expires_at: datetime
     last_seen_at: datetime | None = None
     revoked_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def validate_authority_binding(self) -> DeviceRecord:
+        if self.enrollment_protocol_version == "1":
+            if self.server_origin is not None:
+                raise ValueError("enrollment v1 device cannot bind a server origin")
+            return self
+        if self.server_origin is None:
+            raise ValueError("enrollment v2 device requires a server origin")
+        normalized = normalize_server_origin(self.server_origin, allow_insecure_loopback=True)
+        object.__setattr__(self, "server_origin", normalized)
+        return self
 
 
 class SessionRequest(BaseModel):

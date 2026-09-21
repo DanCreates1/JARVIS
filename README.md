@@ -227,14 +227,16 @@ Remote voice, persistent push, remote effects, and multi-replica deployment rema
 
 ## Native mobile foundation
 
-Mobile M1A adds an isolated Expo SDK 57, React Native 0.86, TypeScript, and Expo Router workspace.
-The current app is intentionally only a branded offline-safe shell: it requests no permissions,
-makes no network calls, stores no credentials, and has no API, telemetry, EAS, or native-signing
-integration. JARVIS Core remains the canonical brain and authority; the PWA remains supported.
+Mobile M1 adds an isolated Expo SDK 57, React Native 0.86, TypeScript, and Expo Router workspace
+with an independent locked quality/CI gate. M2A adds authority-bound enrollment v2, additive client
+capability metadata, and shared Python/TypeScript Ed25519 signing vectors. The current app still
+makes no network calls and stores no credentials; pairing and SecureStore identity begin in M2B.
+JARVIS Core remains the canonical brain and authority; enrollment v1 and the PWA remain supported.
 
 See [Native Mobile Architecture](docs/MOBILE_ARCHITECTURE.md),
 [Native Mobile Phases](docs/MOBILE_PHASES.md), and
-[M1 progress evidence](docs/phase-reports/MOBILE_M1_PROGRESS.md).
+[M1 progress evidence](docs/phase-reports/MOBILE_M1_PROGRESS.md), and
+[M2 progress evidence](docs/phase-reports/MOBILE_M2_PROGRESS.md).
 
 ## Implemented Phase 9A
 

@@ -291,6 +291,12 @@ def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(tmp_path: Pat
         status = client.get("/api/v1/client/status", headers=ios_headers)
         assert status.status_code == 200
         assert status.json()["device"]["id"] == created["device_id"]
+        assert status.json()["protocol_version"] == "1"
+        assert "enrollment.v2.authority-bound" in status.json()["capabilities"]
+        assert status.json()["compatibility"]["pwa_v1"] is True
+        assert status.json()["compatibility"]["enrollment_v2_authority_binding"] is True
+        server_time = datetime.fromisoformat(status.json()["server_time"].replace("Z", "+00:00"))
+        assert server_time.tzinfo is not None and server_time.utcoffset() == timedelta(0)
         assert status.json()["notifications"] == {
             "supported": True,
             "private_preview": False,

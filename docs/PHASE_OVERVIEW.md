@@ -35,7 +35,7 @@ implementation protocol, acceptance gates, safety boundaries, and completion rep
 | 9 | Dedicated server migration | Implementation complete; deployment blocked external | Authorized server cutover | `gpt-6-astra` / `max` |
 | 10 | Generic wearables | 10A complete; vendor integrations owner-deferred | Future-candidate backlog | `gpt-6-astra` / `xhigh` |
 | 11 | Advanced proactive/multimodal | Complete | Maintenance only | `gpt-6-astra` / `max` |
-| Mobile M1 | Native Expo client foundation | In progress | M1A scaffold and live-device gate | `gpt-6-astra` / `max` |
+| Mobile M1-M2 | Native Expo client and secure pairing | M1B complete; M2A implemented; live gates deferred | M2B key/session client, then owner-present M1A/M2C device acceptance | `gpt-6-astra` / `max` |
 
 ## Phase 1 latency disposition
 

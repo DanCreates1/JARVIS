@@ -28,6 +28,7 @@ from jarvis.remote.models import (
     SessionCredential,
     SessionRequest,
 )
+from jarvis.remote.origin import authority_from_origin, normalize_server_origin
 from jarvis.remote.signing import (
     REQUEST_AUDIENCE,
     SignedRequest,
@@ -90,10 +91,20 @@ class RemoteIdentityService:
         device_type: DeviceType,
         approved_scopes: tuple[RemoteScope, ...],
         risk_ceiling: int = 0,
+        server_origin: str | None = None,
+        allow_insecure_loopback: bool = False,
     ) -> EnrollmentTicket:
         """Trusted-local enrollment start. Never expose this through remote routes."""
         now = self._now()
         challenge = secrets.token_urlsafe(32)
+        normalized_origin = (
+            None
+            if server_origin is None
+            else normalize_server_origin(
+                server_origin,
+                allow_insecure_loopback=allow_insecure_loopback,
+            )
+        )
         ticket = EnrollmentTicket(
             id=f"enrollment:{uuid4()}",
             challenge=challenge,
@@ -103,6 +114,8 @@ class RemoteIdentityService:
             approved_scopes=approved_scopes,
             risk_ceiling=risk_ceiling,
             expires_at=now + self._enrollment_ttl,
+            protocol_version="2" if normalized_origin is not None else "1",
+            server_origin=normalized_origin,
         )
         await self._store.create_enrollment(
             ticket,
@@ -139,6 +152,16 @@ class RemoteIdentityService:
                     created_at=now,
                 )
                 raise RemoteAuthenticationError("invalid_enrollment")
+            if (
+                completion.protocol_version != enrollment.protocol_version
+                or completion.server_origin != enrollment.server_origin
+            ):
+                await self._store.append_denial(
+                    reason_code="enrollment_authority_mismatch",
+                    enrollment_id=enrollment.id,
+                    created_at=now,
+                )
+                raise RemoteAuthenticationError("invalid_enrollment")
             try:
                 public_key_bytes = decode_base64url(completion.public_key, expected_bytes=32)
                 signature = decode_base64url(completion.proof_signature, expected_bytes=64)
@@ -150,6 +173,7 @@ class RemoteIdentityService:
                         challenge=completion.challenge,
                         public_key=completion.public_key,
                         protocol_version=completion.protocol_version,
+                        server_origin=completion.server_origin,
                     ),
                 )
             except (InvalidSignature, ValueError):
@@ -616,6 +640,25 @@ class RemoteIdentityService:
                 session_id=session_id,
                 created_at=now,
             )
+        if record.server_origin is not None:
+            expected_scheme = record.server_origin.partition("://")[0]
+            if not secrets.compare_digest(request.scheme.casefold(), expected_scheme):
+                await self._deny(
+                    "origin_mismatch",
+                    device_id=record.id,
+                    session_id=session_id,
+                    created_at=now,
+                )
+            if not secrets.compare_digest(
+                request.authority.casefold(),
+                authority_from_origin(record.server_origin),
+            ):
+                await self._deny(
+                    "authority_mismatch",
+                    device_id=record.id,
+                    session_id=session_id,
+                    created_at=now,
+                )
         skew = abs(now - request.timestamp.astimezone(UTC))
         if skew > self._allowed_clock_skew:
             await self._deny(

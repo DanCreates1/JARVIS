@@ -24,6 +24,8 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.16",
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0",
     "expo": "~57.0.24",
     "expo-constants": "~57.0.19",
     "expo-linking": "~57.0.10",

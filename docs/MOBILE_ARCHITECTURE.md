@@ -1,7 +1,7 @@
 # JARVIS Native Mobile Architecture
 
-Status: M1A foundation in progress  
-Updated: 2026-09-20
+Status: M1B complete; M2A contract implemented  
+Updated: 2026-09-21
 
 ## Boundary
 
@@ -28,15 +28,22 @@ The intended layering is:
 - `src/ui/`: accessible reusable presentation primitives.
 - `src/testing/`: fixtures and test helpers.
 
-M1A contains only an offline-safe shell and validated non-secret environment name. It performs no
-network request, persistence, telemetry, permission request, enrollment, or EAS account linkage.
+M1 contains only an offline-safe shell and validated non-secret environment name. M2A adds pure
+cross-language request/enrollment canonicalization and test vectors; it still performs no network
+request, key persistence, telemetry, permission request, or EAS account linkage.
 
 ## Security invariants
 
 - Core remains canonical. Mobile cache never becomes authority.
-- Browser cookie/CSRF identity and future native signed-session identity remain type-separated.
+- Browser cookie/CSRF identity and native signed-session identity remain type-separated.
 - No model, Garmin, notification-provider, or other service credential is shipped to the client.
-- Production network trust, secure key storage, enrollment, and device revocation belong to M2.
+- Enrollment v2 binds a normalized exact HTTPS server origin. Core persists that binding and rejects
+  every signed session or API request whose authority differs. Enrollment v1 remains available for
+  existing PWA clients.
+- HTTP origins require an explicit development-only loopback override. They cannot be used for a
+  non-loopback host.
+- Private-key generation and SecureStore persistence remain M2B work; no private key or live
+  credential is present in the repository.
 - Generated output, dependencies, local Expo state, and native build output stay outside Git.
 
 ## Compatibility
@@ -56,3 +63,14 @@ only the committed npm lock, rejects lock drift, checks formatting, lint, strict
 coverage, Expo package compatibility, dependency licenses, high/critical production advisories,
 and deterministic Android/iOS exports. It has read-only repository permission and receives no
 secrets. Python CI remains separate and unchanged.
+
+## Auth contract
+
+The signed HTTP profile remains `jarvis-http-signature-v1` and continues to bind method, authority,
+raw path/query, body digest, UTC timestamp, nonce, audience, device/key identity, and session-token
+digest. Enrollment v1 keeps its original proof bytes. Enrollment v2 adds the normalized server
+origin to `jarvis-enrollment-v2` proof bytes and stores it with the device.
+
+`GET /api/v1/client/status` now advertises API protocol version, server time, sorted capabilities,
+and compatibility flags. Older PWA clients can ignore these additive fields. Shared deterministic
+vectors in `tests/fixtures/remote_signing_vectors.json` are consumed by Python and TypeScript tests.

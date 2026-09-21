@@ -110,6 +110,8 @@ Requirements:
 - rotate credentials and support immediate revocation;
 - reject replayed nonces/timestamps and wrong audience;
 - a device cannot self-add capabilities after enrollment;
+- native enrollment v2 binds one exact normalized HTTPS server origin; all later signed requests
+  must match its authority, while legacy PWA enrollment v1 remains supported;
 - lost-phone flow revokes device and sessions, then confirms audit history;
 - disconnected devices are marked unavailable; actions are not silently rerouted.
 
