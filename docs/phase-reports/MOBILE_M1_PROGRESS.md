@@ -2,16 +2,15 @@
 
 Status: `implemented-closeout-pending`  
 Started: 2026-09-20  
-Updated: 2026-09-20  
-Active subphase: M1B — Mobile quality and CI gate  
+Updated: 2026-09-21  
+Active subphase: M1A live-device acceptance deferred; M1B complete  
 Recommended Codex model: `gpt-6-astra`  
 Recommended reasoning: `max`
 
 ## Objective
 
 Create an isolated Expo SDK 57 TypeScript workspace with a minimal branded, offline-safe shell,
-validated non-secret environment metadata, dependency lock, focused tests, and deterministic iOS
-and Android exports. Do not start M1B CI or M2 authentication work.
+then enforce its independent quality and CI gate without changing Python CI.
 
 ## Baseline
 
@@ -46,14 +45,16 @@ and Android exports. Do not start M1B CI or M2 authentication work.
 
 ### Milestone 2 — Quality and CI gate
 
-- Status: locally complete; remote CI pending push.
+- Status: complete.
 - Changes: pinned ESLint/Prettier/Expo Doctor tooling, coverage thresholds, dependency-license
   policy, production audit threshold, and separate least-privilege mobile CI workflow.
 - Evidence: format, lint, strict typecheck, 3 tests at 100% coverage, Expo Doctor 21/21, 1,098
   package-license entries, high/critical audit threshold, and Android/iOS exports pass. A temporary
   invalid assignment produced TS2322, proving the type gate rejects broken code; the probe was then
   removed and the clean gate rerun.
-- Remaining: secret/diff gate, isolated commit/push, and GitHub Actions result.
+- Remote evidence: commit `ec5b11d` passed both GitHub Actions workflows: Mobile CI run
+  `35632485139` and repository CI run `35632485147`.
+- Remaining: none for M1B.
 
 ## Decisions
 
@@ -130,6 +131,12 @@ PASS
 
 rtk npm.cmd run export:ios
 PASS
+
+GitHub Actions Mobile CI run 35632485139
+PASS
+
+GitHub Actions repository CI run 35632485147
+PASS
 ```
 
 ## Security and privacy
@@ -169,6 +176,7 @@ PASS
 
 - Final status: implementation verified; physical iPhone closeout pending.
 - Files changed: isolated `mobile/` foundation, mobile architecture/phase docs, report, ignore rules.
-- Next recommended phase: M1B only after M1A live-device acceptance.
-- Commit/push status: M1A implementation committed/pushed separately from Phase C; physical iPhone
-  acceptance remains pending. Phase C files remain unstaged and untouched.
+- Next implementation subphase: M2A, which is laptop-only. M1A physical-device acceptance remains
+  deferred until the owner can sign into Expo Go and Expo CLI with the same account.
+- Commit/push status: M1A commit `7f9ccf5` and M1B commit `ec5b11d` are pushed separately from
+  Phase C. Both M1B workflows are green. Phase C files remain unstaged and untouched.
