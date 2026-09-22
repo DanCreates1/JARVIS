@@ -4,6 +4,7 @@ import { Link, type Href } from "expo-router";
 import { useEffect, useReducer, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -25,6 +26,7 @@ export interface PairingClient {
   pair(ticketPayload: string): Promise<{ identity: DeviceIdentitySummary }>;
   getStatus(): Promise<unknown>;
   logout(): Promise<void>;
+  rotateKey(): Promise<{ identity: DeviceIdentitySummary }>;
   eraseCredentials(): Promise<void>;
 }
 
@@ -142,6 +144,37 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
     }
   }
 
+  function confirmKeyRotation(): void {
+    Alert.alert(
+      "Rotate device key?",
+      "Core will revoke existing sessions. Keep Core reachable until rotation finishes.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Rotate key", style: "destructive", onPress: () => void rotateKey() },
+      ],
+    );
+  }
+
+  async function rotateKey(): Promise<void> {
+    setCheckingStatus(true);
+    setStatusMessage(null);
+    try {
+      const result = await auth.rotateKey();
+      dispatch({ type: "PAIR_SUCCEEDED", identity: result.identity });
+      setStatusMessage({
+        detail: "Device key rotated. Existing sessions were revoked.",
+        tone: "ready",
+      });
+    } catch {
+      setStatusMessage({
+        detail: "Key rotation not confirmed. Reconnect to Core and retry status for recovery.",
+        tone: "offline",
+      });
+    } finally {
+      setCheckingStatus(false);
+    }
+  }
+
   const busy = state.status === "loading" || state.status === "pairing" || checkingStatus;
 
   return (
@@ -198,6 +231,14 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
                 style={styles.secondaryButton}
               >
                 <Text style={styles.secondaryButtonText}>Log out session</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={busy}
+                onPress={confirmKeyRotation}
+                style={styles.secondaryButton}
+              >
+                <Text style={styles.secondaryButtonText}>Rotate device key</Text>
               </Pressable>
             </View>
           ) : null}

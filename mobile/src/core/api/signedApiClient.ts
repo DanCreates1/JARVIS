@@ -5,6 +5,7 @@ import type { RandomSource } from "@/core/auth/platform";
 import type { EnrollmentTicketV2 } from "@/core/auth/ticket";
 import {
   buildEnrollmentProof,
+  buildRotationProof,
   canonicalRequest,
   decodeBase64Url,
   encodeBase64Url,
@@ -30,6 +31,13 @@ export type EnrollmentDevice = Readonly<{
   enrollmentProtocolVersion: "2";
   serverOrigin: string;
   enrolledAt: string;
+}>;
+
+export type RotatedDevice = Readonly<{
+  id: string;
+  keyVersion: number;
+  enrollmentProtocolVersion: "2";
+  serverOrigin: string;
 }>;
 
 export class MobileApiError extends Error {
@@ -158,6 +166,47 @@ export class SignedApiClient {
       session.token,
     );
     if (!response.ok) throw new MobileApiError(response.status, "logout_failed");
+  }
+
+  async rotateKey(
+    identity: MobileIdentity,
+    session: SessionCredential,
+    newPrivateSeed: Uint8Array,
+  ): Promise<RotatedDevice> {
+    if (newPrivateSeed.length !== 32) throw new Error("new private seed has wrong length");
+    const newPublicKey = encodeBase64Url(ed25519.getPublicKey(newPrivateSeed));
+    const proof = buildRotationProof({
+      deviceId: identity.deviceId,
+      currentKeyVersion: identity.keyVersion,
+      newPublicKey,
+    });
+    const response = await this.signedRequest(
+      identity,
+      "POST",
+      "/api/v1/device/key",
+      JSON.stringify({
+        new_public_key: newPublicKey,
+        new_key_proof: encodeBase64Url(ed25519.sign(proof, newPrivateSeed)),
+      }),
+      session.token,
+    );
+    if (!response.ok) throw new MobileApiError(response.status, "key_rotation_failed");
+    const value = asRecord(await response.json());
+    if (
+      value.id !== identity.deviceId ||
+      value.key_version !== identity.keyVersion + 1 ||
+      value.enrollment_protocol_version !== "2" ||
+      value.server_origin !== identity.serverOrigin ||
+      value.state !== "active"
+    ) {
+      throw new MobileApiError(response.status, "invalid_key_rotation_response");
+    }
+    return {
+      id: identity.deviceId,
+      keyVersion: identity.keyVersion + 1,
+      enrollmentProtocolVersion: "2",
+      serverOrigin: identity.serverOrigin,
+    };
   }
 
   private async signedRequest(

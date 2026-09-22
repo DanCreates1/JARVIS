@@ -1,5 +1,6 @@
 import { fireEvent, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+import { Alert } from "react-native";
 
 import PairScreen, { type PairingClient } from "../app/pair";
 import type { DeviceIdentitySummary } from "@/core/auth/identityVault";
@@ -42,6 +43,7 @@ function client(overrides: Partial<PairingClient> = {}): jest.Mocked<PairingClie
     pair: jest.fn().mockResolvedValue({ identity }),
     getStatus: jest.fn().mockResolvedValue({ online: true }),
     logout: jest.fn().mockResolvedValue(undefined),
+    rotateKey: jest.fn().mockResolvedValue({ identity }),
     eraseCredentials: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   } as jest.Mocked<PairingClient>;
@@ -163,6 +165,21 @@ describe("pairing screen", () => {
 
     fireEvent.press(screen.getByText("Check Core status"));
     await waitFor(() => expect(auth.getStatus).toHaveBeenCalledTimes(2));
+  });
+
+  it("requires confirmation before rotating the device key", async () => {
+    const auth = client({ restoreIdentity: jest.fn().mockResolvedValue(identity) });
+    const alert = jest.spyOn(Alert, "alert").mockImplementation((_title, _message, buttons) => {
+      buttons?.find((button) => button.text === "Rotate key")?.onPress?.();
+    });
+    const screen = renderApp(<PairScreen authClient={auth} />);
+    await waitFor(() => expect(screen.getByText("Rotate device key")).toBeOnTheScreen());
+    fireEvent.press(screen.getByText("Rotate device key"));
+    await waitFor(() => expect(auth.rotateKey).toHaveBeenCalledTimes(1));
+    expect(
+      screen.getByText("Device key rotated. Existing sessions were revoked."),
+    ).toBeOnTheScreen();
+    alert.mockRestore();
   });
 
   it("keeps credential erase available after status or logout failure", async () => {

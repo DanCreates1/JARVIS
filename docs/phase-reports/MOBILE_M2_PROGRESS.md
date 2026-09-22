@@ -1,6 +1,6 @@
 # Mobile M2 Progress Report
 
-Status: `M2C-local-correction-verified-live-acceptance-pending`
+Status: `M2C-local-rotation-verified-live-acceptance-pending`
 Started: 2026-09-21  
 Updated: 2026-09-22
 Active subphase: M2C — physical iPhone/Tailscale acceptance
@@ -14,11 +14,12 @@ Phase C work untouched.
 
 ## M2C baseline and acceptance
 
-- Git: `main` at `d0ab262`, matching `origin/main` at 2026-09-22 continuation start; the M2C logout-scope correction is pushed.
+- Git: continuation started from `aa0177c`, matching `origin/main`; prior M2C preflight evidence is pushed.
 - Phase C research edits were already modified/untracked; outside M2C scope.
 - M1 Expo Go launch passed; M2A `676fd08` and M2B `62eb778` are present.
 - Node 24.20.0, npm 11.19.0, Tailscale CLI, `uv`, and Gitleaks are installed.
 - [x] Reviewed `jarvis-mobile` linking scheme and on-device signed status control.
+- [x] Implemented and locally verified explicit, crash-recoverable native key rotation.
 - [x] Mobile quality gate and relevant Core regression gate pass.
 - [ ] iPhone v2 minimum-scope enrollment through Tailscale HTTPS passes.
 - [ ] Signed status, logout/recreation, Wi-Fi/cellular, Tailscale loss/reconnect, Core restart pass.
@@ -65,6 +66,27 @@ development-build approval.
   88.32% branches, 94.59% functions, 95.77% lines, Expo Doctor 21/21, 1,108 license records,
   no high/critical production advisories, and Android/iOS exports. The 13 moderate transitive
   advisories remain. No live phone result or ticket is claimed.
+- 2026-09-22 continuation added the missing native `key.rotate` path without starting Core or
+  creating a ticket. Rotation requires explicit on-device confirmation and a separately granted
+  scope. The client stages the new seed in SecureStore, submits an old-key signed request plus
+  new-key proof, invalidates the cached session, validates Core's exact key-version/origin response,
+  and commits the replacement identity. If the response is lost before or after Core commit, the
+  next signed status deterministically tries the staged and current keys, then commits or discards
+  the staged key. Credential erase deletes current and pending key records.
+
+```text
+M2C native rotation mobile npm.cmd run verify
+PASS: Prettier, ESLint, TypeScript, 36 Jest tests, 92.06% statements,
+86.47% branches, 95.45% functions, 94.25% lines, Expo Doctor 21/21,
+1,108 dependency license records, no high/critical production advisories,
+Android and iOS exports. 13 moderate transitive advisories remain.
+
+Core rotation regression with bootstrap Python and --no-cov
+PASS: 1 test. Pytest cache warning only; repository-root .pytest_cache is not writable.
+
+uv lock --check / Gitleaks full Git scan / git diff --check
+PASS: lock current; 55 commits and 5.78 MB scanned with no leaks; no whitespace errors.
+```
 
 ```text
 M2C continuation mobile npm.cmd run verify
@@ -114,8 +136,9 @@ files remain untouched.
 - Physical iPhone/Tailscale evidence requires the owner's on-device actions.
 - Development build has not been requested or started. It needs separate owner approval plus a
   chosen Apple signing/account and iOS bundle identifier.
-- Native key rotation still needs a reviewed client flow and separate `key.rotate` scope. Core's
-  existing rotation tests are not live native evidence.
+- Native key rotation is implemented and locally tested. Live rotation still needs fresh approval
+  for a three-scope ticket adding `key.rotate`, plus physical-iPhone, Core-audit, restart, and
+  old-session rejection evidence. Core's existing rotation tests are not live native evidence.
 
 ## M2A objective
 

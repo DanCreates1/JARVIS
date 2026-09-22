@@ -231,9 +231,10 @@ Mobile M1 adds an isolated Expo SDK 57, React Native 0.86, TypeScript, and Expo 
 with an independent locked quality/CI gate. M2A adds authority-bound enrollment v2, additive client
 capability metadata, and shared Python/TypeScript Ed25519 signing vectors. M2B adds QR/manual pairing,
 device-only SecureStore identity, Expo Crypto key generation, signed short-session creation/refresh,
-authenticated status, logout, and credential erase. Bearer tokens remain memory-only. JARVIS Core
-remains the canonical brain and authority; enrollment v1 and the PWA remain supported. Physical
-iPhone Expo Go launch passed; live Tailscale pairing remains M2C work.
+authenticated status, logout, credential erase, and staged crash-recoverable key rotation behind
+an explicit `key.rotate` scope. Bearer tokens remain memory-only. JARVIS Core remains the canonical
+brain and authority; enrollment v1 and the PWA remain supported. Physical iPhone Expo Go launch
+passed; live Tailscale pairing, rotation, and recovery remain M2C work.
 
 See [Native Mobile Architecture](docs/MOBILE_ARCHITECTURE.md),
 [Native Mobile Phases](docs/MOBILE_PHASES.md), and

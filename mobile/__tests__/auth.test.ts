@@ -16,6 +16,7 @@ import type { RandomSource } from "@/core/auth/platform";
 import { parseEnrollmentTicket } from "@/core/auth/ticket";
 import {
   buildEnrollmentProof,
+  buildRotationProof,
   canonicalRequest,
   decodeBase64Url,
   encodeBase64Url,
@@ -46,7 +47,9 @@ class DeterministicRandom implements RandomSource {
 
   async bytes(length: number): Promise<Uint8Array> {
     this.calls += 1;
-    if (length === 32) return seed.slice();
+    if (length === 32) {
+      return Uint8Array.from({ length }, (_, index) => (index + this.calls) % 256);
+    }
     return Uint8Array.from({ length }, (_, index) => (index + this.calls) % 256);
   }
 }
@@ -93,6 +96,9 @@ class FakeCore {
   }> = [];
   sessionCount = 0;
   revoked = 0;
+  rotated = 0;
+  keyVersion = 1;
+  currentPublicKey: Uint8Array<ArrayBufferLike> = ed25519.getPublicKey(seed);
   enrollmentOrigin = origin;
   readonly sessionScopes = new Map<string, string[]>();
 
@@ -115,6 +121,8 @@ class FakeCore {
           decodeBase64Url(body.public_key),
         ),
       ).toBe(true);
+      this.currentPublicKey = decodeBase64Url(body.public_key);
+      this.keyVersion = 1;
       return response(200, {
         id: "device:test",
         key_version: 1,
@@ -124,7 +132,6 @@ class FakeCore {
       });
     }
 
-    const publicKey = ed25519.getPublicKey(seed);
     const body = init.body ?? "";
     const signed = canonicalRequest({
       method: init.method,
@@ -139,9 +146,16 @@ class FakeCore {
       nonce: init.headers["X-Jarvis-Nonce"],
       sessionToken: init.headers.Authorization?.replace("Bearer ", "") ?? null,
     });
-    expect(
-      ed25519.verify(decodeBase64Url(init.headers["X-Jarvis-Signature"]), signed, publicKey),
-    ).toBe(true);
+    if (
+      Number(init.headers["X-Jarvis-Key-Version"]) !== this.keyVersion ||
+      !ed25519.verify(
+        decodeBase64Url(init.headers["X-Jarvis-Signature"]),
+        signed,
+        this.currentPublicKey,
+      )
+    ) {
+      return response(401, {});
+    }
     if (url.pathname === "/api/v1/sessions") {
       this.sessionCount += 1;
       const requested = JSON.parse(body) as { requested_scopes: string[] };
@@ -150,7 +164,7 @@ class FakeCore {
         session_id: `session:${this.sessionCount}`,
         token: `token-${this.sessionCount}`,
         device_id: "device:test",
-        key_version: 1,
+        key_version: this.keyVersion,
         audience: "jarvis-api",
         scopes: requested.requested_scopes,
         expires_at: "2026-09-21T12:05:00Z",
@@ -171,6 +185,40 @@ class FakeCore {
       this.revoked += 1;
       return response(204, {});
     }
+    if (url.pathname === "/api/v1/device/key") {
+      if (!this.sessionScopes.get(init.headers.Authorization ?? "")?.includes("key.rotate")) {
+        return response(403, {});
+      }
+      const payload = JSON.parse(body) as {
+        new_public_key: string;
+        new_key_proof: string;
+      };
+      const proof = buildRotationProof({
+        deviceId: "device:test",
+        currentKeyVersion: this.keyVersion,
+        newPublicKey: payload.new_public_key,
+      });
+      if (
+        !ed25519.verify(
+          decodeBase64Url(payload.new_key_proof),
+          proof,
+          decodeBase64Url(payload.new_public_key),
+        )
+      ) {
+        return response(401, {});
+      }
+      this.currentPublicKey = decodeBase64Url(payload.new_public_key);
+      this.keyVersion += 1;
+      this.rotated += 1;
+      this.sessionScopes.clear();
+      return response(200, {
+        id: "device:test",
+        key_version: this.keyVersion,
+        enrollment_protocol_version: "2",
+        server_origin: origin,
+        state: "active",
+      });
+    }
     return response(404, {});
   };
 }
@@ -189,6 +237,19 @@ function identity(): MobileIdentity {
 }
 
 describe("mobile authentication", () => {
+  it("matches the Core key-rotation proof framing", () => {
+    const newPublicKey = encodeBase64Url(ed25519.getPublicKey(seed));
+    expect(
+      new TextDecoder().decode(
+        buildRotationProof({
+          deviceId: "device:test",
+          currentKeyVersion: 1,
+          newPublicKey,
+        }),
+      ),
+    ).toBe(`jarvis-key-rotation-v1\n11:device:test\n1:1\n43:${newPublicKey}\n`);
+  });
+
   it("normalizes reviewed origins and permits HTTP loopback only when explicitly enabled", () => {
     expect(normalizeServerOrigin("https://JARVIS.Example:443")).toBe("https://jarvis.example");
     expect(normalizeServerOrigin("http://localhost:8000", { allowInsecureLoopback: true })).toBe(
@@ -250,6 +311,28 @@ describe("mobile authentication", () => {
     expect(await vault.load()).toBeNull();
   });
 
+  it("stages and atomically commits a validated replacement identity", async () => {
+    const vault = new IdentityVault(new MemoryStore());
+    const current = identity();
+    const nextSeed = Uint8Array.from({ length: 32 }, (_, index) => index + 2);
+    const next: MobileIdentity = {
+      ...current,
+      privateSeed: encodeBase64Url(nextSeed),
+      publicKey: encodeBase64Url(ed25519.getPublicKey(nextSeed)),
+      keyVersion: 2,
+    };
+    await vault.save(current);
+    await vault.stageRotation(current, next);
+    expect(await vault.load()).toEqual(current);
+    expect(await vault.loadPendingRotation()).toEqual(next);
+    await expect(vault.stageRotation(current, { ...next, keyVersion: 3 })).rejects.toBeInstanceOf(
+      CorruptIdentityError,
+    );
+    expect(await vault.commitRotation()).toEqual(next);
+    expect(await vault.load()).toEqual(next);
+    expect(await vault.loadPendingRotation()).toBeNull();
+  });
+
   it("pairs, verifies signed requests, keeps sessions in memory, refreshes, and revokes", async () => {
     const store = new MemoryStore();
     const vault = new IdentityVault(store);
@@ -281,6 +364,127 @@ describe("mobile authentication", () => {
     expect(core.sessionCount).toBe(3);
     await restarted.eraseCredentials();
     expect(await restarted.restoreIdentity()).toBeNull();
+  });
+
+  it("rotates the device key with new-key proof and recreates a scoped session", async () => {
+    const vault = new IdentityVault(new MemoryStore());
+    const core = new FakeCore();
+    const auth = new MobileAuthClient(
+      vault,
+      new SignedApiClient(core.fetch, core.random, () => now),
+      core.random,
+      () => now,
+    );
+    await auth.pair(
+      ticket({ approved_scopes: ["client.status.read", "session.revoke", "key.rotate"] }),
+    );
+    const before = await vault.load();
+    await auth.rotateKey();
+    const after = await vault.load();
+    expect(core.rotated).toBe(1);
+    expect(after?.keyVersion).toBe(2);
+    expect(after?.publicKey).not.toBe(before?.publicKey);
+    expect(await vault.loadPendingRotation()).toBeNull();
+    await expect(auth.getStatus()).resolves.toEqual({ ready: true });
+    expect(core.sessionScopes.get(`Bearer token-${core.sessionCount}`)).toEqual([
+      "client.status.read",
+      "session.revoke",
+    ]);
+  });
+
+  it("fails closed before staging when Core denies the rotation scope", async () => {
+    const vault = new IdentityVault(new MemoryStore());
+    const core = new FakeCore();
+    const scopedFetch: FetchLike = async (input, init) => {
+      if (
+        new URL(input).pathname === "/api/v1/sessions" &&
+        (init.body ?? "").includes('"key.rotate"')
+      ) {
+        return response(403, {});
+      }
+      return core.fetch(input, init);
+    };
+    const auth = new MobileAuthClient(
+      vault,
+      new SignedApiClient(scopedFetch, core.random, () => now),
+      core.random,
+      () => now,
+    );
+    await auth.pair(ticket());
+    await expect(auth.rotateKey()).rejects.toMatchObject({ code: "session_failed" });
+    expect(core.rotated).toBe(0);
+    expect((await vault.load())?.keyVersion).toBe(1);
+    expect(await vault.loadPendingRotation()).toBeNull();
+  });
+
+  it("recovers a committed remote rotation after the success response is lost", async () => {
+    const vault = new IdentityVault(new MemoryStore());
+    const core = new FakeCore();
+    let loseRotationResponse = true;
+    const lossyFetch: FetchLike = async (input, init) => {
+      const result = await core.fetch(input, init);
+      if (new URL(input).pathname === "/api/v1/device/key" && loseRotationResponse) {
+        loseRotationResponse = false;
+        throw new Error("connection lost after commit");
+      }
+      return result;
+    };
+    const auth = new MobileAuthClient(
+      vault,
+      new SignedApiClient(lossyFetch, core.random, () => now),
+      core.random,
+      () => now,
+    );
+    await auth.pair(
+      ticket({ approved_scopes: ["client.status.read", "session.revoke", "key.rotate"] }),
+    );
+    await expect(auth.rotateKey()).rejects.toThrow("connection lost after commit");
+    expect(core.rotated).toBe(1);
+    expect((await vault.load())?.keyVersion).toBe(1);
+    expect((await vault.loadPendingRotation())?.keyVersion).toBe(2);
+
+    const restarted = new MobileAuthClient(
+      vault,
+      new SignedApiClient(core.fetch, core.random, () => now),
+      core.random,
+      () => now,
+    );
+    await expect(restarted.getStatus()).resolves.toEqual({ ready: true });
+    expect((await vault.load())?.keyVersion).toBe(2);
+    expect(await vault.loadPendingRotation()).toBeNull();
+  });
+
+  it("discards a staged key when the remote rotation never committed", async () => {
+    const vault = new IdentityVault(new MemoryStore());
+    const core = new FakeCore();
+    const interruptedFetch: FetchLike = async (input, init) => {
+      if (new URL(input).pathname === "/api/v1/device/key") {
+        throw new Error("connection lost before commit");
+      }
+      return core.fetch(input, init);
+    };
+    const auth = new MobileAuthClient(
+      vault,
+      new SignedApiClient(interruptedFetch, core.random, () => now),
+      core.random,
+      () => now,
+    );
+    await auth.pair(
+      ticket({ approved_scopes: ["client.status.read", "session.revoke", "key.rotate"] }),
+    );
+    await expect(auth.rotateKey()).rejects.toThrow("connection lost before commit");
+    expect(core.rotated).toBe(0);
+    expect((await vault.loadPendingRotation())?.keyVersion).toBe(2);
+
+    const restarted = new MobileAuthClient(
+      vault,
+      new SignedApiClient(core.fetch, core.random, () => now),
+      core.random,
+      () => now,
+    );
+    await expect(restarted.getStatus()).resolves.toEqual({ ready: true });
+    expect((await vault.load())?.keyVersion).toBe(1);
+    expect(await vault.loadPendingRotation()).toBeNull();
   });
 
   it("refreshes an expiring session and validates requested scopes", async () => {

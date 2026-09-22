@@ -32,7 +32,9 @@ M1 contains only an offline-safe shell and validated non-secret environment name
 cross-language request/enrollment canonicalization and test vectors. M2B adds the native pairing
 route, secure identity vault, signed API transport, and memory-only session lifecycle. It requests
 camera access only when the user explicitly opens the enrollment QR scanner. It adds no telemetry
-or EAS account linkage.
+or EAS account linkage. M2C adds an explicit confirmed key-rotation control. The replacement seed
+is staged in SecureStore before Core rotation, existing sessions are invalidated, and the next
+signed status reconciles an interrupted rotation against both old and new keys without guessing.
 
 ## Security invariants
 
@@ -106,3 +108,8 @@ vectors in `tests/fixtures/remote_signing_vectors.json` are consumed by Python a
    correct ordinary clock skew.
 6. Logout clears the in-memory token. Credential erase also attempts remote session revocation and
    always deletes the local identity.
+7. Key rotation requires a separately enrolled `key.rotate` scope and explicit on-device
+   confirmation. The old signed session plus a new-key proof authorizes Core rotation. The client
+   commits the staged replacement only after Core accepts it; after a lost response or restart,
+   one signed session attempt with each staged/current identity deterministically commits or
+   discards the staged key.

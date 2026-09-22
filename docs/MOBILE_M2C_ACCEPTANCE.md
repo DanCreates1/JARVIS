@@ -56,11 +56,15 @@ do not create another ticket without fresh approval.
 
 Before production-style M2C closeout, obtain separate development-build authorization. Confirm
 the `jarvis-mobile` scheme, camera permission behavior, SecureStore identity after app restart,
-and absence of credentials in links or logs on that build. The current pairing client requests only
-`client.status.read` and `session.revoke`; native key rotation needs a reviewed `key.rotate` flow
-and a separately approved ticket carrying that scope. Core's existing rotation tests do not
-substitute for a live native rotation result. Keep M2C open until required rotation and lost-phone
-evidence is recorded.
+and absence of credentials in links or logs on that build. The native client now implements an
+explicitly confirmed, crash-recoverable `key.rotate` flow. It stages the replacement seed in
+SecureStore, submits the old-key request plus new-key proof, clears the old session, and reconciles
+an interrupted response on the next signed status request. Live rotation still requires separate
+approval for a fresh ticket carrying `client.status.read`, `session.revoke`, and `key.rotate`.
+After rotation, verify the Core audit reason, key-version increment, old-session rejection, new-key
+status, app restart, and absence of key/token material in links or logs. Core's existing rotation
+tests do not substitute for this live native result. Keep M2C open until required rotation and
+lost-phone evidence is recorded.
 
 ## Recovery
 

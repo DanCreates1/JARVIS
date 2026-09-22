@@ -118,7 +118,12 @@ A bounded one-time retry can use the server's HTTPS `Date` header to correct dev
 Logout revokes only the current in-memory session and retains device enrollment. **Erase local
 credentials** attempts revocation and then deletes the SecureStore identity even if Core is
 unreachable. Changing the ticket's server origin first erases the prior local identity and requires
-fresh enrollment. Live iPhone/Tailscale validation is M2C and is not claimed by laptop tests.
+fresh enrollment. Native key rotation requires the separately enrolled `key.rotate` scope and an
+explicit on-device confirmation. The replacement seed is staged in SecureStore before the old-key
+signed rotation request; Core verifies a proof from the new key and revokes all old sessions. A
+lost response or app restart is reconciled by trying bounded signed session creation with the staged
+and current keys, then committing or discarding the staged identity. Live iPhone/Tailscale
+validation is M2C and is not claimed by laptop tests.
 
 ## Phase 8B browser boundary
 

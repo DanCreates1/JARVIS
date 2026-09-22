@@ -27,6 +27,12 @@ export type EnrollmentProof = Readonly<{
   serverOrigin?: string;
 }>;
 
+export type RotationProof = Readonly<{
+  deviceId: string;
+  currentKeyVersion: number;
+  newPublicKey: string;
+}>;
+
 export function canonicalRequest(request: CanonicalSignedRequest): Uint8Array {
   const method = request.method.toUpperCase();
   const authority = request.authority.toLowerCase();
@@ -102,6 +108,23 @@ export function buildEnrollmentProof(input: EnrollmentProof): Uint8Array {
     input.publicKey,
     input.protocolVersion,
     input.serverOrigin,
+  ]);
+}
+
+export function buildRotationProof(input: RotationProof): Uint8Array {
+  if (!input.deviceId || input.deviceId.includes("\n")) {
+    throw new Error("invalid device ID");
+  }
+  if (!Number.isSafeInteger(input.currentKeyVersion) || input.currentKeyVersion < 1) {
+    throw new Error("invalid key version");
+  }
+  if (!/^[A-Za-z0-9_-]{43}$/.test(input.newPublicKey)) {
+    throw new Error("invalid new public key");
+  }
+  return encodeValues("jarvis-key-rotation-v1", [
+    input.deviceId,
+    String(input.currentKeyVersion),
+    input.newPublicKey,
   ]);
 }
 

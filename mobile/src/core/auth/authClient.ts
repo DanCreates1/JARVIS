@@ -15,6 +15,7 @@ import { parseEnrollmentTicket } from "./ticket";
 
 const refreshWindowMs = 30_000;
 const sessionScopes = ["client.status.read", "session.revoke"] as const;
+const rotationScopes = ["key.rotate"] as const;
 
 export type PairingResult = Readonly<{
   identity: DeviceIdentitySummary;
@@ -73,6 +74,32 @@ export class MobileAuthClient {
     if (requestedScopes.length === 0 || new Set(requestedScopes).size !== requestedScopes.length) {
       throw new Error("requested scopes must be non-empty and unique");
     }
+    const identity = await this.resolvePendingRotation();
+    return this.ensureSessionFor(identity, requestedScopes);
+  }
+
+  async rotateKey(): Promise<PairingResult> {
+    const identity = await this.resolvePendingRotation();
+    const session = await this.ensureSessionFor(identity, rotationScopes);
+    const nextSeed = await this.random.bytes(32);
+    if (nextSeed.length !== 32) throw new Error("secure random source returned wrong length");
+    const nextIdentity: MobileIdentity = {
+      ...identity,
+      privateSeed: encodeBase64Url(nextSeed),
+      publicKey: encodeBase64Url(ed25519.getPublicKey(nextSeed)),
+      keyVersion: identity.keyVersion + 1,
+    };
+    await this.vault.stageRotation(identity, nextIdentity);
+    this.session = null;
+    await this.api.rotateKey(identity, session, nextSeed);
+    const committed = await this.vault.commitRotation();
+    return { identity: identitySummary(committed) };
+  }
+
+  private async ensureSessionFor(
+    identity: MobileIdentity,
+    requestedScopes: readonly string[],
+  ): Promise<SessionCredential> {
     if (
       this.session !== null &&
       requestedScopes.every((scope) => this.session?.scopes.includes(scope)) &&
@@ -80,15 +107,14 @@ export class MobileAuthClient {
     ) {
       return this.session;
     }
-    const identity = await this.requireIdentity();
     const session = await this.api.createSession(identity, requestedScopes);
     this.session = session;
     return session;
   }
 
   async getStatus(): Promise<unknown> {
-    const identity = await this.requireIdentity();
-    const session = await this.ensureSession(sessionScopes);
+    const identity = await this.resolvePendingRotation();
+    const session = await this.ensureSessionFor(identity, sessionScopes);
     return this.api.getStatus(identity, session);
   }
 
@@ -117,5 +143,31 @@ export class MobileAuthClient {
     const identity = await this.vault.load();
     if (identity === null) throw new Error("device is not enrolled");
     return identity;
+  }
+
+  private async resolvePendingRotation(): Promise<MobileIdentity> {
+    const current = await this.requireIdentity();
+    const pending = await this.vault.loadPendingRotation();
+    if (pending === null) return current;
+    if (pending.keyVersion === current.keyVersion && pending.publicKey === current.publicKey) {
+      await this.vault.discardPendingRotation();
+      return current;
+    }
+    this.session = null;
+    try {
+      const session = await this.api.createSession(pending, sessionScopes);
+      const committed = await this.vault.commitRotation();
+      this.session = session;
+      return committed;
+    } catch {
+      try {
+        const session = await this.api.createSession(current, sessionScopes);
+        await this.vault.discardPendingRotation();
+        this.session = session;
+        return current;
+      } catch {
+        throw new Error("pending key rotation could not be reconciled with Core");
+      }
+    }
   }
 }
