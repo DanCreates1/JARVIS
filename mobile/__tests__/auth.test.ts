@@ -265,6 +265,8 @@ describe("mobile authentication", () => {
     await restarted.logout();
     expect(core.revoked).toBe(1);
     expect(await restarted.restoreIdentity()).toEqual(identitySummary(identity()));
+    expect(await restarted.getStatus()).toEqual({ ready: true });
+    expect(core.sessionCount).toBe(3);
     await restarted.eraseCredentials();
     expect(await restarted.restoreIdentity()).toBeNull();
   });

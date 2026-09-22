@@ -1,11 +1,85 @@
 # Mobile M2 Progress Report
 
-Status: `M2B-laptop-complete-live-acceptance-deferred`
+Status: `M2C-local-preparation-complete-live-acceptance-pending`
 Started: 2026-09-21  
 Updated: 2026-09-21  
-Active subphase: M2B — Mobile key, session, and pairing client
+Active subphase: M2C — physical iPhone/Tailscale acceptance
 
-## Objective
+## M2C objective
+
+M2C: prove authority-bound native enrollment and scoped signed status on a physical iPhone through
+the existing private Tailscale Serve gateway. Exercise Wi-Fi/cellular, Tailscale loss/reconnect,
+Core restart, logout, device revoke/rotation, and lost-phone recovery. Keep Core loopback-only and
+Phase C work untouched.
+
+## M2C baseline and acceptance
+
+- Git: `main` at `a8e80b5`, matching `origin/main` at session start.
+- Phase C research edits were already modified/untracked; outside M2C scope.
+- M1 Expo Go launch passed; M2A `676fd08` and M2B `62eb778` are present.
+- Node 24.20.0, npm 11.19.0, Tailscale CLI, `uv`, and Gitleaks are installed.
+- [x] Reviewed `jarvis-mobile` linking scheme and on-device signed status control.
+- [x] Mobile quality gate and relevant Core regression gate pass.
+- [ ] iPhone v2 minimum-scope enrollment through Tailscale HTTPS passes.
+- [ ] Signed status, logout/recreation, Wi-Fi/cellular, Tailscale loss/reconnect, Core restart pass.
+- [ ] Revoke/rotation and lost-phone drill pass with sanitized audit evidence.
+- [ ] Private listener/Funnel boundaries, secret scan, docs, and isolated M2C commit pass.
+
+Fresh enrollment ticket and Expo development build each require owner approval before action.
+Do not record live tickets, signatures, tokens, private keys, tailnet identity, or phone data in
+Git. Expo Go can provide provisional live evidence; native build acceptance requires separate
+development-build approval.
+
+## M2C local preparation and evidence
+
+- `mobile/app.config.ts` sets `jarvis-mobile` as the app scheme. Expo's current linking guidance
+  requires a new development build before that scheme works on device. Ticket content remains
+  excluded from routes.
+- The enrolled iPhone screen can request signed Core status, revoke its current session, recreate
+  a session on next status, and erase local credentials. It hides ticket intake after enrollment
+  and keeps erase available after network or revoke failure.
+- `docs/MOBILE_M2C_ACCEPTANCE.md` freezes the provisional Expo Go matrix and the later native
+  build/rotation gates.
+- Read-only Tailscale status: client online, private HTTPS Serve route points to
+  `http://127.0.0.1:8765`, no public Funnel detected. No backend listener exists now. The Phase 8D
+  ownership marker is absent; do not use its `Run`/`Stop` actions over the existing route.
+
+```text
+mobile npm.cmd run verify
+PASS: Prettier, ESLint, TypeScript, 28 Jest tests, 93.58% statements,
+88.21% branches, 94.52% functions, 95.42% lines, Expo Doctor 21/21,
+1,108 dependency license records, no high/critical production advisories,
+Android and iOS exports
+
+bootstrap Python full suite
+PASS: 1,129 passed, 3 skipped, 85.09% coverage
+
+uv lock --check / uv sync --locked / uv run ruff check .
+PASS
+
+bootstrap pip-audit / Gitleaks Git history, mobile, and docs / git diff --check
+PASS: no known Python vulnerabilities and no leaks in scanned source
+```
+
+The production npm audit still reports 13 moderate transitive advisories; its configured release
+threshold rejects high/critical. Repository-wide Ruff format finds two pre-existing Phase C files.
+Bootstrap mypy finds the pre-existing assignment error at `src/jarvis/bootstrap.py:307` and checks
+all 144 source files. The standard `.venv` still cannot import generated mypyc modules or
+`cryptography.exceptions`; standard `uv run mypy src`, `uv run pip-audit`, and live CLI use remain
+impaired. The verified `.bootstrap-venv` works for imports, tests, mypy, and pip-audit. Phase C
+files remain untouched.
+
+## M2C live blockers
+
+- Owner approval for a fresh five-minute, minimum-scope v2 phone ticket is pending. No ticket has
+  been created in M2C.
+- Physical iPhone/Tailscale evidence requires the owner's on-device actions.
+- Development build has not been requested or started. It needs separate owner approval plus a
+  chosen Apple signing/account and iOS bundle identifier.
+- Native key rotation still needs a reviewed client flow and separate `key.rotate` scope. Core's
+  existing rotation tests are not live native evidence.
+
+## M2A objective
 
 Add an authority-bound enrollment v2 contract, additive client capability metadata, a compatible
 SQLite migration, and deterministic signing vectors shared by Python and TypeScript. Preserve

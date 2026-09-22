@@ -23,6 +23,8 @@ import { StatusBanner } from "@/ui/StatusBanner";
 export interface PairingClient {
   restoreIdentity(): Promise<DeviceIdentitySummary | null>;
   pair(ticketPayload: string): Promise<{ identity: DeviceIdentitySummary }>;
+  getStatus(): Promise<unknown>;
+  logout(): Promise<void>;
   eraseCredentials(): Promise<void>;
 }
 
@@ -31,6 +33,11 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
   const [state, dispatch] = useReducer(authReducer, { status: "loading" });
   const [ticket, setTicket] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<{
+    detail: string;
+    tone: "ready" | "offline";
+  } | null>(null);
+  const [checkingStatus, setCheckingStatus] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
 
   useEffect(() => {
@@ -51,6 +58,7 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
   }, [auth]);
 
   async function pair(): Promise<void> {
+    setStatusMessage(null);
     dispatch({ type: "PAIR_STARTED" });
     try {
       const result = await auth.pair(ticket);
@@ -85,6 +93,8 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
   }
 
   async function erase(): Promise<void> {
+    setStatusMessage(null);
+    setCheckingStatus(true);
     try {
       await auth.eraseCredentials();
       dispatch({ type: "ERASED" });
@@ -96,10 +106,43 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
     } finally {
       setTicket("");
       setScannerOpen(false);
+      setCheckingStatus(false);
     }
   }
 
-  const busy = state.status === "loading" || state.status === "pairing";
+  async function checkStatus(): Promise<void> {
+    setCheckingStatus(true);
+    setStatusMessage(null);
+    try {
+      await auth.getStatus();
+      setStatusMessage({ detail: "Core online. Signed status request passed.", tone: "ready" });
+    } catch {
+      setStatusMessage({
+        detail: "Core unavailable or access revoked. Check Tailscale and Core.",
+        tone: "offline",
+      });
+    } finally {
+      setCheckingStatus(false);
+    }
+  }
+
+  async function logout(): Promise<void> {
+    setCheckingStatus(true);
+    setStatusMessage(null);
+    try {
+      await auth.logout();
+      setStatusMessage({ detail: "Session revoked. Device enrollment retained.", tone: "ready" });
+    } catch {
+      setStatusMessage({
+        detail: "Session cleared locally. Remote revoke unavailable; revoke on Core.",
+        tone: "offline",
+      });
+    } finally {
+      setCheckingStatus(false);
+    }
+  }
+
+  const busy = state.status === "loading" || state.status === "pairing" || checkingStatus;
 
   return (
     <SafeAreaView style={styles.root}>
@@ -130,6 +173,34 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
           {state.status === "error" ? (
             <StatusBanner detail={state.message} label="Pairing unavailable" tone="offline" />
           ) : null}
+          {statusMessage ? (
+            <StatusBanner
+              detail={statusMessage.detail}
+              label="Core status"
+              tone={statusMessage.tone}
+            />
+          ) : null}
+
+          {state.status === "enrolled" ? (
+            <View style={styles.actions}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={busy}
+                onPress={() => void checkStatus()}
+                style={styles.primaryButton}
+              >
+                <Text style={styles.primaryButtonText}>Check Core status</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={busy}
+                onPress={() => void logout()}
+                style={styles.secondaryButton}
+              >
+                <Text style={styles.secondaryButtonText}>Log out session</Text>
+              </Pressable>
+            </View>
+          ) : null}
 
           {scannerOpen ? (
             <View style={styles.scannerFrame}>
@@ -147,7 +218,7 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
                 <Text style={styles.secondaryButtonText}>Cancel scan</Text>
               </Pressable>
             </View>
-          ) : (
+          ) : state.status !== "enrolled" ? (
             <>
               <TextInput
                 accessibilityLabel="Enrollment ticket JSON"
@@ -186,7 +257,7 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
                 </Pressable>
               </View>
             </>
-          )}
+          ) : null}
 
           <Text style={styles.securityNote}>
             Private key stays in device secure storage. Session tokens remain in memory. Changing
@@ -196,6 +267,7 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
           {state.status === "enrolled" || state.status === "error" ? (
             <Pressable
               accessibilityRole="button"
+              disabled={busy}
               onPress={() => void erase()}
               style={styles.eraseButton}
             >

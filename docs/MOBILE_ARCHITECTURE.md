@@ -66,7 +66,11 @@ Current Expo Go policy requires a physical iOS device and Expo CLI to be signed 
 Expo account before the device can open a development-server manifest. This authenticates manifest
 signing only; no EAS project is created or linked. Physical iPhone Expo Go launch passed on
 2026-09-21. M2C live Tailscale pairing remains pending. Metro reported a missing production linking
-scheme; set one before a development build.
+scheme during M1; M2C configures one before any development build.
+
+M2C configures the reviewed `jarvis-mobile` URL scheme. It names only the app; enrollment tickets,
+session credentials, and Core origins still never enter deep links. Expo Go continues to open with
+its own `exp://` scheme. The custom scheme takes effect only after an authorized native build.
 
 ## Quality gate
 

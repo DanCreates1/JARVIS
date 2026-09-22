@@ -40,6 +40,8 @@ function client(overrides: Partial<PairingClient> = {}): jest.Mocked<PairingClie
   return {
     restoreIdentity: jest.fn().mockResolvedValue(null),
     pair: jest.fn().mockResolvedValue({ identity }),
+    getStatus: jest.fn().mockResolvedValue({ online: true }),
+    logout: jest.fn().mockResolvedValue(undefined),
     eraseCredentials: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   } as jest.Mocked<PairingClient>;
@@ -72,7 +74,7 @@ describe("pairing screen", () => {
     fireEvent.press(screen.getByText("Pair device"));
     await waitFor(() => expect(auth.pair).toHaveBeenCalledWith("ticket-json"));
     expect(screen.getByText("Device enrolled")).toBeOnTheScreen();
-    expect(screen.getByLabelText("Enrollment ticket JSON")).toHaveProp("value", "");
+    expect(screen.queryByLabelText("Enrollment ticket JSON")).not.toBeOnTheScreen();
   });
 
   it("shows restore and pairing failures without exposing ticket content", async () => {
@@ -143,5 +145,49 @@ describe("pairing screen", () => {
         ),
       ).toBeOnTheScreen(),
     );
+  });
+
+  it("exposes signed Core status and session logout controls", async () => {
+    const auth = client({ restoreIdentity: jest.fn().mockResolvedValue(identity) });
+    const screen = renderApp(<PairScreen authClient={auth} />);
+    await waitFor(() => expect(screen.getByText("Check Core status")).toBeOnTheScreen());
+    expect(screen.queryByLabelText("Enrollment ticket JSON")).not.toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText("Check Core status"));
+    await waitFor(() => expect(auth.getStatus).toHaveBeenCalledTimes(1));
+    expect(screen.getByText("Core online. Signed status request passed.")).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText("Log out session"));
+    await waitFor(() => expect(auth.logout).toHaveBeenCalledTimes(1));
+    expect(screen.getByText("Session revoked. Device enrollment retained.")).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText("Check Core status"));
+    await waitFor(() => expect(auth.getStatus).toHaveBeenCalledTimes(2));
+  });
+
+  it("keeps credential erase available after status or logout failure", async () => {
+    const auth = client({
+      restoreIdentity: jest.fn().mockResolvedValue(identity),
+      getStatus: jest.fn().mockRejectedValue(new Error("private API detail")),
+      logout: jest.fn().mockRejectedValue(new Error("private revoke detail")),
+    });
+    const screen = renderApp(<PairScreen authClient={auth} />);
+    await waitFor(() => expect(screen.getByText("Check Core status")).toBeOnTheScreen());
+
+    fireEvent.press(screen.getByText("Check Core status"));
+    await waitFor(() =>
+      expect(
+        screen.getByText("Core unavailable or access revoked. Check Tailscale and Core."),
+      ).toBeOnTheScreen(),
+    );
+    fireEvent.press(screen.getByText("Log out session"));
+    await waitFor(() =>
+      expect(
+        screen.getByText("Session cleared locally. Remote revoke unavailable; revoke on Core."),
+      ).toBeOnTheScreen(),
+    );
+    expect(screen.queryByText("private API detail")).not.toBeOnTheScreen();
+    expect(screen.queryByText("private revoke detail")).not.toBeOnTheScreen();
+    expect(screen.getByText("Erase local credentials")).toBeOnTheScreen();
   });
 });
