@@ -24,7 +24,7 @@ Phase C work untouched.
 - [ ] iPhone v2 minimum-scope enrollment through Tailscale HTTPS passes.
 - [ ] Signed status, logout/recreation, Wi-Fi/cellular, Tailscale loss/reconnect, Core restart pass.
 - [ ] Revoke/rotation and lost-phone drill pass with sanitized audit evidence.
-- [ ] Private listener/Funnel boundaries, secret scan, docs, and isolated M2C commit pass.
+- [x] Private listener/Funnel boundaries, secret scan, docs, and isolated local M2C milestone commit pass.
 
 Fresh enrollment ticket and Expo development build each require owner approval before action.
 Do not record live tickets, signatures, tokens, private keys, tailnet identity, or phone data in
@@ -87,6 +87,9 @@ PASS: 1 test. Pytest cache warning only; repository-root .pytest_cache is not wr
 uv lock --check / Gitleaks full Git scan / git diff --check
 PASS: lock current; 55 commits and 5.78 MB scanned with no leaks; no whitespace errors.
 ```
+
+- Isolated native-rotation milestone commit `8dcb518` was pushed to `origin/main`; Phase C files
+  remained unstaged and untouched.
 
 ```text
 M2C continuation mobile npm.cmd run verify
