@@ -1,9 +1,9 @@
 # Mobile M1 Progress Report
 
-Status: `implemented-closeout-pending`  
+Status: `M1A-and-M1B-complete`
 Started: 2026-09-20  
 Updated: 2026-09-21  
-Active subphase: M1A live-device acceptance deferred; M1B complete  
+Active subphase: M1A physical-device acceptance complete; M1B complete
 Recommended Codex model: `gpt-6-astra`  
 Recommended reasoning: `max`
 
@@ -28,7 +28,7 @@ then enforce its independent quality and CI gate without changing Python CI.
 - [x] Unknown runtime environment metadata fails closed to `development`.
 - [x] Unit tests and strict TypeScript check pass.
 - [x] Deterministic iOS and Android exports pass without committed native projects.
-- [ ] Physical iPhone launches the shell through Expo Go.
+- [x] Physical iPhone launches the shell through Expo Go (owner confirmed 2026-09-21).
 - [x] No permissions, secrets, API calls, telemetry, EAS IDs, or sensitive persistence added.
 - [x] M1A-specific documentation and gates pass.
 
@@ -36,12 +36,15 @@ then enforce its independent quality and CI gate without changing Python CI.
 
 ### Milestone 1 — Isolated workspace
 
-- Status: implemented; live-device closeout pending.
+- Status: complete.
 - Changes: package/configuration, route shell, UI primitives, focused tests, architecture notes,
   and locked dependencies.
 - Evidence: typecheck and 2 tests pass; Expo Doctor 21/21; Android and iOS exports pass; full Python
   suite passes 1,115 with 3 skips at 85.08% coverage; Gitleaks and diff checks pass.
-- Remaining: physical iPhone Expo Go smoke, completion report, isolated commit/push.
+- Live evidence: laptop Expo CLI authenticated; Metro served `exp://192.168.18.6:8081`, returned
+  HTTP 200 locally, bundled the iOS route (1,306 modules in 8,135 ms), and owner confirmed JARVIS
+  launch screen opened in Expo Go on physical iPhone. No enrollment or credential was used.
+- Remaining: none for M1A.
 
 ### Milestone 2 — Quality and CI gate
 
@@ -152,12 +155,12 @@ PASS
   `eslint-plugin-import` or `eslint-plugin-react`. ESLint 9.39.5 is pinned until Expo's compatible
   dependency set advances.
 
-## Blockers
+## Resolved blocker and remaining gate classification
 
-- Physical iPhone Expo Go launch is blocked until Expo CLI and Expo Go are signed into the same
-  owner-controlled free Expo account. The unauthenticated LAN attempt was correctly rejected before
-  loading the project. The owner deferred laptop login and live-device validation until returning
-  home. M1A does not require EAS project creation or linkage.
+- Owner signed into Expo CLI and Expo Go under the same account. Physical iPhone Expo Go launch now
+  passes. No EAS project was created or linked.
+- Metro warned that a production linking `scheme` is absent. Expo Go still launched; add a reviewed
+  scheme before an M2C development build.
 - Repository-wide Ruff format and mypy gates are blocked by preserved Phase C work: Ruff reports
   two unformatted Phase C files, and mypy reports one assignment mismatch in `bootstrap.py`.
   M1A changes contain no Python files. `uv run mypy` also hits Windows Application Control error
@@ -165,8 +168,9 @@ PASS
 
 ## Known limits and deferred scope
 
-- Authentication, API transport, native secure storage, tabs, features, EAS linkage, and native
-  signing are deferred.
+- M2A/M2B subsequently added authentication and native secure storage. M1A smoke exercised only
+  native launch, not pairing or Core connectivity. M2C live pairing and any development build remain
+  separate work.
 
 ## Recovery and rollback
 
@@ -174,9 +178,9 @@ PASS
 
 ## Final handoff
 
-- Final status: implementation verified; physical iPhone closeout pending.
+- Final status: M1A and M1B complete; physical iPhone Expo Go smoke passed.
 - Files changed: isolated `mobile/` foundation, mobile architecture/phase docs, report, ignore rules.
-- Next implementation subphase: M2A, which is laptop-only. M1A physical-device acceptance remains
-  deferred until the owner can sign into Expo Go and Expo CLI with the same account.
+- Next live subphase: M2C physical-device pairing and revocation, subject to its separate build and
+  credential authority gates. M2A/M2B laptop work is complete.
 - Commit/push status: M1A commit `7f9ccf5` and M1B commit `ec5b11d` are pushed separately from
   Phase C. Both M1B workflows are green. Phase C files remain unstaged and untouched.

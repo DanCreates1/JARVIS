@@ -130,5 +130,6 @@ Production npm audit reports 13 moderate transitive advisories; current gate rej
   local `.venv`. Standard `uv run pytest` cannot import `cryptography.exceptions` from that same
   environment. Bootstrap Python provided equivalent full-suite, mypy, and audit evidence.
 - Phase C research changes remain unstaged and untouched. M2B files/docs alone form the commit.
-- Owner-present M1A Expo Go smoke, M2C physical iPhone/Tailscale pairing, Wi-Fi/cellular transitions,
-  server restart, revoke/rotation, and lost-phone drill remain pending. No M3 work starts before M2C.
+- M1A Expo Go physical iPhone smoke passed on 2026-09-21; see the M1 report. M2C physical
+  iPhone/Tailscale pairing, Wi-Fi/cellular transitions, server restart, revoke/rotation, and
+  lost-phone drill remain pending. No M3 work starts before M2C.

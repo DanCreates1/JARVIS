@@ -1,6 +1,6 @@
 # JARVIS Native Mobile Architecture
 
-Status: M1B and M2B complete locally; M2C live acceptance deferred
+Status: M1A/M1B complete; M2A/M2B complete locally; M2C live acceptance pending
 Updated: 2026-09-21
 
 ## Boundary
@@ -64,8 +64,9 @@ because PowerShell script shims are blocked by workstation execution policy.
 
 Current Expo Go policy requires a physical iOS device and Expo CLI to be signed into the same free
 Expo account before the device can open a development-server manifest. This authenticates manifest
-signing only; no EAS project is created or linked. Expo Go smoke and M2C live Tailscale pairing stay
-deferred until owner login and physical-device presence are available.
+signing only; no EAS project is created or linked. Physical iPhone Expo Go launch passed on
+2026-09-21. M2C live Tailscale pairing remains pending. Metro reported a missing production linking
+scheme; set one before a development build.
 
 ## Quality gate
 

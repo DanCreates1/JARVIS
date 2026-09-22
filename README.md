@@ -233,7 +233,7 @@ capability metadata, and shared Python/TypeScript Ed25519 signing vectors. M2B a
 device-only SecureStore identity, Expo Crypto key generation, signed short-session creation/refresh,
 authenticated status, logout, and credential erase. Bearer tokens remain memory-only. JARVIS Core
 remains the canonical brain and authority; enrollment v1 and the PWA remain supported. Physical
-iPhone/Expo Go/Tailscale acceptance remains owner-deferred.
+iPhone Expo Go launch passed; live Tailscale pairing remains M2C work.
 
 See [Native Mobile Architecture](docs/MOBILE_ARCHITECTURE.md),
 [Native Mobile Phases](docs/MOBILE_PHASES.md), and
