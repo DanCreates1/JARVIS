@@ -2,7 +2,7 @@
 
 Status: `M2C-local-correction-verified-live-acceptance-pending`
 Started: 2026-09-21  
-Updated: 2026-09-21  
+Updated: 2026-09-22
 Active subphase: M2C — physical iPhone/Tailscale acceptance
 
 ## M2C objective
@@ -14,7 +14,7 @@ Phase C work untouched.
 
 ## M2C baseline and acceptance
 
-- Git: `main` at `1f93bb3`, matching `origin/main` at session start; this M2C preparation commit is pushed.
+- Git: `main` at `d0ab262`, matching `origin/main` at 2026-09-22 continuation start; the M2C logout-scope correction is pushed.
 - Phase C research edits were already modified/untracked; outside M2C scope.
 - M1 Expo Go launch passed; M2A `676fd08` and M2B `62eb778` are present.
 - Node 24.20.0, npm 11.19.0, Tailscale CLI, `uv`, and Gitleaks are installed.
@@ -55,6 +55,16 @@ development-build approval.
   inspect the admin-console policy. Existing unowned route unchanged.
 - Read-only continuation found the registered iPhone peer offline in Tailscale. The Serve-owned
   tailnet TCP 443 listener is present; Core port 8765 remains closed. No live phone result is claimed.
+- 2026-09-22 read-only preflight: Tailscale reports online with private `.ts.net` DNS; the single
+  HTTPS TCP 443 Serve authority has one root handler to exact `http://127.0.0.1:8765`. Funnel has
+  zero enabled entries. The registered iOS peer remains offline. No Core port 8765 listener or
+  Phase 8D deployment marker exists. The owner-confirmed intended TCP 443 tailnet grant is carried
+  forward; local CLI cannot inspect admin-console policy. Existing unowned Serve route unchanged.
+- 2026-09-22 `.bootstrap-venv` imports `cryptography.exceptions`; `git diff --check` passes.
+  Mobile `npm.cmd run verify` passes: Prettier, ESLint, TypeScript, 29 Jest tests, 93.93% statements,
+  88.32% branches, 94.59% functions, 95.77% lines, Expo Doctor 21/21, 1,108 license records,
+  no high/critical production advisories, and Android/iOS exports. The 13 moderate transitive
+  advisories remain. No live phone result or ticket is claimed.
 
 ```text
 M2C continuation mobile npm.cmd run verify
