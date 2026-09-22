@@ -63,6 +63,7 @@ export function parseEnrollmentTicket(
     !approvedScopes.every((item) => typeof item === "string" && scope.test(item)) ||
     new Set(approvedScopes).size !== approvedScopes.length ||
     !approvedScopes.includes("client.status.read") ||
+    !approvedScopes.includes("session.revoke") ||
     !Number.isInteger(record.risk_ceiling) ||
     Number(record.risk_ceiling) < 0 ||
     Number(record.risk_ceiling) > 2 ||

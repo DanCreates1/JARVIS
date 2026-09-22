@@ -111,14 +111,17 @@ export class SignedApiClient {
     );
     if (!response.ok) throw new MobileApiError(response.status, "session_failed");
     const value = asRecord(await response.json());
+    const scopes = value.scopes;
     if (
       typeof value.session_id !== "string" ||
       typeof value.token !== "string" ||
       value.device_id !== identity.deviceId ||
       value.key_version !== identity.keyVersion ||
       value.audience !== "jarvis-api" ||
-      !Array.isArray(value.scopes) ||
-      !value.scopes.every((item) => typeof item === "string") ||
+      !Array.isArray(scopes) ||
+      !scopes.every((item) => typeof item === "string") ||
+      scopes.length !== requestedScopes.length ||
+      !requestedScopes.every((scope) => scopes.includes(scope)) ||
       typeof value.expires_at !== "string"
     ) {
       throw new MobileApiError(response.status, "invalid_session_response");
@@ -129,7 +132,7 @@ export class SignedApiClient {
       deviceId: value.device_id,
       keyVersion: value.key_version,
       audience: "jarvis-api",
-      scopes: value.scopes,
+      scopes,
       expiresAt: new Date(value.expires_at).toISOString(),
     };
   }

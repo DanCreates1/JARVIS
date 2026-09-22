@@ -14,6 +14,7 @@ import type { RandomSource } from "./platform";
 import { parseEnrollmentTicket } from "./ticket";
 
 const refreshWindowMs = 30_000;
+const sessionScopes = ["client.status.read", "session.revoke"] as const;
 
 export type PairingResult = Readonly<{
   identity: DeviceIdentitySummary;
@@ -63,7 +64,7 @@ export class MobileAuthClient {
       enrolledAt: new Date(device.enrolledAt).toISOString(),
     };
     await this.vault.save(identity);
-    const session = await this.api.createSession(identity, ["client.status.read"]);
+    const session = await this.api.createSession(identity, sessionScopes);
     this.session = session;
     return { identity: identitySummary(identity) };
   }
@@ -87,7 +88,7 @@ export class MobileAuthClient {
 
   async getStatus(): Promise<unknown> {
     const identity = await this.requireIdentity();
-    const session = await this.ensureSession(["client.status.read"]);
+    const session = await this.ensureSession(sessionScopes);
     return this.api.getStatus(identity, session);
   }
 

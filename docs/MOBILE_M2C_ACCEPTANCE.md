@@ -1,6 +1,6 @@
 # Mobile M2C live acceptance
 
-Status: local preparation in progress; physical iPhone evidence pending.
+Status: local preparation verified; physical iPhone evidence pending.
 
 ## Authority checkpoint
 
@@ -31,12 +31,14 @@ prove the final app scheme or independent native binary.
 ## Provisional Expo Go matrix
 
 After ticket approval, create one five-minute v2 phone ticket locally with exact Tailscale HTTPS
-origin, `client.status.read` only, and risk ceiling 0. Show its JSON only in a trusted local
+origin, `client.status.read` and `session.revoke` only, and risk ceiling 0. The latter is required
+because Core checks that scope when the app revokes its current session during logout or erase.
+The client requests only these two scopes for each session. Show ticket JSON only in a trusted local
 terminal; scan or paste it directly into the physical iPhone. Never reuse or retransmit a ticket.
 
 | Check | Expected evidence |
 | --- | --- |
-| Fresh pair | One phone device enrolled at v2 and bound to exact HTTPS origin; signed session uses only `client.status.read` |
+| Fresh pair | One phone device enrolled at v2 and bound to exact HTTPS origin; signed session uses only `client.status.read` and `session.revoke` |
 | Signed status | **Check Core status** succeeds; local audit records allowed scoped access |
 | Logout | **Log out session** revokes current session, retains device identity; next status creates a new signed session |
 | Wi-Fi to cellular and back | Status works through Tailscale HTTPS on each network after connection settles |
@@ -55,9 +57,10 @@ do not create another ticket without fresh approval.
 Before production-style M2C closeout, obtain separate development-build authorization. Confirm
 the `jarvis-mobile` scheme, camera permission behavior, SecureStore identity after app restart,
 and absence of credentials in links or logs on that build. The current pairing client requests only
-`client.status.read`; native key rotation needs a reviewed `key.rotate` flow and a separately
-approved ticket carrying that scope. Core's existing rotation tests do not substitute for a live
-native rotation result. Keep M2C open until required rotation and lost-phone evidence is recorded.
+`client.status.read` and `session.revoke`; native key rotation needs a reviewed `key.rotate` flow
+and a separately approved ticket carrying that scope. Core's existing rotation tests do not
+substitute for a live native rotation result. Keep M2C open until required rotation and lost-phone
+evidence is recorded.
 
 ## Recovery
 

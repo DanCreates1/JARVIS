@@ -1,6 +1,6 @@
 # Mobile M2 Progress Report
 
-Status: `M2C-local-preparation-complete-live-acceptance-pending`
+Status: `M2C-local-correction-verified-live-acceptance-pending`
 Started: 2026-09-21  
 Updated: 2026-09-21  
 Active subphase: M2C — physical iPhone/Tailscale acceptance
@@ -14,7 +14,7 @@ Phase C work untouched.
 
 ## M2C baseline and acceptance
 
-- Git: `main` at `a8e80b5`, matching `origin/main` at session start.
+- Git: `main` at `1f93bb3`, matching `origin/main` at session start; this M2C preparation commit is pushed.
 - Phase C research edits were already modified/untracked; outside M2C scope.
 - M1 Expo Go launch passed; M2A `676fd08` and M2B `62eb778` are present.
 - Node 24.20.0, npm 11.19.0, Tailscale CLI, `uv`, and Gitleaks are installed.
@@ -40,9 +40,35 @@ development-build approval.
   and keeps erase available after network or revoke failure.
 - `docs/MOBILE_M2C_ACCEPTANCE.md` freezes the provisional Expo Go matrix and the later native
   build/rotation gates.
+- 2026-09-21 continuation found a scope mismatch before live enrollment: Core requires
+  `session.revoke` on `DELETE /api/v1/sessions/current`, while the client requested only
+  `client.status.read`. The client now requires both scopes on the approved ticket and session,
+  so logout and erase can revoke remotely. It rejects a session response missing either scope;
+  the test fake enforces endpoint scopes. No live ticket was created.
 - Read-only Tailscale status: client online, private HTTPS Serve route points to
   `http://127.0.0.1:8765`, no public Funnel detected. No backend listener exists now. The Phase 8D
   ownership marker is absent; do not use its `Run`/`Stop` actions over the existing route.
+- Read-only continuation preflight: Tailscale 1.102.3 online, `.ts.net` DNS present, Serve still
+  has one HTTPS 443 route and one root handler to `http://127.0.0.1:8765`, Funnel disabled,
+  no port 8765 listener, ownership marker absent.
+  The owner confirmed the intended tailnet TCP 443 grant; this workstation cannot independently
+  inspect the admin-console policy. Existing unowned route unchanged.
+- Read-only continuation found the registered iPhone peer offline in Tailscale. The Serve-owned
+  tailnet TCP 443 listener is present; Core port 8765 remains closed. No live phone result is claimed.
+
+```text
+M2C continuation mobile npm.cmd run verify
+PASS: Prettier, ESLint, TypeScript, 29 Jest tests, 93.93% statements,
+88.32% branches, 94.59% functions, 95.77% lines, Expo Doctor 21/21,
+1,108 dependency license records, no high/critical production advisories,
+Android and iOS exports. 13 moderate transitive advisories remain.
+
+bootstrap Python cryptography.exceptions import / git diff --check
+PASS
+
+Gitleaks --no-git mobile/src, mobile/__tests__, docs
+PASS: no leaks in 32.28 KB, 32.72 KB, and about 786 KB respectively
+```
 
 ```text
 mobile npm.cmd run verify
@@ -71,8 +97,10 @@ files remain untouched.
 
 ## M2C live blockers
 
-- Owner approval for a fresh five-minute, minimum-scope v2 phone ticket is pending. No ticket has
-  been created in M2C.
+- Owner approval for each fresh five-minute, two-scope (`client.status.read`, `session.revoke`),
+  risk-0 v2 phone ticket is pending. No ticket has been created in M2C.
+- Core is not running on port 8765. Existing Serve route is unowned; starting Core must keep
+  `JARVIS_WEB_HOST=127.0.0.1` and exact trusted HTTPS origin without launcher Run/Stop.
 - Physical iPhone/Tailscale evidence requires the owner's on-device actions.
 - Development build has not been requested or started. It needs separate owner approval plus a
   chosen Apple signing/account and iOS bundle identifier.

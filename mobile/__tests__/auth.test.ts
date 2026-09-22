@@ -58,7 +58,7 @@ function ticket(overrides: Record<string, unknown> = {}): string {
     host_id: "host:test",
     display_name: "iPhone",
     device_type: "phone",
-    approved_scopes: ["client.status.read"],
+    approved_scopes: ["client.status.read", "session.revoke"],
     risk_ceiling: 1,
     expires_at: "2026-09-21T12:10:00Z",
     protocol_version: "2",
@@ -94,6 +94,7 @@ class FakeCore {
   sessionCount = 0;
   revoked = 0;
   enrollmentOrigin = origin;
+  readonly sessionScopes = new Map<string, string[]>();
 
   readonly fetch: FetchLike = async (input, init) => {
     this.requests.push({ url: input, ...init });
@@ -144,6 +145,7 @@ class FakeCore {
     if (url.pathname === "/api/v1/sessions") {
       this.sessionCount += 1;
       const requested = JSON.parse(body) as { requested_scopes: string[] };
+      this.sessionScopes.set(`Bearer token-${this.sessionCount}`, requested.requested_scopes);
       return response(200, {
         session_id: `session:${this.sessionCount}`,
         token: `token-${this.sessionCount}`,
@@ -155,9 +157,17 @@ class FakeCore {
       });
     }
     if (url.pathname === "/api/v1/client/status") {
+      if (
+        !this.sessionScopes.get(init.headers.Authorization ?? "")?.includes("client.status.read")
+      ) {
+        return response(403, {});
+      }
       return response(200, { ready: true });
     }
     if (url.pathname === "/api/v1/sessions/current") {
+      if (!this.sessionScopes.get(init.headers.Authorization ?? "")?.includes("session.revoke")) {
+        return response(403, {});
+      }
       this.revoked += 1;
       return response(204, {});
     }
@@ -208,6 +218,7 @@ describe("mobile authentication", () => {
       ticket({ challenge: "short" }),
       ticket({ approved_scopes: [] }),
       ticket({ approved_scopes: ["identity.read"] }),
+      ticket({ approved_scopes: ["client.status.read"] }),
       ticket({ approved_scopes: ["client.status.read", "client.status.read"] }),
       ticket({ risk_ceiling: 3 }),
       ticket({ expires_at: "invalid" }),
@@ -252,6 +263,7 @@ describe("mobile authentication", () => {
     expect(core.sessionCount).toBe(1);
     expect(JSON.parse(core.requests[1]?.body ?? "{}").requested_scopes).toEqual([
       "client.status.read",
+      "session.revoke",
     ]);
     await expect(auth.pair(ticket())).rejects.toThrow("already enrolled");
     expect(JSON.stringify([...store.values.values()])).not.toContain("token-1");
@@ -260,7 +272,7 @@ describe("mobile authentication", () => {
 
     const restarted = new MobileAuthClient(vault, api, core.random, () => now);
     expect(await restarted.restoreIdentity()).toEqual(identitySummary(identity()));
-    expect((await restarted.ensureSession(["client.status.read"])).token).toBe("token-2");
+    expect(await restarted.getStatus()).toEqual({ ready: true });
     expect(core.sessionCount).toBe(2);
     await restarted.logout();
     expect(core.revoked).toBe(1);
@@ -296,6 +308,24 @@ describe("mobile authentication", () => {
     await expect(auth.ensureSession(["client.status.read", "client.status.read"])).rejects.toThrow(
       "non-empty and unique",
     );
+  });
+
+  it("rejects a session response that omits the logout scope", async () => {
+    const core = new FakeCore();
+    const fetcher: FetchLike = async (input, init) => {
+      const result = await core.fetch(input, init);
+      if (new URL(input).pathname !== "/api/v1/sessions") return result;
+      return response(200, {
+        ...((await result.json()) as object),
+        scopes: ["client.status.read"],
+      });
+    };
+    const api = new SignedApiClient(fetcher, core.random, () => now);
+    await expect(
+      api.createSession(identity(), ["client.status.read", "session.revoke"]),
+    ).rejects.toMatchObject({
+      code: "invalid_session_response",
+    });
   });
 
   it("rejects expired tickets and wrong-host enrollment responses", async () => {
@@ -344,7 +374,7 @@ describe("mobile authentication", () => {
     };
     const failingApi = new SignedApiClient(failingFetch, core.random, () => now);
     const restarted = new MobileAuthClient(vault, failingApi, core.random, () => now);
-    await restarted.ensureSession(["client.status.read"]);
+    await restarted.getStatus();
     await expect(restarted.eraseCredentials()).rejects.toThrow("JARVIS API request failed");
     expect(await vault.load()).toBeNull();
   });

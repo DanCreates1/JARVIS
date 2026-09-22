@@ -48,8 +48,10 @@ or EAS account linkage.
   by Expo SecureStore with unlocked-device, device-only accessibility. Changing origin erases the
   prior local identity before a new enrollment.
 - Bearer session tokens remain process-memory-only. Launch/restart recreates a short session through
-  signed `POST /api/v1/sessions`; logout revokes the current session, and credential erase wipes the
-  local identity even when remote revocation is unavailable.
+  signed `POST /api/v1/sessions` requesting `client.status.read` and `session.revoke`; the latter
+  is required by Core's logout endpoint. A ticket missing either scope is rejected before pairing.
+  Logout revokes the current session, and credential erase wipes the local identity even when remote
+  revocation is unavailable.
 - Enrollment ticket, private seed, bearer token, and signatures are never logged, placed in routes,
   or committed. UI state receives only server origin, device ID, and enrollment time, never the
   seed or session token. The QR scanner accepts ticket content directly; deep links do not carry
