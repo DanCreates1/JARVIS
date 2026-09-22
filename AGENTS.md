@@ -2,6 +2,18 @@
 
 These repository instructions apply to every Codex task in JARVIS.
 
+## Cross-chat handoff
+
+- After completing a task or subphase, end the final reply with a standalone, copy-pasteable
+  **Next chat:** prompt. Make it the last text in the reply.
+- Name the exact next phase/subphase (for example, `Initiate phase 4` or `Initiate mobile subphase
+  M2C`) and include only essential repository state, prerequisite, and blocker context so a new
+  chat can resume without this conversation. Do not include credentials, tickets, or private data.
+- A handoff prompt is not permission to start the next subphase in the current chat. Respect each
+  subphase's stop gate and require fresh authority for credentials, signing, cloud builds, costs,
+  deployments, or other external effects.
+- If no next phase is planned, end with `Next chat: No phase queued.` rather than inventing work.
+
 ## Phase command trigger
 
 When the user says `initiate phase X`, `start phase X`, `continue phase X`, `finish phase X`,
