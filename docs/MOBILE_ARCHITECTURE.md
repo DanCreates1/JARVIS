@@ -1,7 +1,7 @@
 # JARVIS Native Mobile Architecture
 
-Status: M1A/M1B complete; M2A/M2B complete locally; M2C live acceptance pending
-Updated: 2026-09-21
+Status: MVP 1 active; M1A/M1B and local M2A/M2B complete; M2C live acceptance pending
+Updated: 2026-09-28
 
 ## Boundary
 
@@ -12,6 +12,18 @@ store. The mobile client cannot mint permission grants or hold model/provider cr
 The existing PWA remains a supported fallback, admin/compatibility surface, and API-behavior
 reference. Native and PWA share versioned `/api/v1` contracts, not UI code or authentication state.
 
+The MVP has three primary surfaces only:
+
+- **Chat:** Core-backed conversations, streaming, cancel, retry, and history.
+- **Garmin:** normalized read-only health/activity summaries, manual refresh, freshness, and
+  disconnect. Garmin authentication and data acquisition occur only in Core.
+- **Settings:** connection state, enrolled origin/device summary, logout, revoke/erase, key
+  rotation, and Garmin disconnect/delete controls.
+
+Loading, offline, reconnecting, expired-session, revoked, rate-limited, and error states are part
+of each surface contract. Navigation stays shallow and animation is optional, never required for
+understanding state.
+
 ## Workspace
 
 `mobile/` is an independent npm workspace using Expo SDK 57, React Native 0.86, TypeScript, Expo
@@ -21,10 +33,9 @@ unless a later reviewed native-module requirement proves necessary.
 The intended layering is:
 
 - `app/`: routes and navigation composition.
-- `src/core/`: future API, request-signing, authentication, secure storage, connectivity, and cache
-  policy.
-- `src/features/`: future chat, voice, media, files, health, notification, device, and settings
-  features.
+- `src/core/`: API, request-signing, authentication, secure storage, connectivity, and cache policy.
+- `src/features/`: MVP chat, Garmin view, connection, and settings features. Deferred features do
+  not shape the MVP navigation or authority model.
 - `src/ui/`: accessible reusable presentation primitives.
 - `src/testing/`: fixtures and test helpers.
 
@@ -59,6 +70,13 @@ signed status reconciles an interrupted rotation against both old and new keys w
   seed or session token. The QR scanner accepts ticket content directly; deep links do not carry
   credentials.
 - Generated output, dependencies, local Expo state, and native build output stay outside Git.
+- Garmin password, MFA value, access token, refresh token, raw response, and health data never
+  enter mobile storage. Mobile receives only bounded normalized Core view models over its enrolled
+  authenticated origin.
+- Garmin data is private health data and never enters model-provider requests. Audit records contain
+  operation, outcome, timing, and sanitized reason codes only.
+- Garmin MVP is structurally read-only. Core exposes no adapter path for upload, schedule, edit,
+  delete, weigh-in, hydration, nutrition, menstrual, or other account mutation.
 
 ## Compatibility
 
@@ -94,6 +112,48 @@ origin to `jarvis-enrollment-v2` proof bytes and stores it with the device.
 `GET /api/v1/client/status` now advertises API protocol version, server time, sorted capabilities,
 and compatibility flags. Older PWA clients can ignore these additive fields. Shared deterministic
 vectors in `tests/fixtures/remote_signing_vectors.json` are consumed by Python and TypeScript tests.
+
+## MVP data flows
+
+### Chat
+
+The native client uses scoped signed requests to the existing `/api/v1/client/chat` boundary and
+consumes Core-owned events through `/api/v1/client/events`. Native history and cancel additions must
+remain under `/api/v1`, use exact scopes, bind requests to the authenticated device/session, cap
+page/event sizes, preserve idempotency, and remain compatible with the PWA. Core conversation
+persistence is authoritative; mobile may keep only bounded display cache that can be deleted and
+rebuilt.
+
+```text
+iPhone Chat -> signed /api/v1 request -> Core conversation service -> model router
+            <- scoped SSE events ------ Core event hub <-------------+
+```
+
+### Garmin
+
+`python-garminconnect` sits behind a provider-neutral Core health-data port. The adapter maps only
+approved read methods into owned schemas. API handlers return minimal mobile view models rather
+than library responses. Mock/fake adapters are the default test path.
+
+```text
+iPhone Garmin -> signed read/refresh request -> Core health service -> provider-neutral port
+               <- normalized view model ------ schema validation <--- python-garminconnect
+                                                               |
+                                             protected local token storage
+```
+
+Upstream is unofficial and can break when Garmin changes its private web services. Current master
+reports version `0.3.16`, Python `>=3.12`, and MIT licensing. JARVIS currently targets Python
+`>=3.11,<3.13`; implementation must resolve that runtime boundary before dependency adoption.
+Recent upstream security work hardened token permissions, symlink/path handling, atomic writes,
+authentication validation, and log redaction. JARVIS still must store tokens through a Core-owned
+protected local-secret facility rather than expose or directly rely on the default token file.
+Current inspection found Windows Credential Manager/DPAPI policy guidance but no Garmin-ready
+implementation; identify and verify that facility before any live token is accepted.
+
+The Core adapter owns timeouts, bounded retries, single-flight refresh, local rate limits, response
+size/schema validation, stale-data rules, token-expiry state, disconnect, and deletion. Library
+exceptions are translated to stable content-free error codes.
 
 ## Native authentication lifecycle
 

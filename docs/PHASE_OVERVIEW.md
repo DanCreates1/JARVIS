@@ -1,102 +1,57 @@
 # JARVIS Phase Overview
 
-Updated: 2026-09-20
+Updated: 2026-09-28
 
-This is the concise execution view of the master roadmap. Status describes implemented code,
-not just design work. Model/reasoning values are Codex execution recommendations, not JARVIS
-runtime providers.
+## Active product path
 
-To execute a phase with Codex, use `Initiate Phase X and finish it.` Root `AGENTS.md` then loads
-the full [Codex phase execution playbook](CODEX_PHASE_PLAYBOOK.md), including prerequisites,
-implementation protocol, acceptance gates, safety boundaries, and completion reporting.
+Native mobile MVP is the active execution path. Work proceeds in this order:
 
-## Model guide
+1. **MVP 1 — Design and connection** — active; finish M2C live iPhone/Core acceptance.
+2. **MVP 2 — Chat** — text, streaming, history, cancel, retry, reconnect.
+3. **MVP 3 — Garmin** — private read-only daily health/activity summaries through Core.
+4. **MVP 4 — Polish and release** — physical-device recovery, accessibility, performance, and an
+   optional explicitly authorized development build.
 
-| Model | Use |
-| --- | --- |
-| `gpt-6-astra` | Architecture, security, difficult debugging, cross-system work, migration, high-risk decisions |
-| `gpt-5.6-sol` | Strong general implementation, evaluation, closeout |
-| `gpt-5.6-terra` | Bounded known-pattern implementation and UI |
-| `gpt-5.6-luna` / `gpt-5.4-mini` | Isolated mechanical work only; never security design or phase closure |
+**Mobile MVP complete** means an enrolled iPhone can securely send text to JARVIS, stream an
+answer, view basic read-only Garmin data, recover from ordinary connection failures, and
+disconnect cleanly.
 
-## Phase status
+See [Native Mobile Milestones](MOBILE_PHASES.md),
+[Mobile Architecture](MOBILE_ARCHITECTURE.md), and
+[M2C Acceptance](MOBILE_M2C_ACCEPTANCE.md). Existing phase reports remain the detailed historical
+record.
 
-| Phase | Scope | Status | Active subphase | Model / reasoning |
-| --- | --- | --- | --- | --- |
-| 0 | Repository baseline | Complete | Continuous audit | `gpt-5.6-sol` / `medium` |
-| 1 | Privacy-aware text core | Blocked external | 1D NVIDIA gate plus local-cold revalidation | `gpt-6-astra` / `max` |
-| 2 | Local-first voice | Complete | 2A-2C complete | `gpt-6-astra` / `xhigh` aggregate |
-| 3 | Controlled computer access | Implemented; closeout pending | 3C authorized live closeout | `gpt-6-astra` / `max` |
-| 4 | Durable memory | Complete | 4A-4C complete | `gpt-6-astra` / `xhigh` aggregate |
-| 5 | Research | Complete | 5A-5C complete | `gpt-6-astra` / `xhigh` aggregate |
-| 6 | Bounded tasks | Complete | 6A-6C complete | `gpt-6-astra` / `ultra` aggregate |
-| 7 | Vision and gestures | Complete | 7A-7C complete | `gpt-6-astra` / `max` |
-| 8 | Secure phone/PWA | Complete | 8A-8D complete | `gpt-6-astra` / `max` |
-| 9 | Dedicated server migration | Implementation complete; deployment blocked external | Authorized server cutover | `gpt-6-astra` / `max` |
-| 10 | Generic wearables | 10A complete; vendor integrations owner-deferred | Future-candidate backlog | `gpt-6-astra` / `xhigh` |
-| 11 | Advanced proactive/multimodal | Complete | Maintenance only | `gpt-6-astra` / `max` |
-| Mobile M1-M2 | Native Expo client and secure pairing | M1A/M1B complete, physical Expo Go smoke passed; M2A/M2B laptop work complete | M2C live-device/Tailscale acceptance | `gpt-6-astra` / `max` |
+## Current status
 
-## Phase 1 latency disposition
+| Track | Status | Next gate |
+| --- | --- | --- |
+| Mobile MVP 1 | M1 foundation complete; M2A/M2B local auth complete; M2C live evidence pending | Owner-approved ticket and physical-iPhone/Tailscale matrix |
+| Mobile MVP 2 | Not started | MVP 1 complete; add scoped native chat/history/cancel contracts |
+| Mobile MVP 3 | Planned | MVP 2 complete; resolve Python runtime/dependency gate and authorize any live account test |
+| Mobile MVP 4 | Planned | MVP 1–3 complete; owner approval for any build/signing |
+| Phase 0 | Complete; continuous audit | Maintenance |
+| Phase 1 | Implemented; formally `blocked-external` | NVIDIA latency and local-cold revalidation |
+| Phase 2 | Complete; continuous listening default-off | Maintenance |
+| Phase 3 | Implemented; live closeout pending | Separately authorized live effects only |
+| Phases 4–8 | Complete | Maintenance |
+| Phase 9 | Repository implementation complete; deployment blocked external | Authorized server target only |
+| Phase 10 | Generic boundary complete; previous vendor integration deferred | Mobile MVP 3 supersedes Garmin planning only |
+| Phase 11 | Complete; proactive/effect paths default-off | Maintenance |
 
-Phase 1 remains `blocked-external`, not complete. Current governance makes the hosted NVIDIA
-numbers a hard provider-specific acceptance gate: simple 1,000/2,500 ms and complex 3,000/7,000 ms
-p50/p95, with 20 successful observations per cold/warm state. It has no external-dependency closure
-status. Adaptive routing therefore improves JARVIS product responsiveness but cannot make that gate
-green.
+## Execution rules
 
-The evidence categories are deliberately separate:
+- Use the four mobile milestones, not the former M3–M9 or H1–H8 sequence.
+- Preserve Core as sole authority, memory, routing, permission, and audit system.
+- Keep production Core loopback-bound behind approved private-network HTTPS.
+- Require fresh owner authority for enrollment tickets, live Garmin credentials/MFA, signing,
+  cloud builds, costs, deployments, and App Store work.
+- Preserve unrelated work and historical completion evidence. Run focused checks during work and
+  full applicable release/security gates before milestone closure.
+- Detailed Phase 0–11 execution remains governed by
+  [Codex Phase Playbook](CODEX_PHASE_PLAYBOOK.md) when one of those phases is explicitly invoked.
 
-| Category | Current status |
-| --- | --- |
-| JARVIS product responsiveness | Protected by deterministic Tier 0, local-first Tier 1, responsive cloud Tier 2, and degraded-provider fallback |
-| Local latency | Prior 20/20 cold/warm gate passed; two 2026-09-08 revalidations passed deterministic/warm but cold p50 regressed to 2,383.312 and 2,305.991 ms |
-| Fast-cloud latency | Configuration-driven Groq Tier 2; no replacement measurement is used as NVIDIA evidence |
-| NVIDIA-specific latency | Preserved 80/80 run misses targets; fresh phase-resolved run remained tens of seconds and stopped fail-closed on capacity |
-| Provider-controlled tail | Fresh successful requests spent roughly 42–58 seconds waiting for response headers, then only about 0.1–0.2 seconds to first visible output |
+## Deferred backlog
 
-NVIDIA free-endpoint p95 remains above target and is not technically fixed. NVIDIA stays available
-for explicit deep reasoning where latency is acceptable. Revalidate after provider behavior or the
-endpoint changes. Phase 7 may be developed as an independent next milestone because its declared
-dependency is Phase 3/media privacy, but it must not be described as following a completed Phase 1.
-
-## Recommended order
-
-1. Keep Phase 1 formally blocked. Retry the fixed NVIDIA gate only when free-endpoint tail latency
-   improves, and recheck the fresh local-cold regression. Retain all prior evidence rather than
-   replacing it with routed product latency.
-2. Maintain completed Phase 2 voice evidence and its default-off continuous-listening boundary.
-   With separate authority, repeat the Phase 3 live application/device smokes.
-3. Maintain completed Phase 4 memory and the safe local Phase 3 baseline.
-4. Maintain completed Phase 5 research and its untrusted-evidence/storage-approval boundary. Phase
-   1 NVIDIA latency is an accepted known limitation, but its unchanged formal gate remains
-   `blocked-external`.
-5. Maintain completed Phase 6 bounded tasks and its default-off, foreground-only execution boundary.
-6. Maintain completed Phase 7 capture, local detection/gesture, and default-off Phase 3 mapping
-   boundaries. Keep model downloads explicit, capture foreground-only, and all action authority in
-   Phase 3. Preserve the explicit Phase 1 blocker.
-7. Maintain completed Phase 8 identity, signed API, durable browser cookie,
-   origin/CSRF/CORS/CSP, rate-limit, local-only sensitive approval, offline-safe PWA, scoped product
-   transport, bounded reconnect, tailnet-only TLS deployment, real-phone revocation, and rollback
-   boundaries. The Phase 9 repository implementation is complete: encrypted snapshots, exact
-   shadow checks, fenced ownership receipts, rollback rehearsal, receipt-gated startup, hardened
-   single-replica service specs, immutable release rollback, minimal health, and local chaos gates
-   pass. Local-only remains default. Real server cutover is blocked on an authorized target.
-8. Keep Phase 10A's generic wearable boundary. Meta glasses, mobile bridge, vendor SDK, and live
-   wearable work are owner-deferred future candidates and no longer block active roadmap work.
-9. Maintain completed Phase 11 proactivity: global/per-feature/runner/handoff/PWA default-off
-   controls; exact trusted activation; timezone/DST/quiet-hour/expiry/rate/attention policy;
-   restart-safe candidates and single-owner foreground leases; generic local inbox; bounded
-   snooze/dismiss/cancel; exact Phase 6 handoff recording; audit/export/delete; and no daemon, task
-   execution, approval binding, external push, or effect authority. Phase 11C adds one durable
-   candidate owner, short device leases, optimistic handoff/reclaim, exact PWA scope/audience/
-   feature binding, immediate revoke/kill recovery, and generic visible state. Phase 11D passed its
-   fixed 30-day/1,000-decision evaluation, 101 recovery incidents, 1,800-cycle wall-clock soak,
-   sanitized provenance, exact removal, and on-demand-core regression gates.
-
-Hands-free control is a cross-phase track: Phase 2 detects claps, Phase 7 recognizes hand
-gestures, and Phase 3 alone authorizes and executes the mapped computer action. See
-[Hands-Free Control Plan](HANDS_FREE_CONTROL.md).
-
-Each lettered subphase is one session capped at five elapsed hours. See the playbook for exact
-scope, tests, security/privacy, documentation, acceptance, exit, and per-subphase assignments.
+Voice, photos/files, push notifications, widgets, proactive features, phone sensors/context,
+health analytics, wearable writes, direct watch communication, and broad former M3–M9/H1–H8 work.
+These do not block the basic app.
