@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Alert } from "react-native";
 
 import PairScreen, { type PairingClient } from "../app/pair";
+import { MobileApiError } from "@/core/api/signedApiClient";
 import type { DeviceIdentitySummary } from "@/core/auth/identityVault";
 import { renderApp } from "@/testing/render";
 
@@ -45,6 +46,7 @@ function client(overrides: Partial<PairingClient> = {}): jest.Mocked<PairingClie
     logout: jest.fn().mockResolvedValue(undefined),
     rotateKey: jest.fn().mockResolvedValue({ identity }),
     eraseCredentials: jest.fn().mockResolvedValue(undefined),
+    isSessionExpired: jest.fn().mockReturnValue(false),
     ...overrides,
   } as jest.Mocked<PairingClient>;
 }
@@ -157,7 +159,10 @@ describe("pairing screen", () => {
 
     fireEvent.press(screen.getByText("Check Core status"));
     await waitFor(() => expect(auth.getStatus).toHaveBeenCalledTimes(1));
-    expect(screen.getByText("Core online. Signed status request passed.")).toBeOnTheScreen();
+    expect(screen.getByText("Connected at last check")).toBeOnTheScreen();
+    expect(
+      screen.getByText("Signed Core status request passed. Check again after a network change."),
+    ).toBeOnTheScreen();
 
     fireEvent.press(screen.getByText("Log out session"));
     await waitFor(() => expect(auth.logout).toHaveBeenCalledTimes(1));
@@ -165,6 +170,11 @@ describe("pairing screen", () => {
 
     fireEvent.press(screen.getByText("Check Core status"));
     await waitFor(() => expect(auth.getStatus).toHaveBeenCalledTimes(2));
+
+    fireEvent.press(screen.getByText("Disconnect"));
+    await waitFor(() => expect(auth.logout).toHaveBeenCalledTimes(2));
+    expect(screen.getByText("Disconnected. Device enrollment retained.")).toBeOnTheScreen();
+    expect(screen.getByText("Disconnected")).toBeOnTheScreen();
   });
 
   it("requires confirmation before rotating the device key", async () => {
@@ -185,18 +195,14 @@ describe("pairing screen", () => {
   it("keeps credential erase available after status or logout failure", async () => {
     const auth = client({
       restoreIdentity: jest.fn().mockResolvedValue(identity),
-      getStatus: jest.fn().mockRejectedValue(new Error("private API detail")),
+      getStatus: jest.fn().mockRejectedValue(new TypeError("private API detail")),
       logout: jest.fn().mockRejectedValue(new Error("private revoke detail")),
     });
     const screen = renderApp(<PairScreen authClient={auth} />);
     await waitFor(() => expect(screen.getByText("Check Core status")).toBeOnTheScreen());
 
     fireEvent.press(screen.getByText("Check Core status"));
-    await waitFor(() =>
-      expect(
-        screen.getByText("Core unavailable or access revoked. Check Tailscale and Core."),
-      ).toBeOnTheScreen(),
-    );
+    await waitFor(() => expect(screen.getByText("Core offline")).toBeOnTheScreen());
     fireEvent.press(screen.getByText("Log out session"));
     await waitFor(() =>
       expect(
@@ -206,5 +212,36 @@ describe("pairing screen", () => {
     expect(screen.queryByText("private API detail")).not.toBeOnTheScreen();
     expect(screen.queryByText("private revoke detail")).not.toBeOnTheScreen();
     expect(screen.getByText("Erase local credentials")).toBeOnTheScreen();
+  });
+
+  it("distinguishes denied access from network loss without exposing API details", async () => {
+    const auth = client({
+      restoreIdentity: jest.fn().mockResolvedValue(identity),
+      getStatus: jest.fn().mockRejectedValue(new MobileApiError(403, "status_failed")),
+    });
+    const screen = renderApp(<PairScreen authClient={auth} showBackLink={false} />);
+    await waitFor(() => expect(screen.getByText("Check Core status")).toBeOnTheScreen());
+    fireEvent.press(screen.getByText("Check Core status"));
+    await waitFor(() => expect(screen.getByText("Access denied")).toBeOnTheScreen());
+    expect(screen.queryByText("status_failed")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Back to Chat")).not.toBeOnTheScreen();
+  });
+
+  it("shows expired-session recovery while a new signed session is pending", async () => {
+    let finishStatus: (() => void) | undefined;
+    const pendingStatus = new Promise<void>((resolve) => {
+      finishStatus = resolve;
+    });
+    const auth = client({
+      restoreIdentity: jest.fn().mockResolvedValue(identity),
+      isSessionExpired: jest.fn().mockReturnValue(true),
+      getStatus: jest.fn().mockReturnValue(pendingStatus),
+    });
+    const screen = renderApp(<PairScreen authClient={auth} />);
+    await waitFor(() => expect(screen.getByText("Check Core status")).toBeOnTheScreen());
+    fireEvent.press(screen.getByText("Check Core status"));
+    expect(screen.getByText("Session expired")).toBeOnTheScreen();
+    finishStatus?.();
+    await waitFor(() => expect(screen.getByText("Connected at last check")).toBeOnTheScreen());
   });
 });

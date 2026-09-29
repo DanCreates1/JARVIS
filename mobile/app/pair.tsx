@@ -20,6 +20,12 @@ import { getMobileAuthClient } from "@/core/auth/runtime";
 import { authReducer } from "@/core/auth/authState";
 import type { DeviceIdentitySummary } from "@/core/auth/identityVault";
 import { StatusBanner } from "@/ui/StatusBanner";
+import {
+  classifyConnectionError,
+  connectionPresentation,
+  type ConnectionPhase,
+} from "@/ui/connectionView";
+import { touchTarget } from "@/ui/tokens";
 
 export interface PairingClient {
   restoreIdentity(): Promise<DeviceIdentitySummary | null>;
@@ -28,18 +34,26 @@ export interface PairingClient {
   logout(): Promise<void>;
   rotateKey(): Promise<{ identity: DeviceIdentitySummary }>;
   eraseCredentials(): Promise<void>;
+  isSessionExpired?(): boolean;
 }
 
-export default function PairScreen({ authClient }: { authClient?: PairingClient } = {}) {
+export default function PairScreen({
+  authClient,
+  showBackLink = true,
+}: {
+  authClient?: PairingClient;
+  showBackLink?: boolean;
+} = {}) {
   const auth = authClient ?? getMobileAuthClient();
   const [state, dispatch] = useReducer(authReducer, { status: "loading" });
   const [ticket, setTicket] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{
     detail: string;
-    tone: "ready" | "offline";
+    tone: "ready" | "offline" | "neutral";
   } | null>(null);
   const [checkingStatus, setCheckingStatus] = useState(false);
+  const [connectionPhase, setConnectionPhase] = useState<ConnectionPhase>("unverified");
   const [permission, requestPermission] = useCameraPermissions();
 
   useEffect(() => {
@@ -47,11 +61,16 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
     void auth
       .restoreIdentity()
       .then((identity) => {
-        if (active) dispatch({ type: "RESTORED", identity });
+        if (active) {
+          dispatch({ type: "RESTORED", identity });
+          setConnectionPhase(identity === null ? "unenrolled" : "unverified");
+        }
       })
       .catch(() => {
-        if (active)
+        if (active) {
           dispatch({ type: "FAILED", message: "Stored identity is unreadable. Erase it." });
+          setConnectionPhase("unrecoverable-error");
+        }
       });
     return () => {
       active = false;
@@ -61,13 +80,16 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
 
   async function pair(): Promise<void> {
     setStatusMessage(null);
+    setConnectionPhase("connecting");
     dispatch({ type: "PAIR_STARTED" });
     try {
       const result = await auth.pair(ticket);
       setTicket("");
       setScannerOpen(false);
       dispatch({ type: "PAIR_SUCCEEDED", identity: result.identity });
+      setConnectionPhase("unverified");
     } catch (error) {
+      setConnectionPhase(classifyConnectionError(error));
       dispatch({
         type: "FAILED",
         message: error instanceof Error ? error.message : "Pairing failed",
@@ -100,7 +122,9 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
     try {
       await auth.eraseCredentials();
       dispatch({ type: "ERASED" });
+      setConnectionPhase("unenrolled");
     } catch {
+      setConnectionPhase("unenrolled");
       dispatch({
         type: "FAILED",
         message: "Local credentials erased. Remote revoke unavailable; revoke this device on Core.",
@@ -115,26 +139,38 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
   async function checkStatus(): Promise<void> {
     setCheckingStatus(true);
     setStatusMessage(null);
+    setConnectionPhase(
+      auth.isSessionExpired?.()
+        ? "expired-session"
+        : connectionPhase === "offline" ||
+            connectionPhase === "disconnected" ||
+            connectionPhase === "recoverable-error"
+          ? "reconnecting"
+          : "connecting",
+    );
     try {
       await auth.getStatus();
-      setStatusMessage({ detail: "Core online. Signed status request passed.", tone: "ready" });
-    } catch {
-      setStatusMessage({
-        detail: "Core unavailable or access revoked. Check Tailscale and Core.",
-        tone: "offline",
-      });
+      setConnectionPhase("connected");
+    } catch (error) {
+      setConnectionPhase(classifyConnectionError(error));
     } finally {
       setCheckingStatus(false);
     }
   }
 
-  async function logout(): Promise<void> {
+  async function logout(disconnect = false): Promise<void> {
     setCheckingStatus(true);
     setStatusMessage(null);
     try {
       await auth.logout();
-      setStatusMessage({ detail: "Session revoked. Device enrollment retained.", tone: "ready" });
+      setConnectionPhase(disconnect ? "disconnected" : "unverified");
+      setStatusMessage(
+        disconnect
+          ? { detail: "Disconnected. Device enrollment retained.", tone: "neutral" }
+          : { detail: "Session revoked. Device enrollment retained.", tone: "ready" },
+      );
     } catch {
+      setConnectionPhase("recoverable-error");
       setStatusMessage({
         detail: "Session cleared locally. Remote revoke unavailable; revoke on Core.",
         tone: "offline",
@@ -161,11 +197,13 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
     try {
       const result = await auth.rotateKey();
       dispatch({ type: "PAIR_SUCCEEDED", identity: result.identity });
+      setConnectionPhase("unverified");
       setStatusMessage({
         detail: "Device key rotated. Existing sessions were revoked.",
         tone: "ready",
       });
     } catch {
+      setConnectionPhase("recoverable-error");
       setStatusMessage({
         detail: "Key rotation not confirmed. Reconnect to Core and retry status for recovery.",
         tone: "offline",
@@ -186,10 +224,12 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.heading}>
             <Text accessibilityRole="header" style={styles.title}>
-              Pair with JARVIS Core
+              {showBackLink ? "Pair with JARVIS Core" : "Settings"}
             </Text>
             <Text style={styles.copy}>
-              Scan or paste the one-time enrollment ticket created on your trusted Core host.
+              {state.status === "enrolled"
+                ? "Manage your private Core connection and this device's credentials."
+                : "Scan or paste the one-time enrollment ticket created on your trusted Core host."}
             </Text>
           </View>
 
@@ -197,11 +237,14 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
             <ActivityIndicator accessibilityLabel="Loading stored identity" color="#66e3ff" />
           ) : null}
           {state.status === "enrolled" ? (
-            <StatusBanner
-              detail={`Bound to ${state.identity.serverOrigin}`}
-              label="Device enrolled"
-              tone="ready"
-            />
+            <>
+              <StatusBanner
+                detail={`Bound to ${state.identity.serverOrigin}`}
+                label="Device enrolled"
+                tone="neutral"
+              />
+              <StatusBanner {...connectionPresentation(connectionPhase)} />
+            </>
           ) : null}
           {state.status === "error" ? (
             <StatusBanner detail={state.message} label="Pairing unavailable" tone="offline" />
@@ -231,6 +274,14 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
                 style={styles.secondaryButton}
               >
                 <Text style={styles.secondaryButtonText}>Log out session</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={busy}
+                onPress={() => void logout(true)}
+                style={styles.secondaryButton}
+              >
+                <Text style={styles.secondaryButtonText}>Disconnect</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -316,9 +367,11 @@ export default function PairScreen({ authClient }: { authClient?: PairingClient 
             </Pressable>
           ) : null}
 
-          <Link href={"/" as Href} style={styles.backLink}>
-            Back to launch screen
-          </Link>
+          {showBackLink ? (
+            <Link href={"/" as Href} style={styles.backLink}>
+              Back to Chat
+            </Link>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -348,6 +401,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 18,
     paddingVertical: 14,
+    minHeight: touchTarget,
   },
   primaryButtonText: { color: "#05131a", fontSize: 15, fontWeight: "800" },
   secondaryButton: {
@@ -356,12 +410,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 18,
     paddingVertical: 14,
+    minHeight: touchTarget,
   },
   secondaryButtonText: { color: "#d9eef7", fontSize: 15, fontWeight: "700" },
   disabledButton: { opacity: 0.45 },
   pressedButton: { opacity: 0.75 },
   securityNote: { color: "#8ca4b2", fontSize: 13, lineHeight: 19 },
-  eraseButton: { alignSelf: "flex-start", paddingVertical: 8 },
+  eraseButton: { alignSelf: "flex-start", justifyContent: "center", minHeight: touchTarget },
   eraseButtonText: { color: "#ff9f9f", fontSize: 14, fontWeight: "700" },
   backLink: { color: "#66e3ff", fontSize: 15, marginTop: 8 },
   scannerFrame: { gap: 12 },

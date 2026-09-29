@@ -7,7 +7,9 @@ import {
   encodeBase64Url,
 } from "@/core/crypto/canonicalRequest";
 
-const vectors = require("../../tests/fixtures/remote_signing_vectors.json") as {
+const vectors = JSON.parse(
+  require("node:fs").readFileSync("../tests/fixtures/remote_signing_vectors.json", "utf8"),
+) as {
   private_key_seed: number[];
   public_key: string;
   request: {

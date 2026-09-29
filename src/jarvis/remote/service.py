@@ -579,6 +579,14 @@ class RemoteIdentityService:
     async def get_current_device(self, context: RemoteIdentityContext) -> DeviceRecord:
         if RemoteScope.IDENTITY_READ not in context.scopes:
             raise RemoteStateError("scope_denied", "identity-read scope is required")
+        return await self._load_current_device(context)
+
+    async def get_status_device(self, context: RemoteIdentityContext) -> DeviceRecord:
+        if RemoteScope.CLIENT_STATUS_READ not in context.scopes:
+            raise RemoteStateError("scope_denied", "client-status-read scope is required")
+        return await self._load_current_device(context)
+
+    async def _load_current_device(self, context: RemoteIdentityContext) -> DeviceRecord:
         stored = await self._store.get_device(context.device_id)
         if stored is None or stored.record.state is not DeviceState.ACTIVE:
             raise RemoteAuthenticationError("device_unavailable")

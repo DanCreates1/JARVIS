@@ -123,6 +123,7 @@ def test_versioned_remote_api_enrollment_scope_replay_and_logout(tmp_path: Path)
                 RemoteScope.IDENTITY_READ,
                 RemoteScope.EVENTS_READ,
                 RemoteScope.SESSION_REVOKE,
+                RemoteScope.CLIENT_STATUS_READ,
             ),
             risk_ceiling=0,
         )
@@ -134,6 +135,7 @@ def test_versioned_remote_api_enrollment_scope_replay_and_logout(tmp_path: Path)
             service=_FakeService(),  # type: ignore[arg-type]
             remote_store=remote_store,
             remote_identity=remote,
+            memory_host_id="host:web-test",
         )
 
     app = create_app(settings, runtime_factory=runtime_factory)
@@ -213,6 +215,58 @@ def test_versioned_remote_api_enrollment_scope_replay_and_logout(tmp_path: Path)
         replay = client.get("/api/v1/identity", headers=identity_headers)
         assert replay.status_code == 401
         assert replay.json() == {"detail": "Remote authentication failed"}
+
+        status_body = json.dumps(
+            {
+                "requested_scopes": ["client.status.read", "session.revoke"],
+                "audience": "jarvis-api",
+            },
+            separators=(",", ":"),
+        ).encode()
+        status_session = client.post(
+            "/api/v1/sessions",
+            content=status_body,
+            headers={
+                **_headers(
+                    key=key,
+                    method="POST",
+                    path="/api/v1/sessions",
+                    device_id=device_id,
+                    nonce="S" * 22,
+                    body=status_body,
+                ),
+                "Content-Type": "application/json",
+            },
+        )
+        assert status_session.status_code == 201
+        status_token = status_session.json()["token"]
+        status = client.get(
+            "/api/v1/client/status",
+            headers=_headers(
+                key=key,
+                method="GET",
+                path="/api/v1/client/status",
+                device_id=device_id,
+                nonce="T" * 22,
+                token=status_token,
+            ),
+        )
+        assert status.status_code == 200
+        assert status.json()["session"]["scopes"] == ["client.status.read", "session.revoke"]
+        assert (
+            client.get(
+                "/api/v1/identity",
+                headers=_headers(
+                    key=key,
+                    method="GET",
+                    path="/api/v1/identity",
+                    device_id=device_id,
+                    nonce="U" * 22,
+                    token=status_token,
+                ),
+            ).status_code
+            == 403
+        )
 
         events_query = "after=0&limit=100"
         events = client.get(

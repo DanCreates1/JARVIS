@@ -1,23 +1,19 @@
-import IndexScreen from "../app";
+import ChatScreen from "../app";
+import GarminScreen from "../app/garmin";
 import { parseAppEnvironment } from "../src/config/appConfig";
 import { renderApp } from "../src/testing/render";
 import { StatusBanner } from "../src/ui/StatusBanner";
 
-describe("M1A native foundation", () => {
-  it("renders an honest offline-safe launch state", () => {
-    const screen = renderApp(<IndexScreen />);
+describe("MVP 1 shell", () => {
+  it("renders honest Chat and Garmin empty states", () => {
+    const chat = renderApp(<ChatScreen />);
+    expect(chat.getByText("Chat")).toBeOnTheScreen();
+    expect(chat.getByText("No conversation yet")).toBeOnTheScreen();
+    chat.unmount();
 
-    expect(screen.getByText("JARVIS")).toBeOnTheScreen();
-    expect(screen.getByText("Pairing ready")).toBeOnTheScreen();
-    expect(
-      screen.getByText("Offline-safe until you enroll this device with JARVIS Core."),
-    ).toBeOnTheScreen();
-    expect(screen.getByText("Pair this device")).toBeOnTheScreen();
-    expect(
-      screen.getByText(
-        "Secure pairing and authenticated status are available. No telemetry or background permissions are active.",
-      ),
-    ).toBeOnTheScreen();
+    const garmin = renderApp(<GarminScreen />);
+    expect(garmin.getByText("Garmin")).toBeOnTheScreen();
+    expect(garmin.getByText("No Garmin data connected")).toBeOnTheScreen();
   });
 
   it("fails closed to development for unknown runtime metadata", () => {

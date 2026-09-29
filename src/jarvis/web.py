@@ -509,7 +509,7 @@ def create_app(
         runtime = _runtime(request)
         _require_remote_host(runtime, context)
         try:
-            device = await _remote_identity(request).get_current_device(context)
+            device = await _remote_identity(request).get_status_device(context)
         except RemoteStateError:
             raise HTTPException(status_code=403, detail="Remote scope denied") from None
         task_counts: dict[str, int] = {}

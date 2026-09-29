@@ -1,6 +1,6 @@
 # Mobile M2C live acceptance
 
-Status: local preparation verified; physical iPhone evidence pending.
+Status: provisional Expo Go matrix and lost-phone drill passed; live rotation and native build pending.
 
 ## Authority checkpoint
 

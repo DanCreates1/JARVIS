@@ -1,8 +1,8 @@
 # Mobile M2 Progress Report
 
-Status: `M2C-local-rotation-verified-live-acceptance-pending`
+Status: `M2C-live-Expo-Go-and-lost-phone-passed-rotation-native-build-pending`
 Started: 2026-09-21  
-Updated: 2026-09-22
+Updated: 2026-09-28
 Active subphase: M2C — physical iPhone/Tailscale acceptance
 
 ## M2C objective
@@ -21,9 +21,10 @@ Phase C work untouched.
 - [x] Reviewed `jarvis-mobile` linking scheme and on-device signed status control.
 - [x] Implemented and locally verified explicit, crash-recoverable native key rotation.
 - [x] Mobile quality gate and relevant Core regression gate pass.
-- [ ] iPhone v2 minimum-scope enrollment through Tailscale HTTPS passes.
-- [ ] Signed status, logout/recreation, Wi-Fi/cellular, Tailscale loss/reconnect, Core restart pass.
-- [ ] Revoke/rotation and lost-phone drill pass with sanitized audit evidence.
+- [x] iPhone v2 minimum-scope enrollment through Tailscale HTTPS passes.
+- [x] Signed status, logout/recreation, Wi-Fi/cellular, Tailscale loss/reconnect, Core restart pass.
+- [x] Device revoke, local erase, and lost-phone tailnet isolation pass with sanitized evidence.
+- [ ] Live key rotation and native development-build acceptance pass.
 - [x] Private listener/Funnel boundaries, secret scan, docs, and isolated local M2C milestone commit pass.
 
 Fresh enrollment ticket and Expo development build each require owner approval before action.
@@ -32,6 +33,52 @@ Git. Expo Go can provide provisional live evidence; native build acceptance requ
 development-build approval.
 
 ## M2C local preparation and evidence
+
+- 2026-09-28 continuation starts from `dd30a92` on `main`, matching `origin/main`.
+  Unrelated Phase C modifications and untracked files remain untouched. Owner approved one
+  five-minute v2 phone ticket with only `client.status.read` and `session.revoke`, risk ceiling 0,
+  and performed the physical-iPhone steps. The ticket appeared only in a trusted local terminal;
+  its contents were not recorded. The phone enrolled through private HTTPS. Initial signed status
+  returned HTTP 403 after successful session creation because the status handler reused an
+  `identity.read`-guarded service method. Core now uses a status-specific `client.status.read` guard;
+  an integration regression proves the two-scope status succeeds while `/api/v1/identity` remains
+  denied. After loopback Core restart, owner confirmed signed status passed and Core logged HTTP 200.
+  Owner then confirmed logout/recreation, signed status over cellular and Wi-Fi, fail-closed status
+  while iPhone Tailscale was off, recovery when it reconnected, failure while Core was stopped,
+  and signed status after Core restarted. Core logged HTTP 200 for the revoke-session request,
+  HTTP 201 for a replacement session, and HTTP 200 for its signed status. Expiry, device revoke,
+  rotation, local erase, and lost-phone checks remain open until individually observed.
+- Owner separately approved revocation of the one active M2C phone identity. The trusted-local
+  CLI revoked that exact device and its sessions without exposing its identifier. On iPhone, signed
+  status failed and local credential erase removed the enrolled state. Core logged HTTP 401 for
+  post-revocation status and remote session-revoke attempts. Sanitized audit shows
+  `device.revoked` / `local_host_revoked` and `request.denied` / `session_revoked`. Tailnet removal,
+  live key rotation, explicit session-expiry observation, and native-build checks remain pending.
+- Owner approved tailnet removal and reported removing the locally matched iPhone row in the
+  Tailscale Machines console. The first laptop check still saw an online iOS peer and a private
+  Tailscale ping reply, so removal was initially unverified. Two later checks showed the sole iOS
+  peer offline; the final private ping received no reply. The revoked JARVIS identity also denied
+  signed status, and sanitized audit recorded `device.revoked` / `local_host_revoked` and
+  `request.denied` / `session_revoked`. Lost-phone isolation now passes. No second machine was
+  removed. Exact tailnet identifiers remain local only.
+- Expo's compatibility check required SDK 57 patch alignment. Updated only `expo` to `~57.0.25`,
+  `expo-linking` to `~57.0.11`, and `expo-router` to `~57.0.23` in the locked mobile workspace.
+  The complete `npm.cmd run verify` gate now passes: 36 Jest tests; Expo Doctor 21/21; 1,109
+  license records; no high/critical production advisories; Android/iOS static JS exports.
+  Thirteen moderate transitive advisories remain. No native binary, signing, or EAS build ran.
+- Same-day sanitized preflight: Tailscale host and one iOS peer online; one private HTTPS 443 Serve
+  authority and one root handler target exact `http://127.0.0.1:8765`; Funnel has zero enabled
+  entries. Phase 8D ownership marker absent. Core runs on one loopback listener; unauthenticated
+  status returned HTTP 401. Existing unowned Serve route was not modified.
+- Local Python virtual-environment executables are blocked by workstation Application Control.
+  A real Python 3.11.16 interpreter with the locked bootstrap site-packages passes `jarvis doctor`,
+  targeted remote/PWA regression (29 tests), and the full functional suite (1,129 passed, 3
+  skipped). A first full run through a uv path alias hit three unrelated Windows executable-path
+  tests because the alias is a name-surrogate reparse point; the real interpreter path passes.
+  Current unrelated Phase C edits leave repository coverage at 84.97% against the 85% gate.
+  Gitleaks scanned 58 commits with no leaks. Mobile 36 Jest tests, format, lint, typecheck,
+  licenses, production audit threshold, and both exports pass. Expo Doctor is 20/21 because three
+  SDK 57 patch versions need alignment; npm audit reports 13 moderate advisories.
 
 - `mobile/app.config.ts` sets `jarvis-mobile` as the app scheme. Expo's current linking guidance
   requires a new development build before that scheme works on device. Ticket content remains
@@ -132,11 +179,14 @@ files remain untouched.
 
 ## M2C live blockers
 
-- Owner approval for each fresh five-minute, two-scope (`client.status.read`, `session.revoke`),
-  risk-0 v2 phone ticket is pending. No ticket has been created in M2C.
-- Core is not running on port 8765. Existing Serve route is unowned; starting Core must keep
-  `JARVIS_WEB_HOST=127.0.0.1` and exact trusted HTTPS origin without launcher Run/Stop.
-- Physical iPhone/Tailscale evidence requires the owner's on-device actions.
+- One approved two-scope v2 phone ticket was used for live enrollment. Any further ticket needs
+  fresh owner approval. Keep its contents out of chat, reports, logs, and Git.
+- Temporary loopback Core was stopped after the lost-phone drill; local port 8765 has zero
+  listeners. The existing unowned Serve route remains untouched. Do not use Phase 8D launcher
+  Run/Stop against that route.
+- Physical iPhone pairing, network, logout, Core restart, revoke, local erase, and tailnet
+  lost-phone removal evidence passed. Explicit session-expiry observation, live key rotation,
+  and native-build evidence remain.
 - Development build has not been requested or started. It needs separate owner approval plus a
   chosen Apple signing/account and iOS bundle identifier.
 - Native key rotation is implemented and locally tested. Live rotation still needs fresh approval

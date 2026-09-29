@@ -1,9 +1,11 @@
 import { StyleSheet, Text, View } from "react-native";
 
+import { color } from "./tokens";
+
 interface StatusBannerProps {
   detail: string;
   label: string;
-  tone: "ready" | "offline";
+  tone: "ready" | "offline" | "error" | "neutral";
 }
 
 export function StatusBanner({ detail, label, tone }: StatusBannerProps) {
@@ -11,9 +13,9 @@ export function StatusBanner({ detail, label, tone }: StatusBannerProps) {
     <View
       accessibilityLabel={`${label}. ${detail}`}
       accessibilityRole="summary"
-      style={[styles.root, tone === "ready" ? styles.ready : styles.offline]}
+      style={[styles.root, styles[tone]]}
     >
-      <View style={[styles.indicator, tone === "ready" ? styles.readyDot : styles.offlineDot]} />
+      <View style={[styles.indicator, styles[`${tone}Dot`]]} />
       <View style={styles.copy}>
         <Text style={styles.label}>{label}</Text>
         <Text style={styles.detail}>{detail}</Text>
@@ -39,6 +41,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#2b2412",
     borderColor: "#695629",
   },
+  error: {
+    backgroundColor: "#321d22",
+    borderColor: "#824653",
+  },
+  neutral: {
+    backgroundColor: color.surfaceRaised,
+    borderColor: color.border,
+  },
   indicator: {
     borderRadius: 6,
     height: 12,
@@ -50,6 +60,8 @@ const styles = StyleSheet.create({
   offlineDot: {
     backgroundColor: "#f1c75b",
   },
+  errorDot: { backgroundColor: color.danger },
+  neutralDot: { backgroundColor: color.muted },
   copy: {
     flex: 1,
     gap: 4,

@@ -4,17 +4,16 @@ import { EmptyState } from "@/ui/EmptyState";
 import { Screen } from "@/ui/Screen";
 import { color, space } from "@/ui/tokens";
 
-export default function ChatScreen() {
+export default function GarminScreen() {
   return (
     <Screen>
       <View style={styles.content}>
         <Text accessibilityRole="header" style={styles.title}>
-          Chat
+          Garmin
         </Text>
-        <Text style={styles.intro}>Your private JARVIS conversation will appear here.</Text>
         <EmptyState
-          title="No conversation yet"
-          detail="Messaging arrives in Mobile MVP 2. Open Settings to check your Core connection."
+          title="No Garmin data connected"
+          detail="Garmin setup and read-only summaries arrive in Mobile MVP 3."
         />
       </View>
     </Screen>
@@ -24,5 +23,4 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   content: { gap: space.lg },
   title: { color: color.text, fontSize: 32, fontWeight: "800" },
-  intro: { color: color.muted, fontSize: 16, lineHeight: 24 },
 });

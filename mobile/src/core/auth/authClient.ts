@@ -118,6 +118,12 @@ export class MobileAuthClient {
     return this.api.getStatus(identity, session);
   }
 
+  isSessionExpired(): boolean {
+    return (
+      this.session !== null && new Date(this.session.expiresAt).getTime() <= this.clock().getTime()
+    );
+  }
+
   async logout(): Promise<void> {
     const session = this.session;
     this.session = null;

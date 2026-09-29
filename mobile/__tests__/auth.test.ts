@@ -338,7 +338,8 @@ describe("mobile authentication", () => {
     const vault = new IdentityVault(store);
     const core = new FakeCore();
     const api = new SignedApiClient(core.fetch, core.random, () => now);
-    const auth = new MobileAuthClient(vault, api, core.random, () => now);
+    let currentTime = now;
+    const auth = new MobileAuthClient(vault, api, core.random, () => currentTime);
 
     const paired = await auth.pair(ticket());
     expect(paired.identity).toEqual(identitySummary(identity()));
@@ -350,6 +351,10 @@ describe("mobile authentication", () => {
     ]);
     await expect(auth.pair(ticket())).rejects.toThrow("already enrolled");
     expect(JSON.stringify([...store.values.values()])).not.toContain("token-1");
+    expect(auth.isSessionExpired()).toBe(false);
+    currentTime = new Date("2026-09-21T12:06:00Z");
+    expect(auth.isSessionExpired()).toBe(true);
+    currentTime = now;
     expect(await auth.getStatus()).toEqual({ ready: true });
     expect(core.sessionCount).toBe(1);
 
