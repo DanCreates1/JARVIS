@@ -36,6 +36,16 @@ development-build approval.
 
 ## M2C local preparation and evidence
 
+- 2026-09-29 native continuation from `69112a9`: Phase C edits remain dirty and untouched.
+  Mobile `npm.cmd run verify` passes: 38 Jest tests, Expo Doctor 21/21, 1,109 license
+  records, production audit high/critical threshold, and Android/iOS static exports.
+  Thirteen moderate transitive advisories remain. Read-only Tailscale preflight finds the host
+  and one iOS peer online, one private HTTPS 443 Serve route with exact
+  `http://127.0.0.1:8765` handler, Funnel disabled, and no Phase 8D ownership marker.
+  Ports 8765 and 8081 have no listeners. No EAS configuration, source upload, signing,
+  device registration, native binary, or new enrollment ticket was created. Separate owner
+  decisions were requested for the $0 cloud upload/build, exact iOS bundle identifier,
+  Apple membership/signing custody, and physical iPhone registration/Developer Mode.
 - 2026-09-29 continuation from `9313c4a`: mobile `npm.cmd run verify` passed again:
   Prettier, ESLint, TypeScript, 38 Jest tests, Expo Doctor 21/21, 1,109 license records,
   production audit threshold (no high/critical advisories), and Android/iOS static exports.
