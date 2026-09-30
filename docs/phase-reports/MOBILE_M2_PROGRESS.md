@@ -36,6 +36,18 @@ development-build approval.
 
 ## M2C local preparation and evidence
 
+- 2026-09-29 continuation from `9313c4a`: mobile `npm.cmd run verify` passed again:
+  Prettier, ESLint, TypeScript, 38 Jest tests, Expo Doctor 21/21, 1,109 license records,
+  production audit threshold (no high/critical advisories), and Android/iOS static exports.
+  Thirteen moderate transitive advisories remain. Tailscale was online with one online iOS peer;
+  Serve retained one HTTPS TCP 443 root handler to `http://127.0.0.1:8765`, Funnel had zero enabled
+  entries, and no Phase 8D ownership marker existed. Port 8765 had zero listeners, so no live Core
+  authentication check was possible in this preflight. `git diff --check` passed. RTK remains
+  blocked by Windows Application Control; direct commands were used. Expo Go rotation and explicit
+  post-expiry recovery remain accepted from prior live evidence. No native binary, signing, EAS
+  configuration, device registration, or new ticket was created. The `$0` new-spend ceiling stands;
+  separate owner decisions remain pending for cloud upload/build, Apple membership and signing
+  custody, exact iOS bundle identifier, and physical-device registration/Developer Mode.
 - 2026-09-29 continuation from `e5018b0`: owner-approved iPhone tailnet rejoin is online.
   Private HTTPS Serve still has one root handler to `http://127.0.0.1:8765`; Funnel is disabled;
   the existing route has no Phase 8D ownership marker and was not changed. Loopback-only Core
