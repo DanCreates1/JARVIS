@@ -2,7 +2,11 @@
 
 Status: `shell-local-verified-live-rotation-and-native-acceptance-pending`
 Started: 2026-09-28
-Updated: 2026-09-28
+Updated: 2026-09-29
+
+App completion estimate: **about 20%**. Four MVP milestones are weighted equally for this
+planning estimate; MVP 1 is about four-fifths done, while MVP 2–4 are not yet implemented.
+This percentage is not an acceptance gate.
 
 ## Scope
 
@@ -50,6 +54,27 @@ the detailed matrix and security gates.
 
 ## Local checks
 
+- 2026-09-29 continuation from `e5018b0`: owner rejoined the iPhone to the tailnet. Laptop
+  preflight found one online iOS peer, one private HTTPS 443 Serve route to exact loopback Core,
+  zero Funnel entries, and no Phase 8D ownership marker. Temporary Core bound only to
+  `127.0.0.1:8765`; unauthenticated private HTTPS status returned HTTP 401. No Serve change was
+  made. Owner approved the three-scope rotation ticket and operated the iPhone. One ticket was
+  minted in a Codex terminal that did not become visible; it expired unused. Owner requested a
+  CMD launcher, ran it locally, and confirmed the new ticket appeared in Command Prompt. The
+  physical iPhone enrolled and passed signed Core status. Sanitized Core audit records
+  `enrollment.completed` / `proof_verified` and `session.created` /
+  `device_signature_verified`; device is active at key version 1 and enrollment protocol v2.
+  Live rotation outcome remains pending.
+- Expo SDK 57 patch alignment updated `expo`, `expo-camera`, and `expo-router` requirements and
+  their lockfile resolution. Current `npm.cmd run verify` passes 38 Jest tests, Expo Doctor 21/21,
+  1,109 license records, production high/critical audit threshold, and both static exports.
+  Thirteen moderate transitive advisories remain.
+- Relevant Core identity/security tests: 11 passed. Full bootstrap Python suite: 1,129 passed,
+  3 skipped, 85.10% coverage. `uv lock --check`, `uv sync --locked`, Ruff lint, bootstrap
+  `pip_audit`, Gitleaks (59 commits), and `git diff --check` pass. Repository Ruff format finds
+  two unrelated Phase C files; bootstrap mypy finds the unrelated Phase C assignment at
+  `src/jarvis/bootstrap.py:307`. Standard `uv run mypy`, `uv run pytest`, and `uv run pip-audit` are blocked by
+  workstation Application Control. `rtk.exe` is also blocked; direct commands were used.
 - Complete `npm.cmd run verify` passes: Prettier, ESLint, TypeScript, 38 Jest tests, Expo Doctor
   21/21, 1,109 license records, production audit threshold, and local Android/iOS static JS
   exports. Production audit reports 13 moderate transitive advisories, no high/critical ones.

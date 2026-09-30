@@ -13,6 +13,8 @@ These repository instructions apply to every Codex task in JARVIS.
   subphase's stop gate and require fresh authority for credentials, signing, cloud builds, costs,
   deployments, or other external effects.
 - If no next phase is planned, end with `Next chat: No phase queued.` rather than inventing work.
+- While the mobile MVP is active, include an estimated app-completion percentage or progress bar
+  after every work session. State the estimate's basis and keep the handoff prompt last.
 
 ## Phase command trigger
 

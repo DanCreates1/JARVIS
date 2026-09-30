@@ -2,7 +2,7 @@
 
 Status: `M2C-live-Expo-Go-and-lost-phone-passed-rotation-native-build-pending`
 Started: 2026-09-21  
-Updated: 2026-09-28
+Updated: 2026-09-29
 Active subphase: M2C — physical iPhone/Tailscale acceptance
 
 ## M2C objective
@@ -34,6 +34,25 @@ development-build approval.
 
 ## M2C local preparation and evidence
 
+- 2026-09-29 continuation from `e5018b0`: owner-approved iPhone tailnet rejoin is online.
+  Private HTTPS Serve still has one root handler to `http://127.0.0.1:8765`; Funnel is disabled;
+  the existing route has no Phase 8D ownership marker and was not changed. Loopback-only Core
+  passed `jarvis doctor` and returned HTTP 401 for unauthenticated private HTTPS status.
+  Owner approved one three-scope five-minute ticket. Its Codex terminal did not become visible,
+  so the unused ticket expired. At owner request, an ignored local CMD helper was checked without
+  minting and supplied for a fresh terminal-displayed ticket. Owner confirmed physical-iPhone v2
+  enrollment and signed status. Sanitized Core audit records `enrollment.completed` /
+  `proof_verified` and `session.created` / `device_signature_verified`; the enrolled device is
+  active at key version 1. Ticket content was never entered in chat, reports, logs, or Git.
+  Live rotation and native acceptance remain open.
+- Current mobile verify: 38 Jest tests, Expo Doctor 21/21 after locked SDK 57 patch alignment,
+  1,109 license records, no high/critical production advisories, and Android/iOS static exports
+  pass. Thirteen moderate transitive advisories remain. Current Core remote/security targeted
+  tests: 11 passed; full bootstrap suite: 1,129 passed, 3 skipped, 85.10% coverage. `uv lock
+  --check`, `uv sync --locked`, Ruff lint, bootstrap pip-audit, 59-commit Gitleaks scan, and
+  `git diff --check` pass. Ruff format and bootstrap mypy find only pre-existing Phase C edits.
+  Standard mypy/pytest/pip-audit executables and RTK are blocked by workstation Application
+  Control; bootstrap Python supplied current equivalent checks.
 - 2026-09-28 continuation starts from `dd30a92` on `main`, matching `origin/main`.
   Unrelated Phase C modifications and untracked files remain untouched. Owner approved one
   five-minute v2 phone ticket with only `client.status.read` and `session.revoke`, risk ceiling 0,

@@ -14,6 +14,15 @@ must choose the iOS bundle identifier, account, signing path, and any associated
 build starts. Expo Go can provide provisional JavaScript and native-module evidence; it does not
 prove the final app scheme or independent native binary.
 
+Before configuring EAS or uploading source, record separate owner decisions for: (1) an iOS
+development build and Expo cloud upload, (2) the exact `ios.bundleIdentifier`, Apple Developer
+membership and signing custody, (3) registration of the intended physical iPhone and Developer
+Mode, and (4) a spending ceiling. The repository currently has no `eas.json`, `expo-dev-client`,
+EAS project ID, or iOS bundle identifier. Expo's Free plan has a limited monthly build quota and
+cannot incur overage charges; a new Apple Developer Program membership costs USD 99 per year
+(regional price may differ). Do not infer account, signing, cost, or export-compliance choices from
+the existing Expo Go test.
+
 ## Read-only preflight
 
 1. Check Git and keep the Phase C work untouched. Run the mobile `npm.cmd run verify` gate.
@@ -78,3 +87,5 @@ Do not alter an unowned Serve route during cleanup.
 - [Expo linking scheme and new-build requirement](https://docs.expo.dev/linking/into-your-app/)
 - [Expo Go and development-build differences](https://docs.expo.dev/develop/development-builds/faq/)
 - [Physical iOS development build and signing prerequisites](https://docs.expo.dev/tutorial/eas/ios-development-build-for-devices/)
+- [Expo EAS plans and Free-plan limits](https://docs.expo.dev/billing/plans/)
+- [Apple Developer Program membership](https://developer.apple.com/programs/enroll/)
