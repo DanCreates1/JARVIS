@@ -1,6 +1,7 @@
 # Mobile M2C live acceptance
 
-Status: provisional Expo Go matrix and lost-phone drill passed; live rotation and native build pending.
+Status: provisional Expo Go matrix, lost-phone drill, live rotation, and post-expiry session
+recovery passed; native-build acceptance pending.
 
 ## Authority checkpoint
 
@@ -68,12 +69,12 @@ the `jarvis-mobile` scheme, camera permission behavior, SecureStore identity aft
 and absence of credentials in links or logs on that build. The native client now implements an
 explicitly confirmed, crash-recoverable `key.rotate` flow. It stages the replacement seed in
 SecureStore, submits the old-key request plus new-key proof, clears the old session, and reconciles
-an interrupted response on the next signed status request. Live rotation still requires separate
-approval for a fresh ticket carrying `client.status.read`, `session.revoke`, and `key.rotate`.
-After rotation, verify the Core audit reason, key-version increment, old-session rejection, new-key
-status, app restart, and absence of key/token material in links or logs. Core's existing rotation
-tests do not substitute for this live native result. Keep M2C open until required rotation and
-lost-phone evidence is recorded.
+an interrupted response on the next signed status request. The owner approved a fresh ticket
+carrying `client.status.read`, `session.revoke`, and `key.rotate` for provisional Expo Go rotation.
+Core audit confirmed old/new proof, key-version increment, and prior-session revocation; owner
+confirmed new-key status and app restart. Direct old-session use on the phone was not attempted.
+Repeat required native behavior, including scheme, camera, SecureStore restart, and accessibility,
+on an independently signed build. Keep M2C open until native-build evidence is recorded.
 
 ## Recovery
 

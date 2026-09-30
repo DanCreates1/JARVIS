@@ -1,6 +1,6 @@
 # Mobile MVP 1 Progress
 
-Status: `shell-local-verified-live-rotation-and-native-acceptance-pending`
+Status: `shell-local-verified-live-rotation-expiry-passed-native-acceptance-pending`
 Started: 2026-09-28
 Updated: 2026-09-29
 
@@ -26,10 +26,11 @@ those features already work.
 - Owner approved removal of the locally matched iPhone from Tailscale. After the admin-console
   removal, the laptop's sole iOS peer became offline and private ping received no reply. The
   already revoked JARVIS identity separately denied application access.
-- Temporary Core was stopped after live checks; port 8765 has no listener. The pre-existing
-  unowned Tailscale Serve route was not changed.
-- Live session-expiry and key-rotation checks remain. A fresh three-scope ticket needs separate
-  owner approval. The removed phone must rejoin Tailscale before further live checks.
+- Temporary Core was stopped after the earlier lost-phone drill. This continuation started Core
+  loopback-only for the rejoined phone; the unowned Tailscale Serve route was not changed.
+- Owner approved and used a fresh three-scope ticket after iPhone tailnet rejoin. Expo Go rotation
+  passed. Owner repeated post-expiry status with Core running; local audit recorded a new signed
+  session created after the prior session expired. Native build acceptance remains.
 - Native build, signing, app-scheme, camera, SecureStore restart, VoiceOver, and Dynamic Type
   acceptance remain; no development build has started.
 
@@ -50,7 +51,8 @@ the detailed matrix and security gates.
   "Connected at last check." Session expiry triggers visible renewal state; errors never display
   API details.
 - Text keeps React Native font scaling; Settings scrolls and wraps actions; controls have role
-  labels and minimum 48-point height. Physical VoiceOver and Dynamic Type checks remain pending.
+  labels and minimum 48-point height. Owner confirmed provisional VoiceOver control names and
+  large Dynamic Type button reachability in Expo Go. Repeat on independent native build.
 
 ## Local checks
 
@@ -64,7 +66,15 @@ the detailed matrix and security gates.
   physical iPhone enrolled and passed signed Core status. Sanitized Core audit records
   `enrollment.completed` / `proof_verified` and `session.created` /
   `device_signature_verified`; device is active at key version 1 and enrollment protocol v2.
-  Live rotation outcome remains pending.
+  Owner then confirmed signed Core status before and after Expo Go restart following an explicit
+  key rotation. Sanitized Core audit records `device.key_rotated` /
+  `old_and_new_proof_verified`, key version 1 to 2, two prior sessions revoked, and a new signed
+  session. Direct use of the old phone session was not attempted. A separately authorized native
+  build remains pending.
+- After the prior session expired, owner repeated **Check Core status** with temporary Core and
+  Metro running. Owner confirmed a fresh connected result; Core audit showed a new
+  `session.created` / `device_signature_verified` event and creation after prior expiry.
+- Temporary Core and Metro were stopped after this check; ports 8765 and 8081 have zero listeners.
 - Expo SDK 57 patch alignment updated `expo`, `expo-camera`, and `expo-router` requirements and
   their lockfile resolution. Current `npm.cmd run verify` passes 38 Jest tests, Expo Doctor 21/21,
   1,109 license records, production high/critical audit threshold, and both static exports.

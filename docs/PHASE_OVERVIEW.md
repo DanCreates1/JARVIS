@@ -25,7 +25,7 @@ record.
 
 | Track | Status | Next gate |
 | --- | --- | --- |
-| Mobile MVP 1 | Three-surface shell verified locally; M2C enrollment, signed status, network/revoke/lost-phone checks passed; live rotation, expiry, and native acceptance pending | Physical rotation/expiry evidence and separate iOS build/signing/cost decisions |
+| Mobile MVP 1 | Three-surface shell verified locally; M2C enrollment, signed status, network/revoke/lost-phone checks, Expo Go rotation, and post-expiry recovery passed; native acceptance pending | Separate iOS build/signing decisions and physical native-build evidence |
 | Mobile MVP 2 | Not started | MVP 1 complete; add scoped native chat/history/cancel contracts |
 | Mobile MVP 3 | Planned | MVP 2 complete; resolve Python runtime/dependency gate and authorize any live account test |
 | Mobile MVP 4 | Planned | MVP 1–3 complete; owner approval for any build/signing |

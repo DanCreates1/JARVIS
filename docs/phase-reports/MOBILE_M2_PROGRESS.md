@@ -1,6 +1,6 @@
 # Mobile M2 Progress Report
 
-Status: `M2C-live-Expo-Go-and-lost-phone-passed-rotation-native-build-pending`
+Status: `M2C-live-Expo-Go-rotation-expiry-lost-phone-passed-native-build-pending`
 Started: 2026-09-21  
 Updated: 2026-09-29
 Active subphase: M2C — physical iPhone/Tailscale acceptance
@@ -24,7 +24,9 @@ Phase C work untouched.
 - [x] iPhone v2 minimum-scope enrollment through Tailscale HTTPS passes.
 - [x] Signed status, logout/recreation, Wi-Fi/cellular, Tailscale loss/reconnect, Core restart pass.
 - [x] Device revoke, local erase, and lost-phone tailnet isolation pass with sanitized evidence.
-- [ ] Live key rotation and native development-build acceptance pass.
+- [x] Live Expo Go key rotation, new-key status, and app-restart status pass.
+- [x] Explicit live session-expiry observation and signed recovery pass.
+- [ ] Native development-build acceptance passes.
 - [x] Private listener/Funnel boundaries, secret scan, docs, and isolated local M2C milestone commit pass.
 
 Fresh enrollment ticket and Expo development build each require owner approval before action.
@@ -43,8 +45,24 @@ development-build approval.
   minting and supplied for a fresh terminal-displayed ticket. Owner confirmed physical-iPhone v2
   enrollment and signed status. Sanitized Core audit records `enrollment.completed` /
   `proof_verified` and `session.created` / `device_signature_verified`; the enrolled device is
-  active at key version 1. Ticket content was never entered in chat, reports, logs, or Git.
-  Live rotation and native acceptance remain open.
+  active at key version 1. No ticket content was added to source, reports, or Git. The unused
+  first ticket appeared in local tool output during terminal shutdown after its expiry; its
+  replacement was entered by the owner only in Command Prompt and Expo Go.
+- Owner performed confirmed physical-iPhone key rotation in Expo Go. Local Core audit records
+  `device.key_rotated` / `old_and_new_proof_verified`; key version advanced from 1 to 2.
+  The two prior sessions are revoked, and Core created a new signed session. Owner confirmed
+  signed status before and after restarting Expo Go. Core's existing identity test also rejects
+  a request signed with the old key and session; a direct old-session attempt was not made on
+  the physical phone. The later post-expiry check passed; independent native-build checks remain.
+- A later status check created another signed session, but Core timestamps show it was created
+  before the prior session expired. This proves near-expiry refresh, not the explicit post-expiry
+  gate; that gate remains open.
+- The replacement session subsequently reached its recorded `expires_at` with no newer session.
+  Owner's first recovery report could not be correlated with Core audit after the temporary services
+  stopped. With loopback Core and Metro restarted, owner repeated **Check Core status** and
+  confirmed a fresh connected result. Core audit then showed one new signed session with
+  `session.created` / `device_signature_verified`; its creation timestamp followed the prior
+  session's `expires_at`. This closes the explicit post-expiry recovery gate.
 - Current mobile verify: 38 Jest tests, Expo Doctor 21/21 after locked SDK 57 patch alignment,
   1,109 license records, no high/critical production advisories, and Android/iOS static exports
   pass. Thirteen moderate transitive advisories remain. Current Core remote/security targeted
@@ -53,6 +71,9 @@ development-build approval.
   `git diff --check` pass. Ruff format and bootstrap mypy find only pre-existing Phase C edits.
   Standard mypy/pytest/pip-audit executables and RTK are blocked by workstation Application
   Control; bootstrap Python supplied current equivalent checks.
+- Isolated continuation commit `a529ec1` was pushed to `origin/main`. Its [Mobile CI](https://github.com/DanCreates1/JARVIS/actions/runs/36650679127)
+  and [Python CI](https://github.com/DanCreates1/JARVIS/actions/runs/36650679032) both passed.
+  Unrelated Phase C edits remained unstaged.
 - 2026-09-28 continuation starts from `dd30a92` on `main`, matching `origin/main`.
   Unrelated Phase C modifications and untracked files remain untouched. Owner approved one
   five-minute v2 phone ticket with only `client.status.read` and `session.revoke`, risk ceiling 0,
@@ -198,19 +219,22 @@ files remain untouched.
 
 ## M2C live blockers
 
-- One approved two-scope v2 phone ticket was used for live enrollment. Any further ticket needs
-  fresh owner approval. Keep its contents out of chat, reports, logs, and Git.
-- Temporary loopback Core was stopped after the lost-phone drill; local port 8765 has zero
-  listeners. The existing unowned Serve route remains untouched. Do not use Phase 8D launcher
-  Run/Stop against that route.
-- Physical iPhone pairing, network, logout, Core restart, revoke, local erase, and tailnet
-  lost-phone removal evidence passed. Explicit session-expiry observation, live key rotation,
-  and native-build evidence remain.
-- Development build has not been requested or started. It needs separate owner approval plus a
-  chosen Apple signing/account and iOS bundle identifier.
-- Native key rotation is implemented and locally tested. Live rotation still needs fresh approval
-  for a three-scope ticket adding `key.rotate`, plus physical-iPhone, Core-audit, restart, and
-  old-session rejection evidence. Core's existing rotation tests are not live native evidence.
+- Earlier two-scope and current three-scope v2 tickets were used for separate live enrollments.
+  The first three-scope ticket expired unused because its terminal was hidden; the owner requested
+  and locally minted the replacement. Any further ticket needs fresh owner approval. Keep all
+  ticket content out of chat, reports, logs, and Git.
+- Temporary loopback Core and Metro were stopped after post-expiry verification. Ports 8765 and
+  8081 have zero listeners; the existing unowned Serve route remains untouched. Do not use Phase
+  8D launcher Run/Stop against that route.
+- Physical iPhone pairing, network, logout, Core restart, revoke, local erase, tailnet
+  lost-phone removal, Expo Go key rotation, and post-expiry signed recovery evidence passed.
+  Independent native-build evidence remains.
+- Development build has not started. The owner set a `$0` new-spend ceiling; cloud-build approval,
+  Apple signing/account choice, and iOS bundle identifier remain separate pending decisions.
+- Native key rotation is implemented and locally tested. Expo Go live rotation now has
+  physical-iPhone, Core-audit, and restart evidence. Direct old-session rejection on the phone
+  and native-build evidence remain unverified; Core's existing rotation test covers the former
+  contract in a controlled integration test.
 
 ## M2A objective
 

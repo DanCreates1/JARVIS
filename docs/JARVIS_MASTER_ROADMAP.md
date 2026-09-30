@@ -64,7 +64,7 @@ detailed evidence and must not be rewritten to fit the new product order.
 | Phase 10 — generic wearables | 10A boundary complete; former vendor work was deferred | [Progress report](phase-reports/PHASE_10_PROGRESS.md) |
 | Phase 11 — advanced/proactive foundation | Complete, default-off, with no autonomous effect authority | [Completion report](phase-reports/PHASE_11_COMPLETION.md) |
 | Native mobile M1 | Expo foundation, quality gate, and physical Expo Go smoke complete | [M1 report](phase-reports/MOBILE_M1_PROGRESS.md) |
-| Native mobile M2 | Authentication, pairing, session lifecycle, and recoverable key rotation implemented; live enrollment/status/network/revoke/lost-phone checks passed; rotation, expiry, and native acceptance pending | [M2 report](phase-reports/MOBILE_M2_PROGRESS.md) |
+| Native mobile M2 | Authentication, pairing, session lifecycle, and recoverable key rotation implemented; live enrollment/status/network/revoke/lost-phone checks, Expo Go rotation, and post-expiry recovery passed; native acceptance pending | [M2 report](phase-reports/MOBILE_M2_PROGRESS.md) |
 
 Existing Core already provides versioned remote identity/session contracts, scoped authenticated
 client APIs, SSE event transport, conversation persistence, model routing, memory, and audit. The
