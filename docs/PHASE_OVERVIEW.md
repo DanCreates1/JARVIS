@@ -1,22 +1,25 @@
 # JARVIS Phase Overview
 
-Updated: 2026-09-28
+Updated: 2026-09-30
 
 ## Active product path
 
-Native mobile MVP is the active execution path. Work proceeds in this order:
+The $0 iPhone Home Screen PWA is the active product path. Existing Phase 8 PWA chat and secure
+connection are accepted; [PWA Garmin](PWA_GARMIN.md) adds the remaining read-only Garmin view.
+Native M2C acceptance is deferred because there is no Mac or paid Apple membership. The native
+milestones below are retained as historical planning context, not an active sequence:
 
-1. **MVP 1 — Design and connection** — active; finish M2C live iPhone/Core acceptance.
+1. **MVP 1 — Design and connection** — local shell and Expo Go checks passed; native build unverified.
 2. **MVP 2 — Chat** — text, streaming, history, cancel, retry, reconnect.
 3. **MVP 3 — Garmin** — private read-only daily health/activity summaries through Core.
 4. **MVP 4 — Polish and release** — physical-device recovery, accessibility, performance, and an
    optional explicitly authorized development build.
 
-**Mobile MVP complete** means an enrolled iPhone can securely send text to JARVIS, stream an
+**Phone app goal complete** means an enrolled iPhone can securely send text to JARVIS, stream an
 answer, view basic read-only Garmin data, recover from ordinary connection failures, and
 disconnect cleanly.
 
-See [Native Mobile Milestones](MOBILE_PHASES.md),
+For deferred native history, see [Native Mobile Milestones](MOBILE_PHASES.md),
 [Mobile Architecture](MOBILE_ARCHITECTURE.md), and
 [M2C Acceptance](MOBILE_M2C_ACCEPTANCE.md). Existing phase reports remain the detailed historical
 record.
@@ -25,22 +28,23 @@ record.
 
 | Track | Status | Next gate |
 | --- | --- | --- |
-| Mobile MVP 1 | Three-surface shell verified locally; M2C enrollment, signed status, network/revoke/lost-phone checks, Expo Go rotation, and post-expiry recovery passed; native acceptance pending | Separate iOS build/signing decisions and physical native-build evidence |
-| Mobile MVP 2 | Not started | MVP 1 complete; add scoped native chat/history/cancel contracts |
-| Mobile MVP 3 | Planned | MVP 2 complete; resolve Python runtime/dependency gate and authorize any live account test |
-| Mobile MVP 4 | Planned | MVP 1–3 complete; owner approval for any build/signing |
+| Phone PWA | Physical-iPhone JARVIS chat accepted; read-only Garmin panel and scoped API implemented locally | Owner-approved Garmin login, new health-read browser ticket, physical-iPhone acceptance |
+| Native MVP | Expo Go checks passed; independent native build unverified and deferred under $0/no-Mac constraint | No active native gate |
+| Mobile MVP 2 | Deferred | No active native gate |
+| Mobile MVP 3 | Deferred | No active native gate |
+| Mobile MVP 4 | Deferred | No active native gate |
 | Phase 0 | Complete; continuous audit | Maintenance |
 | Phase 1 | Implemented; formally `blocked-external` | NVIDIA latency and local-cold revalidation |
 | Phase 2 | Complete; continuous listening default-off | Maintenance |
 | Phase 3 | Implemented; live closeout pending | Separately authorized live effects only |
 | Phases 4–8 | Complete | Maintenance |
 | Phase 9 | Repository implementation complete; deployment blocked external | Authorized server target only |
-| Phase 10 | Generic boundary complete; previous vendor integration deferred | Mobile MVP 3 supersedes Garmin planning only |
+| Phase 10 | Generic boundary complete; previous vendor integration deferred | PWA Garmin path covers current read-only phone goal |
 | Phase 11 | Complete; proactive/effect paths default-off | Maintenance |
 
 ## Execution rules
 
-- Use the four mobile milestones, not the former M3–M9 or H1–H8 sequence.
+- Use the PWA Garmin acceptance list for current phone work; native mobile milestones are deferred.
 - Preserve Core as sole authority, memory, routing, permission, and audit system.
 - Keep production Core loopback-bound behind approved private-network HTTPS.
 - Require fresh owner authority for enrollment tickets, live Garmin credentials/MFA, signing,

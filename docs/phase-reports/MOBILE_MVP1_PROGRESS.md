@@ -1,8 +1,10 @@
 # Mobile MVP 1 Progress
 
 Status: `shell-local-verified-live-rotation-expiry-passed-native-acceptance-pending`
+Current product path: Home Screen PWA with JARVIS chat and Garmin; native acceptance deferred
+under the owner's $0/no-Mac constraint. See `docs/PWA_GARMIN.md`.
 Started: 2026-09-28
-Updated: 2026-09-29
+Updated: 2026-09-30
 
 App completion estimate: **about 20%**. Four MVP milestones are weighted equally for this
 planning estimate; MVP 1 is about four-fifths done, while MVP 2–4 are not yet implemented.

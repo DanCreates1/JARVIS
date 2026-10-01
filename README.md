@@ -227,6 +227,10 @@ Remote voice, persistent push, remote effects, and multi-replica deployment rema
 
 ## Native mobile foundation
 
+The current $0 phone path uses the existing Home Screen PWA for JARVIS chat and a read-only Garmin
+panel; see [PWA Garmin setup](docs/PWA_GARMIN.md). Native build acceptance remains deferred under
+the no-Mac, no-paid-membership constraint.
+
 Mobile M1 adds an isolated Expo SDK 57, React Native 0.86, TypeScript, and Expo Router workspace
 with an independent locked quality/CI gate. M2A adds authority-bound enrollment v2, additive client
 capability metadata, and shared Python/TypeScript Ed25519 signing vectors. M2B adds QR/manual pairing,

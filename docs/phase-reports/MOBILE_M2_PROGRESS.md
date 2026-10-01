@@ -36,6 +36,10 @@ development-build approval.
 
 ## M2C local preparation and evidence
 
+- 2026-09-30: owner confirmed no Mac, no paid Apple Developer membership, and a strict $0
+  project-spend rule. Native physical-iPhone build acceptance is deferred, not passed. The
+  owner chose the existing Home Screen PWA for JARVIS chat plus Garmin data; active work is
+  tracked in `docs/PWA_GARMIN.md`. Do not repeat EAS/native preflights as the active phone goal.
 - 2026-09-30 owner decisions from `7f90383`: Expo cloud source upload and one iOS development
   build approved; intended iPhone registration and Developer Mode approved. The owner has no
   Apple Developer Program membership, declines paid membership, and requires $0 new spending

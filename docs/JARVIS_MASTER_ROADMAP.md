@@ -73,6 +73,11 @@ it does not yet provide production chat or Garmin screens.
 
 ## Active execution path
 
+The active $0 phone goal is the existing Home Screen PWA with JARVIS chat and a read-only Garmin
+panel. See [PWA Garmin](PWA_GARMIN.md). Native M2C build acceptance remains open and deferred:
+the owner has no Mac or paid Apple Developer membership. The native MVP sections below are retained
+as historical plans, not prerequisites for the PWA goal.
+
 ### MVP 1 — Design and connection
 
 Close existing M2C live acceptance, then replace the foundation screen with a simple accessible

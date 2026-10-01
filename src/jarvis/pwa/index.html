@@ -9,7 +9,7 @@
   <link rel="manifest" href="/app/manifest.webmanifest">
   <link rel="icon" href="/app/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app/app.css">
-  <script src="/app/app.js?v=3" type="module"></script>
+  <script src="/app/app.js?v=4" type="module"></script>
 </head>
 <body>
   <header>
@@ -44,6 +44,21 @@
         <button id="send" type="submit" disabled>Send</button>
       </form>
       <p class="hint">Offline messages are never queued. Remote voice remains disabled until secure deployment validation.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="garmin-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">READ ONLY</p>
+          <h2 id="garmin-title">Garmin</h2>
+        </div>
+        <button id="refresh-garmin" type="button" class="quiet" disabled>Refresh Garmin</button>
+      </div>
+      <p id="garmin-state" role="status">Connect JARVIS to see Garmin data.</p>
+      <dl id="garmin-metrics" class="metrics"></dl>
+      <h3>Recent activities</h3>
+      <ul id="garmin-activities"><li>No Garmin data yet.</li></ul>
+      <p class="hint">Garmin sign-in and tokens stay on your trusted laptop. Health data is never sent to JARVIS model providers.</p>
     </section>
 
     <section class="panel" aria-labelledby="tasks-title">

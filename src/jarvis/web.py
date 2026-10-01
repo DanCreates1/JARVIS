@@ -20,6 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from jarvis.bootstrap import RuntimeComponents, build_runtime
 from jarvis.config import Settings
 from jarvis.core import AssistantRequest, ModelRole, ReasoningLevel
+from jarvis.garmin.service import GarminReader, GarminSummaryService, GarminUnavailableError
 from jarvis.memory import (
     ConfirmationInterface,
     MemoryCategory,
@@ -195,9 +196,11 @@ def create_app(
     settings: Settings | None = None,
     *,
     runtime_factory: RuntimeFactory = build_runtime,
+    garmin_reader: GarminReader | None = None,
 ) -> FastAPI:
     configured = settings or Settings()
     pwa_hub = PWAEventHub()
+    garmin_service = garmin_reader or GarminSummaryService()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -576,6 +579,22 @@ def create_app(
             )
             for record in records
         ]
+
+    @app.get("/api/v1/client/garmin")
+    async def get_pwa_garmin(
+        request: Request,
+        refresh: bool = False,
+    ) -> dict[str, object]:
+        context = _remote_context(request)
+        _require_remote_host(_runtime(request), context)
+        try:
+            summary = await garmin_service.summary(refresh=refresh)
+        except GarminUnavailableError:
+            raise HTTPException(
+                status_code=503,
+                detail="Garmin unavailable; connect or retry from the trusted host",
+            ) from None
+        return cast(dict[str, object], summary.model_dump(mode="json"))
 
     @app.get("/api/v1/client/proactivity")
     async def list_pwa_proactivity(
@@ -1446,6 +1465,7 @@ def _remote_scope_for_request(method: str, path: str) -> tuple[bool, RemoteScope
         "/api/v1/topology/negotiate": RemoteScope.TOPOLOGY_NEGOTIATE,
         "/api/v1/client/status": RemoteScope.CLIENT_STATUS_READ,
         "/api/v1/client/tasks": RemoteScope.CLIENT_TASKS_READ,
+        "/api/v1/client/garmin": RemoteScope.CLIENT_HEALTH_READ,
         "/api/v1/client/subscriptions": RemoteScope.EVENTS_READ,
         "/api/v1/client/events": RemoteScope.EVENTS_READ,
         "/api/v1/client/chat": RemoteScope.CLIENT_CHAT,

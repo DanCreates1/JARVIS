@@ -9,6 +9,7 @@ CLIENT_API_PROTOCOL_VERSION: Final = "1"
 CLIENT_CAPABILITIES: Final = (
     "client.chat",
     "client.events",
+    "client.health.read",
     "client.proactivity",
     "client.status",
     "client.tasks",

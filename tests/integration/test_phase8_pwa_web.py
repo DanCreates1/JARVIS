@@ -18,6 +18,7 @@ from jarvis.core import (
     RuntimeStatus,
     RuntimeStreamFrame,
 )
+from jarvis.garmin.service import GarminSummary
 from jarvis.memory import SQLiteConversationStore
 from jarvis.proactivity import PWAProactivityAdapter, SQLiteProactivityDeviceStore
 from jarvis.remote import (
@@ -67,6 +68,24 @@ class _FakeRouter:
 
     async def close(self) -> None:
         return None
+
+
+class _FakeGarminReader:
+    def __init__(self) -> None:
+        self.calls: list[bool] = []
+
+    async def summary(self, *, refresh: bool = False) -> GarminSummary:
+        self.calls.append(refresh)
+        return GarminSummary(
+            date="2026-09-30",
+            refreshed_at=datetime.now(UTC),
+            steps=4321,
+            resting_heart_rate=57,
+            sleep_minutes=451,
+            stress=None,
+            body_battery=None,
+            activities=(),
+        )
 
 
 def _public_key(key: Ed25519PrivateKey) -> str:
@@ -217,7 +236,48 @@ def test_pwa_proactivity_routes_use_scoped_adapter_and_generic_errors(tmp_path: 
         assert missing.json() == {"detail": "Proactivity state unavailable"}
 
 
-def _bootstrap(client: TestClient, key: Ed25519PrivateKey, device_id: str, scopes: object) -> str:
+def test_pwa_garmin_requires_dedicated_scope_and_returns_only_summary(tmp_path: Path) -> None:
+    scopes = (*ALL_SCOPES, RemoteScope.CLIENT_HEALTH_READ)
+    settings = Settings(data_dir=tmp_path, trusted_browser_origins=(ORIGIN,), _env_file=None)
+    key = Ed25519PrivateKey.generate()
+    created: dict[str, object] = {}
+    reader = _FakeGarminReader()
+    app = create_app(
+        settings,
+        runtime_factory=_runtime_factory(tmp_path, settings, key, created, scopes=scopes),  # type: ignore[arg-type]
+        garmin_reader=reader,
+    )
+    with TestClient(app, base_url="https://testserver") as client:
+        _bootstrap(client, key, str(created["device_id"]), [scope.value for scope in ALL_SCOPES])
+        denied = client.get("/api/v1/client/garmin", headers={"X-Jarvis-Browser-Origin": ORIGIN})
+        assert denied.status_code == 403
+        assert reader.calls == []
+        _bootstrap(
+            client,
+            key,
+            str(created["device_id"]),
+            [scope.value for scope in scopes],
+            nonce="Q" * 22,
+        )
+        allowed = client.get(
+            "/api/v1/client/garmin?refresh=true",
+            headers={"X-Jarvis-Browser-Origin": ORIGIN},
+        )
+        assert allowed.status_code == 200
+        assert allowed.json()["steps"] == 4321
+        assert allowed.json()["resting_heart_rate"] == 57
+        assert "token" not in allowed.text and "location" not in allowed.text
+        assert reader.calls == [True]
+
+
+def _bootstrap(
+    client: TestClient,
+    key: Ed25519PrivateKey,
+    device_id: str,
+    scopes: object,
+    *,
+    nonce: str = "P" * 22,
+) -> str:
     body = json.dumps(
         {"requested_scopes": scopes, "audience": "jarvis-api"},
         separators=(",", ":"),
@@ -225,7 +285,7 @@ def _bootstrap(client: TestClient, key: Ed25519PrivateKey, device_id: str, scope
     response = client.post(
         "/api/v1/browser/sessions",
         content=body,
-        headers=_headers(key=key, body=body, device_id=device_id, nonce="P" * 22),
+        headers=_headers(key=key, body=body, device_id=device_id, nonce=nonce),
     )
     assert response.status_code == 201
     return str(response.json()["csrf_token"])
@@ -254,9 +314,9 @@ def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(tmp_path: Pat
         assert "indexedDB" in script.text and '"JARVIS_LOGOUT"' in script.text
         assert 'headers["X-Jarvis-Browser-Origin"]=window.location.origin' in script.text
         assert "SHELL.includes(shellKey)" in worker.text and "cache.put" in worker.text
-        assert 'const CACHE="jarvis-shell-v3"' in worker.text
+        assert 'const CACHE="jarvis-shell-v4"' in worker.text
         assert "self.skipWaiting()" in worker.text
-        assert "/app/app.js?v=3" in shell.text and "/app/sw.js?v=3" in script.text
+        assert "/app/app.js?v=4" in shell.text and "/app/sw.js?v=4" in script.text
         assert "ui.logout.disabled=!state.hasIdentity" in script.text
         assert manifest.json()["start_url"] == "/app/"
         asset_bytes = sum(

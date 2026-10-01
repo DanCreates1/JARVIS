@@ -1,7 +1,8 @@
 # JARVIS Native Mobile Milestones
 
-Status: active MVP plan  
-Updated: 2026-09-28
+Status: superseded by the $0 phone PWA path in [PWA_GARMIN.md](PWA_GARMIN.md); native M2C
+acceptance remains deferred, not passed. The milestones below remain historical planning context.
+Updated: 2026-09-30
 
 ## Definition of done
 
