@@ -2,7 +2,7 @@
 
 Status: `M2C-live-Expo-Go-rotation-expiry-lost-phone-passed-native-build-pending`
 Started: 2026-09-21  
-Updated: 2026-09-29
+Updated: 2026-09-30
 Active subphase: M2C — physical iPhone/Tailscale acceptance
 
 ## M2C objective
@@ -36,6 +36,18 @@ development-build approval.
 
 ## M2C local preparation and evidence
 
+- 2026-09-30 owner decisions from `7f90383`: Expo cloud source upload and one iOS development
+  build approved; intended iPhone registration and Developer Mode approved. The owner has no
+  Apple Developer Program membership, declines paid membership, and requires $0 new spending
+  for the project. The owner did not choose an `ios.bundleIdentifier`. Expo's physical-device
+  EAS route requires Apple signing, so no EAS upload, configuration, registration, signing,
+  or build was started. Official Expo and Apple guidance identifies a no-cost local route:
+  Xcode on a Mac with a free Apple Account Personal Team, connected to the iPhone. Personal
+  Team provisioning expires after seven days. Mac access is the current open prerequisite.
+  The prior mobile gate still passes (38 Jest tests, Expo Doctor 21/21, both exports); the
+  2026-09-29 read-only Tailscale check found one online iOS peer, private HTTPS 443 Serve to
+  `http://127.0.0.1:8765`, Funnel off, and no Core or Metro listener. Phase C edits remain
+  untouched. No new enrollment ticket was created.
 - 2026-09-29 native continuation from `69112a9`: Phase C edits remain dirty and untouched.
   Mobile `npm.cmd run verify` passes: 38 Jest tests, Expo Doctor 21/21, 1,109 license
   records, production audit high/critical threshold, and Android/iOS static exports.

@@ -15,6 +15,13 @@ must choose the iOS bundle identifier, account, signing path, and any associated
 build starts. Expo Go can provide provisional JavaScript and native-module evidence; it does not
 prove the final app scheme or independent native binary.
 
+On 2026-09-30, the owner approved cloud upload/build and iPhone registration/Developer Mode, but
+confirmed no Apple Developer Program membership and a strict $0 new-spend ceiling. Do not start
+the EAS physical-iPhone build under those constraints. The no-cost native route requires an
+accessible Mac with Xcode and a free Apple Account Personal Team; Apple limits its device
+provisioning to seven days. Mac access and a concrete `ios.bundleIdentifier` remain open. Keep
+M2C native acceptance pending until a signed build runs on the physical iPhone.
+
 Before configuring EAS or uploading source, record separate owner decisions for: (1) an iOS
 development build and Expo cloud upload, (2) the exact `ios.bundleIdentifier`, Apple Developer
 membership and signing custody, (3) registration of the intended physical iPhone and Developer
@@ -90,3 +97,5 @@ Do not alter an unowned Serve route during cleanup.
 - [Physical iOS development build and signing prerequisites](https://docs.expo.dev/tutorial/eas/ios-development-build-for-devices/)
 - [Expo EAS plans and Free-plan limits](https://docs.expo.dev/billing/plans/)
 - [Apple Developer Program membership](https://developer.apple.com/programs/enroll/)
+- [Expo local development builds](https://docs.expo.dev/develop/development-builds/introduction/)
+- [Apple free Personal Team limits](https://developer.apple.com/help/account/basics/about-your-developer-account)
