@@ -41,6 +41,15 @@ jobs:
       - name: Synchronize locked environment
         run: uv sync --locked
 
+      - name: Install Python 3.12 for Garmin bridge
+        run: uv python install 3.12
+
+      - name: Verify Garmin dependency lock
+        run: uv lock --project garmin_sync --check
+
+      - name: Synchronize Garmin bridge environment
+        run: uv sync --project garmin_sync --locked
+
       - name: Verify Windows bootstrap script
         shell: pwsh
         run: ./scripts/bootstrap.ps1
@@ -59,6 +68,9 @@ jobs:
 
       - name: Audit Python dependencies
         run: uv run pip-audit
+
+      - name: Audit Garmin bridge dependencies
+        run: uv run pip-audit --path garmin_sync/.venv/Lib/site-packages
 
   secrets:
     name: Secret scan
