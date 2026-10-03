@@ -71,6 +71,11 @@ uv run python scripts/phase-b-freshness-benchmark.py
 uv run python scripts/phase-c-automatic-research-benchmark.py --enforce
 ```
 
+Phase D adds a read-only discovery view over the model tool and task-handler registries. Use
+`jarvis tools list`, `jarvis tools list --name get_current_time`, or `jarvis tools list --json` to
+inspect current registrations and their owners. Discovery does not invoke tools, schedule tasks,
+issue grants, or change the Phase 3 broker boundary.
+
 ## Implemented Phase 2
 
 The optional local voice slice adds:
@@ -609,6 +614,7 @@ always performs secret scanning.
 - [Phase 2 voice completion evidence](docs/phase-reports/PHASE_2_COMPLETION.md)
 - [Phase 5 research completion evidence](docs/phase-reports/PHASE_5_COMPLETION.md)
 - [Phase C automatic research completion evidence](docs/phase-reports/PHASE_C_COMPLETION.md)
+- [Phase D unified tool registry completion evidence](docs/phase-reports/PHASE_D_COMPLETION.md)
 - [Phase 6 planning completion evidence](docs/phase-reports/PHASE_6_COMPLETION.md)
 - [Phase 6 bounded task operator guide](docs/BOUNDED_TASKS.md)
 - [Phase 7A vision capture privacy boundary](docs/VISION_CAPTURE.md)

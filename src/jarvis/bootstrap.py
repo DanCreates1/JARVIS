@@ -84,7 +84,7 @@ from jarvis.research import (
 )
 from jarvis.security import phase_one_policy
 from jarvis.security.computer_policy import ComputerProposalPolicy
-from jarvis.tools import phase_one_tools
+from jarvis.tools import UnifiedToolRegistry, phase_one_tools
 
 SYSTEM_PROMPT = """\
 You are JARVIS, a concise privacy-aware personal assistant. Be accurate and candid about
@@ -107,6 +107,7 @@ class RuntimeComponents:
     store: SQLiteConversationStore
     provider: ModelRouter
     service: AssistantService
+    tool_registry: UnifiedToolRegistry | None = None
     computer: ComputerRuntimeComponents | None = None
     memory_store: SQLiteMemoryStore | None = None
     research_store: SQLiteResearchStore | None = None
@@ -403,6 +404,11 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
         if computer is not None:
             task_handlers.append(ComputerGrantTaskHandler(computer))
         task_registry = TaskHandlerRegistry(task_handlers)
+        tool_registry = UnifiedToolRegistry(
+            model_tools=registered_tools,
+            task_handlers=task_registry,
+            computer=computer.registry if computer is not None else None,
+        )
         task_budget = TaskBudget(
             max_steps=settings.task_max_steps,
             max_wall_seconds=settings.task_max_wall_seconds,
@@ -480,6 +486,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
         deployment_health=deployment_health,
         provider=provider,
         service=service,
+        tool_registry=tool_registry,
         computer=computer,
     )
 

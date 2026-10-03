@@ -12,6 +12,7 @@ from jarvis.core import ModelRole, PermissionLevel
 from jarvis.freshness_router import DeterministicFreshnessRouter
 from jarvis.research import AutomaticResearchProjector
 from jarvis.security.computer_policy import ComputerProposalPolicy
+from jarvis.tools import CurrentTimeTool
 
 
 class FakeStore:
@@ -63,7 +64,8 @@ async def test_build_runtime_composes_and_closes_adapters(
     monkeypatch.setattr(bootstrap, "OllamaChatProvider", FakeProvider)
     monkeypatch.setattr(bootstrap, "ModelRouter", FakeRouter)
     monkeypatch.setattr(bootstrap, "AssistantService", FakeService)
-    monkeypatch.setattr(bootstrap, "phase_one_tools", lambda **_kwargs: ("clock",))
+    clock = CurrentTimeTool()
+    monkeypatch.setattr(bootstrap, "phase_one_tools", lambda **_kwargs: (clock,))
     monkeypatch.setattr(bootstrap, "phase_one_policy", lambda: "policy")
     settings = Settings(data_dir=tmp_path, _env_file=None)
 
@@ -82,7 +84,9 @@ async def test_build_runtime_composes_and_closes_adapters(
         "max_output_tokens": 512,
         "keep_alive": "5m",
     }
-    assert components.service.kwargs["tools"] == ("clock",)
+    assert components.service.kwargs["tools"] == (clock,)
+    assert components.tool_registry is not None
+    assert components.tool_registry.get("get_current_time") is not None
     assert components.service.kwargs["policy"] == "policy"
     assert isinstance(components.service.kwargs["freshness_router"], DeterministicFreshnessRouter)
     assert isinstance(components.service.kwargs["automatic_research"], AutomaticResearchProjector)

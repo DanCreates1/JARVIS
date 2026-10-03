@@ -29,6 +29,7 @@ from jarvis.core import (
     RuntimeEventType,
     RuntimeResult,
     RuntimeStatus,
+    ToolDefinition,
 )
 from jarvis.diagnostics import DiagnosticReport, DiagnosticStatus, run_diagnostics
 from jarvis.logging_config import configure_logging
@@ -141,6 +142,12 @@ task_app = typer.Typer(
     no_args_is_help=True,
 )
 app.add_typer(task_app, name="task")
+tools_app = typer.Typer(
+    name="tools",
+    help="Inspect registered model tools and task handlers without executing them.",
+    no_args_is_help=True,
+)
+app.add_typer(tools_app, name="tools")
 proactive_app = typer.Typer(
     name="proactive",
     help="Control suggestion schedules, explicit foreground ticks, local inbox, and task handoff.",
@@ -166,6 +173,52 @@ deployment_app = typer.Typer(
 )
 remote_app.add_typer(deployment_app, name="deployment")
 console = Console(highlight=False, legacy_windows=False)
+
+
+@tools_app.command("list")
+def tools_list(
+    name: Annotated[
+        str | None,
+        typer.Option("--name", help="Exact registered name to inspect."),
+    ] = None,
+    as_json: Annotated[
+        bool,
+        typer.Option("--json", help="Emit full structured definitions."),
+    ] = False,
+) -> None:
+    """Discover current fixed registrations; no approval or dispatch occurs."""
+    settings = _load_settings()
+    asyncio.run(_tools_list(settings, name=name, as_json=as_json))
+
+
+async def _tools_list(settings: Settings, *, name: str | None, as_json: bool) -> None:
+    components = await build_runtime(settings)
+    async with components:
+        registry = components.tool_registry
+        assert registry is not None
+        entries = registry.entries if name is None else (registry.get(name),)
+        if name is not None and entries[0] is None:
+            console.print("[bold red]Unknown registered name.[/]")
+            raise typer.Exit(code=2)
+        found = tuple(entry for entry in entries if entry is not None)
+        if as_json:
+            typer.echo(
+                json.dumps([entry.model_dump(mode="json") for entry in found], sort_keys=True)
+            )
+            return
+        table = Table(title="Registered capabilities")
+        for column in ("Name", "Owner", "Level / kind", "Approval"):
+            table.add_column(column)
+        for entry in found:
+            definition = entry.definition
+            if isinstance(definition, ToolDefinition):
+                level = str(definition.permission_level.value)
+                approval = definition.approval_rule.value
+            else:
+                level = definition.kind.value
+                approval = "required" if definition.requires_approval else "none"
+            table.add_row(entry.name, entry.owner.value, level, approval)
+        console.print(table)
 
 
 def _fresh_computer_policy_version() -> str:

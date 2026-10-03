@@ -250,6 +250,13 @@ a second immutable registry: model-facing side-effect adapters are inert and can
 `ComputerProposalPolicy` to persist an exact proposal. A separate `ActionCoordinator` reviews
 policy, and `LocalActionBroker` alone owns fixed Windows handlers and one-use grant consumption.
 
+Phase D's `UnifiedToolRegistry` snapshots typed definitions from those model tools and the fixed
+Phase 6 task-handler registry. Each exact-name entry declares its owner: core, computer read,
+computer action, or task scheduler. It rejects duplicate names and computer/model registration
+drift. Returned definitions are detached copies. `jarvis tools list` exposes the local view; it
+does not dispatch, approve, or register handlers. The assistant, task scheduler, and local broker
+continue to use their separate execution paths.
+
 The broker runs as the current non-elevated Windows user. It is an authorization and dispatch
 boundary, not an administrator service. It revalidates actor/session/interface/capabilities, policy
 epoch and full policy fingerprint, executable/file identity, grant expiry/replay state, audit

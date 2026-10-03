@@ -45,7 +45,7 @@ remain authoritative.
   `PERSONAL_DATA_REQUIRED`, and `MULTI_SOURCE` classification integrated before answer generation.
 - [x] **C — Automatic Web Research:** reuse Phase 5 ports/workflow, add general search-provider
   capability, volatile compact evidence projection, timestamps, citations, and offline behavior.
-- [ ] **D — Unified Tool Registry:** expose existing typed registries through one discovery view
+- [x] **D — Unified Tool Registry:** expose existing typed registries through one discovery view
   without weakening separate action ownership or immutable handler sets.
 - [x] **E — Model Router/Fallback baseline:** existing role routing, health, quota/outage fallback,
   privacy enforcement, and configuration-driven model IDs satisfy the core request.
@@ -68,6 +68,7 @@ remain authoritative.
 
 ## Next phase
 
-Phase D. Expose existing typed registries through one discovery view without weakening separate
-action ownership or immutable handler sets. Phase C automatic research is implemented; the live
-Wikimedia smoke remains externally blocked by its `authentication_required` response.
+Phase F. Add repository maps, diff-oriented coding context, cache policy, and automated checkpoint
+upkeep while retaining existing bounded conversation, memory, and tool context. Phase D discovery
+is complete. Phase C's live Wikimedia smoke remains externally blocked by its
+`authentication_required` response.

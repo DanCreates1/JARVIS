@@ -29,6 +29,13 @@ class TaskHandlerRegistry:
     def names(self) -> frozenset[str]:
         return frozenset(self._handlers)
 
+    @property
+    def definitions(self) -> tuple[TaskHandlerDefinition, ...]:
+        """Return detached metadata; execution remains owned by this registry."""
+        return tuple(
+            handler.definition.model_copy(deep=True) for handler in self._handlers.values()
+        )
+
     def get(self, name: str) -> TaskHandler:
         try:
             return self._handlers[name]

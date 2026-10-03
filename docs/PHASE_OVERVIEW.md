@@ -1,6 +1,6 @@
 # JARVIS Phase Overview
 
-Updated: 2026-09-30
+Updated: 2026-10-02
 
 ## Active product path
 
@@ -38,7 +38,7 @@ record.
 | Phase 2 | Complete; continuous listening default-off | Maintenance |
 | Phase 3 | Implemented; live closeout pending | Separately authorized live effects only |
 | Phases 4–8 | Complete | Maintenance |
-| Agentic expansion A–C | Implemented; Phase C live Wikimedia smoke blocked by endpoint authentication response | Phase D unified tool registry discovery |
+| Agentic expansion A–D | Implemented; Phase C live Wikimedia smoke blocked by endpoint authentication response | Phase F token/continuity; Phase E baseline already complete |
 | Phase 9 | Repository implementation complete; deployment blocked external | Authorized server target only |
 | Phase 10 | Generic boundary complete; previous vendor integration deferred | PWA Garmin path covers current read-only phone goal |
 | Phase 11 | Complete; proactive/effect paths default-off | Maintenance |

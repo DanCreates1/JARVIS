@@ -20,6 +20,9 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
   turn-local URL-cited evidence and explicit missing-evidence status.
 - Added optional reviewed HTTPS SearXNG JSON search; Wikimedia remains the account-free default.
 - Automatic research grants no storage, personal-data, tool, or effect authority.
+- Completed Phase D read-only unified discovery over current model tools and task handlers.
+- Local `jarvis tools list` and JSON view expose exact names, owners, and typed definitions;
+  discovery never invokes handlers, approves actions, or schedules tasks.
 
 ## Modified areas
 
@@ -34,6 +37,7 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
 - Phase B completion report and expansion/checkpoint documentation
 - Phase C projector, general-web adapter, runtime events, privacy/failure/cancellation tests,
   fixed 100-case benchmark, and completion report
+- Phase D immutable discovery snapshot, runtime/CLI wiring, focused tests, and completion report
 
 ## Verification
 
@@ -45,6 +49,8 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
 - `pip-audit --strict`: no known vulnerabilities after locked `pypdf 6.19.0` upgrade.
 - Gitleaks: 66 commits / 5.96 MB scanned, no leaks.
 - `git diff --check`: pass.
+- Phase D full gate: 1,150 passed, 3 skipped, 85.01% coverage; Ruff/mypy, locked dependencies,
+  pip-audit, gitleaks, doctor, and diff check pass.
 - `jarvis doctor`: pass; local runtime ready.
 - Phase B benchmark: 10,000/10,000 correct, p50 0.0118 ms, p95 0.0242 ms, max 0.0651 ms.
 - Phase C benchmark: 100/100 fixed cases, 40 public fake acquisitions, zero privacy/persistence/
@@ -68,6 +74,7 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
 
 ## Remaining
 
-- Next expansion implementation: Phase D unified tool registry discovery.
+- Next expansion implementation: Phase F token/continuity work; Phase E model-routing baseline is
+  already complete.
 - Live public Wikimedia smoke returned `authentication_required` from the search endpoint on this
   workstation. No credential or paid service was used; synthetic and contract gates cover the path.

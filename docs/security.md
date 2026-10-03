@@ -67,6 +67,11 @@ Implemented risk classes are read-only, reversible, sensitive, and destructive. 
 computer proposal policy can create durable exact requests, but direct runtime execution remains
 prohibited; only the fixed broker can consume an independently approved one-use grant.
 
+The Phase D discovery catalog contains metadata only. It copies validated definitions and
+rejects duplicate names or mismatched computer adapters. It exposes no handler, grant, approval,
+or broker dispatch method. The local `jarvis tools list` command reads the current catalog and
+does not call any listed capability.
+
 There is no arbitrary shell tool. Process tools must use fixed executables and
 argument arrays, never `shell=True`, command strings, PowerShell evaluation, or
 implicit elevation. Filesystem tools must resolve canonical paths and enforce

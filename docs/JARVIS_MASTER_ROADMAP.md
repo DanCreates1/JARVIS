@@ -1,7 +1,7 @@
 # JARVIS Master Roadmap
 
 Status: active, mobile-MVP-first  
-Updated: 2026-09-28  
+Updated: 2026-10-02
 Repository: `DanCreates1/JARVIS`, branch `main`
 
 ## Product target
@@ -60,7 +60,7 @@ detailed evidence and must not be rewritten to fit the new product order.
 | Phase 2 — voice | Complete; continuous wake/clap remains disabled by default | [Completion report](phase-reports/PHASE_2_COMPLETION.md) |
 | Phase 3 — controlled computer access | Implemented; authorized live closeout remains pending | [Completion report](phase-reports/PHASE_3_COMPLETION.md) |
 | Phases 4–8 — memory, research, tasks, vision, secure PWA | Complete | [Phase reports](phase-reports/) |
-| Agentic expansion A–C — context, freshness, automatic research | Implemented; Phase C live Wikimedia smoke blocked by endpoint authentication response | [Phase C report](phase-reports/PHASE_C_COMPLETION.md) |
+| Agentic expansion A–D — context, freshness, automatic research, tool discovery | Implemented; Phase C live Wikimedia smoke blocked by endpoint authentication response | [Phase D report](phase-reports/PHASE_D_COMPLETION.md) |
 | Phase 9 — server migration | Repository implementation complete; live deployment blocked on an authorized server | [Progress report](phase-reports/PHASE_9_PROGRESS.md) |
 | Phase 10 — generic wearables | 10A boundary complete; former vendor work was deferred | [Progress report](phase-reports/PHASE_10_PROGRESS.md) |
 | Phase 11 — advanced/proactive foundation | Complete, default-off, with no autonomous effect authority | [Completion report](phase-reports/PHASE_11_COMPLETION.md) |
