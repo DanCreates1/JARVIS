@@ -11,6 +11,7 @@ from pydantic import JsonValue, ValidationError
 from .context import reduce_conversation_context
 from .contracts import (
     AuditStore,
+    AutomaticResearchPort,
     ChatProvider,
     ConversationStore,
     CurrentContextPort,
@@ -114,6 +115,7 @@ class AssistantService:
         max_tool_iterations: int = 4,
         current_context: CurrentContextPort | None = None,
         freshness_router: FreshnessRouter | None = None,
+        automatic_research: AutomaticResearchPort | None = None,
         memory: MemoryContextPort | None = None,
         sensitivity_classifier: SensitivityClassifier | None = None,
     ) -> None:
@@ -158,6 +160,7 @@ class AssistantService:
         self.max_tool_iterations = max_tool_iterations
         self.current_context = current_context
         self.freshness_router = freshness_router
+        self.automatic_research = automatic_research
         self.memory = memory
         self.sensitivity_classifier = sensitivity_classifier
 
@@ -298,12 +301,68 @@ class AssistantService:
             with suppress(Exception):
                 await self.memory.capture_candidates(persisted)
 
+        research_projection: ContextProjection | None = None
+        if (
+            freshness_decision is not None
+            and freshness_decision.requires_live_evidence
+            and self.automatic_research is not None
+        ):
+            events.add(
+                RuntimeEventType.RESEARCH_STARTED,
+                conversation_id=conversation.id,
+                detail="Started bounded volatile public research.",
+            )
+            try:
+                research_projection = ContextProjection.model_validate(
+                    await self.automatic_research.project(
+                        request.user_input,
+                        freshness_decision,
+                    )
+                )
+                if research_projection.sensitivity is not SensitivityClass.PUBLIC:
+                    raise ValueError("automatic research projection must be public")
+                freshness_projection = None
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                reason = _research_failure_reason(exc)
+                research_projection = ContextProjection(
+                    content=(
+                        "LIVE RESEARCH UNAVAILABLE\n"
+                        f"reason={reason}\n"
+                        "No current evidence was attached. State this limit explicitly; do not "
+                        "supply uncited current facts or claim verification. Suggest retrying "
+                        "when public web research is available."
+                    ),
+                    sensitivity=SensitivityClass.PUBLIC,
+                    source_ids=("automatic-research-unavailable",),
+                    source="volatile-automatic-research",
+                )
+                events.add(
+                    RuntimeEventType.RESEARCH_UNAVAILABLE,
+                    conversation_id=conversation.id,
+                    detail=(
+                        f"Live public evidence unavailable ({reason}); no current facts "
+                        "were verified."
+                    ),
+                )
+            else:
+                events.add(
+                    RuntimeEventType.RESEARCH_COMPLETED,
+                    conversation_id=conversation.id,
+                    detail=(
+                        "Attached bounded volatile evidence from "
+                        f"{len(research_projection.source_ids)} source(s)."
+                    ),
+                )
+
         while True:
             try:
                 context = await self._context(
                     conversation,
                     request=request,
                     freshness_projection=freshness_projection,
+                    research_projection=research_projection,
                 )
             except Exception:
                 error = RuntimeErrorDetail(
@@ -864,6 +923,7 @@ class AssistantService:
         *,
         request: AssistantRequest,
         freshness_projection: ContextProjection | None = None,
+        research_projection: ContextProjection | None = None,
     ) -> tuple[Message, ...]:
         raw_recent = await self.store.recent_messages(
             conversation.id,
@@ -890,6 +950,17 @@ class AssistantService:
                 context_source=freshness_projection.source,
                 disclosure_sensitivity=freshness_projection.sensitivity,
                 disclosure_source=freshness_projection.source,
+            )
+        research_message: Message | None = None
+        if research_projection is not None:
+            research_message = Message(
+                conversation_id=conversation.id,
+                role=MessageRole.SYSTEM,
+                content=research_projection.content,
+                context_sensitivity=research_projection.sensitivity,
+                context_source=research_projection.source,
+                disclosure_sensitivity=research_projection.sensitivity,
+                disclosure_source=research_projection.source,
             )
         current_context_message: Message | None = None
         if self.current_context is not None:
@@ -935,7 +1006,12 @@ class AssistantService:
                     )
         dynamic_context = tuple(
             message
-            for message in (freshness_message, current_context_message, memory_message)
+            for message in (
+                freshness_message,
+                research_message,
+                current_context_message,
+                memory_message,
+            )
             if message is not None
         )
         if not self.system_prompt:
@@ -1096,6 +1172,24 @@ def _more_restrictive(
         SensitivityClass.PRIVATE: 2,
     }
     return left if order[left] >= order[right] else right
+
+
+def _research_failure_reason(error: Exception) -> str:
+    """Reduce research errors to content-free, stable status codes."""
+    allowed = {"privacy_denied", "timeout", "protocol_error", "unavailable"}
+    failures = getattr(error, "failures", ())
+    for failure in failures:
+        value = getattr(getattr(failure, "code", None), "value", None)
+        if isinstance(value, str) and value == "privacy_denied":
+            return value
+    value = getattr(getattr(error, "code", None), "value", None)
+    if isinstance(value, str) and value in allowed:
+        return value
+    for failure in failures:
+        value = getattr(getattr(failure, "code", None), "value", None)
+        if isinstance(value, str) and value in allowed:
+            return value
+    return "unavailable"
 
 
 def _validate_tool_result_limits(result: ToolResult, definition: ToolDefinition) -> None:

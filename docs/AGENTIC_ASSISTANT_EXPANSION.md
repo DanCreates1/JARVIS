@@ -1,7 +1,7 @@
 # Agentic Assistant Expansion
 
 Status: active incremental plan
-Updated: 2026-09-16
+Updated: 2026-10-02
 
 This plan maps the requested A–M capability sequence onto the existing Phase 0–11 repository. The
 two naming schemes are independent. Existing security, privacy, approval, and deployment gates
@@ -43,7 +43,7 @@ remain authoritative.
   region, session/device, inference mode, internet reachability, and exact post-route model context.
 - [x] **B — Freshness Router:** deterministic `STATIC`, `LOCAL_CONTEXT`, `WEB_REQUIRED`,
   `PERSONAL_DATA_REQUIRED`, and `MULTI_SOURCE` classification integrated before answer generation.
-- [ ] **C — Automatic Web Research:** reuse Phase 5 ports/workflow, add general search-provider
+- [x] **C — Automatic Web Research:** reuse Phase 5 ports/workflow, add general search-provider
   capability, volatile compact evidence projection, timestamps, citations, and offline behavior.
 - [ ] **D — Unified Tool Registry:** expose existing typed registries through one discovery view
   without weakening separate action ownership or immutable handler sets.
@@ -68,6 +68,6 @@ remain authoritative.
 
 ## Next phase
 
-Phase C. Connect only `WEB_REQUIRED`/`MULTI_SOURCE` decisions to volatile Phase 5 research. Add a
-general search-provider capability, compact cited evidence projection, timestamps, and explicit
-offline behavior without building a competing web stack or persisting results automatically.
+Phase D. Expose existing typed registries through one discovery view without weakening separate
+action ownership or immutable handler sets. Phase C automatic research is implemented; the live
+Wikimedia smoke remains externally blocked by its `authentication_required` response.

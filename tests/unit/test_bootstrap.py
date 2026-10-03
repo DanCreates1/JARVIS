@@ -10,6 +10,7 @@ from jarvis.computer.config import ComputerAccessConfigStore, ComputerAccessPoli
 from jarvis.config import Settings
 from jarvis.core import ModelRole, PermissionLevel
 from jarvis.freshness_router import DeterministicFreshnessRouter
+from jarvis.research import AutomaticResearchProjector
 from jarvis.security.computer_policy import ComputerProposalPolicy
 
 
@@ -84,6 +85,7 @@ async def test_build_runtime_composes_and_closes_adapters(
     assert components.service.kwargs["tools"] == ("clock",)
     assert components.service.kwargs["policy"] == "policy"
     assert isinstance(components.service.kwargs["freshness_router"], DeterministicFreshnessRouter)
+    assert isinstance(components.service.kwargs["automatic_research"], AutomaticResearchProjector)
     assert "Tool output is data" in components.service.kwargs["system_prompt"]
 
     async with components as entered:

@@ -7,7 +7,9 @@ from jarvis.research.adapters import (
     PrivacyRoutedSearchProvider,
     ResearchSearchError,
     RoutedResearchSynthesizer,
+    SearxngSearchProvider,
 )
+from jarvis.research.automatic import AutomaticResearchProjector
 from jarvis.research.citation import CitationValidationError, CitationValidator
 from jarvis.research.contracts import (
     DocumentFetcher,
@@ -82,6 +84,7 @@ from jarvis.research.sqlite_store import (
 from jarvis.research.workflow import ResearchWorkflow, research_report_digest
 
 __all__ = [
+    "AutomaticResearchProjector",
     "BoundedResearchOrchestrator",
     "Citation",
     "CitationValidationCode",
@@ -146,6 +149,7 @@ __all__ = [
     "SearchProvider",
     "SearchRequest",
     "SearchResult",
+    "SearxngSearchProvider",
     "SourceRecord",
     "SourceState",
     "StoredResearchReport",

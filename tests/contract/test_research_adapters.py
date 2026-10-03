@@ -19,6 +19,7 @@ from jarvis.research import (
     RoutedResearchSynthesizer,
     SearchRequest,
     SearchResult,
+    SearxngSearchProvider,
     SourceRecord,
 )
 
@@ -141,6 +142,79 @@ async def test_mediawiki_search_cancellation_propagates() -> None:
     task.cancel()
     with pytest.raises(asyncio.CancelledError):
         await task
+
+
+@pytest.mark.asyncio
+async def test_searxng_general_search_uses_bounded_json_and_filters_domains() -> None:
+    payload = json.dumps(
+        {
+            "results": [
+                {
+                    "title": "Current Alpha",
+                    "url": "https://docs.example/current-alpha",
+                    "content": "Current public fixture",
+                    "publishedDate": "2026-09-15T12:00:00Z",
+                },
+                {
+                    "title": "Denied",
+                    "url": "https://evil.example/result",
+                    "content": "Denied fixture",
+                },
+            ]
+        }
+    ).encode()
+    fetcher = FakeFetcher(payload)
+    provider = SearxngSearchProvider(
+        fetcher=fetcher,
+        endpoint="https://search.example/search",
+    )
+
+    results = await provider.search(
+        SearchRequest(query="current Alpha", limit=2, allowed_domains=("docs.example",))
+    )
+
+    assert [result.title for result in results] == ["Current Alpha"]
+    assert results[0].published_at == datetime(2026, 9, 15, 12, tzinfo=UTC)
+    assert fetcher.requests[0].allowed_domains == ("search.example",)
+    assert fetcher.requests[0].limits.accepted_media_types == ("application/json",)
+    assert "format=json" in fetcher.requests[0].url
+    assert "safesearch=1" in fetcher.requests[0].url
+
+
+@pytest.mark.asyncio
+async def test_searxng_malformed_provider_response_fails_closed() -> None:
+    provider = SearxngSearchProvider(
+        fetcher=FakeFetcher(b'{"unexpected":true}'),
+        endpoint="https://search.example/search",
+    )
+
+    with pytest.raises(ResearchSearchError) as caught:
+        await provider.search(SearchRequest(query="current Alpha"))
+
+    assert caught.value.code is ResearchErrorCode.PROTOCOL_ERROR
+
+
+@pytest.mark.asyncio
+async def test_searxng_search_cancellation_propagates() -> None:
+    fetcher = FakeFetcher(b"[]")
+    fetcher.block = True
+    provider = SearxngSearchProvider(
+        fetcher=fetcher,
+        endpoint="https://search.example/search",
+    )
+    task = asyncio.create_task(provider.search(SearchRequest(query="What is Alpha?")))
+    await asyncio.wait_for(fetcher.started.wait(), timeout=1)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+
+def test_searxng_endpoint_rejects_non_https() -> None:
+    with pytest.raises(ValueError):
+        SearxngSearchProvider(
+            fetcher=FakeFetcher(b"{}"),
+            endpoint="http://search.example/search",
+        )
 
 
 @pytest.mark.asyncio

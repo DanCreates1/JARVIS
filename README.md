@@ -60,12 +60,15 @@ The incremental proactive/context-aware expansion audit and A–M checklist are 
 [Agentic Assistant Expansion](docs/AGENTIC_ASSISTANT_EXPANSION.md). Resume state is kept in the
 compact [JARVIS checkpoint](docs/JARVIS_CHECKPOINT.md).
 
-Phase B classification does not search, fetch, authorize personal-data access, or claim that
-evidence exists. `WEB_REQUIRED` and `MULTI_SOURCE` requests receive an explicit missing-evidence
-constraint until Phase C connects them to volatile Phase 5 research. Run the fixed local gate with:
+Phase C runs bounded volatile Phase 5 research only for public `WEB_REQUIRED` and `MULTI_SOURCE`
+requests. Private or uncertain requests never reach remote search. Evidence includes nearby URL
+citations, timestamps, conflicts, uncertainty, and a source-count status; failures leave explicit
+missing-evidence guidance. Automatic reports are never stored or approved. Wikimedia is the
+account-free default; a reviewed HTTPS SearXNG JSON endpoint is optional. Run fixed local gates:
 
 ```powershell
 uv run python scripts/phase-b-freshness-benchmark.py
+uv run python scripts/phase-c-automatic-research-benchmark.py --enforce
 ```
 
 ## Implemented Phase 2
@@ -526,7 +529,14 @@ The main settings are:
 | `JARVIS_DATA_DIR` | platform default | Override the private runtime data directory |
 | `JARVIS_MEMORY_RETRIEVAL_ENABLED` | `true` | Project committed host memory into bounded local context; `false` preserves data but disables retrieval |
 | `JARVIS_RESEARCH_ENABLED` | `true` | Enable bounded public research; `false` retains approved ledger data for recovery |
-| `JARVIS_RESEARCH_SEARCH_PROVIDER` | `wikimedia` | Account-free discovery adapter; currently Wikimedia only |
+| `JARVIS_RESEARCH_SEARCH_PROVIDER` | `wikimedia` | Account-free Wikimedia or configured `searxng` general-web adapter |
+| `JARVIS_RESEARCH_SEARCH_ENDPOINT` | Wikimedia API | HTTPS search endpoint; set explicitly for `searxng` |
+| `JARVIS_AUTOMATIC_RESEARCH_ENABLED` | `true` | Separate chat research gate; `false` leaves explicit manual Phase 5 research available |
+| `JARVIS_AUTOMATIC_RESEARCH_MAX_SOURCES` | `4` | Per-turn source ceiling |
+| `JARVIS_AUTOMATIC_RESEARCH_MAX_FETCHES` | `8` | Per-turn fetch ceiling |
+| `JARVIS_AUTOMATIC_RESEARCH_DEADLINE_SECONDS` | `45` | Per-turn research deadline |
+| `JARVIS_AUTOMATIC_RESEARCH_MAX_PROJECTION_CHARS` | `20000` | Volatile answer-context character ceiling |
+| `JARVIS_AUTOMATIC_RESEARCH_MAX_AGE_SECONDS` | `3600` | Evidence freshness window |
 | `JARVIS_RESEARCH_PENDING_TTL_SECONDS` | `900` | Expiry for volatile reports awaiting exact storage approval |
 | `JARVIS_PROACTIVITY_ENABLED` | `false` | Global Phase 11 policy gate; activation still starts no runner |
 | `JARVIS_PROACTIVITY_ENABLED_FEATURES` | `[]` | JSON array of exact enabled features; empty denies all features |
@@ -598,6 +608,7 @@ always performs secret scanning.
 - [Phase overview and status](docs/PHASE_OVERVIEW.md)
 - [Phase 2 voice completion evidence](docs/phase-reports/PHASE_2_COMPLETION.md)
 - [Phase 5 research completion evidence](docs/phase-reports/PHASE_5_COMPLETION.md)
+- [Phase C automatic research completion evidence](docs/phase-reports/PHASE_C_COMPLETION.md)
 - [Phase 6 planning completion evidence](docs/phase-reports/PHASE_6_COMPLETION.md)
 - [Phase 6 bounded task operator guide](docs/BOUNDED_TASKS.md)
 - [Phase 7A vision capture privacy boundary](docs/VISION_CAPTURE.md)

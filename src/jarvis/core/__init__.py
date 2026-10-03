@@ -1,6 +1,7 @@
 """Public Phase 1 core API."""
 
 from .contracts import (
+    AutomaticResearchPort,
     ChatProvider,
     ConversationStore,
     CurrentContextPort,
@@ -57,6 +58,7 @@ __all__ = [
     "ApprovalRule",
     "AssistantRequest",
     "AssistantService",
+    "AutomaticResearchPort",
     "ChatProvider",
     "ContextProjection",
     "Conversation",

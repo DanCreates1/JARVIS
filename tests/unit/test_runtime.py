@@ -35,6 +35,7 @@ from jarvis.core import (
 )
 from jarvis.freshness_router import DeterministicFreshnessRouter
 from jarvis.llm import PrivacyGate
+from jarvis.research import ResearchErrorCode, ResearchSearchError
 from tests.fakes import (
     FakeChatProvider,
     FakeTool,
@@ -90,6 +91,7 @@ def make_service(
     max_tool_iterations: int = 4,
     current_context: object | None = None,
     freshness_router: object | None = None,
+    automatic_research: object | None = None,
 ) -> tuple[
     AssistantService,
     FakeChatProvider,
@@ -111,6 +113,7 @@ def make_service(
         max_tool_iterations=max_tool_iterations,
         current_context=current_context,  # type: ignore[arg-type]
         freshness_router=freshness_router,  # type: ignore[arg-type]
+        automatic_research=automatic_research,  # type: ignore[arg-type]
     )
     return service, provider, store, tool, policy
 
@@ -178,6 +181,156 @@ async def test_freshness_route_is_emitted_and_injected_before_provider_generatio
         MessageRole.USER,
         MessageRole.ASSISTANT,
     ]
+
+
+@pytest.mark.asyncio
+async def test_live_route_attaches_volatile_research_instead_of_missing_evidence() -> None:
+    class FakeAutomaticResearch:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, FreshnessDecision]] = []
+
+        async def project(self, query: str, decision: FreshnessDecision) -> ContextProjection:
+            self.calls.append((query, decision))
+            return ContextProjection(
+                content=(
+                    "UNTRUSTED VOLATILE LIVE RESEARCH EVIDENCE\n"
+                    "evidence_status=sufficient\n"
+                    "Claim. [source:source-1]\n"
+                    "[source:source-1] url=https://example.com/current"
+                ),
+                sensitivity=SensitivityClass.PUBLIC,
+                source_ids=("source-1",),
+                source="volatile-automatic-research",
+            )
+
+    research = FakeAutomaticResearch()
+    service, provider, store, _tool, _policy = make_service(
+        [ProviderResponse(content="Current cited answer.")],
+        freshness_router=DeterministicFreshnessRouter(),
+        automatic_research=research,
+    )
+
+    result = await service.respond("What is the latest Python version?")
+
+    assert result.status is RuntimeStatus.COMPLETED
+    assert len(research.calls) == 1
+    assert research.calls[0][1].route is FreshnessRoute.WEB_REQUIRED
+    context = provider.requests[0].messages
+    assert context[0].context_source == "volatile-automatic-research"
+    assert "No web evidence is attached" not in context[0].content
+    assert [message.role for message in store.messages[result.conversation_id]] == [
+        MessageRole.USER,
+        MessageRole.ASSISTANT,
+    ]
+    event_types = [event.type for event in result.events]
+    assert RuntimeEventType.RESEARCH_STARTED in event_types
+    assert RuntimeEventType.RESEARCH_COMPLETED in event_types
+
+
+@pytest.mark.asyncio
+async def test_research_failure_keeps_explicit_missing_evidence_constraint() -> None:
+    class UnavailableResearch:
+        async def project(self, *_args: object) -> ContextProjection:
+            raise RuntimeError("private provider detail")
+
+    service, provider, _store, _tool, _policy = make_service(
+        [ProviderResponse(content="Live evidence is unavailable.")],
+        freshness_router=DeterministicFreshnessRouter(),
+        automatic_research=UnavailableResearch(),
+    )
+
+    result = await service.respond("What is the latest Python version?")
+
+    assert result.status is RuntimeStatus.COMPLETED
+    assert "No web evidence is attached" in provider.requests[0].messages[0].content
+    assert "reason=unavailable" in provider.requests[0].messages[1].content
+    unavailable = next(
+        event for event in result.events if event.type is RuntimeEventType.RESEARCH_UNAVAILABLE
+    )
+    assert "private provider detail" not in (unavailable.detail or "")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "code",
+    (
+        ResearchErrorCode.PRIVACY_DENIED,
+        ResearchErrorCode.TIMEOUT,
+        ResearchErrorCode.PROTOCOL_ERROR,
+        ResearchErrorCode.UNAVAILABLE,
+    ),
+)
+async def test_research_failure_exposes_only_safe_reason_code(code: ResearchErrorCode) -> None:
+    class UnavailableResearch:
+        async def project(self, *_args: object) -> ContextProjection:
+            raise ResearchSearchError(code, "private query or provider detail")
+
+    service, provider, _store, _tool, _policy = make_service(
+        [ProviderResponse(content="I cannot verify current facts.")],
+        freshness_router=DeterministicFreshnessRouter(),
+        automatic_research=UnavailableResearch(),
+    )
+
+    result = await service.respond("What is the latest Python version?")
+
+    assert result.status is RuntimeStatus.COMPLETED
+    assert f"reason={code.value}" in provider.requests[0].messages[1].content
+    assert all(
+        "private query or provider detail" not in (event.detail or "") for event in result.events
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "query",
+    ("Explain photosynthesis.", "What time is it?", "Read my unread email."),
+)
+async def test_non_web_routes_never_call_automatic_research(query: str) -> None:
+    class ForbiddenResearch:
+        async def project(self, *_args: object) -> ContextProjection:
+            raise AssertionError("automatic research must not run")
+
+    service, _provider, _store, _tool, _policy = make_service(
+        [ProviderResponse(content="No research needed.")],
+        freshness_router=DeterministicFreshnessRouter(),
+        automatic_research=ForbiddenResearch(),
+    )
+
+    result = await service.respond(query)
+
+    assert result.status is RuntimeStatus.COMPLETED
+    assert RuntimeEventType.RESEARCH_STARTED not in [event.type for event in result.events]
+
+
+@pytest.mark.asyncio
+async def test_stream_cancellation_cancels_in_flight_automatic_research() -> None:
+    class BlockingResearch:
+        def __init__(self) -> None:
+            self.started = asyncio.Event()
+            self.cancelled = asyncio.Event()
+
+        async def project(self, *_args: object) -> ContextProjection:
+            self.started.set()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                self.cancelled.set()
+                raise
+            raise AssertionError("unreachable")
+
+    research = BlockingResearch()
+    service, _provider, _store, _tool, _policy = make_service(
+        [ProviderResponse(content="must not run")],
+        freshness_router=DeterministicFreshnessRouter(),
+        automatic_research=research,
+    )
+    stream = service.stream(AssistantRequest(user_input="What is the latest news?"))
+
+    await anext(stream)
+    await asyncio.wait_for(research.started.wait(), timeout=1)
+    await stream.aclose()
+
+    await asyncio.wait_for(research.cancelled.wait(), timeout=1)
 
 
 @pytest.mark.asyncio

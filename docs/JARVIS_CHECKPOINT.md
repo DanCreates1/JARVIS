@@ -1,6 +1,6 @@
 # JARVIS Checkpoint
 
-Updated: 2026-09-16
+Updated: 2026-10-02
 Objective: incremental proactive/context-aware expansion requested in `docs/AGENTIC_ASSISTANT_EXPANSION.md`
 
 ## Completed
@@ -16,8 +16,10 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
 - Added typed `STATIC`, `LOCAL_CONTEXT`, `WEB_REQUIRED`, `PERSONAL_DATA_REQUIRED`, and
   `MULTI_SOURCE` decisions plus observable runtime events and non-persistent model guidance.
 - Forced personal-data decisions through the existing private/local provider boundary.
-- Kept Phase C automatic research disabled; web/multi-source decisions state missing evidence and
-  grant no search, storage, personal-data, tool, or effect authority.
+- Completed Phase C public-only automatic research for web and multi-source routes, with bounded
+  turn-local URL-cited evidence and explicit missing-evidence status.
+- Added optional reviewed HTTPS SearXNG JSON search; Wikimedia remains the account-free default.
+- Automatic research grants no storage, personal-data, tool, or effect authority.
 
 ## Modified areas
 
@@ -30,19 +32,23 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
 - core freshness contract/models/events and production runtime composition
 - fixed classification/latency benchmark and adversarial/runtime/router tests
 - Phase B completion report and expansion/checkpoint documentation
+- Phase C projector, general-web adapter, runtime events, privacy/failure/cancellation tests,
+  fixed 100-case benchmark, and completion report
 
 ## Verification
 
 - `uv lock --check`: pass, 119 packages resolved.
 - `uv sync --locked`: pass in ignored `.bootstrap-venv`, 68 packages installed from lock.
-- Ruff format/check: pass, 342 files.
-- `mypy src`: pass, 141 source files.
-- Full pytest: 1,102 passed, 3 skipped, 85.11% coverage.
-- `pip-audit --strict`: no known vulnerabilities.
-- Gitleaks: 44 commits / 4.91 MB scanned, no leaks.
+- Ruff format/check: pass, 362 files.
+- `mypy src`: pass, 147 source files.
+- Full pytest: 1,147 passed, 3 skipped, 85.04% coverage.
+- `pip-audit --strict`: no known vulnerabilities after locked `pypdf 6.19.0` upgrade.
+- Gitleaks: 66 commits / 5.96 MB scanned, no leaks.
 - `git diff --check`: pass.
 - `jarvis doctor`: pass; local runtime ready.
 - Phase B benchmark: 10,000/10,000 correct, p50 0.0118 ms, p95 0.0242 ms, max 0.0651 ms.
+- Phase C benchmark: 100/100 fixed cases, 40 public fake acquisitions, zero privacy/persistence/
+  authority violations, projection-only p95 0.1367 ms below 5 ms.
 - Windows test launcher: generated `.venv` executable blocked by Application Control; trusted
   canonical CPython with locked `.bootstrap-venv/Lib/site-packages` works. The pre-existing
   `.venv/Lib` was locked against replacement, so no destructive cleanup was attempted. Pytest
@@ -62,7 +68,6 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
 
 ## Remaining
 
-- Next implementation: Phase C automatic volatile research for only `WEB_REQUIRED` and
-  `MULTI_SOURCE` decisions.
-- Reuse Phase 5 acquisition/parsing/synthesis/freshness boundaries. Do not add a competing web
-  stack or silently persist research.
+- Next expansion implementation: Phase D unified tool registry discovery.
+- Live public Wikimedia smoke returned `authentication_required` from the search endpoint on this
+  workstation. No credential or paid service was used; synthetic and contract gates cover the path.

@@ -68,6 +68,7 @@ from jarvis.remote import (
     verify_runtime_deployment,
 )
 from jarvis.research import (
+    AutomaticResearchProjector,
     BoundedResearchOrchestrator,
     ExtractiveResearchSynthesizer,
     FallbackResearchSynthesizer,
@@ -77,6 +78,8 @@ from jarvis.research import (
     ResearchWorkflow,
     RoutedResearchSynthesizer,
     SandboxedDocumentParser,
+    SearchProvider,
+    SearxngSearchProvider,
     SQLiteResearchStore,
 )
 from jarvis.security import phase_one_policy
@@ -294,13 +297,23 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
         )
         if settings.research_enabled:
             research_fetcher = HttpDocumentFetcher()
-            search = PrivacyRoutedSearchProvider(
-                MediaWikiSearchProvider(
+            search_delegate: SearchProvider
+            if settings.research_search_provider == "searxng":
+                search_delegate = SearxngSearchProvider(
                     fetcher=research_fetcher,
                     endpoint=str(settings.research_search_endpoint),
                     timeout_seconds=settings.research_search_timeout_seconds,
                     max_response_bytes=settings.research_search_max_response_bytes,
-                ),
+                )
+            else:
+                search_delegate = MediaWikiSearchProvider(
+                    fetcher=research_fetcher,
+                    endpoint=str(settings.research_search_endpoint),
+                    timeout_seconds=settings.research_search_timeout_seconds,
+                    max_response_bytes=settings.research_search_max_response_bytes,
+                )
+            search = PrivacyRoutedSearchProvider(
+                search_delegate,
                 gate=privacy_gate,
             )
             parser = SandboxedDocumentParser()
@@ -366,6 +379,20 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
                 else None
             ),
             freshness_router=DeterministicFreshnessRouter(),
+            automatic_research=(
+                AutomaticResearchProjector(
+                    research,
+                    host_id=memory_host_id,
+                    max_sources=settings.automatic_research_max_sources,
+                    max_fetches=settings.automatic_research_max_fetches,
+                    deadline_seconds=settings.automatic_research_deadline_seconds,
+                    max_projection_chars=settings.automatic_research_max_projection_chars,
+                    max_age_seconds=settings.automatic_research_max_age_seconds,
+                    privacy_gate=privacy_gate,
+                )
+                if research is not None and settings.automatic_research_enabled
+                else None
+            ),
             memory=memory if settings.memory_retrieval_enabled else None,
             sensitivity_classifier=privacy_gate,
         )

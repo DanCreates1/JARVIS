@@ -124,8 +124,11 @@ context, and verified capabilities.
 security-first precedence: personal-data need, multi-source corroboration, volatile web evidence,
 local runtime context, then static knowledge. Decisions contain no query text and grant no tool,
 data, storage, or effect authority. A personal-data projection is private and therefore forces the
-existing model router local even when a caller requests a cloud role. `WEB_REQUIRED` and
-`MULTI_SOURCE` only state evidence requirements in Phase B; automatic search/fetch is Phase C.
+existing model router local even when a caller requests a cloud role. Phase C sends only
+`WEB_REQUIRED` and `MULTI_SOURCE` requests through a second public-only privacy gate before the
+volatile Phase 5 workflow. A remote search adapter repeats that check. Results remain turn-local;
+the projection carries at most 20,000 characters with URL citations, timestamps, freshness,
+conflicts, uncertainty, and independent-host sufficiency. Missing evidence has an explicit status.
 Classification or projection failure stops before user-message persistence and provider access.
 
 NVIDIA owns one process-lifetime pooled `httpx.AsyncClient` with explicit connection and keep-alive
@@ -134,6 +137,9 @@ first reasoning token, first visible token, final visible token, and completion.
 when a keep-alive connection is reused; telemetry retains no prompt or response text.
 
 Phase 5 research uses separate `SearchProvider`, `DocumentFetcher`, and `DocumentParser` ports.
+The default discovery adapter is Wikimedia. A configured SearXNG JSON adapter adds general-web
+discovery through an explicit public HTTPS endpoint with bounded response, schema, domain, and
+deadline controls. SearXNG JSON must be enabled by its operator; many public instances disable it.
 The first fetch adapter validates public DNS, connects to the validated IP while retaining the
 original Host/SNI for TLS verification, ignores proxy environment configuration, follows only
 manually revalidated bounded redirects, streams under type/byte/time limits, and propagates

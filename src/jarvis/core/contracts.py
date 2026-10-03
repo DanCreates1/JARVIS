@@ -156,6 +156,17 @@ class FreshnessRouter(Protocol):
 
 
 @runtime_checkable
+class AutomaticResearchPort(Protocol):
+    async def project(
+        self,
+        query: str,
+        decision: FreshnessDecision,
+    ) -> ContextProjection:
+        """Return volatile cited public evidence for a live-evidence route."""
+        ...
+
+
+@runtime_checkable
 class Tool(Protocol):
     @property
     def definition(self) -> ToolDefinition: ...

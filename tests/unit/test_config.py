@@ -120,6 +120,12 @@ def test_safe_summary_contains_only_declared_diagnostics(tmp_path: Path) -> None
         "research_search_max_response_bytes",
         "research_pending_ttl_seconds",
         "research_max_pending_runs",
+        "automatic_research_enabled",
+        "automatic_research_max_sources",
+        "automatic_research_max_fetches",
+        "automatic_research_deadline_seconds",
+        "automatic_research_max_projection_chars",
+        "automatic_research_max_age_seconds",
         "task_execution_enabled",
         "task_max_steps",
         "task_max_wall_seconds",
@@ -285,12 +291,29 @@ def test_research_defaults_are_zero_cost_bounded_and_https_only(tmp_path: Path) 
     assert settings.research_search_provider == "wikimedia"
     assert str(settings.research_search_endpoint) == "https://en.wikipedia.org/w/api.php"
     assert settings.research_pending_ttl_seconds == 900
+    assert settings.automatic_research_enabled is True
+    assert settings.automatic_research_max_sources == 4
+    assert settings.automatic_research_max_fetches == 8
+    assert settings.automatic_research_deadline_seconds == 45
+    assert settings.automatic_research_max_projection_chars == 20_000
+    assert settings.automatic_research_max_age_seconds == 3_600
+    assert (
+        Settings(
+            data_dir=tmp_path,
+            research_search_provider="searxng",
+            research_search_endpoint="https://search.example/search",
+            _env_file=None,
+        ).research_search_provider
+        == "searxng"
+    )
     with pytest.raises(ValidationError, match="research provider endpoints must use HTTPS"):
         Settings(
             data_dir=tmp_path,
             research_search_endpoint="http://en.wikipedia.org/w/api.php",
             _env_file=None,
         )
+    with pytest.raises(ValidationError, match="SearXNG requires an explicit HTTPS search endpoint"):
+        Settings(data_dir=tmp_path, research_search_provider="searxng", _env_file=None)
 
 
 def test_task_execution_defaults_off_with_zero_cost_bounded_parallelism(tmp_path: Path) -> None:

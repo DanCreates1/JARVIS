@@ -114,6 +114,15 @@ explicit-memory deletion are implemented; richer-media retention remains deferre
 
 ## Research boundary
 
+- Automatic chat research runs only for public `WEB_REQUIRED` and `MULTI_SOURCE` routes. The
+  projector checks the current request locally before invoking Phase 5; the search adapter checks
+  again before every remote query. Private, ambiguous, and personal-data routes fail closed.
+- Automatic results are volatile context only, capped at 20,000 characters. URL citations,
+  timestamps, conflicts, uncertainty, and independent-host count remain visible. Search and source
+  failures retain missing-evidence instructions; research events contain no query or provider text.
+- The optional SearXNG general-web adapter requires an explicitly configured HTTPS JSON endpoint.
+  It uses the same public URL/DNS/response bounds as Wikimedia; no credential or paid service is
+  required by default.
 - Only public HTTPS destinations pass deterministic URL/DNS checks. Fetching pins a validated
   global IP while retaining original Host/SNI verification and enforces redirect, type, byte,
   source, domain, and total-time limits.

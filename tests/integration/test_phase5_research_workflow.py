@@ -145,6 +145,27 @@ def approval(pending, *, digest: str | None = None):  # type: ignore[no-untyped-
 
 
 @pytest.mark.asyncio
+async def test_volatile_run_creates_no_pending_approval_or_durable_report(tmp_path: Path) -> None:
+    store = SQLiteResearchStore(tmp_path / "volatile.db")
+    await store.initialize()
+    service = workflow(store, FakeOrchestrator(run_result()))
+    try:
+        result = await service.run_volatile(host_id=HOST, plan=run_result().plan)
+
+        assert result.report.answer.startswith("Alpha is supported")
+        assert await store.list_reports(host_id=HOST) == ()
+        with pytest.raises(ResearchNotFoundError):
+            await service.deny(
+                host_id=HOST,
+                pending_run_id="volatile-run",
+                expected_report_sha256=research_report_digest(result),
+            )
+    finally:
+        await service.close()
+        await store.close()
+
+
+@pytest.mark.asyncio
 async def test_research_storage_requires_exact_approval_and_never_promotes_memory(
     tmp_path: Path,
 ) -> None:

@@ -6,6 +6,7 @@ import asyncio
 import json
 import re
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from urllib.parse import urlencode, urlsplit
 from uuid import uuid4
 
@@ -165,6 +166,111 @@ class MediaWikiSearchProvider:
             raise ResearchSearchError(
                 ResearchErrorCode.PROTOCOL_ERROR,
                 "MediaWiki search returned malformed bounded JSON",
+            ) from exc
+
+    async def close(self) -> None:
+        if self._closed:
+            return
+        self._closed = True
+        if self._close_fetcher:
+            await self._fetcher.close()
+
+
+class SearxngSearchProvider:
+    """Configurable general-web adapter for a reviewed SearXNG JSON endpoint."""
+
+    def __init__(
+        self,
+        *,
+        fetcher: DocumentFetcher,
+        endpoint: str,
+        timeout_seconds: float = 10,
+        max_response_bytes: int = 512 * 1_024,
+        close_fetcher: bool = False,
+        url_policy: PublicResearchUrlPolicy | None = None,
+    ) -> None:
+        self._fetcher = fetcher
+        self._policy = url_policy or PublicResearchUrlPolicy()
+        normalized, hostname, _ = self._policy.validate_syntax(endpoint)
+        self._endpoint = normalized
+        self._endpoint_host = hostname
+        self._timeout_seconds = timeout_seconds
+        self._max_response_bytes = max_response_bytes
+        self._close_fetcher = close_fetcher
+        self._closed = False
+
+    async def search(self, request: SearchRequest) -> Sequence[SearchResult]:
+        if self._closed:
+            raise RuntimeError("SearxngSearchProvider is closed")
+        query = urlencode(
+            {
+                "q": request.query,
+                "format": "json",
+                "categories": "general",
+                "safesearch": 1,
+            }
+        )
+        separator = "&" if urlsplit(self._endpoint).query else "?"
+        try:
+            document = await self._fetcher.fetch(
+                FetchRequest(
+                    url=f"{self._endpoint}{separator}{query}",
+                    allowed_domains=(self._endpoint_host,),
+                    limits=FetchLimits(
+                        max_bytes=self._max_response_bytes,
+                        timeout_seconds=self._timeout_seconds,
+                        max_redirects=0,
+                        accepted_media_types=("application/json",),
+                    ),
+                )
+            )
+        except asyncio.CancelledError:
+            raise
+        except ResearchFetchError as exc:
+            raise ResearchSearchError(exc.code, str(exc)) from exc
+        try:
+            payload = json.loads(document.body.decode(document.encoding))
+            if not isinstance(payload, dict):
+                raise ValueError("SearXNG response must be an object")
+            raw_results = payload.get("results")
+            if not isinstance(raw_results, list):
+                raise ValueError("SearXNG response omitted results")
+            results: list[SearchResult] = []
+            for raw in raw_results:
+                if not isinstance(raw, dict):
+                    raise ValueError("SearXNG result must be an object")
+                title = raw.get("title")
+                url = raw.get("url")
+                snippet = raw.get("content", "")
+                if (
+                    not isinstance(title, str)
+                    or not isinstance(url, str)
+                    or not isinstance(snippet, str)
+                ):
+                    raise ValueError("SearXNG result fields must be strings")
+                try:
+                    normalized_url, hostname, _ = self._policy.validate_syntax(
+                        url,
+                        allowed_domains=request.allowed_domains,
+                    )
+                except ResearchUrlDenied:
+                    continue
+                results.append(
+                    SearchResult(
+                        url=normalized_url,
+                        title=title,
+                        snippet=snippet,
+                        publisher=hostname,
+                        published_at=_optional_aware_datetime(raw.get("publishedDate")),
+                    )
+                )
+                if len(results) >= request.limit:
+                    break
+            return tuple(results)
+        except (UnicodeError, json.JSONDecodeError, ValidationError, TypeError, ValueError) as exc:
+            raise ResearchSearchError(
+                ResearchErrorCode.PROTOCOL_ERROR,
+                "SearXNG search returned malformed bounded JSON",
             ) from exc
 
     async def close(self) -> None:
@@ -403,6 +509,18 @@ def _mediawiki_query(query: str) -> str:
     words = _WORD.findall(query)
     useful = [word for word in words if word.casefold() not in _SEARCH_STOP_WORDS]
     return " ".join(useful) or query
+
+
+def _optional_aware_datetime(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        return None
+    return parsed.astimezone(UTC)
 
 
 def _research_keywords(text: str) -> frozenset[str]:

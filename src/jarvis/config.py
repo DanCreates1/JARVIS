@@ -129,12 +129,18 @@ class Settings(BaseSettings):
     computer_access_enabled: bool = False
     memory_retrieval_enabled: bool = True
     research_enabled: bool = True
-    research_search_provider: Literal["wikimedia"] = "wikimedia"
+    research_search_provider: Literal["wikimedia", "searxng"] = "wikimedia"
     research_search_endpoint: AnyHttpUrl = AnyHttpUrl("https://en.wikipedia.org/w/api.php")
     research_search_timeout_seconds: float = Field(default=10, gt=0, le=60)
     research_search_max_response_bytes: int = Field(default=512 * 1_024, ge=1_024, le=2_000_000)
     research_pending_ttl_seconds: int = Field(default=900, ge=30, le=3_600)
     research_max_pending_runs: int = Field(default=10, ge=1, le=100)
+    automatic_research_enabled: bool = True
+    automatic_research_max_sources: int = Field(default=4, ge=2, le=4)
+    automatic_research_max_fetches: int = Field(default=8, ge=2, le=20)
+    automatic_research_deadline_seconds: float = Field(default=45, ge=1, le=120)
+    automatic_research_max_projection_chars: int = Field(default=20_000, ge=12_000, le=20_000)
+    automatic_research_max_age_seconds: int = Field(default=3_600, ge=60, le=86_400)
     task_execution_enabled: bool = False
     task_max_steps: int = Field(default=100, ge=1, le=100)
     task_max_wall_seconds: float = Field(default=3_600, gt=0, le=86_400)
@@ -387,6 +393,11 @@ class Settings(BaseSettings):
             or self.research_search_endpoint.scheme != "https"
         ):
             raise ValueError("cloud and research provider endpoints must use HTTPS")
+        if (
+            self.research_search_provider == "searxng"
+            and self.research_search_endpoint.host == "en.wikipedia.org"
+        ):
+            raise ValueError("SearXNG requires an explicit HTTPS search endpoint")
         return self
 
     @property
@@ -512,6 +523,14 @@ class Settings(BaseSettings):
             "research_search_max_response_bytes": self.research_search_max_response_bytes,
             "research_pending_ttl_seconds": self.research_pending_ttl_seconds,
             "research_max_pending_runs": self.research_max_pending_runs,
+            "automatic_research_enabled": self.automatic_research_enabled,
+            "automatic_research_max_sources": self.automatic_research_max_sources,
+            "automatic_research_max_fetches": self.automatic_research_max_fetches,
+            "automatic_research_deadline_seconds": self.automatic_research_deadline_seconds,
+            "automatic_research_max_projection_chars": (
+                self.automatic_research_max_projection_chars
+            ),
+            "automatic_research_max_age_seconds": self.automatic_research_max_age_seconds,
             "task_execution_enabled": self.task_execution_enabled,
             "task_max_steps": self.task_max_steps,
             "task_max_wall_seconds": self.task_max_wall_seconds,

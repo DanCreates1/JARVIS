@@ -229,6 +229,21 @@ public HTTPS sources are eligible. Discovery and acquisition obey fixed source/f
 redirect/time limits; HTML, plain text, and PDF parsing occurs in a short-lived isolated worker.
 JavaScript rendering, authentication/paywall bypass, file downloads, and OCR are unsupported.
 
+Chat automatically invokes volatile research only for locally classified public `WEB_REQUIRED` or
+`MULTI_SOURCE` requests. Private or uncertain current requests stay local with missing-evidence
+guidance. Disable only automatic chat research with `JARVIS_AUTOMATIC_RESEARCH_ENABLED=false`;
+`JARVIS_RESEARCH_ENABLED=false` disables new Phase 5 acquisition entirely. Automatic research never
+stores a report. Multi-source answers require two independent source hosts to claim sufficient
+corroboration. The default Wikimedia search can miss general-web sources.
+
+For a reviewed SearXNG instance with JSON enabled, set
+`JARVIS_RESEARCH_SEARCH_PROVIDER=searxng` and
+`JARVIS_RESEARCH_SEARCH_ENDPOINT=https://<reviewed-public-host>/search`. SearXNG's
+[official search API](https://docs.searxng.org/dev/search_api) documents JSON configuration and
+notes that many public instances disable it. JARVIS requires HTTPS and applies its normal
+public-host, response-size, schema, and domain controls. No endpoint or account is provisioned by
+this setup.
+
 ```powershell
 uv run jarvis research run "What is Python?" --max-sources 3 --max-fetches 6
 uv run jarvis research run "What is Python?" --store

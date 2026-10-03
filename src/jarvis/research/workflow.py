@@ -76,6 +76,10 @@ class ResearchWorkflow:
             self._pending[pending.id] = pending
         return pending
 
+    async def run_volatile(self, *, host_id: str, plan: ResearchPlan) -> ResearchRunResult:
+        """Run research without creating a pending storage-approval record."""
+        return await self._orchestrator.run(host_id=host_id, plan=plan)
+
     async def approve(self, approval: ResearchStorageApproval) -> ResearchApprovalReceipt:
         now = _aware(approval.approved_at)
         async with self._lock:
