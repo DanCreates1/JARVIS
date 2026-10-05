@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from jarvis.attachments import AttachmentService
+from jarvis.attachments.vision import OllamaAttachmentVision
 from jarvis.coding_context import CodingContextService, build_coding_context
 from jarvis.computer.runtime import ComputerRuntimeComponents, build_computer_runtime
 from jarvis.config import Settings
@@ -110,6 +112,8 @@ class RuntimeComponents:
     service: AssistantService
     tool_registry: UnifiedToolRegistry | None = None
     coding_context: CodingContextService | None = None
+    attachments: AttachmentService | None = None
+    attachment_vision: OllamaAttachmentVision | None = None
     computer: ComputerRuntimeComponents | None = None
     memory_store: SQLiteMemoryStore | None = None
     research_store: SQLiteResearchStore | None = None
@@ -127,6 +131,17 @@ class RuntimeComponents:
     deployment_health: DeploymentHealthMonitor | None = None
 
     async def close(self) -> None:
+        try:
+            if self.attachments is not None:
+                await self.attachments.close()
+        finally:
+            try:
+                if self.attachment_vision is not None:
+                    await self.attachment_vision.close()
+            finally:
+                await self._close_core()
+
+    async def _close_core(self) -> None:
         if self.coding_context is not None:
             self.coding_context.close()
         if self.deployment_health is not None:
@@ -226,7 +241,25 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
     research: ResearchWorkflow | None = None
     tasks: TaskScheduler | None = None
     created_providers: list[ModelProvider] = []
+    attachments: AttachmentService | None = None
+    attachment_vision: OllamaAttachmentVision | None = None
     try:
+        if settings.attachments_enabled:
+            if settings.attachment_vision_model is not None:
+                attachment_vision = OllamaAttachmentVision(
+                    base_url=str(settings.ollama_base_url),
+                    model=settings.attachment_vision_model,
+                )
+            attachments = AttachmentService(
+                settings.database_path,
+                host_id=memory_host_id,
+                enabled=True,
+                max_storage_bytes=settings.attachment_max_storage_bytes,
+                max_count=settings.attachment_max_count,
+                retention_hours=settings.attachment_retention_hours,
+                vision=attachment_vision,
+            )
+            await attachments.initialize()
         local = OllamaChatProvider(
             base_url=str(settings.ollama_base_url),
             model=settings.effective_local_model,
@@ -408,6 +441,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
             memory=memory if settings.memory_retrieval_enabled else None,
             sensitivity_classifier=privacy_gate,
             coding_context=coding_context,
+            attachments=attachments,
         )
         task_handlers: list[TaskHandler] = [
             ValueTaskHandler(),
@@ -438,6 +472,10 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
             execution_enabled=settings.task_execution_enabled,
         )
     except BaseException:
+        if attachments is not None:
+            await attachments.close()
+        if attachment_vision is not None:
+            await attachment_vision.close()
         try:
             if research is not None:
                 await research.close()
@@ -473,6 +511,8 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
     return RuntimeComponents(
         settings=settings,
         coding_context=coding_context,
+        attachments=attachments,
+        attachment_vision=attachment_vision,
         store=store,
         memory_store=memory_store,
         research_store=research_store,

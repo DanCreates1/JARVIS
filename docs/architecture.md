@@ -176,6 +176,15 @@ discovery and action ownership are unchanged. See [Token continuity](TOKEN_CONTI
 
 ### Memory boundary
 
+Phase G's default-off `AttachmentService` implements `AttachmentContextPort` with host/conversation
+scope in existing SQLite. Migration 015 adds original/normalized payloads, derived chunks and
+sticky conversation privacy. Transactional quota reservation precedes isolated bounded parsing;
+restart, expiry and deletion need no daemon. Selected IDs produce at most 8,000 characters of
+private untrusted cited context. Runtime suppresses automatic research and memory-candidate
+capture for attachment conversations/follow-ups. `OllamaAttachmentVision` implements a separate
+local capability-checked port; unavailable interpretation is explicit. CLI/guarded loopback routes
+share lifecycle; no PWA scope, model tool or authority store is added. See [Attachments](ATTACHMENTS.md).
+
 Phase 1 uses SQLite for durable transcripts. SQLite enables foreign keys,
 WAL mode, a busy timeout, and transactional numbered migrations. The minimal
 records are:

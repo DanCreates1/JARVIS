@@ -5,6 +5,18 @@ Hosted-model strategy verified: 2026-08-20
 Method: lightweight Windows CIM/PnP queries, installed-command checks, Phase 1/2 benchmarks, and
 Phase 3 read-only capability probes plus disposable controlled-root benchmark
 
+## Phase G local attachments — 2026-10-05
+
+- Windows 10.0.26300, Intel64 Family 6 Model 141, trusted CPython 3.11.9; locked Pillow 12.3.0
+  and pypdf 6.19.0. Fresh offline lock install and installed-wheel worker/migration smoke passed.
+- Fixed 100 retrieval queries: 100/100 hits, 6,655 maximum projection characters, p50/p95
+  3.859/4.890 ms. Twenty isolated parses: p50/p95 129.908/151.496 ms.
+- Installed local `qwen3.5:0.8b` identified synthetic red pixels warm in 1,348.504 ms. Initial
+  cold call timed out safely at the fixed 60-second deadline; cold vision remains a known limit.
+- Production CLI/browser synthetic attachment chat with existing `qwen3:0.6b` passed, with
+  private/local routing, denied cloud override and lifecycle cleanup. No credentials, download,
+  cloud call, paid service or computer effect. Full evidence: [Phase G report](phase-reports/PHASE_G_COMPLETION.md).
+
 ## Phase 2C current-device closeout — 2026-09-15
 
 - Current Windows inventory exposed 20 capture and 24 render endpoints. The persisted Realtek

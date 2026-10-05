@@ -83,6 +83,13 @@ local CLI `jarvis chat 'repo: explain current changes'`, or `jarvis coding clear
 Repository context forces local routing and skips automatic research. See
 [Token and coding continuity](docs/TOKEN_CONTINUITY.md) for bounds, exclusions and recovery.
 
+Phase G adds default-off local attachments: bounded UTF-8/text-PDF/PNG/JPEG upload, isolated
+parsing, cited chunks, optional capability-checked local vision and deletion. Set
+`JARVIS_ATTACHMENTS_ENABLED=true`, upload with `jarvis attachments upload`, then use
+`jarvis chat -c CONVERSATION_ID --attachment ATTACHMENT_ID -m 'Explain relevant evidence'`.
+Attachment conversations/follow-ups stay local and skip automatic research. See
+[Attachments](docs/ATTACHMENTS.md) for settings, limits, lifecycle and cold-vision behavior.
+
 ## Implemented Phase 2
 
 The optional local voice slice adds:

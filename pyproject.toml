@@ -15,6 +15,7 @@ dependencies = [
   "pydantic>=2.9,<3",
   "pydantic-settings>=2.5,<3",
   "pypdf>=6.19,<7",
+  "pillow>=12.3,<13",
   "rich>=13.8,<15",
   "tzdata>=2025.2",
   "typer>=0.12,<1",
@@ -25,7 +26,6 @@ dependencies = [
 [project.optional-dependencies]
 vision = [
   "opencv-python-headless>=5.0.0.93,<6",
-  "pillow>=12.3,<13",
 ]
 voice = [
   "faster-whisper>=1.2.1,<2",
@@ -74,7 +74,7 @@ testpaths = ["tests"]
 [tool.coverage.run]
 branch = true
 source = ["jarvis"]
-omit = ["src/jarvis/research/_parser_worker.py"]
+omit = ["src/jarvis/research/_parser_worker.py", "src/jarvis/attachments/_worker.py"]
 
 [tool.coverage.report]
 exclude_also = [

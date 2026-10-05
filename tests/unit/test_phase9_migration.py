@@ -151,7 +151,8 @@ def _backup_and_restore(tmp_path: Path):  # type: ignore[no-untyped-def]
 def test_database_state_covers_all_packaged_migrations_and_shared_domains(tmp_path: Path) -> None:
     state = analyze_database(_database(tmp_path / "source.db"))
 
-    assert [item.version for item in state.migrations] == list(range(1, 15))
+    assert [item.version for item in state.migrations] == list(range(1, 16))
+    assert {"attachments", "attachment_chunks"} <= {table.name for table in state.tables}
     assert state.tables
     assert len(state.content_sha256) == 64
     assert {domain.value for domain in iter_shared_domains()} == {
@@ -164,6 +165,54 @@ def test_database_state_covers_all_packaged_migrations_and_shared_domains(tmp_pa
         "permission-authority",
         "audit",
     }
+
+
+def test_encrypted_backup_preserves_attachment_payload_and_sticky_privacy(tmp_path: Path) -> None:
+    from jarvis.attachments import AttachmentService, AttachmentType, AttachmentUpload
+    from jarvis.attachments.models import ProcessedAttachment
+
+    class Processor:
+        async def process(self, body, media_type):
+            return ProcessedAttachment(text=body.decode())
+
+    source = _database(tmp_path / "source.db")
+
+    async def add_attachment():
+        service = AttachmentService(source, host_id=HOST_ID, enabled=True, processor=Processor())
+        await service.initialize()
+        try:
+            return await service.upload(
+                AttachmentUpload(
+                    conversation_id="conversation-0",
+                    filename="synthetic.txt",
+                    media_type=AttachmentType.TEXT,
+                ),
+                b"synthetic backup oracle",
+            )
+        finally:
+            await service.close()
+
+    record = asyncio.run(add_attachment())
+    bundle, target = tmp_path / "attachment.j9b", tmp_path / "target.db"
+    topology = _remote_topology()
+    create_encrypted_backup(
+        source,
+        bundle,
+        topology=topology,
+        source_owner_node_id=LAPTOP_ID,
+        key=KEY,
+        key_id=KEY_ID,
+        now=NOW,
+    )
+    restore_encrypted_backup(bundle, target, topology=topology, key=KEY, expected_key_id=KEY_ID)
+    assert analyze_database(source).content_sha256 == analyze_database(target).content_sha256
+    with sqlite3.connect(target) as connection:
+        assert connection.execute(
+            "SELECT body FROM attachments WHERE id=?", (record.id,)
+        ).fetchone() == (b"synthetic backup oracle",)
+        assert connection.execute(
+            "SELECT attachment_private FROM conversations WHERE id='conversation-0'"
+        ).fetchone() == (1,)
 
 
 def test_encrypted_backup_restore_and_layout_independent_shadow(tmp_path: Path) -> None:

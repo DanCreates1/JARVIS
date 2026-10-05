@@ -8,6 +8,7 @@ import json
 import platform
 import secrets
 import sqlite3
+import stat
 from collections.abc import Sequence
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta
@@ -21,6 +22,8 @@ from rich.table import Table
 from rich.text import Text
 
 from jarvis import __version__
+from jarvis.attachments import AttachmentError, AttachmentService, AttachmentType, AttachmentUpload
+from jarvis.attachments.models import MAX_UPLOAD_BYTES
 from jarvis.bootstrap import build_runtime
 from jarvis.coding_context import CodingContextError, build_coding_context
 from jarvis.config import Settings
@@ -174,6 +177,117 @@ deployment_app = typer.Typer(
 )
 remote_app.add_typer(deployment_app, name="deployment")
 console = Console(highlight=False, legacy_windows=False)
+
+attachments_app = typer.Typer(help="Upload, inspect and delete private local attachments.")
+app.add_typer(attachments_app, name="attachments")
+
+
+@attachments_app.command("upload")
+def attachment_upload(
+    path: Annotated[Path, typer.Argument(help="Explicit local UTF-8 text, PDF, PNG or JPEG file.")],
+    conversation_id: Annotated[str | None, typer.Option("--conversation-id", "-c")] = None,
+) -> None:
+    """Store selected local file and derived data; never send it to cloud."""
+    _attachment_command("upload", conversation_id, path=path)
+
+
+@attachments_app.command("list")
+def attachment_list(conversation_id: str) -> None:
+    _attachment_command("list", conversation_id)
+
+
+@attachments_app.command("inspect")
+def attachment_inspect(conversation_id: str, attachment_id: str) -> None:
+    _attachment_command("inspect", conversation_id, identifier=attachment_id)
+
+
+@attachments_app.command("delete")
+def attachment_delete(conversation_id: str, attachment_id: str) -> None:
+    """Delete exact owned upload plus derived chunks/image; transcripts remain."""
+    _attachment_command("delete", conversation_id, identifier=attachment_id)
+
+
+def _attachment_command(
+    operation: str,
+    conversation_id: str | None,
+    *,
+    path: Path | None = None,
+    identifier: str | None = None,
+) -> None:
+    settings = _load_settings()
+
+    async def perform() -> None:
+        service = AttachmentService(
+            settings.database_path,
+            host_id=local_memory_host_id(),
+            enabled=settings.attachments_enabled,
+            max_storage_bytes=settings.attachment_max_storage_bytes,
+            max_count=settings.attachment_max_count,
+            retention_hours=settings.attachment_retention_hours,
+        )
+        await service.initialize()
+        try:
+            if operation == "upload" and path is not None:
+                if not settings.attachments_enabled:
+                    raise AttachmentError("attachments_disabled")
+                absolute = await asyncio.to_thread(path.absolute)
+                for component in (absolute, *absolute.parents):
+                    info = component.lstat()
+                    if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & 0x400:
+                        raise AttachmentError("upload_link_denied")
+                if not absolute.is_file():
+                    raise AttachmentError("upload_file_required")
+                media_type = {
+                    ".txt": AttachmentType.TEXT,
+                    ".md": AttachmentType.TEXT,
+                    ".pdf": AttachmentType.PDF,
+                    ".png": AttachmentType.PNG,
+                    ".jpg": AttachmentType.JPEG,
+                    ".jpeg": AttachmentType.JPEG,
+                }.get(absolute.suffix.lower())
+                if media_type is None:
+                    raise AttachmentError("unsupported_type")
+                with absolute.open("rb") as file:
+                    body = file.read(MAX_UPLOAD_BYTES + 1)
+                if not body or len(body) > MAX_UPLOAD_BYTES:
+                    raise AttachmentError("upload_size")
+                upload = AttachmentUpload(
+                    conversation_id=conversation_id or "new",
+                    filename=absolute.name,
+                    media_type=media_type,
+                )
+                active = conversation_id
+                if active is None:
+                    active = (
+                        await service._store.create_conversation(metadata={"interface": "cli"})
+                    ).id
+                record = await service.upload(
+                    upload.model_copy(update={"conversation_id": active}), body
+                )
+                typer.echo(record.model_dump_json())
+            elif operation == "list" and conversation_id is not None:
+                typer.echo(
+                    json.dumps(
+                        [r.model_dump(mode="json") for r in await service.list(conversation_id)]
+                    )
+                )
+            elif operation == "inspect" and conversation_id is not None and identifier is not None:
+                typer.echo((await service.get(conversation_id, identifier)).model_dump_json())
+            elif operation == "delete" and conversation_id is not None and identifier is not None:
+                await service.delete(conversation_id, identifier)
+                typer.echo('{"deleted":true}')
+            else:
+                raise AttachmentError("invalid_attachment_command")
+        finally:
+            await service.close()
+
+    try:
+        asyncio.run(perform())
+    except (AttachmentError, OSError, ValueError) as exc:
+        code = exc.code if isinstance(exc, AttachmentError) else "invalid_local_input"
+        typer.echo(f"Attachment unavailable: {code}", err=True)
+        raise typer.Exit(1) from None
+
 
 coding_app = typer.Typer(help="Inspect private local repository context and continuity metadata.")
 app.add_typer(coding_app, name="coding")
@@ -2104,8 +2218,24 @@ def chat(
         ModelRole | None,
         typer.Option("--model-role", help="Request fast, primary, reasoning, or local routing."),
     ] = None,
+    attachment_ids: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--attachment", help="Exact uploaded ID; requires -c. Repeat up to four times."
+        ),
+    ] = None,
 ) -> None:
     """Chat interactively or send one non-interactive message."""
+    if attachment_ids:
+        try:
+            AssistantRequest(
+                user_input="attachment preflight",
+                conversation_id=conversation_id,
+                attachment_ids=tuple(attachment_ids),
+            )
+        except ValidationError:
+            typer.echo("Attachments require -c and up to four unique valid uploaded IDs.", err=True)
+            raise typer.Exit(2) from None
     settings = _load_settings()
     try:
         exit_code = asyncio.run(
@@ -2114,6 +2244,7 @@ def chat(
                 message=message,
                 conversation_id=conversation_id,
                 model_role=model_role,
+                attachment_ids=tuple(attachment_ids or ()),
             )
         )
     except KeyboardInterrupt:
@@ -2129,6 +2260,7 @@ async def _chat(
     message: str | None,
     conversation_id: str | None,
     model_role: ModelRole | None = None,
+    attachment_ids: tuple[str, ...] = (),
 ) -> int:
     try:
         components = await build_runtime(settings)
@@ -2152,6 +2284,7 @@ async def _chat(
                     conversation_id=conversation_id,
                     metadata={"interface": "cli"},
                     requested_model_role=model_role,
+                    attachment_ids=attachment_ids,
                 ),
             )
             _render_result(result, reply_streamed=streamed)
@@ -2176,6 +2309,7 @@ async def _chat(
                     conversation_id=active_conversation,
                     metadata={"interface": "cli"},
                     requested_model_role=model_role,
+                    attachment_ids=attachment_ids,
                 ),
             )
             _render_result(result, reply_streamed=streamed)

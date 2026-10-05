@@ -127,14 +127,18 @@ class SQLiteConversationStore:
         async with self._operation_lock:
             connection = await self._get_connection()
             async with connection.execute(
-                "SELECT id, metadata_json FROM conversations WHERE id = ?",
+                "SELECT id, metadata_json, attachment_private FROM conversations WHERE id = ?",
                 (conversation_id,),
             ) as cursor:
                 row = await cursor.fetchone()
 
         if row is None:
             return None
-        return Conversation(id=row["id"], metadata=json.loads(row["metadata_json"]))
+        return Conversation(
+            id=row["id"],
+            metadata=json.loads(row["metadata_json"]),
+            attachment_private=bool(row["attachment_private"]),
+        )
 
     async def append_message(self, message: Message) -> Message:
         """Append a message and return it with a persistent message identifier."""

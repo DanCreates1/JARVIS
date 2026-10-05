@@ -619,6 +619,16 @@ fail closed but cannot technically inspect provider billing settings.
 
 ## Configuration
 
+Phase G attachments are default-off. Set `JARVIS_ATTACHMENTS_ENABLED=true` explicitly, then use
+local `jarvis attachments upload`, `list`, `inspect`, `delete`, and
+`jarvis chat -c CONVERSATION_ID --attachment ATTACHMENT_ID -m 'Explain relevant evidence'`.
+Loopback browser has upload/selection/status/delete; phone PWA uploads remain deferred.
+Pillow is now a locked base dependency for image normalization. Optional
+`JARVIS_ATTACHMENT_VISION_MODEL` must name an already installed local vision model; literal
+loopback Ollama/capability checks precede pixel disclosure, and no model is downloaded.
+Attachment conversations stay private across follow-ups/deletion. See [Attachments](ATTACHMENTS.md)
+for byte/count/retention bounds, unavailable interpretation and recovery.
+
 Safe defaults require no `.env`. To override them:
 
 ```powershell

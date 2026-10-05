@@ -28,6 +28,12 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
 - Added one content/TTL-validated in-memory map cache and atomic metadata-only coding checkpoints
   outside the repository, with 24-hour expiry, local inspection, clear and restart revalidation.
 - Retained bounded conversations, memory, tools, Phase C acquisition and Phase D execution owners.
+- Completed Phase G default-off local attachments: typed metadata/status, transactional quotas,
+  isolated bounded text/PDF/image processing, local chunk retrieval and optional local vision.
+- Added migration 015, exact host/conversation lifecycle, expiry/deletion/restart recovery,
+  CLI and guarded loopback browser controls. No phone/PWA upload scope or new model tool.
+- Attachment conversations/follow-ups retain sticky private routing after deletion; automatic
+  research and memory-candidate capture remain suppressed. See [Attachments](ATTACHMENTS.md).
 
 ## Modified areas
 
@@ -64,6 +70,12 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
 - Phase F benchmark: 100/100 cases; cold p50/p95 410.155/477.916 ms, warm p50/p95
   393.214/474.660 ms; zero failures, provider/network calls and cost. Workstation snapshot:
   360 mapped files, partial status, 8,000 projection chars, 3,008.797 ms; checkpoint valid.
+- Phase G final gate: 1,250 passed, 3 existing skips, 85.31% coverage; Ruff 384 files/mypy 156
+  source files, lock/sync, vulnerability/secret/doctor/whitespace gates passed. Fresh offline
+  69-package install and installed-wheel text/image processing/migration smoke passed.
+- Phase G benchmark: 100/100 hits, 6,655 maximum chars, retrieval p50/p95 3.859/4.890 ms;
+  20 isolated parses p50/p95 129.908/151.496 ms. Warm local vision red oracle 1,348.504 ms;
+  cold 60-second timeout recorded. Real private CLI/browser streaming smoke passed; no credentials.
 - Phase B benchmark: 10,000/10,000 correct, p50 0.0118 ms, p95 0.0242 ms, max 0.0651 ms.
 - Phase C benchmark: 100/100 fixed cases, 40 public fake acquisitions, zero privacy/persistence/
   authority violations, projection-only p95 0.1367 ms below 5 ms.
@@ -86,7 +98,9 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
 
 ## Remaining
 
-- Next expansion implementation: Phase G — Attachments. Phase F token/continuity and Phase E
-  model-routing baseline are complete. Stop gates still require fresh phase authority.
+- Phase G local release complete; publication awaits fresh Git credential authority under current
+  no-credentials instruction. Exact evidence: [Phase G report](phase-reports/PHASE_G_COMPLETION.md).
+- Next expansion implementation: Phase I — Email, with fresh phase authority. E/H/K baselines
+  are complete; Phase C/D boundaries and external credential/effect stop gates remain.
 - Live public Wikimedia smoke returned `authentication_required` from the search endpoint on this
   workstation. No credential or paid service was used; synthetic and contract gates cover the path.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import hashlib
 import re
@@ -11,12 +12,15 @@ from datetime import UTC, datetime
 from http.cookies import CookieError, SimpleCookie
 from pathlib import Path as FileSystemPath
 from typing import Annotated, Any, Literal, Self, cast
+from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException, Path, Query, Request, Response
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from jarvis.attachments import AttachmentError, AttachmentService, AttachmentType, AttachmentUpload
+from jarvis.attachments.models import MAX_UPLOAD_BYTES
 from jarvis.bootstrap import RuntimeComponents, build_runtime
 from jarvis.config import Settings
 from jarvis.core import AssistantRequest, ModelRole, ReasoningLevel
@@ -101,6 +105,18 @@ class ChatInput(BaseModel):
     conversation_id: str | None = Field(default=None, max_length=200)
     model_role: ModelRole | None = None
     reasoning_level: ReasoningLevel | None = None
+    attachment_ids: tuple[Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], ...] = Field(
+        default=(), max_length=4
+    )
+
+    @model_validator(mode="after")
+    def require_attachment_conversation(self) -> Self:
+        if self.attachment_ids and (
+            self.conversation_id is None
+            or len(set(self.attachment_ids)) != len(self.attachment_ids)
+        ):
+            raise ValueError("unique attachments require existing conversation")
+        return self
 
 
 class MemoryInput(BaseModel):
@@ -878,12 +894,16 @@ def create_app(
     @app.post("/api/chat")
     async def chat(payload: ChatInput, request: Request) -> dict[str, object]:
         runtime = _runtime(request)
+        if payload.attachment_ids:
+            _require_local_attachment_request(request)
         result = await runtime.service.run(_assistant_request(payload))
         return result.model_dump(mode="json")
 
     @app.post("/api/chat/stream")
     async def stream_chat(payload: ChatInput, request: Request) -> StreamingResponse:
         runtime = _runtime(request)
+        if payload.attachment_ids:
+            _require_local_attachment_request(request)
 
         async def events() -> AsyncIterator[str]:
             async for frame in runtime.service.stream(_assistant_request(payload)):
@@ -891,12 +911,93 @@ def create_app(
 
         return StreamingResponse(events(), media_type="text/event-stream")
 
+    @app.post("/api/attachments", status_code=201)
+    async def upload_attachment(
+        request: Request,
+        filename: Annotated[str, Query(min_length=1, max_length=120)],
+        conversation_id: Annotated[str | None, Query(min_length=1, max_length=200)] = None,
+    ) -> dict[str, object]:
+        service = _local_attachments(request, require_enabled=True)
+        declared = _header_values(request, "content-length")
+        if declared:
+            if len(declared) != 1 or not declared[0].isascii() or not declared[0].isdigit():
+                raise HTTPException(400, "Invalid attachment length")
+            if int(declared[0]) > MAX_UPLOAD_BYTES:
+                raise HTTPException(413, "Attachment exceeds 5 MiB")
+        try:
+            media_type = AttachmentType(
+                request.headers.get("content-type", "").split(";", 1)[0].lower()
+            )
+            # Validate display filename before accepting bytes or creating conversation state.
+            AttachmentUpload(
+                conversation_id=conversation_id or "new", filename=filename, media_type=media_type
+            )
+        except ValueError:
+            raise HTTPException(422, "Unsupported attachment metadata") from None
+        body = bytearray()
+        try:
+            async with asyncio.timeout(15):
+                async for piece in request.stream():
+                    if len(body) + len(piece) > MAX_UPLOAD_BYTES:
+                        raise HTTPException(413, "Attachment exceeds 5 MiB")
+                    body.extend(piece)
+        except TimeoutError:
+            raise HTTPException(408, "Attachment upload deadline exceeded") from None
+        if not body:
+            raise HTTPException(422, "Attachment cannot be empty")
+        if conversation_id is None:
+            conversation_id = (
+                await _runtime(request).store.create_conversation(metadata={"interface": "browser"})
+            ).id
+        try:
+            record = await service.upload(
+                AttachmentUpload(
+                    conversation_id=conversation_id,
+                    filename=filename,
+                    media_type=media_type,
+                ),
+                bytes(body),
+            )
+        except AttachmentError as exc:
+            raise _attachment_http_error(exc) from None
+        return record.model_dump(mode="json")
+
+    @app.get("/api/conversations/{conversation_id}/attachments")
+    async def list_attachments(conversation_id: str, request: Request) -> list[dict[str, object]]:
+        return [
+            record.model_dump(mode="json")
+            for record in await _local_attachments(request).list(conversation_id)
+        ]
+
+    @app.get("/api/conversations/{conversation_id}/attachments/{attachment_id}")
+    async def inspect_attachment(
+        conversation_id: str, attachment_id: str, request: Request
+    ) -> dict[str, object]:
+        try:
+            return (
+                await _local_attachments(request).get(conversation_id, attachment_id)
+            ).model_dump(mode="json")
+        except AttachmentError as exc:
+            raise _attachment_http_error(exc) from None
+
+    @app.delete("/api/conversations/{conversation_id}/attachments/{attachment_id}")
+    async def delete_attachment(
+        conversation_id: str, attachment_id: str, request: Request
+    ) -> dict[str, bool]:
+        try:
+            await _local_attachments(request).delete(conversation_id, attachment_id)
+        except AttachmentError as exc:
+            raise _attachment_http_error(exc) from None
+        return {"deleted": True}
+
     @app.delete("/api/conversations/{conversation_id}")
     async def delete_conversation(
         request: Request,
         conversation_id: Annotated[str, Path(min_length=1, max_length=200)],
     ) -> dict[str, bool]:
         runtime = _runtime(request)
+        if runtime.attachments is not None and await runtime.attachments.list(conversation_id):
+            _require_local_attachment_request(request)
         if runtime.memory_store is not None and runtime.memory_host_id is not None:
             await runtime.memory_store.delete_by_conversation(
                 host_id=runtime.memory_host_id,
@@ -1764,10 +1865,58 @@ def _assistant_request(payload: ChatInput | PWAChatInput) -> AssistantRequest:
         metadata={"interface": "browser"},
         requested_model_role=payload.model_role,
         reasoning_level=payload.reasoning_level,
+        attachment_ids=payload.attachment_ids if isinstance(payload, ChatInput) else (),
     )
 
 
-_CHAT_HTML = """<!doctype html>
+def _require_local_attachment_request(request: Request) -> None:
+    # Tailnet reverse proxy may connect from loopback. Origin/Host must also be literal local.
+    client = request.client.host if request.client is not None else ""
+    hosts = _header_values(request, "host")
+    if client not in {"127.0.0.1", "::1", "testclient"} or len(hosts) != 1:
+        raise HTTPException(403, "Attachments require local interface")
+    origin = f"{request.url.scheme}://{hosts[0]}"
+    permitted_hosts = {"127.0.0.1", "::1", "localhost"}
+    if client == "testclient":
+        permitted_hosts.add("testserver")
+    if urlsplit(origin).hostname not in permitted_hosts:
+        raise HTTPException(403, "Attachments require local origin")
+    supplied = _header_values(request, "origin")
+    if supplied and supplied != (origin,):
+        raise HTTPException(403, "Attachment origin denied")
+    if request.headers.get("sec-fetch-site") not in {None, "same-origin", "none"}:
+        raise HTTPException(403, "Attachment origin denied")
+    if any(
+        name.lower()
+        in {
+            "forwarded",
+            "x-forwarded-for",
+            "x-forwarded-host",
+            "x-forwarded-proto",
+            "authorization",
+            "cookie",
+        }
+        for name in request.headers
+    ):
+        raise HTTPException(403, "Attachment forwarding/authentication denied")
+
+
+def _local_attachments(request: Request, *, require_enabled: bool = False) -> AttachmentService:
+    _require_local_attachment_request(request)
+    runtime = _runtime(request)
+    if require_enabled and not runtime.settings.attachments_enabled:
+        raise HTTPException(503, "Attachments disabled")
+    if runtime.attachments is None:
+        raise HTTPException(503, "Attachments unavailable; use local CLI for lifecycle")
+    return runtime.attachments
+
+
+def _attachment_http_error(exc: AttachmentError) -> HTTPException:
+    status = 404 if exc.code in {"attachment_not_found", "conversation_not_found"} else 409
+    return HTTPException(status, exc.code)
+
+
+_CHAT_HTML = r"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <title>JARVIS</title><style>
 body{font:16px system-ui;background:#0b1020;color:#e8edf7;max-width:850px;margin:2rem auto;padding:1rem}
@@ -1778,17 +1927,34 @@ form{display:flex;gap:.5rem;margin-top:1rem}input{flex:1;padding:.8rem}button{pa
 </style></head><body><h1>JARVIS</h1><p class="meta">Loopback browser chat. Routing shown after each turn.</p>
 <div id="log" aria-live="polite"></div><form id="chat"><input id="message" autocomplete="off" autofocus
 placeholder="Ask JARVIS" maxlength="100000"><button>Send</button></form>
+<h2>Attachments</h2><p class="meta">Local private files. Selected uploads accompany each message. Delete removes upload; chat replies remain.</p>
+<form id="attachments"><input id="attachment-file" type="file" accept=".txt,.md,.pdf,.png,.jpg,.jpeg" aria-label="Attachment file"><button>Upload</button></form>
+<div id="attachment-list" aria-live="polite"></div>
 <h2>Research</h2><p class="meta">Results stay volatile until exact local approval.</p>
 <form id="research"><input id="objective" placeholder="Public research objective" maxlength="2000">
 <input id="question" placeholder="Public question" maxlength="2000"><button>Research</button></form>
 <div id="research-result" class="hidden"></div><div id="research-actions" class="hidden">
 <button id="research-approve" type="button">Approve storage</button>
 <button id="research-deny" type="button">Discard</button></div><script>
-let conversation=null;const log=document.querySelector('#log'),form=document.querySelector('#chat'),input=document.querySelector('#message');
+let conversation=null,conversationBusy=false;const log=document.querySelector('#log'),form=document.querySelector('#chat'),input=document.querySelector('#message');
+const selectedAttachments=new Set(),attachmentList=document.querySelector('#attachment-list');
+document.querySelector('#attachments').addEventListener('submit',async e=>{e.preventDefault();const file=document.querySelector('#attachment-file').files[0];if(!file)return;
+if(conversationBusy){row('meta','Wait for current upload or message.');return;}
+if(selectedAttachments.size>=4){row('meta','Select at most four attachments.');return;}if(file.size>5242880){row('meta','Upload limit: 5 MiB.');return;}
+const type=file.name.toLowerCase().endsWith('.md')||file.name.toLowerCase().endsWith('.txt')?'text/plain':file.type;
+conversationBusy=true;try{const params=new URLSearchParams({filename:file.name});if(conversation)params.set('conversation_id',conversation);
+const response=await fetch(`/api/attachments?${params}`,{method:'POST',headers:{'content-type':type},body:file});if(!response.ok)throw new Error(`HTTP ${response.status}`);
+const record=await response.json();conversation=record.conversation_id;if(document.getElementById(`attachment-${record.id}`))return;
+const line=document.createElement('div');line.id=`attachment-${record.id}`;const check=document.createElement('input');check.type='checkbox';check.checked=record.status==='ready';check.disabled=record.status!=='ready';
+check.setAttribute('aria-label',`Select ${record.filename}`);if(check.checked)selectedAttachments.add(record.id);check.addEventListener('change',()=>{if(check.checked&&selectedAttachments.size>=4){check.checked=false;return;}check.checked?selectedAttachments.add(record.id):selectedAttachments.delete(record.id);});
+const label=document.createElement('span');label.textContent=`${record.filename}: ${record.status}${record.error_code?' ('+record.error_code+')':''}`;
+const remove=document.createElement('button');remove.type='button';remove.textContent='Delete';remove.addEventListener('click',async()=>{const result=await fetch(`/api/conversations/${encodeURIComponent(conversation)}/attachments/${record.id}`,{method:'DELETE'});if(result.ok){selectedAttachments.delete(record.id);line.remove();}else row('meta',`Delete failed: HTTP ${result.status}`);});
+line.append(check,label,remove);attachmentList.append(line);}catch(error){row('meta',`Upload failed: ${error.message||'unknown error'}`);}finally{conversationBusy=false;}});
 function row(cls,text){const element=document.createElement('div');element.className=cls;element.textContent=text;log.appendChild(element);return element;}
 form.addEventListener('submit',async e=>{e.preventDefault();const message=input.value.trim();if(!message)return;
+if(conversationBusy){row('meta','Wait for current upload or message.');return;}conversationBusy=true;
 row('you',`You: ${message}`);input.value='';const answer=row('jarvis','JARVIS: ');let streamed='',route=null,result=null;
-try{const response=await fetch('/api/chat/stream',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message,conversation_id:conversation})});
+try{const response=await fetch('/api/chat/stream',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message,conversation_id:conversation,attachment_ids:[...selectedAttachments]})});
 if(!response.ok||!response.body)throw new Error(`HTTP ${response.status}`);const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';
 while(true){const {value,done}=await reader.read();buffer+=decoder.decode(value||new Uint8Array(),{stream:!done});const blocks=buffer.split('\n\n');buffer=blocks.pop()||'';
 for(const block of blocks){const data=block.split('\n').filter(line=>line.startsWith('data:')).map(line=>line.slice(5).trim()).join('');if(!data)continue;const frame=JSON.parse(data);
@@ -1798,7 +1964,7 @@ if(!result)throw new Error('stream ended without result');conversation=result.co
 if(!streamed)answer.textContent=`JARVIS: ${result.reply||result.error?.message||'Failed'}`;
 route=route||result.events?.find(event=>event.type==='routing_decided')?.routing;
 if(route)row('meta',`Route: ${route.chosen_role} · ${route.sensitivity}`);
-}catch(error){answer.textContent=`JARVIS: Streaming failed (${error.message||'unknown error'})`;}
+}catch(error){answer.textContent=`JARVIS: Streaming failed (${error.message||'unknown error'})`;}finally{conversationBusy=false;}
 log.scrollTop=log.scrollHeight;});
 let pendingResearch=null;const researchForm=document.querySelector('#research'),researchResult=document.querySelector('#research-result'),researchActions=document.querySelector('#research-actions');
 researchForm.addEventListener('submit',async e=>{e.preventDefault();const objective=document.querySelector('#objective').value.trim(),question=document.querySelector('#question').value.trim();if(!objective||!question)return;

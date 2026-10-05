@@ -98,7 +98,16 @@ tokens, environment values, and private tool results.
 
 Conversation databases, logs, screenshots, audio, and models belong outside the
 repository under user's local application-data directory. Conversation and
-explicit-memory deletion are implemented; richer-media retention remains deferred.
+explicit-memory deletion are implemented; Phase G adds bounded local attachment retention/deletion.
+
+Text/PDF/PNG/JPEG bytes and derived data remain in private SQLite, with transactional logical
+quotas, digests, exact host/conversation scope and resource-bounded isolated parsing. Original
+excerpts are transient prompt data; quoted answers remain private transcripts. Sticky privacy
+blocks cloud override, automatic research and automatic memory extraction after source deletion.
+Local origin/peer/forwarding checks exclude remote/PWA upload. Source/vision output grants no
+tool or storage authority. Optional vision checks literal loopback/local capabilities before
+pixel disclosure. SQL deletion does not erase transcripts, backups or WAL/storage pages.
+See [Attachments](ATTACHMENTS.md) for exact bounds and process-isolation limitation.
 
 ## Private coding continuity
 

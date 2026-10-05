@@ -1050,3 +1050,19 @@ files, projection <=8,000 chars, cold/warm p95 <=1,000 ms and zero oracle/privac
 Run workstation repository smoke and complete release/security gates. Record progress/completion
 in `docs/phase-reports/PHASE_F_PROGRESS.md` / `PHASE_F_COMPLETION.md`, then update checkpoint,
 architecture/security/setup, expansion, overview and roadmap. Stop before Phase G — Attachments.
+
+## 22. Lettered agentic expansion — Phase G
+
+Apply universal protocol to the local attachment release; recommended `gpt-6-astra`, `xhigh`.
+Read expansion, checkpoint, Phase C/D/F reports, architecture/security, attachment guide/report,
+and current runtime/parser/storage/provider/interface contracts. Phase C live smoke is separate.
+Ship default-off conversation/host-bound typed metadata, transactional bounded upload storage,
+isolated allowlisted text/PDF/PNG/JPEG processing, provenance-bearing chunk retrieval, explicit
+delete/expiry/restart recovery and capability-checked local vision. Private attachment context
+forces local routing and skips automatic research. Content cannot grant tools, actions or memory
+promotion. No credentials, paid service, downloads, remote/PWA upload, deployment or worker daemon.
+Freeze 100 text retrieval cases with 100% expected-chunk hits, <=8,000 projection chars, p95
+<=100 ms; 20 isolated parses p95 <=2,000 ms and zero disclosure/authority failures. Run synthetic
+Windows lifecycle smoke, functional/adversarial/failure suites and full release gates. Record
+`PHASE_G_PROGRESS.md` / `PHASE_G_COMPLETION.md`; update state/architecture/security/setup docs.
+Stop before Phase I — Email; H memory baseline already complete.

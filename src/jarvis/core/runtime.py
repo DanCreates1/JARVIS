@@ -10,6 +10,7 @@ from pydantic import JsonValue, ValidationError
 
 from .context import reduce_conversation_context
 from .contracts import (
+    AttachmentContextPort,
     AuditStore,
     AutomaticResearchPort,
     ChatProvider,
@@ -119,6 +120,7 @@ class AssistantService:
         freshness_router: FreshnessRouter | None = None,
         automatic_research: AutomaticResearchPort | None = None,
         coding_context: CodingContextPort | None = None,
+        attachments: AttachmentContextPort | None = None,
         memory: MemoryContextPort | None = None,
         sensitivity_classifier: SensitivityClassifier | None = None,
     ) -> None:
@@ -165,6 +167,7 @@ class AssistantService:
         self.freshness_router = freshness_router
         self.automatic_research = automatic_research
         self.coding_context = coding_context
+        self.attachments = attachments
         self.memory = memory
         self.sensitivity_classifier = sensitivity_classifier
 
@@ -251,6 +254,43 @@ class AssistantService:
             )
 
         coding_requested = request.user_input.lstrip().casefold().startswith("repo:")
+        attachment_projection: ContextProjection | None = None
+        if request.attachment_ids:
+            try:
+                if (
+                    request.metadata.get("interface") not in {"cli", "browser"}
+                    or self.attachments is None
+                ):
+                    raise ValueError("attachments require enabled local interface")
+                attachment_projection = ContextProjection.model_validate(
+                    await self.attachments.project(
+                        conversation.id, request.attachment_ids, request.user_input
+                    )
+                )
+                if (
+                    attachment_projection.sensitivity is not SensitivityClass.PRIVATE
+                    or len(attachment_projection.content) > 8_000
+                ):
+                    raise ValueError("invalid attachment context")
+                if attachment_projection.source_ids != request.attachment_ids:
+                    raise ValueError("attachment provenance mismatch")
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                return self._failure(
+                    conversation_id=conversation.id,
+                    status=RuntimeStatus.FAILED,
+                    error=RuntimeErrorDetail(
+                        code=RuntimeErrorCode.ATTACHMENT_CONTEXT_ERROR,
+                        message=(
+                            "Private attachment context unavailable; "
+                            "check local upload and conversation."
+                        ),
+                    ),
+                    messages=turn_messages,
+                    events=events,
+                    tool_iterations=tool_iterations,
+                )
         coding_projection: ContextProjection | None = None
         if coding_requested:
             try:
@@ -288,9 +328,9 @@ class AssistantService:
                 freshness_decision = FreshnessDecision.model_validate(
                     FreshnessDecision(
                         route=FreshnessRoute.LOCAL_CONTEXT,
-                        reason="Explicit local repository context request.",
+                        reason="Explicit private local context request.",
                     )
-                    if coding_requested
+                    if coding_requested or request.attachment_ids or conversation.attachment_private
                     else self.freshness_router.classify(request.user_input)
                 )
                 # Validate the projection before persisting the request or contacting a provider.
@@ -321,7 +361,11 @@ class AssistantService:
             conversation_id=conversation.id,
             role=MessageRole.USER,
             content=request.user_input,
-            disclosure_sensitivity=self._classify(request.user_input),
+            disclosure_sensitivity=(
+                SensitivityClass.PRIVATE
+                if request.attachment_ids or conversation.attachment_private
+                else self._classify(request.user_input)
+            ),
             disclosure_source="local-privacy-gate",
         )
         persisted, store_failure = await self._persist(
@@ -337,7 +381,11 @@ class AssistantService:
                 tool_iterations=tool_iterations,
             )
         assert persisted is not None
-        if self.memory is not None:
+        if (
+            self.memory is not None
+            and not request.attachment_ids
+            and not conversation.attachment_private
+        ):
             with suppress(Exception):
                 await self.memory.capture_candidates(persisted)
 
@@ -346,6 +394,8 @@ class AssistantService:
             freshness_decision is not None
             and freshness_decision.requires_live_evidence
             and self.automatic_research is not None
+            and not request.attachment_ids
+            and not conversation.attachment_private
         ):
             events.add(
                 RuntimeEventType.RESEARCH_STARTED,
@@ -404,6 +454,7 @@ class AssistantService:
                     freshness_projection=freshness_projection,
                     research_projection=research_projection,
                     coding_projection=coding_projection,
+                    attachment_projection=attachment_projection,
                 )
             except Exception:
                 error = RuntimeErrorDetail(
@@ -966,7 +1017,10 @@ class AssistantService:
         freshness_projection: ContextProjection | None = None,
         research_projection: ContextProjection | None = None,
         coding_projection: ContextProjection | None = None,
+        attachment_projection: ContextProjection | None = None,
     ) -> tuple[Message, ...]:
+        if attachment_projection is not None and self.attachments is not None:
+            await self.attachments.validate(conversation.id, request.attachment_ids)
         raw_recent = await self.store.recent_messages(
             conversation.id,
             limit=self.context_message_limit,
@@ -1065,6 +1119,19 @@ class AssistantService:
                 current_context_message,
                 memory_message,
                 coding_message,
+                (
+                    Message(
+                        conversation_id=conversation.id,
+                        role=MessageRole.SYSTEM,
+                        content=attachment_projection.content,
+                        context_sensitivity=SensitivityClass.PRIVATE,
+                        context_source=attachment_projection.source,
+                        disclosure_sensitivity=SensitivityClass.PRIVATE,
+                        disclosure_source=attachment_projection.source,
+                    )
+                    if attachment_projection is not None
+                    else None
+                ),
             )
             if message is not None
         )

@@ -151,6 +151,18 @@ class CodingContextPort(Protocol):
         ...
 
 
+class AttachmentContextPort(Protocol):
+    async def validate(self, conversation_id: str, attachment_ids: tuple[str, ...]) -> None:
+        """Deny further use after deletion, expiry or process disable."""
+        ...
+
+    async def project(
+        self, conversation_id: str, attachment_ids: tuple[str, ...], query: str
+    ) -> ContextProjection:
+        """Retrieve private, untrusted attachment context within exact local conversation."""
+        ...
+
+
 @runtime_checkable
 class FreshnessRouter(Protocol):
     def classify(self, query: str) -> FreshnessDecision:

@@ -577,6 +577,7 @@ dependencies = [
     { name = "cryptography" },
     { name = "fastapi" },
     { name = "httpx" },
+    { name = "pillow" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pypdf" },
@@ -589,7 +590,6 @@ dependencies = [
 [package.optional-dependencies]
 vision = [
     { name = "opencv-python-headless" },
-    { name = "pillow" },
 ]
 voice = [
     { name = "faster-whisper" },
@@ -624,7 +624,7 @@ requires-dist = [
     { name = "numpy", marker = "extra == 'voice'", specifier = ">=1.26,<3" },
     { name = "opencv-python-headless", marker = "extra == 'vision'", specifier = ">=5.0.0.93,<6" },
     { name = "openwakeword", marker = "extra == 'voice'", specifier = ">=0.6,<0.7" },
-    { name = "pillow", marker = "extra == 'vision'", specifier = ">=12.3,<13" },
+    { name = "pillow", specifier = ">=12.3,<13" },
     { name = "pydantic", specifier = ">=2.9,<3" },
     { name = "pydantic-settings", specifier = ">=2.5,<3" },
     { name = "pypdf", specifier = ">=6.19,<7" },

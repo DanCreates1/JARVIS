@@ -1,7 +1,7 @@
 # Agentic Assistant Expansion
 
 Status: active incremental plan
-Updated: 2026-10-02
+Updated: 2026-10-05
 
 This plan maps the requested A–M capability sequence onto the existing Phase 0–11 repository. The
 two naming schemes are independent. Existing security, privacy, approval, and deployment gates
@@ -52,8 +52,10 @@ remain authoritative.
 - [x] **F — Token/Continuity:** preserve bounded conversation/memory/tool context; opt-in private
   local CLI repository maps/diffs, content-validated map cache and atomic metadata-only checkpoints.
   See [Token continuity](TOKEN_CONTINUITY.md) and [Phase F report](phase-reports/PHASE_F_COMPLETION.md).
-- [ ] **G — Attachments:** typed attachment metadata/status, bounded upload storage, isolated type
-  processing, chunk/retrieval projection, deletion, and vision routing.
+- [x] **G — Attachments:** default-off typed host/conversation metadata/status, transactional bounded
+  storage, isolated UTF-8/PDF/PNG/JPEG processing, cited chunks, deletion/expiry and capability-checked
+  local vision. Sticky conversation privacy prevents research/cloud disclosure in follow-ups.
+  See [Attachments](ATTACHMENTS.md) and [Phase G report](phase-reports/PHASE_G_COMPLETION.md).
 - [x] **H — Memory baseline:** existing Phase 4 lifecycle, provenance, confidence, timestamps,
   retention, retrieval, correction, and deletion cover the requested foundation.
 - [ ] **I — Email:** provider-neutral read/thread/summarize/extract/draft ports; no sending without
@@ -69,7 +71,8 @@ remain authoritative.
 
 ## Next phase
 
-Phase G — Attachments. Phase F local token/continuity and Phase D discovery are complete;
+Phase I — Email, requiring fresh phase authority. Phase G local attachments, Phase F continuity,
+Phase D discovery and Phase H memory baseline are complete;
 conversation, memory, tool and action ownership boundaries remain intact.
 Phase C's live Wikimedia smoke remains externally blocked by its
 `authentication_required` response.

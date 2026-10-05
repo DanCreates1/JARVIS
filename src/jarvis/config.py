@@ -86,6 +86,13 @@ class Settings(BaseSettings):
     coding_repository_root: Path | None = None
     coding_context_cache_seconds: int = Field(default=30, ge=0, le=3_600)
     coding_context_max_chars: int = Field(default=8_000, ge=1_024, le=8_000)
+    attachments_enabled: bool = False
+    attachment_max_storage_bytes: int = Field(
+        default=50 * 1_024 * 1_024, ge=5 * 1_024 * 1_024, le=100 * 1_024 * 1_024
+    )
+    attachment_max_count: int = Field(default=100, ge=1, le=100)
+    attachment_retention_hours: int = Field(default=24, ge=1, le=168)
+    attachment_vision_model: str | None = Field(default=None, min_length=1, max_length=200)
     current_context_timezone: str = Field(default="local", min_length=1, max_length=100)
     home_region: str | None = Field(default=None, min_length=1, max_length=200)
     current_context_internet_timeout_seconds: float = Field(default=2.0, gt=0, le=10)

@@ -253,6 +253,7 @@ class RoutingDecision(CoreModel):
 class Conversation(CoreModel):
     id: Identifier
     metadata: dict[str, JsonValue] = Field(default_factory=dict)
+    attachment_private: bool = False
 
 
 class ToolCall(CoreModel):
@@ -528,6 +529,17 @@ class AssistantRequest(CoreModel):
     requested_model_role: ModelRole | None = None
     reasoning_level: ReasoningLevel | None = None
     latency_class: LatencyClass | None = None
+    attachment_ids: Annotated[
+        tuple[Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], ...], Field(max_length=4)
+    ] = ()
+
+    @model_validator(mode="after")
+    def validate_attachments(self) -> Self:
+        if self.attachment_ids and self.conversation_id is None:
+            raise ValueError("attachments require an existing conversation")
+        if len(self.attachment_ids) != len(set(self.attachment_ids)):
+            raise ValueError("attachment IDs must be unique")
+        return self
 
     @field_validator("user_input")
     @classmethod
@@ -551,6 +563,7 @@ class RuntimeErrorCode(StrEnum):
     STORE_ERROR = "store_error"
     FRESHNESS_ROUTING_ERROR = "freshness_routing_error"
     CODING_CONTEXT_ERROR = "coding_context_error"
+    ATTACHMENT_CONTEXT_ERROR = "attachment_context_error"
     PROVIDER_ERROR = "provider_error"
     INVALID_PROVIDER_RESPONSE = "invalid_provider_response"
     UNKNOWN_TOOL = "unknown_tool"
