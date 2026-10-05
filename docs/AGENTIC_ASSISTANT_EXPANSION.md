@@ -49,8 +49,9 @@ remain authoritative.
   without weakening separate action ownership or immutable handler sets.
 - [x] **E — Model Router/Fallback baseline:** existing role routing, health, quota/outage fallback,
   privacy enforcement, and configuration-driven model IDs satisfy the core request.
-- [ ] **F — Token/Continuity:** retain existing bounded conversation/memory/tool context; add
-  repository maps, diff-oriented coding context, cache policy, and automated checkpoint upkeep.
+- [x] **F — Token/Continuity:** preserve bounded conversation/memory/tool context; opt-in private
+  local CLI repository maps/diffs, content-validated map cache and atomic metadata-only checkpoints.
+  See [Token continuity](TOKEN_CONTINUITY.md) and [Phase F report](phase-reports/PHASE_F_COMPLETION.md).
 - [ ] **G — Attachments:** typed attachment metadata/status, bounded upload storage, isolated type
   processing, chunk/retrieval projection, deletion, and vision routing.
 - [x] **H — Memory baseline:** existing Phase 4 lifecycle, provenance, confidence, timestamps,
@@ -68,7 +69,7 @@ remain authoritative.
 
 ## Next phase
 
-Phase F. Add repository maps, diff-oriented coding context, cache policy, and automated checkpoint
-upkeep while retaining existing bounded conversation, memory, and tool context. Phase D discovery
-is complete. Phase C's live Wikimedia smoke remains externally blocked by its
+Phase G — Attachments. Phase F local token/continuity and Phase D discovery are complete;
+conversation, memory, tool and action ownership boundaries remain intact.
+Phase C's live Wikimedia smoke remains externally blocked by its
 `authentication_required` response.

@@ -22,6 +22,7 @@ from rich.text import Text
 
 from jarvis import __version__
 from jarvis.bootstrap import build_runtime
+from jarvis.coding_context import CodingContextError, build_coding_context
 from jarvis.config import Settings
 from jarvis.core import (
     AssistantRequest,
@@ -173,6 +174,59 @@ deployment_app = typer.Typer(
 )
 remote_app.add_typer(deployment_app, name="deployment")
 console = Console(highlight=False, legacy_windows=False)
+
+coding_app = typer.Typer(help="Inspect private local repository context and continuity metadata.")
+app.add_typer(coding_app, name="coding")
+
+
+@coding_app.command("context")
+def coding_context() -> None:
+    """Refresh map/diff and atomically maintain a metadata-only local checkpoint."""
+    _coding_command("context")
+
+
+@coding_app.command("checkpoint")
+def coding_checkpoint() -> None:
+    """Show prior unexpired metadata; refresh context before relying on repository state."""
+    _coding_command("checkpoint")
+
+
+@coding_app.command("clear")
+def coding_clear() -> None:
+    """Delete only this configured repository's derived coding checkpoint."""
+    _coding_command("clear")
+
+
+def _coding_command(operation: str) -> None:
+    settings = _load_settings()
+    try:
+        service = build_coding_context(
+            settings.coding_repository_root,
+            settings.data_dir,
+            enabled=settings.coding_context_enabled,
+            cache_seconds=settings.coding_context_cache_seconds,
+            max_projection_chars=settings.coding_context_max_chars,
+        )
+        if service is None:
+            raise CodingContextError("coding_context_disabled")
+        try:
+            if operation == "context":
+                typer.echo(asyncio.run(service.project()).content)
+            elif operation == "checkpoint":
+                checkpoint = service.checkpoint()
+                typer.echo(
+                    checkpoint.model_dump_json()
+                    if checkpoint is not None
+                    else "No current checkpoint."
+                )
+            else:
+                service.clear()
+                typer.echo("Coding checkpoint cleared.")
+        finally:
+            service.close()
+    except (CodingContextError, OSError, ValueError):
+        typer.echo("Coding context unavailable; check local repository settings.", err=True)
+        raise typer.Exit(code=2) from None
 
 
 @tools_app.command("list")

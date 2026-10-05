@@ -145,6 +145,13 @@ class CurrentContextPort(Protocol):
 
 
 @runtime_checkable
+class CodingContextPort(Protocol):
+    async def project(self) -> ContextProjection:
+        """Return private context for one host-configured repository; no query retained."""
+        ...
+
+
+@runtime_checkable
 class FreshnessRouter(Protocol):
     def classify(self, query: str) -> FreshnessDecision:
         """Select the request's evidence route without calling a model or network."""

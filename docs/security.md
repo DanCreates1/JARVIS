@@ -100,6 +100,19 @@ Conversation databases, logs, screenshots, audio, and models belong outside the
 repository under user's local application-data directory. Conversation and
 explicit-memory deletion are implemented; richer-media retention remains deferred.
 
+## Private coding continuity
+
+Phase F coding context defaults off and requires an explicit root. Local CLI `repo:` is the only
+projection interface; browser/voice attempts fail before transcript persistence/provider calls.
+Repository data is always private and untrusted. It never triggers Phase C acquisition or gains
+Phase D execution authority. No source code, hooks, clean filters, external diff, textconv, lazy
+fetch, arbitrary shell, credentials or remote coding endpoint is invoked.
+
+Tracked source allowlists, file/aggregate/projection/subprocess caps, canonical path and link checks,
+private routing and atomic content-minimized checkpoint lifecycle apply outside the model.
+Existing exact owner-reviewed global Git trust entries are preserved without new trust exceptions.
+Checkpoint content never enters prompts, memory or logs. See [Token continuity](TOKEN_CONTINUITY.md).
+
 ## Durable memory
 
 - Working, episodic, profile, semantic, and task records are partitioned by a pseudonymous local

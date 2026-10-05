@@ -82,6 +82,10 @@ class Settings(BaseSettings):
     context_recent_message_limit: int = Field(default=8, ge=2, le=40)
     context_summary_max_chars: int = Field(default=2_000, ge=128, le=20_000)
     current_context_enabled: bool = True
+    coding_context_enabled: bool = False
+    coding_repository_root: Path | None = None
+    coding_context_cache_seconds: int = Field(default=30, ge=0, le=3_600)
+    coding_context_max_chars: int = Field(default=8_000, ge=1_024, le=8_000)
     current_context_timezone: str = Field(default="local", min_length=1, max_length=100)
     home_region: str | None = Field(default=None, min_length=1, max_length=200)
     current_context_internet_timeout_seconds: float = Field(default=2.0, gt=0, le=10)
@@ -201,6 +205,7 @@ class Settings(BaseSettings):
         "deployment_state_path",
         "ownership_receipt_path",
         "release_artifact_path",
+        "coding_repository_root",
         mode="before",
     )
     @classmethod
@@ -353,6 +358,8 @@ class Settings(BaseSettings):
             )
         if self.context_recent_message_limit > self.context_message_limit:
             raise ValueError("recent context limit cannot exceed context message limit")
+        if self.coding_context_enabled and self.coding_repository_root is None:
+            raise ValueError("coding context requires an explicit repository root")
         required_deployment_inputs = (
             self.topology_manifest_path,
             self.deployment_manifest_path,

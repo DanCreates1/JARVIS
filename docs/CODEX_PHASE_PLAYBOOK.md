@@ -1022,3 +1022,31 @@ A completion report must contain:
 - known limitations and recovery/rollback;
 - quality, vulnerability, secret, and Git evidence;
 - exact next recommended phase.
+
+## 21. Lettered agentic expansion — Phase F
+
+The separate A–M expansion in `docs/AGENTIC_ASSISTANT_EXPANSION.md` does not replace numerical
+Phases 0–11. Apply this playbook's universal protocol and authority/quality gates to its repository
+work. Phase F — Token/Continuity is one bounded implementation/verification session, recommended
+`gpt-6-astra` with `xhigh` reasoning for repository privacy and context trust boundaries.
+
+Read the expansion checklist, `docs/JARVIS_CHECKPOINT.md`, Phase C/D completion reports,
+`docs/TOKEN_CONTINUITY.md`, and current context/runtime/router/tool contracts before work.
+Prerequisites are the existing bounded conversation/memory/tool context, completed Phase D
+discovery and Phase E routing/fallback baseline. The separate Phase C live endpoint blocker is
+not a prerequisite to local coding context and must remain explicit.
+
+Required scope: opt-in configured local repository, compact source/symbol maps, fresh bounded
+diff context, content/TTL-validated map cache and atomic metadata-only checkpoint upkeep outside
+the checkout. Private context must force existing local routing and never automatic research.
+Source, checkpoint or model content grants no tool/action/storage authority. No credential use,
+paid provider, remote endpoint/deployment, live computer effect or background worker is included.
+
+Acceptance: configured local CLI projection and inspection/deletion lifecycle; path/link/private
+file exclusions; no repository-configured command execution or network fetch; bounded input,
+output, timeout/cancellation/restart/error behavior; preserved Phase C/D and existing context
+regressions. Freeze benchmark at 100 snapshots (50 content misses/50 validated hits), 60 synthetic
+files, projection <=8,000 chars, cold/warm p95 <=1,000 ms and zero oracle/privacy failures.
+Run workstation repository smoke and complete release/security gates. Record progress/completion
+in `docs/phase-reports/PHASE_F_PROGRESS.md` / `PHASE_F_COMPLETION.md`, then update checkpoint,
+architecture/security/setup, expansion, overview and roadmap. Stop before Phase G — Attachments.

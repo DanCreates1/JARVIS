@@ -76,6 +76,13 @@ Phase D adds a read-only discovery view over the model tool and task-handler reg
 inspect current registrations and their owners. Discovery does not invoke tools, schedule tasks,
 issue grants, or change the Phase 3 broker boundary.
 
+Phase F adds opt-in private local coding context: compact tracked-source maps, fresh HEAD-relative
+diffs, content-validated in-memory map caching, and atomic metadata-only continuity checkpoints.
+Configure an explicit repository root, then use `jarvis coding context`, `jarvis coding checkpoint`,
+local CLI `jarvis chat 'repo: explain current changes'`, or `jarvis coding clear`.
+Repository context forces local routing and skips automatic research. See
+[Token and coding continuity](docs/TOKEN_CONTINUITY.md) for bounds, exclusions and recovery.
+
 ## Implemented Phase 2
 
 The optional local voice slice adds:

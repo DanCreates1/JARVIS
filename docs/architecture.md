@@ -160,6 +160,20 @@ approves the displayed digest; model or source text cannot approve storage. Runt
 opens and closes this store explicitly; no research artifact is silently promoted into trusted
 memory.
 
+### Coding continuity boundary
+
+Phase F's default-off `CodingContextService` implements the private `CodingContextPort` for one
+explicit configured repository. Only local CLI `repo:` turns attach its bounded tracked-source
+file/symbol map and fresh raw-file/HEAD-blob diff. The runtime prepares the private projection before
+persistence, selects local-context freshness, and excludes those turns from Phase C acquisition.
+Existing model privacy routing forces local inference even with a cloud-role override.
+
+One content-fingerprinted/TTL-limited in-memory map cache saves parsing; diffs are always refreshed.
+Successful snapshots atomically maintain an expiring metadata-only checkpoint outside the checkout.
+It is never prompt context or trusted memory. Runtime composition owns/cache-clears the service;
+local inspection CLI constructs only this adapter. Existing conversation reduction, memory, tool
+discovery and action ownership are unchanged. See [Token continuity](TOKEN_CONTINUITY.md).
+
 ### Memory boundary
 
 Phase 1 uses SQLite for durable transcripts. SQLite enables foreign keys,

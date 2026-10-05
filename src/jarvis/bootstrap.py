@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from jarvis.coding_context import CodingContextService, build_coding_context
 from jarvis.computer.runtime import ComputerRuntimeComponents, build_computer_runtime
 from jarvis.config import Settings
 from jarvis.core import (
@@ -108,6 +109,7 @@ class RuntimeComponents:
     provider: ModelRouter
     service: AssistantService
     tool_registry: UnifiedToolRegistry | None = None
+    coding_context: CodingContextService | None = None
     computer: ComputerRuntimeComponents | None = None
     memory_store: SQLiteMemoryStore | None = None
     research_store: SQLiteResearchStore | None = None
@@ -125,6 +127,8 @@ class RuntimeComponents:
     deployment_health: DeploymentHealthMonitor | None = None
 
     async def close(self) -> None:
+        if self.coding_context is not None:
+            self.coding_context.close()
         if self.deployment_health is not None:
             self.deployment_health.observe(HealthReason.SHUTTING_DOWN, healthy=False)
         try:
@@ -177,6 +181,13 @@ class RuntimeComponents:
 async def build_runtime(settings: Settings) -> RuntimeComponents:
     """Construct and initialize every runtime adapter exactly once."""
     topology_manifest, deployment, deployment_health = _deployment_context(settings)
+    coding_context = build_coding_context(
+        settings.coding_repository_root,
+        settings.data_dir,
+        enabled=settings.coding_context_enabled,
+        cache_seconds=settings.coding_context_cache_seconds,
+        max_projection_chars=settings.coding_context_max_chars,
+    )
     store = SQLiteConversationStore(settings.database_path)
     memory_store = SQLiteMemoryStore(settings.database_path)
     research_store = SQLiteResearchStore(settings.database_path)
@@ -396,6 +407,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
             ),
             memory=memory if settings.memory_retrieval_enabled else None,
             sensitivity_classifier=privacy_gate,
+            coding_context=coding_context,
         )
         task_handlers: list[TaskHandler] = [
             ValueTaskHandler(),
@@ -460,6 +472,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
     assert provider is not None
     return RuntimeComponents(
         settings=settings,
+        coding_context=coding_context,
         store=store,
         memory_store=memory_store,
         research_store=research_store,

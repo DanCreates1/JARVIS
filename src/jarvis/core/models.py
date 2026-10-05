@@ -550,6 +550,7 @@ class RuntimeErrorCode(StrEnum):
     CONVERSATION_NOT_FOUND = "conversation_not_found"
     STORE_ERROR = "store_error"
     FRESHNESS_ROUTING_ERROR = "freshness_routing_error"
+    CODING_CONTEXT_ERROR = "coding_context_error"
     PROVIDER_ERROR = "provider_error"
     INVALID_PROVIDER_RESPONSE = "invalid_provider_response"
     UNKNOWN_TOOL = "unknown_tool"

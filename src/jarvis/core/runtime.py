@@ -13,6 +13,7 @@ from .contracts import (
     AuditStore,
     AutomaticResearchPort,
     ChatProvider,
+    CodingContextPort,
     ConversationStore,
     CurrentContextPort,
     FreshnessRouter,
@@ -29,6 +30,7 @@ from .models import (
     ContextProjection,
     Conversation,
     FreshnessDecision,
+    FreshnessRoute,
     LatencyClass,
     Message,
     MessageRole,
@@ -116,6 +118,7 @@ class AssistantService:
         current_context: CurrentContextPort | None = None,
         freshness_router: FreshnessRouter | None = None,
         automatic_research: AutomaticResearchPort | None = None,
+        coding_context: CodingContextPort | None = None,
         memory: MemoryContextPort | None = None,
         sensitivity_classifier: SensitivityClassifier | None = None,
     ) -> None:
@@ -161,6 +164,7 @@ class AssistantService:
         self.current_context = current_context
         self.freshness_router = freshness_router
         self.automatic_research = automatic_research
+        self.coding_context = coding_context
         self.memory = memory
         self.sensitivity_classifier = sensitivity_classifier
 
@@ -246,12 +250,48 @@ class AssistantService:
                 tool_iterations=tool_iterations,
             )
 
+        coding_requested = request.user_input.lstrip().casefold().startswith("repo:")
+        coding_projection: ContextProjection | None = None
+        if coding_requested:
+            try:
+                if request.metadata.get("interface") != "cli" or self.coding_context is None:
+                    raise ValueError("coding context requires configured local CLI")
+                coding_projection = ContextProjection.model_validate(
+                    await self.coding_context.project()
+                )
+                if coding_projection.sensitivity is not SensitivityClass.PRIVATE:
+                    raise ValueError("repository context must be private")
+                if len(coding_projection.content) > 8_000:
+                    raise ValueError("repository projection exceeds fixed bound")
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                return self._failure(
+                    conversation_id=conversation.id,
+                    status=RuntimeStatus.FAILED,
+                    error=RuntimeErrorDetail(
+                        code=RuntimeErrorCode.CODING_CONTEXT_ERROR,
+                        message=(
+                            "Local coding context unavailable; configure an enabled repository "
+                            "root and use CLI chat."
+                        ),
+                    ),
+                    messages=turn_messages,
+                    events=events,
+                    tool_iterations=tool_iterations,
+                )
+
         freshness_decision: FreshnessDecision | None = None
         freshness_projection: ContextProjection | None = None
         if self.freshness_router is not None:
             try:
                 freshness_decision = FreshnessDecision.model_validate(
-                    self.freshness_router.classify(request.user_input)
+                    FreshnessDecision(
+                        route=FreshnessRoute.LOCAL_CONTEXT,
+                        reason="Explicit local repository context request.",
+                    )
+                    if coding_requested
+                    else self.freshness_router.classify(request.user_input)
                 )
                 # Validate the projection before persisting the request or contacting a provider.
                 freshness_projection = ContextProjection.model_validate(
@@ -363,6 +403,7 @@ class AssistantService:
                     request=request,
                     freshness_projection=freshness_projection,
                     research_projection=research_projection,
+                    coding_projection=coding_projection,
                 )
             except Exception:
                 error = RuntimeErrorDetail(
@@ -924,6 +965,7 @@ class AssistantService:
         request: AssistantRequest,
         freshness_projection: ContextProjection | None = None,
         research_projection: ContextProjection | None = None,
+        coding_projection: ContextProjection | None = None,
     ) -> tuple[Message, ...]:
         raw_recent = await self.store.recent_messages(
             conversation.id,
@@ -1004,6 +1046,17 @@ class AssistantService:
                         disclosure_sensitivity=projection.sensitivity,
                         disclosure_source=projection.source,
                     )
+        coding_message = None
+        if coding_projection is not None:
+            coding_message = Message(
+                conversation_id=conversation.id,
+                role=MessageRole.SYSTEM,
+                content=coding_projection.content,
+                context_sensitivity=SensitivityClass.PRIVATE,
+                context_source=coding_projection.source,
+                disclosure_sensitivity=SensitivityClass.PRIVATE,
+                disclosure_source=coding_projection.source,
+            )
         dynamic_context = tuple(
             message
             for message in (
@@ -1011,6 +1064,7 @@ class AssistantService:
                 research_message,
                 current_context_message,
                 memory_message,
+                coding_message,
             )
             if message is not None
         )

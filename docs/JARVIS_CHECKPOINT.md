@@ -1,6 +1,6 @@
 # JARVIS Checkpoint
 
-Updated: 2026-10-02
+Updated: 2026-10-05
 Objective: incremental proactive/context-aware expansion requested in `docs/AGENTIC_ASSISTANT_EXPANSION.md`
 
 ## Completed
@@ -23,6 +23,11 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
 - Completed Phase D read-only unified discovery over current model tools and task handlers.
 - Local `jarvis tools list` and JSON view expose exact names, owners, and typed definitions;
   discovery never invokes handlers, approves actions, or schedules tasks.
+- Completed Phase F default-off local CLI `repo:` context: bounded tracked-source symbol/path maps,
+  fresh raw-file/HEAD-blob diffs, private routing and no automatic research.
+- Added one content/TTL-validated in-memory map cache and atomic metadata-only coding checkpoints
+  outside the repository, with 24-hour expiry, local inspection, clear and restart revalidation.
+- Retained bounded conversations, memory, tools, Phase C acquisition and Phase D execution owners.
 
 ## Modified areas
 
@@ -38,6 +43,8 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
 - Phase C projector, general-web adapter, runtime events, privacy/failure/cancellation tests,
   fixed 100-case benchmark, and completion report
 - Phase D immutable discovery snapshot, runtime/CLI wiring, focused tests, and completion report
+- Phase F coding adapter/port, configured local CLI/runtime wiring, checkpoint/cache lifecycle,
+  synthetic/workstation benchmark, functional/privacy/process/path tests and operational guide
 
 ## Verification
 
@@ -52,6 +59,11 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
 - Phase D full gate: 1,150 passed, 3 skipped, 85.01% coverage; Ruff/mypy, locked dependencies,
   pip-audit, gitleaks, doctor, and diff check pass.
 - `jarvis doctor`: pass; local runtime ready.
+- Phase F final gate: 1,185 passed, 3 existing skips, 85.20% coverage; coding adapter 95% coverage.
+  Ruff/mypy, locked dependencies, pip-audit, gitleaks, doctor and Git whitespace checks passed.
+- Phase F benchmark: 100/100 cases; cold p50/p95 410.155/477.916 ms, warm p50/p95
+  393.214/474.660 ms; zero failures, provider/network calls and cost. Workstation snapshot:
+  360 mapped files, partial status, 8,000 projection chars, 3,008.797 ms; checkpoint valid.
 - Phase B benchmark: 10,000/10,000 correct, p50 0.0118 ms, p95 0.0242 ms, max 0.0651 ms.
 - Phase C benchmark: 100/100 fixed cases, 40 public fake acquisitions, zero privacy/persistence/
   authority violations, projection-only p95 0.1367 ms below 5 ms.
@@ -74,7 +86,7 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
 
 ## Remaining
 
-- Next expansion implementation: Phase F token/continuity work; Phase E model-routing baseline is
-  already complete.
+- Next expansion implementation: Phase G — Attachments. Phase F token/continuity and Phase E
+  model-routing baseline are complete. Stop gates still require fresh phase authority.
 - Live public Wikimedia smoke returned `authentication_required` from the search endpoint on this
   workstation. No credential or paid service was used; synthetic and contract gates cover the path.
