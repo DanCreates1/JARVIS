@@ -103,7 +103,7 @@ def _delete_token(vault: Any) -> None:
 def _number(value: Any, minimum: float, maximum: float) -> int | None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
-    if not math.isfinite(value) or not minimum <= value <= maximum:
+    if not minimum <= value <= maximum or not math.isfinite(value):
         return None
     return int(value)
 

@@ -28,7 +28,7 @@ record.
 
 | Track | Status | Next gate |
 | --- | --- | --- |
-| Phone PWA | Physical-iPhone JARVIS chat accepted; read-only Garmin panel and scoped API implemented locally | Owner-approved Garmin login, new health-read browser ticket, physical-iPhone acceptance |
+| Phone PWA | Physical-iPhone JARVIS chat accepted; Garmin panel/scoped API implemented locally; standalone saved-session batch report verified | Protected Core Garmin session integration, new health-read browser ticket, physical-iPhone acceptance |
 | Native MVP | Expo Go checks passed; independent native build unverified and deferred under $0/no-Mac constraint | No active native gate |
 | Mobile MVP 2 | Deferred | No active native gate |
 | Mobile MVP 3 | Deferred | No active native gate |

@@ -3,6 +3,10 @@
 Status: local read-only implementation; live Garmin account and iPhone acceptance pending.
 Updated: 2026-09-30
 
+Local connector organization and one-command saved-session reports were verified on 2026-10-05;
+see [Garmin connector and reports](GARMIN_CONNECTOR.md). That standalone report does not populate
+the Core bridge's Windows Credential Locker or complete the phone acceptance below.
+
 The existing private JARVIS PWA is the $0 iPhone app path. Safari can add it to the Home Screen.
 Phase 8 already proved physical-iPhone install, enrollment, chat, and reconnect. Native M2C
 acceptance remains deferred: the owner has no Mac or paid Apple Developer membership and permits

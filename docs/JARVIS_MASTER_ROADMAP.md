@@ -6,8 +6,8 @@ Repository: `DanCreates1/JARVIS`, branch `main`
 
 ## Product target
 
-Finish a small native iPhone client before expanding JARVIS further. The client has three primary
-surfaces: **Chat**, **Garmin**, and **Settings**.
+Finish a small iPhone client using the existing Home Screen PWA before expanding JARVIS further.
+The client has three primary surfaces: **Chat**, **Garmin**, and **Settings**.
 
 **Mobile MVP complete** means an enrolled iPhone can securely send text to JARVIS, stream an
 answer, view basic read-only Garmin data, recover from ordinary connection failures, and
@@ -78,6 +78,10 @@ The active $0 phone goal is the existing Home Screen PWA with JARVIS chat and a 
 panel. See [PWA Garmin](PWA_GARMIN.md). Native M2C build acceptance remains open and deferred:
 the owner has no Mac or paid Apple Developer membership. The native MVP sections below are retained
 as historical plans, not prerequisites for the PWA goal.
+
+The owner's standalone Garmin connector is organized locally and its saved-session batch report
+passed a live read on 2026-10-05. See [connector and report evidence](GARMIN_CONNECTOR.md).
+This does not establish a protected Core session or physical-iPhone Garmin acceptance.
 
 ### MVP 1 — Design and connection
 
@@ -153,6 +157,7 @@ four MVP milestones pass and the owner explicitly reprioritizes them.
 
 ## Next milestone
 
-**MVP 1 — Design and connection.** Resume M2C live iPhone/Core acceptance. Do not start a fresh
-ticket, development build, signing, paid service, deployment, or credential flow without its
-required owner approval.
+**MVP 3 — PWA Garmin integration and acceptance.** Connect the verified local Garmin session to
+the protected Core bridge, then complete scoped phone refresh and recovery acceptance. Fresh
+owner authority remains required for new enrollment tickets, login/MFA or credential changes,
+signing, paid services, and deployment. Native M2C remains deferred.
