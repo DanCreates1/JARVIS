@@ -20,6 +20,7 @@ from jarvis.core import (
     ToolPolicy,
 )
 from jarvis.current_context import CurrentContextService, HttpInternetProbe
+from jarvis.email import EmailService, build_email_service
 from jarvis.freshness_router import DeterministicFreshnessRouter
 from jarvis.llm import (
     GeminiChatProvider,
@@ -113,6 +114,7 @@ class RuntimeComponents:
     tool_registry: UnifiedToolRegistry | None = None
     coding_context: CodingContextService | None = None
     attachments: AttachmentService | None = None
+    email: EmailService | None = None
     attachment_vision: OllamaAttachmentVision | None = None
     computer: ComputerRuntimeComponents | None = None
     memory_store: SQLiteMemoryStore | None = None
@@ -196,6 +198,7 @@ class RuntimeComponents:
 async def build_runtime(settings: Settings) -> RuntimeComponents:
     """Construct and initialize every runtime adapter exactly once."""
     topology_manifest, deployment, deployment_health = _deployment_context(settings)
+    email = build_email_service(settings.email_export_root, enabled=settings.email_enabled)
     coding_context = build_coding_context(
         settings.coding_repository_root,
         settings.data_dir,
@@ -442,6 +445,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
             sensitivity_classifier=privacy_gate,
             coding_context=coding_context,
             attachments=attachments,
+            email=email,
         )
         task_handlers: list[TaskHandler] = [
             ValueTaskHandler(),
@@ -512,6 +516,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
         settings=settings,
         coding_context=coding_context,
         attachments=attachments,
+        email=email,
         attachment_vision=attachment_vision,
         store=store,
         memory_store=memory_store,

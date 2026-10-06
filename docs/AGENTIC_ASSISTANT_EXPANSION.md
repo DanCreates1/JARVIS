@@ -60,6 +60,8 @@ remain authoritative.
   retention, retrieval, correction, and deletion cover the requested foundation.
 - [ ] **I — Email:** provider-neutral read/thread/summarize/extract/draft ports; no sending without
   exact approval and provider authorization.
+  IA local export read/prepare complete; IB live provider access remains `blocked-external`.
+  See [Email](EMAIL.md) and [Phase I progress](phase-reports/PHASE_I_PROGRESS.md).
 - [ ] **J — Calendar:** provider-neutral read/conflict/suggestion ports; mutations remain separate
   approval-gated actions.
 - [x] **K — Approval baseline:** existing Levels 0–4, policy engine, trusted surfaces, grants,
@@ -71,7 +73,8 @@ remain authoritative.
 
 ## Next phase
 
-Phase I — Email, requiring fresh phase authority. Phase G local attachments, Phase F continuity,
+Phase IB — live email provider integration, requiring fresh provider/credential/private-read
+authority. IA local export read/prepare complete. Phase G local attachments, Phase F continuity,
 Phase D discovery and Phase H memory baseline are complete;
 conversation, memory, tool and action ownership boundaries remain intact.
 Phase C's live Wikimedia smoke remains externally blocked by its

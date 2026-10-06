@@ -80,3 +80,7 @@ mobile/coverage/
 mobile/web-build/
 mobile/.npm/
 mobile/npm-debug.log*
+
+# Private email exports never belong in source control.
+*.eml
+*.mbox

@@ -36,6 +36,7 @@ from jarvis.core import (
     ToolDefinition,
 )
 from jarvis.diagnostics import DiagnosticReport, DiagnosticStatus, run_diagnostics
+from jarvis.email import EmailError, build_email_service
 from jarvis.logging_config import configure_logging
 from jarvis.memory import (
     ConfirmationInterface,
@@ -180,6 +181,88 @@ console = Console(highlight=False, legacy_windows=False)
 
 attachments_app = typer.Typer(help="Upload, inspect and delete private local attachments.")
 app.add_typer(attachments_app, name="attachments")
+
+email_app = typer.Typer(help="Read local private email exports and prepare unsent drafts.")
+app.add_typer(email_app, name="email")
+
+
+def _email_command(
+    operation: str,
+    thread_id: str = "",
+    *,
+    message_id: str = "",
+    recipients: tuple[str, ...] = (),
+    subject: str = "",
+    body: str = "",
+) -> None:
+    settings = _load_settings()
+
+    async def run() -> str:
+        service = build_email_service(settings.email_export_root, enabled=settings.email_enabled)
+        if service is None:
+            raise EmailError("email_disabled")
+        if operation == "list":
+            return json.dumps(await service.list_threads())
+        if operation == "thread":
+            return (await service.read_thread(thread_id)).model_dump_json(indent=2)
+        if operation == "read":
+            thread = await service.read_thread(thread_id)
+            for item in thread.messages:
+                if item.id == message_id:
+                    return item.model_dump_json(indent=2)
+            raise EmailError("message_not_found")
+        if operation == "summary":
+            return (await service.summarize(thread_id)).model_dump_json(indent=2)
+        if operation == "extract":
+            return (await service.extract(thread_id)).model_dump_json(indent=2)
+        return (
+            await service.draft(thread_id, recipients=recipients, subject=subject, body=body)
+        ).model_dump_json(indent=2)
+
+    try:
+        result = asyncio.run(run())
+    except EmailError as exc:
+        typer.echo(f"Email unavailable: {exc.code}", err=True)
+        raise typer.Exit(1) from None
+    except Exception:
+        typer.echo("Email operation failed closed.", err=True)
+        raise typer.Exit(1) from None
+    typer.echo(result)
+
+
+@email_app.command("list")
+def email_list() -> None:
+    _email_command("list")
+
+
+@email_app.command("thread")
+def email_thread(thread_id: str) -> None:
+    _email_command("thread", thread_id)
+
+
+@email_app.command("read")
+def email_read(thread_id: str, message_id: str) -> None:
+    _email_command("read", thread_id, message_id=message_id)
+
+
+@email_app.command("summary")
+def email_summary(thread_id: str) -> None:
+    _email_command("summary", thread_id)
+
+
+@email_app.command("extract")
+def email_extract(thread_id: str) -> None:
+    _email_command("extract", thread_id)
+
+
+@email_app.command("draft")
+def email_draft(
+    thread_id: str,
+    to: Annotated[list[str], typer.Option("--to", help="Explicit bare mailbox; repeat.")],
+    subject: Annotated[str, typer.Option()],
+    body: Annotated[str, typer.Option()],
+) -> None:
+    _email_command("draft", thread_id, recipients=tuple(to), subject=subject, body=body)
 
 
 @attachments_app.command("upload")
@@ -2224,6 +2307,9 @@ def chat(
             "--attachment", help="Exact uploaded ID; requires -c. Repeat up to four times."
         ),
     ] = None,
+    email_thread_id: Annotated[
+        str | None, typer.Option("--email-thread", help="Exact configured local export thread.")
+    ] = None,
 ) -> None:
     """Chat interactively or send one non-interactive message."""
     if attachment_ids:
@@ -2237,6 +2323,12 @@ def chat(
             typer.echo("Attachments require -c and up to four unique valid uploaded IDs.", err=True)
             raise typer.Exit(2) from None
     settings = _load_settings()
+    if email_thread_id is not None:
+        try:
+            AssistantRequest(user_input="email preflight", email_thread_id=email_thread_id)
+        except ValidationError:
+            typer.echo("Invalid email thread ID.", err=True)
+            raise typer.Exit(2) from None
     try:
         exit_code = asyncio.run(
             _chat(
@@ -2245,6 +2337,7 @@ def chat(
                 conversation_id=conversation_id,
                 model_role=model_role,
                 attachment_ids=tuple(attachment_ids or ()),
+                email_thread_id=email_thread_id,
             )
         )
     except KeyboardInterrupt:
@@ -2261,6 +2354,7 @@ async def _chat(
     conversation_id: str | None,
     model_role: ModelRole | None = None,
     attachment_ids: tuple[str, ...] = (),
+    email_thread_id: str | None = None,
 ) -> int:
     try:
         components = await build_runtime(settings)
@@ -2285,6 +2379,7 @@ async def _chat(
                     metadata={"interface": "cli"},
                     requested_model_role=model_role,
                     attachment_ids=attachment_ids,
+                    email_thread_id=email_thread_id,
                 ),
             )
             _render_result(result, reply_streamed=streamed)
@@ -2310,6 +2405,7 @@ async def _chat(
                     metadata={"interface": "cli"},
                     requested_model_role=model_role,
                     attachment_ids=attachment_ids,
+                    email_thread_id=email_thread_id,
                 ),
             )
             _render_result(result, reply_streamed=streamed)

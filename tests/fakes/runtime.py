@@ -94,6 +94,12 @@ class InMemoryConversationStore:
         self._fail_if_requested("get_conversation")
         return self.conversations.get(conversation_id)
 
+    async def mark_email_private(self, conversation_id: str) -> None:
+        self._fail_if_requested("mark_email_private")
+        self.conversations[conversation_id] = self.conversations[conversation_id].model_copy(
+            update={"email_private": True}
+        )
+
     async def append_message(self, message: Message) -> Message:
         self._fail_if_requested("append_message")
         if message.conversation_id not in self.conversations:

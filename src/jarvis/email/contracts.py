@@ -1,0 +1,19 @@
+"""Read-only provider and preparation ports. No credential, send or write port."""
+
+from typing import Protocol
+
+from .models import EmailDraft, EmailMessage, EmailPreparation, EmailThread
+
+
+class EmailReadProvider(Protocol):
+    async def list_threads(self) -> tuple[str, ...]: ...
+    async def read_thread(self, thread_id: str) -> EmailThread: ...
+    async def read_message(self, thread_id: str, message_id: str) -> EmailMessage: ...
+
+
+class EmailPreparePort(Protocol):
+    async def summarize(self, thread_id: str) -> EmailPreparation: ...
+    async def extract(self, thread_id: str) -> EmailPreparation: ...
+    async def draft(
+        self, thread_id: str, *, recipients: tuple[str, ...], subject: str, body: str
+    ) -> EmailDraft: ...

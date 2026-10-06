@@ -87,6 +87,8 @@ class Settings(BaseSettings):
     coding_context_cache_seconds: int = Field(default=30, ge=0, le=3_600)
     coding_context_max_chars: int = Field(default=8_000, ge=1_024, le=8_000)
     attachments_enabled: bool = False
+    email_enabled: bool = False
+    email_export_root: Path | None = None
     attachment_max_storage_bytes: int = Field(
         default=50 * 1_024 * 1_024, ge=5 * 1_024 * 1_024, le=100 * 1_024 * 1_024
     )

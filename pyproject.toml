@@ -74,7 +74,7 @@ testpaths = ["tests"]
 [tool.coverage.run]
 branch = true
 source = ["jarvis"]
-omit = ["src/jarvis/research/_parser_worker.py", "src/jarvis/attachments/_worker.py"]
+omit = ["src/jarvis/research/_parser_worker.py", "src/jarvis/attachments/_worker.py", "src/jarvis/email/_worker.py"]
 
 [tool.coverage.report]
 exclude_also = [

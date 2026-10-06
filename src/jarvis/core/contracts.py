@@ -93,6 +93,8 @@ class ConversationStore(Protocol):
 
     async def get_conversation(self, conversation_id: str) -> Conversation | None: ...
 
+    async def mark_email_private(self, conversation_id: str) -> None: ...
+
     async def append_message(self, message: Message) -> Message:
         """Persist and return the message, optionally assigning its id."""
         ...
@@ -148,6 +150,12 @@ class CurrentContextPort(Protocol):
 class CodingContextPort(Protocol):
     async def project(self) -> ContextProjection:
         """Return private context for one host-configured repository; no query retained."""
+        ...
+
+
+class EmailContextPort(Protocol):
+    async def project(self, thread_id: str) -> ContextProjection:
+        """Return bounded private untrusted email context for explicit local CLI selection."""
         ...
 
 

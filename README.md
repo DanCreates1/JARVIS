@@ -90,6 +90,13 @@ parsing, cited chunks, optional capability-checked local vision and deletion. Se
 Attachment conversations/follow-ups stay local and skip automatic research. See
 [Attachments](docs/ATTACHMENTS.md) for settings, limits, lifecycle and cold-vision behavior.
 
+Phase IA adds default-off local email exports: provider-neutral read/thread ports, extractive
+summaries, quoted action/date candidates and volatile unsent drafts. Configure an explicit
+`JARVIS_EMAIL_EXPORT_ROOT`, enable `JARVIS_EMAIL_ENABLED`, then use `jarvis email` or
+`jarvis chat --email-thread THREAD_ID -m 'Summarize with message citations'`. Email conversations
+and follow-ups stay private/local and suppress automatic research and memory capture.
+Live provider access remains blocked on fresh authority. See [Email](docs/EMAIL.md).
+
 ## Implemented Phase 2
 
 The optional local voice slice adds:

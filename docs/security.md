@@ -361,3 +361,17 @@ Do not open a public issue containing credentials or private conversation data.
 Use the repository owner's private security-reporting channel when one is
 published. Until then, remove sensitive evidence from any reproduction and
 notify the owner privately.
+
+## Phase IA email trust boundary
+
+Explicit local exports only, default off. IDs cannot become arbitrary paths; component links,
+reparse points, hardlinked messages, size/type/identity changes, hostile MIME and malformed worker
+responses fail closed. Worker inherits only Windows system-path environment, never provider
+credentials; no HTML rendering, link/tracking/attachment acquisition or send path exists.
+Headers and body are untrusted data; SHA-256 identifies bytes without authenticating sender.
+Runtime commits sticky conversation email privacy before acquisition, validates projection scope,
+size and private label, forces existing local routing and suppresses research/memory capture for
+follow-ups. Drafts, extraction candidates and model output confer no action or storage authority.
+Current C/D boundaries and Wikimedia `authentication_required` remain unchanged. IB requires
+fresh provider/credential/private-read authority; writes additionally need exact Phase 3 approval
+and provider authorization. Limits/recovery: [Email](EMAIL.md).

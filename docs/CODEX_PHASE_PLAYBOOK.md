@@ -1066,3 +1066,22 @@ Freeze 100 text retrieval cases with 100% expected-chunk hits, <=8,000 projectio
 Windows lifecycle smoke, functional/adversarial/failure suites and full release gates. Record
 `PHASE_G_PROGRESS.md` / `PHASE_G_COMPLETION.md`; update state/architecture/security/setup docs.
 Stop before Phase I — Email; H memory baseline already complete.
+
+## 23. Lettered agentic expansion — Phase I
+
+Apply universal protocol; recommended `gpt-6-astra`, `xhigh`. Read expansion, checkpoint, C/D/F/G
+reports, architecture/security, current runtime/router/conversation/CLI contracts and email guide.
+IA — Local email read/prepare ships default-off explicit local export adapter and provider-neutral
+typed read/thread, extractive summary, quoted action/date candidates and volatile owner-authored
+draft preparation. Isolate bounded MIME parsing; no HTML execution, attachment/link acquisition,
+credentials, provider API, polling or send. Email chat is explicit local CLI only; sticky private
+conversation state survives restart and suppresses research and automatic memory capture.
+Freeze 100 synthetic read/prepare cases, 100% provenance/oracle correctness, p95 <=1,000 ms,
+<=8,000 projection chars, <=16 messages/thread, <=128 KiB/message and zero disclosure/effect
+failures. Run Windows synthetic CLI/runtime smoke, packaging and complete release/security gates.
+Record IA completion in `PHASE_I_PROGRESS.md`; aggregate I remains `blocked-external` until IB.
+IB — Live provider integration requires fresh provider/account/credential scope and private-data
+access authority. Choose provider and review current official authentication/API documentation
+before implementing its adapter. Any provider draft/write/send requires separate exact Phase 3
+approval, provider authorization and fresh external-effect authority. No authority transfers
+from IA, G publication or C/D discovery. Stop before J — Calendar.

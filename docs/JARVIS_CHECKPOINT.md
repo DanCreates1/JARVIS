@@ -37,6 +37,10 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
 
 ## Modified areas
 
+- IA local email read/prepare: provider-neutral ports and explicit `.eml` adapter, isolated bounded
+  MIME processing, extractive digest/action-date candidates, volatile unsent draft preparation,
+  CLI/runtime composition and migration 016 sticky conversation privacy. [Email](EMAIL.md).
+
 - `src/jarvis/current_context.py`
 - core context port/runtime composition
 - model router active-route context
@@ -53,6 +57,13 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
   synthetic/workstation benchmark, functional/privacy/process/path tests and operational guide
 
 ## Verification
+
+- IA final gates: 1,306 passed, 3 prior skips, 85.41% coverage; Ruff 398 files, mypy 163 source
+  files, lock/sync, vulnerability/secret/doctor/whitespace and installed-wheel worker/migration
+  checks pass. Synthetic Windows private `qwen3:0.6b` email smoke passes; drafts remain unsent.
+- IA frozen benchmark: 100/100 cases, four read/prepare operations per single-message case,
+  400 isolated parses, p50/p95 591.888/652.601 ms; zero oracle failures and 490 maximum chars.
+  Phase C fixed benchmark still passes; no live Wikimedia retry or application credentials.
 
 - `uv lock --check`: pass, 119 packages resolved.
 - `uv sync --locked`: pass in ignored `.bootstrap-venv`, 68 packages installed from lock.
@@ -101,7 +112,9 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
 - Phase G local release and Git publication complete: implementation `1cfde91` published to
   `origin/main` on 2026-10-05 after fresh owner Git credential authority. Publication evidence:
   [Phase G report](phase-reports/PHASE_G_COMPLETION.md).
-- Next expansion implementation: Phase I — Email, with fresh phase authority. E/H/K baselines
-  are complete; Phase C/D boundaries and external credential/effect stop gates remain.
+- IA local email read/prepare complete; aggregate I `blocked-external`. Next: IB live provider
+  integration, with owner-selected provider and fresh credential/private-read authority. E/H/K
+  baselines complete; Phase C/D boundaries and external-effect stop gates remain. Source commit
+  stays local until fresh Git publication authority; no account credentials used.
 - Live public Wikimedia smoke returned `authentication_required` from the search endpoint on this
   workstation. No credential or paid service was used; synthetic and contract gates cover the path.

@@ -17,6 +17,7 @@ from .contracts import (
     CodingContextPort,
     ConversationStore,
     CurrentContextPort,
+    EmailContextPort,
     FreshnessRouter,
     MemoryContextPort,
     RoutedChatProvider,
@@ -121,6 +122,7 @@ class AssistantService:
         automatic_research: AutomaticResearchPort | None = None,
         coding_context: CodingContextPort | None = None,
         attachments: AttachmentContextPort | None = None,
+        email: EmailContextPort | None = None,
         memory: MemoryContextPort | None = None,
         sensitivity_classifier: SensitivityClassifier | None = None,
     ) -> None:
@@ -168,6 +170,7 @@ class AssistantService:
         self.automatic_research = automatic_research
         self.coding_context = coding_context
         self.attachments = attachments
+        self.email = email
         self.memory = memory
         self.sensitivity_classifier = sensitivity_classifier
 
@@ -254,6 +257,37 @@ class AssistantService:
             )
 
         coding_requested = request.user_input.lstrip().casefold().startswith("repo:")
+        email_projection: ContextProjection | None = None
+        if request.email_thread_id is not None:
+            try:
+                if request.metadata.get("interface") != "cli" or self.email is None:
+                    raise ValueError("email requires configured local CLI")
+                await self.store.mark_email_private(conversation.id)
+                conversation = conversation.model_copy(update={"email_private": True})
+                email_projection = ContextProjection.model_validate(
+                    await self.email.project(request.email_thread_id)
+                )
+                if (
+                    email_projection.sensitivity is not SensitivityClass.PRIVATE
+                    or len(email_projection.content) > 8_000
+                    or email_projection.source_ids != (request.email_thread_id,)
+                ):
+                    raise ValueError("invalid email projection")
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                return self._failure(
+                    conversation_id=conversation.id,
+                    status=RuntimeStatus.FAILED,
+                    error=RuntimeErrorDetail(
+                        code=RuntimeErrorCode.EMAIL_CONTEXT_ERROR,
+                        message="Private email context unavailable; check enabled local exports.",
+                    ),
+                    messages=turn_messages,
+                    events=events,
+                    tool_iterations=tool_iterations,
+                )
+        private_source = conversation.attachment_private or conversation.email_private
         attachment_projection: ContextProjection | None = None
         if request.attachment_ids:
             try:
@@ -330,7 +364,7 @@ class AssistantService:
                         route=FreshnessRoute.LOCAL_CONTEXT,
                         reason="Explicit private local context request.",
                     )
-                    if coding_requested or request.attachment_ids or conversation.attachment_private
+                    if coding_requested or request.attachment_ids or private_source
                     else self.freshness_router.classify(request.user_input)
                 )
                 # Validate the projection before persisting the request or contacting a provider.
@@ -363,7 +397,7 @@ class AssistantService:
             content=request.user_input,
             disclosure_sensitivity=(
                 SensitivityClass.PRIVATE
-                if request.attachment_ids or conversation.attachment_private
+                if request.attachment_ids or private_source
                 else self._classify(request.user_input)
             ),
             disclosure_source="local-privacy-gate",
@@ -381,11 +415,7 @@ class AssistantService:
                 tool_iterations=tool_iterations,
             )
         assert persisted is not None
-        if (
-            self.memory is not None
-            and not request.attachment_ids
-            and not conversation.attachment_private
-        ):
+        if self.memory is not None and not request.attachment_ids and not private_source:
             with suppress(Exception):
                 await self.memory.capture_candidates(persisted)
 
@@ -395,7 +425,7 @@ class AssistantService:
             and freshness_decision.requires_live_evidence
             and self.automatic_research is not None
             and not request.attachment_ids
-            and not conversation.attachment_private
+            and not private_source
         ):
             events.add(
                 RuntimeEventType.RESEARCH_STARTED,
@@ -455,6 +485,7 @@ class AssistantService:
                     research_projection=research_projection,
                     coding_projection=coding_projection,
                     attachment_projection=attachment_projection,
+                    email_projection=email_projection,
                 )
             except Exception:
                 error = RuntimeErrorDetail(
@@ -1018,6 +1049,7 @@ class AssistantService:
         research_projection: ContextProjection | None = None,
         coding_projection: ContextProjection | None = None,
         attachment_projection: ContextProjection | None = None,
+        email_projection: ContextProjection | None = None,
     ) -> tuple[Message, ...]:
         if attachment_projection is not None and self.attachments is not None:
             await self.attachments.validate(conversation.id, request.attachment_ids)
@@ -1119,6 +1151,19 @@ class AssistantService:
                 current_context_message,
                 memory_message,
                 coding_message,
+                (
+                    Message(
+                        conversation_id=conversation.id,
+                        role=MessageRole.SYSTEM,
+                        content=email_projection.content,
+                        context_sensitivity=SensitivityClass.PRIVATE,
+                        context_source=email_projection.source,
+                        disclosure_sensitivity=SensitivityClass.PRIVATE,
+                        disclosure_source=email_projection.source,
+                    )
+                    if email_projection is not None
+                    else None
+                ),
                 (
                     Message(
                         conversation_id=conversation.id,

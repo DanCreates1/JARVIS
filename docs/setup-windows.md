@@ -688,6 +688,13 @@ production restore input.
 
 ## Development checks
 
+Phase IA email exports are default-off. Set `JARVIS_EMAIL_ENABLED=true` and an absolute local
+`JARVIS_EMAIL_EXPORT_ROOT` outside source control. Organize `THREAD_ID/MESSAGE_ID.eml`, then use
+`jarvis email list`, `thread`, `read`, `summary`, `extract`, `draft` and explicit CLI chat
+`jarvis chat --email-thread THREAD_ID -m 'Summarize with citations'`.
+No credentials, account discovery, polling, provider drafts or sending. See [Email](EMAIL.md)
+for exact bounds, sticky privacy and IB's fresh-authority gate.
+
 ```powershell
 ./scripts/quality.ps1
 ```

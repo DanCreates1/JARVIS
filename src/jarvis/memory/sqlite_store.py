@@ -127,7 +127,8 @@ class SQLiteConversationStore:
         async with self._operation_lock:
             connection = await self._get_connection()
             async with connection.execute(
-                "SELECT id, metadata_json, attachment_private FROM conversations WHERE id = ?",
+                "SELECT id, metadata_json, attachment_private, email_private "
+                "FROM conversations WHERE id = ?",
                 (conversation_id,),
             ) as cursor:
                 row = await cursor.fetchone()
@@ -138,7 +139,20 @@ class SQLiteConversationStore:
             id=row["id"],
             metadata=json.loads(row["metadata_json"]),
             attachment_private=bool(row["attachment_private"]),
+            email_private=bool(row["email_private"]),
         )
+
+    async def mark_email_private(self, conversation_id: str) -> None:
+        """Mark before email acquisition; no caller-controlled metadata can clear it."""
+        async with self._operation_lock:
+            connection = await self._get_connection()
+            cursor = await connection.execute(
+                "UPDATE conversations SET email_private=1 WHERE id=?", (conversation_id,)
+            )
+            if cursor.rowcount != 1:
+                await connection.rollback()
+                raise ValueError("conversation missing")
+            await connection.commit()
 
     async def append_message(self, message: Message) -> Message:
         """Append a message and return it with a persistent message identifier."""

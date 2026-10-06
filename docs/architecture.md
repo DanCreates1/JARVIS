@@ -364,3 +364,16 @@ reported as proof that nothing happened.
 - Live model tests are explicit and opt-in; they are not part of ordinary CI.
 - Windows CI checks the lock file, formatting, linting, types, tests, dependency
   vulnerabilities, and committed secrets.
+
+## Phase IA email boundary
+
+`email.EmailReadProvider` owns provider-neutral read/thread contracts; `LocalEmailExports` is the
+only installed adapter. `EmailService` supplies extractive summaries, quoted extraction candidates,
+volatile explicit drafts and bounded private projections. Short-lived stdlib MIME workers use
+minimal environment, byte/part/depth/output/deadline bounds and cancellation/reap.
+Runtime composition is default off and explicit CLI `--email-thread` only. Existing conversation
+store migration 016 commits sticky `email_private` before acquisition. Follow-ups stay local and
+skip Phase C research and automatic memory capture, even after restart/disable/failure. Sources
+are not persisted by email adapter; private chat replies retain existing lifecycle. No second
+store, orchestrator, approval owner, scheduler or model-facing email tool. See [Email](EMAIL.md).
+IB live provider reads and any external writes remain separate fresh-authority gates.

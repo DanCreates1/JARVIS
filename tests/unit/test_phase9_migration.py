@@ -151,7 +151,7 @@ def _backup_and_restore(tmp_path: Path):  # type: ignore[no-untyped-def]
 def test_database_state_covers_all_packaged_migrations_and_shared_domains(tmp_path: Path) -> None:
     state = analyze_database(_database(tmp_path / "source.db"))
 
-    assert [item.version for item in state.migrations] == list(range(1, 16))
+    assert [item.version for item in state.migrations] == list(range(1, 17))
     assert {"attachments", "attachment_chunks"} <= {table.name for table in state.tables}
     assert state.tables
     assert len(state.content_sha256) == 64
@@ -193,6 +193,12 @@ def test_encrypted_backup_preserves_attachment_payload_and_sticky_privacy(tmp_pa
             await service.close()
 
     record = asyncio.run(add_attachment())
+
+    async def mark_email_private():
+        async with SQLiteConversationStore(source) as store:
+            await store.mark_email_private("conversation-0")
+
+    asyncio.run(mark_email_private())
     bundle, target = tmp_path / "attachment.j9b", tmp_path / "target.db"
     topology = _remote_topology()
     create_encrypted_backup(
@@ -212,6 +218,9 @@ def test_encrypted_backup_preserves_attachment_payload_and_sticky_privacy(tmp_pa
         ).fetchone() == (b"synthetic backup oracle",)
         assert connection.execute(
             "SELECT attachment_private FROM conversations WHERE id='conversation-0'"
+        ).fetchone() == (1,)
+        assert connection.execute(
+            "SELECT email_private FROM conversations WHERE id='conversation-0'"
         ).fetchone() == (1,)
 
 
