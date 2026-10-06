@@ -38,7 +38,7 @@ record.
 | Phase 2 | Complete; continuous listening default-off | Maintenance |
 | Phase 3 | Implemented; live closeout pending | Separately authorized live effects only |
 | Phases 4–8 | Complete | Maintenance |
-| Agentic expansion A–G | Implemented; G local attachments complete; Phase C live Wikimedia smoke blocked by `authentication_required` | Phase G publication needs fresh credential authority; then Phase I email with fresh phase authority (E/H baselines complete) |
+| Agentic expansion A–G | Implemented; G local attachments complete and published as `1cfde91`; Phase C live Wikimedia smoke blocked by `authentication_required` | Phase I email requires fresh phase authority (E/H baselines complete); stop before implementation |
 | Phase 9 | Repository implementation complete; deployment blocked external | Authorized server target only |
 | Phase 10 | Generic boundary complete; previous vendor integration deferred | PWA Garmin path covers current read-only phone goal |
 | Phase 11 | Complete; proactive/effect paths default-off | Maintenance |

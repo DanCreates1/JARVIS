@@ -1,8 +1,8 @@
 # Phase G Attachments Completion Report
 
-Status: `complete` (local release); publication awaits fresh Git credential authority
+Status: `complete` (local release and Git publication)
 Started / completed: 2026-10-05
-Active subphase: Phase G — Attachments (local release)
+Active subphase: Phase G — Attachments (published)
 Recommended model / reasoning: `gpt-6-astra`, `xhigh`
 Session start / five-hour stop: 2026-10-05 19:00 / 2026-10-06 00:00 America/Toronto
 
@@ -46,7 +46,7 @@ capability-checked local vision. Preserve Phase C public-only acquisition and Ph
    adversarial/failure suites, synthetic production CLI/browser streaming smoke. Fixed pre-existing
    Python/JavaScript newline escaping that prevented local browser script execution.
 4. Benchmarks / full gates / docs: complete. Safe local source commit permitted by standing
-   authorization; authenticated publication is a separate pending gate under current instruction.
+   authorization; publication completed after fresh owner Git credential authority on 2026-10-05.
 
 ## Decisions
 
@@ -137,10 +137,22 @@ malformed/oversized answers before unsafe use. No new model tool, grant or actio
 
 ## Blockers
 
-No local release blocker. Phase C smoke remains `authentication_required`; no retry or credential
-workaround. Origin uses HTTPS GitHub; authenticated push needs fresh Git credential authority
-under this session's explicit no-credentials instruction. Source commit is separately authorized
-by standing repository instruction. No push/authenticated remote verification attempted.
+No Phase G release or publication blocker. Phase C smoke remains `authentication_required`; no
+retry or credential workaround. Fresh owner authority on 2026-10-05 permitted existing Git
+credentials only for origin verification and normal main pushes, including this publication
+receipt. No credential changes or application-provider credentials were used.
+
+## Git publication receipt
+
+- Publication session began with clean `main` at `1cfde91`, one commit ahead of tracking ref
+  `38dcff4`; fresh `git ls-remote origin refs/heads/main` confirmed remote baseline.
+- Implementation commit: `1cfde910b8b23e78034b21f1e70f35417445d477`.
+- `rtk git push origin main`: PASS, `38dcff4..1cfde91 main -> main` on 2026-10-05.
+- Post-push local HEAD, `origin/main` and remote `refs/heads/main` matched implementation SHA;
+  worktree was clean before this documentation receipt.
+- Fresh Gitleaks scan: PASS, 71 commits / 6.25 MB, no leaks. Implementation diff whitespace: PASS.
+- Existing full local gate evidence above remains applicable; publication changes documentation
+  only. No runtime data, generated artifacts, force-push, deployment or Phase I work included.
 
 ## Known limits and deferred scope
 
@@ -159,7 +171,8 @@ rows. Preserve migration and private database during source rollback.
 
 ## Final handoff
 
-Local release complete. Commit safe reviewed source under standing authorization; stop before
-authenticated push unless owner grants fresh Git credential use. Then next expansion phase is
-Phase I — Email with fresh phase authority; H memory baseline already complete. No email account,
-credential, deployment, message or paid service authority transfers from this report.
+Local release and Git publication complete. Implementation published as `1cfde91`; this
+documentation receipt is a separate safe source commit under the same Git publication authority.
+Stop before Phase I — Email; fresh phase authority is required and H memory baseline is complete.
+No email account, application credential, deployment, message or paid service authority transfers
+from this report. Phase C/D ownership boundaries and the Wikimedia blocker remain unchanged.

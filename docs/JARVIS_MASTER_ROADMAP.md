@@ -60,7 +60,7 @@ detailed evidence and must not be rewritten to fit the new product order.
 | Phase 2 — voice | Complete; continuous wake/clap remains disabled by default | [Completion report](phase-reports/PHASE_2_COMPLETION.md) |
 | Phase 3 — controlled computer access | Implemented; authorized live closeout remains pending | [Completion report](phase-reports/PHASE_3_COMPLETION.md) |
 | Phases 4–8 — memory, research, tasks, vision, secure PWA | Complete | [Phase reports](phase-reports/) |
-| Agentic expansion A–G — context, freshness, research, discovery, token/continuity, attachments | G local release complete; publication awaits fresh credential authority; Phase C Wikimedia smoke remains blocked by `authentication_required` | [Phase G report](phase-reports/PHASE_G_COMPLETION.md) |
+| Agentic expansion A–G — context, freshness, research, discovery, token/continuity, attachments | G local release complete and published as `1cfde91`; Phase C Wikimedia smoke remains blocked by `authentication_required`; Phase I requires fresh authority | [Phase G report](phase-reports/PHASE_G_COMPLETION.md) |
 | Phase 9 — server migration | Repository implementation complete; live deployment blocked on an authorized server | [Progress report](phase-reports/PHASE_9_PROGRESS.md) |
 | Phase 10 — generic wearables | 10A boundary complete; former vendor work was deferred | [Progress report](phase-reports/PHASE_10_PROGRESS.md) |
 | Phase 11 — advanced/proactive foundation | Complete, default-off, with no autonomous effect authority | [Completion report](phase-reports/PHASE_11_COMPLETION.md) |

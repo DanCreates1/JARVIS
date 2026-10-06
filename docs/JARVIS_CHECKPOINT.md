@@ -98,8 +98,9 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
 
 ## Remaining
 
-- Phase G local release complete; publication awaits fresh Git credential authority under current
-  no-credentials instruction. Exact evidence: [Phase G report](phase-reports/PHASE_G_COMPLETION.md).
+- Phase G local release and Git publication complete: implementation `1cfde91` published to
+  `origin/main` on 2026-10-05 after fresh owner Git credential authority. Publication evidence:
+  [Phase G report](phase-reports/PHASE_G_COMPLETION.md).
 - Next expansion implementation: Phase I — Email, with fresh phase authority. E/H/K baselines
   are complete; Phase C/D boundaries and external credential/effect stop gates remain.
 - Live public Wikimedia smoke returned `authentication_required` from the search endpoint on this
