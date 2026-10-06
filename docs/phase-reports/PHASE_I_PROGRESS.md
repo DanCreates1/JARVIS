@@ -43,8 +43,8 @@ provider access remains separate and requires fresh provider/credential/disclosu
 3. CLI / private runtime / failure and adversarial coverage: complete. Default-off composition,
    migration 016 sticky private state, local CLI, malformed/adversarial/restart/override tests.
 4. Benchmarks / full gates / docs / handoff: complete locally. IA passes full repository gates,
-   fixed benchmarks, Windows production smoke and installed-wheel checks. IB and Git publication
-   require fresh email authority; Git publication authorized separately below. No email
+   fixed benchmarks, Windows production smoke and installed-wheel checks. IB requires fresh
+   email authority; Git publication authorized separately below. No email
    credentials or effects transferred.
 
 ## Decisions
