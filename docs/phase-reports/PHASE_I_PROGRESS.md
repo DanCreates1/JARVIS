@@ -44,7 +44,8 @@ provider access remains separate and requires fresh provider/credential/disclosu
    migration 016 sticky private state, local CLI, malformed/adversarial/restart/override tests.
 4. Benchmarks / full gates / docs / handoff: complete locally. IA passes full repository gates,
    fixed benchmarks, Windows production smoke and installed-wheel checks. IB and Git publication
-   require fresh authority; no credentials or external effects transferred.
+   require fresh email authority; Git publication authorized separately below. No email
+   credentials or effects transferred.
 
 ## Decisions
 
@@ -132,7 +133,22 @@ content is added. MIME text is data only, with primary documentation linked in [
 ## Blockers
 
 IB: provider/account/credential scopes and private-data access authority absent. No live login or
-message allowed. Git publication also held at fresh external-effect authority boundary.
+message allowed. IA Git publication completed with fresh owner authority on 2026-10-05.
+
+## Git publication receipt
+
+- Fresh owner authority explicitly permitted existing Git credentials for origin verification and
+  normal publication of reviewed IA implementation `7905d92`; standing repository authority
+  covers safe source/documentation commits. No email credential/access authority included.
+- Initial clean `main` at `7905d927f14b09e7f29fa78084176e2dbf060804`, one commit ahead of
+  `origin/main`; authenticated `git ls-remote origin refs/heads/main` confirmed remote baseline
+  `b4cb77df9244109b88166b58dfe3e0e89a791fa2`.
+- `rtk git push origin main`: PASS, `b4cb77d..7905d92 main -> main` on 2026-10-05.
+- Post-push HEAD, tracking `origin/main` and remote `refs/heads/main` matched implementation SHA;
+  worktree clean. Gitleaks: 73 commits / 6.34 MB, no leaks. Implementation whitespace check: PASS.
+- Existing full IA gates above remain applicable; this publication receipt changes documentation
+  only. Receipt is a separate safe source commit under the same Git publication authority.
+- No force-push, deployment, live email access, message, credential change or Phase IB work.
 
 ## Known limits and deferred scope
 
@@ -156,7 +172,8 @@ Phase I remains `blocked-external`; retain this progress report instead of a Pha
 report until IB passes. Files changed: email package and migration, core/store/runtime/CLI/settings,
 focused functional/security tests, Phase 9 backup assertion, benchmark/smoke and setup/state docs.
 Safe source commit and report form one local commit; receipt recorded in chat after gates.
-No authenticated remote verification or push occurred. Next: IB — provider selection and fresh
+IA implementation published as `7905d92`; local/tracking/remote implementation refs verified.
+This publication receipt is a separate documentation commit. Next: IB — provider selection and fresh
 credential/private-read authority; never initiate live access or writes automatically. Preserve
-Phase C/D boundaries and Wikimedia `authentication_required`. Git publication needs fresh
-external-effect authority under this session's instruction.
+Phase C/D boundaries and Wikimedia `authentication_required`. Git publication authority grants
+no email credentials/private-read or other external effects.

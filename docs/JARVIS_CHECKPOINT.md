@@ -114,7 +114,8 @@ Objective: incremental proactive/context-aware expansion requested in `docs/AGEN
   [Phase G report](phase-reports/PHASE_G_COMPLETION.md).
 - IA local email read/prepare complete; aggregate I `blocked-external`. Next: IB live provider
   integration, with owner-selected provider and fresh credential/private-read authority. E/H/K
-  baselines complete; Phase C/D boundaries and external-effect stop gates remain. Source commit
-  stays local until fresh Git publication authority; no account credentials used.
+  baselines complete; Phase C/D boundaries and external-effect stop gates remain. IA implementation
+  `7905d92` published on 2026-10-05 after fresh Git authority; matching local/tracking/remote refs
+  verified. No email account credentials used. Receipt: [Phase I progress](phase-reports/PHASE_I_PROGRESS.md).
 - Live public Wikimedia smoke returned `authentication_required` from the search endpoint on this
   workstation. No credential or paid service was used; synthetic and contract gates cover the path.
