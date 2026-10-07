@@ -1,15 +1,17 @@
 # Local Garmin connector and batch reports
 
-Updated: 2026-10-05. Status: saved-session local read verified; Core/PWA acceptance pending.
+Updated: 2026-10-07. Status: local Desktop migration; Core/PWA acceptance pending.
 
 ## Organized local files
 
-The owner-added connector was found in the separate `C:\Users\poyan\Desktop\JARVIS`
-checkout, not this chat's `C:\Users\poyan\OneDrive\Desktop\JARVIS` checkout. Its complete
-folder now lives under the former checkout's ignored
-`runtime/integrations/garmin/python-garminconnect/`. The upstream Git history, existing
-environment, interactive menu, and private `your_data/` exports were preserved. No account
-identifier, credential, token, export, or upstream nested repository was added to JARVIS Git.
+On 2026-10-05 the owner-added connector was organized inside the separate Desktop checkout.
+On 2026-10-07 it was copied into `C:\Users\poyan\Desktop\JARVIS Desktop` under ignored
+`runtime/integrations/garmin/python-garminconnect/`. The upstream Git history, original
+environment, interactive menu, and private `your_data/` exports were preserved. Its active
+environment was rebuilt with the exact existing package versions to repair moved paths; originals
+remain under ignored `runtime/migration-20261007/`. See [local migration](LOCAL_DESKTOP_MIGRATION.md).
+No account identifier, credential, token, export, or upstream nested repository was added to
+JARVIS Git.
 
 The imported upstream source identifies itself as `garminconnect` 0.3.17. Its existing environment
 uses Python 3.14.7; the environment still imports the moved source successfully. This remains
@@ -19,7 +21,8 @@ dependency or bridge version was changed.
 The interactive menu still runs from the moved upstream folder:
 
 ```powershell
-rtk proxy .\.venv\Scripts\python.exe .\demo.py
+Set-Location -LiteralPath 'C:\Users\poyan\Desktop\JARVIS Desktop\runtime\integrations\garmin\python-garminconnect'
+.\.venv\Scripts\python.exe .\demo.py
 ```
 
 This menu includes mutations. The JARVIS batch reporter executes its own fixed read allowlist;
@@ -28,21 +31,23 @@ it does not automate the menu. Upstream reference:
 
 ## One-command report
 
-Run from this chat's OneDrive JARVIS checkout:
+Run from the active local Desktop checkout. The owner authorized native tools for this migration
+because Windows Application Control blocks RTK; no Windows security policy was changed.
 
 ```powershell
-rtk uv run python scripts/garmin_report.py
+Set-Location -LiteralPath 'C:\Users\poyan\Desktop\JARVIS Desktop'
+uv run python scripts/garmin_report.py
 ```
 
 Optional historical date or explicit connector location:
 
 ```powershell
-rtk uv run python scripts/garmin_report.py --date 2026-10-04 --connector "C:\Users\poyan\Desktop\JARVIS\runtime\integrations\garmin\python-garminconnect"
+uv run python scripts/garmin_report.py --date 2026-10-04 --connector "C:\Users\poyan\Desktop\JARVIS Desktop\runtime\integrations\garmin\python-garminconnect"
 ```
 
-The launcher first looks under the current checkout's `runtime/integrations/garmin/`, then under
-the owner's separate Desktop JARVIS checkout. `--connector` overrides discovery. It launches the
-connector's existing Python in a bounded child process, with a 180-second timeout and no stdin.
+The launcher looks only under the current checkout's `runtime/integrations/garmin/`.
+`--connector` overrides discovery. It launches the connector's existing Python in a bounded
+child process, with a 180-second timeout and no stdin.
 Credentials are never prompted for or passed; unrelated environment secrets are excluded from
 the child process. The saved session uses `GARMINTOKENS` when set,
 otherwise `~/.garminconnect`; `--token-store` can specify an existing local token directory.
@@ -65,7 +70,7 @@ values: keep them local, never commit them or paste them into a cloud chat. No h
 automatically sent to JARVIS chat, a model provider, or the phone API. Report files use the existing
 local runtime boundary; disconnecting Garmin does not remove previously generated local reports.
 
-## Evidence and next gate
+## Historical 2026-10-05 evidence and next gate
 
 - Connector move and environment import passed; demo remains unchanged.
 - Owner-requested saved-session reads produced reports with mapped values in 11/14 categories.

@@ -409,6 +409,10 @@ install Python packages globally.
 
 ## Quick start
 
+This workstation's operational checkout is `C:\Users\poyan\Desktop\JARVIS Desktop`.
+See [local Desktop migration](docs/LOCAL_DESKTOP_MIGRATION.md) for the launcher, private
+preservation evidence, verification, Codex reopening, and source-removal blockers.
+
 ```powershell
 git clone https://github.com/DanCreates1/JARVIS.git
 Set-Location JARVIS

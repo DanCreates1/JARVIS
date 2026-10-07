@@ -37,13 +37,7 @@ def main() -> int:
             )
             return 1
         return 0
-    candidates = [
-        REPO / "runtime/integrations/garmin/python-garminconnect",
-        Path.home() / "Desktop/JARVIS/runtime/integrations/garmin/python-garminconnect",
-    ]
-    connector = args.connector or next(
-        (path for path in candidates if path.is_dir()), candidates[0]
-    )
+    connector = args.connector or REPO / "runtime/integrations/garmin/python-garminconnect"
     connector = connector.expanduser().resolve()
     python = connector / ".venv/Scripts/python.exe"
     if not python.is_file() or not (connector / "garminconnect/__init__.py").is_file():

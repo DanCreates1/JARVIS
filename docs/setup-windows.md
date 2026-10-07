@@ -30,6 +30,16 @@ ignored runtime storage, and the locked environment was rebuilt from that interp
 
 ## 1. Clone the repository
 
+This workstation's active local checkout is `C:\Users\poyan\Desktop\JARVIS Desktop`.
+Open that folder in Codex and use it for current setup and launch commands. Migration evidence,
+preserved environments, and separate-checkout conflicts live under ignored
+`runtime/migration-20261007/`; see [local migration](LOCAL_DESKTOP_MIGRATION.md) for verification
+and the source-removal blocker. Historical phase reports retain their original paths.
+
+```powershell
+Set-Location -LiteralPath 'C:\Users\poyan\Desktop\JARVIS Desktop'
+```
+
 ```powershell
 git clone https://github.com/DanCreates1/JARVIS.git
 Set-Location JARVIS

@@ -32,7 +32,7 @@ Inspection on 2026-08-19 shows Phase 0 has already been executed:
 Run from a normal user PowerShell session:
 
 ```powershell
-Set-Location -LiteralPath 'C:\Users\poyan\OneDrive\Desktop\JARVIS'
+Set-Location -LiteralPath 'C:\Users\poyan\Desktop\JARVIS Desktop'
 git status -sb
 git remote -v
 git remote get-url origin
