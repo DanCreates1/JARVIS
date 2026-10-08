@@ -1,7 +1,7 @@
 # JARVIS phone web app and Garmin
 
-Status: M3A local compatibility/preparation; protected session and iPhone acceptance pending.
-Updated: 2026-10-07
+Status: M3A complete; M3B local evidence command prepared, protected session and iPhone acceptance pending.
+Updated: 2026-10-08
 
 Local connector organization and one-command saved-session reports were verified on 2026-10-05;
 see [Garmin connector and reports](GARMIN_CONNECTOR.md). That standalone report does not populate
@@ -59,6 +59,36 @@ The result reports only import success; live validity remains unverified. Legacy
 login/MFA requires separate fresh authority, never an automatic fallback. The source remains
 unchanged; deletion or revocation of it requires separate authority. Progress and pending gates:
 [MVP 3 report](phase-reports/PWA_MVP3_PROGRESS.md).
+
+## Sanitized Core acceptance — MVP 3 / M3B
+
+After a successful authorized import, keep other Core/standalone readers stopped and obtain
+fresh authority for one Core summary read. Saved-session authentication may contact Garmin,
+read profile/settings and renew tokens in Credential Locker before the six health reads. This
+is not fresh credential login/MFA authority. Never fall back to interactive login automatically.
+
+Prepared command, **do not execute with `--read` before owner approval**:
+
+```powershell
+rtk uv --cache-dir runtime/uv-cache-mvp3 run python scripts/garmin_core_check.py --read
+```
+
+Without `--read`, the utility refuses before creating the Core service. The flag is an operator
+acknowledgment, not a permission grant. The command calls the existing Core service once, retaining
+its isolated Python 3.12 child, 90-second timeout, normalized schema, and output bounds. It prints
+only pass/unavailable, schema/freshness/activity-bound booleans and category-availability flags.
+It never prints health values, dates, activity names, account identifiers, or provider errors,
+writes no report, and performs no import, enrollment, deletion or login/MFA fallback. A pass needs
+today's validated summary, a timezone-aware fetch time between now and 300 seconds ago, and at
+least one available category. Unavailable sections remain explicit; empty activities are not
+proof of an endpoint failure. This proves the Core service path, not authenticated phone access.
+
+Python diagnostics go to the null device during the single utility call and logging suppression
+is restored afterward. Subprocess output remains separately controlled by the Core service;
+Python stream redirection does not capture subprocess output
+([Python contextlib](https://docs.python.org/3.11/library/contextlib.html#contextlib.redirect_stdout)).
+Afterward keep Core as sole session owner. Do not run the standalone reporter against its original
+token copy; independently renewed copies can diverge. Source deletion remains separately gated.
 
 ## Trusted laptop setup
 

@@ -1,6 +1,6 @@
 # JARVIS Phase Overview
 
-Updated: 2026-10-07
+Updated: 2026-10-08
 
 ## Active product path
 
@@ -28,7 +28,7 @@ record.
 
 | Track | Status | Next gate |
 | --- | --- | --- |
-| Phone PWA | Physical-iPhone chat accepted; Garmin panel/API and standalone reports implemented; M3A session compatibility reviewed and offline import prepared | Fresh authority for protected session import/read, new health-read browser ticket, physical-iPhone acceptance |
+| Phone PWA | Physical-iPhone chat accepted; Garmin panel/API and standalone reports implemented; M3A import prepared and M3B flags-only Core check prepared | Exact local source and fresh protected import/read authority; separate M3C health-read browser ticket and physical-iPhone acceptance |
 | Native MVP | Expo Go checks passed; independent native build unverified and deferred under $0/no-Mac constraint | No active native gate |
 | Mobile MVP 2 | Deferred | No active native gate |
 | Mobile MVP 3 | Deferred | No active native gate |

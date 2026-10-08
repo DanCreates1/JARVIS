@@ -2,17 +2,17 @@
 
 - Status: `blocked-external` — M3A local preparation complete; M3B needs fresh authority
 - Started: 2026-10-07
-- Updated: 2026-10-07
+- Updated: 2026-10-08
 - Active subphase: M3B — protected-session setup and sanitized Core read, awaiting owner authority
 - Recommended Codex model/reasoning: `gpt-6-astra`, `xhigh`
-- Session five-hour stop: 2026-10-08T02:45:00-04:00
+- Current session stop: 2026-10-08T21:15:00-04:00 (conservative five-hour ceiling)
 
 ## Objective
 
 Connect the owner's existing Garmin session to the protected Core bridge, then prove scoped
-read-only PWA refresh and recovery on the physical iPhone. This session begins with static
-compatibility review; no authority to import tokens, log in/MFA, create enrollment tickets,
-revoke devices, or change the private HTTPS route has been granted.
+read-only PWA refresh and recovery on the physical iPhone. M3A static compatibility review is
+complete. M3B resumes with local execution preparation; no fresh source/import/read authority,
+login/MFA, enrollment, revocation or private HTTPS route change has been granted.
 
 ## Baseline
 
@@ -37,6 +37,7 @@ revoke devices, or change the private HTTPS route has been granted.
 - [x] M3A: prevent late Garmin responses from rendering after logout or re-enrollment.
 - [x] M3A: focused and applicable repository quality/security gates pass.
 - [ ] M3B: fresh owner authority for selected token import or interactive login/MFA.
+- [x] M3B: prepare a flags-only Core evidence command; live execution remains gated.
 - [ ] M3B: sanitized Core summary from protected session; no private values in evidence.
 - [ ] M3C: fresh owner authority for one-use browser ticket adding `client.health.read`, risk 1.
 - [ ] M3C: physical-iPhone Wi-Fi/cellular, refresh, stale/error, reconnect/restart, logout/revocation.
@@ -74,6 +75,54 @@ Static sources:
 
 Pending fresh owner authority. Prefer explicit offline import after synthetic validation.
 Expired/revoked tokens require separate authority for Garmin login/MFA. No automatic fallback.
+
+2026-10-08 local preparation:
+
+- Resumed Desktop `main` at `33943e8589d96334d5afbdaeff829877004d12ad`; M3A gates and CI
+  passed per owner handoff. Two pre-existing native package edits remain unchanged and excluded.
+- Reviewed bridge/service execution with an independent read-only review. No source token,
+  Locker entry, account identifier or health value was opened. Exact absolute JSON source and
+  fresh import/read authority were requested; no dependent operation has run.
+- Added `scripts/garmin_core_check.py`: explicit `--read`, exactly one Core service call,
+  no private values or exceptions in output, no report files, no login/import/enrollment fallback.
+  Emits only schema/freshness/activity-bound booleans and category availability. Pass requires
+  today, a timezone-aware nonfuture fetch no older than 300 seconds, and an available category.
+  Partial/empty sections cannot be represented as complete health coverage.
+- Saved-session authentication may read Garmin profile/settings and rotate protected tokens;
+  requested authority explicitly includes those operations. Six health methods remain the fixed
+  allowlist. No standalone 14-category report or health-scoped browser request is used in M3B.
+- Core/standalone readers must be stopped before import/check. No concurrent-import guarantee is
+  added; Core remains sole session owner afterward. Login/MFA and M3C enrollment stay gated.
+
+Local verification for this preparation:
+
+| Check | Evidence |
+| --- | --- |
+| Core / sidecar lock and locked sync | Passed; 119/69 and 20/16 resolved/installed packages checked |
+| New flags-only helper | 25 synthetic cases passed; no real service, sockets or credentials |
+| Import / bridge / service / API scope | 104 synthetic cases passed |
+| Ruff format / lint | Passed; 408 formatted files |
+| Mypy | Passed; 164 source files |
+| Core / sidecar dependency audit | No known vulnerabilities |
+| Gitleaks history | Passed; 87 commits, no leaks |
+| Full repository gate | 1,439 passed / 3 existing optional skips; 85.59% coverage; 102.89s |
+
+Node.js 24.20.0 remains installed; real PWA lifecycle tests ran in the full gate. The existing
+Starlette/httpx deprecation warning remains. Initial helper harness socket guards also blocked
+Windows asyncio's local socketpair; synthetic immediate-coroutine execution removes that OS
+dependency without allowing real service/network calls. The first sandbox Core focused run stalled
+on Windows asyncio and was stopped; all 104 unchanged focused cases passed with normal OS access.
+Sidecar interpreter checks and public PyPI audits likewise required sandbox escalation. No Windows
+security policy or gate was weakened. No live Garmin operation has run; M3B remains blocked.
+
+Full verification command (strict flags and unchanged 85% coverage threshold):
+
+```powershell
+rtk uv --cache-dir runtime/uv-cache-mvp3 run python -m pytest -q --basetemp runtime/pytest-m3b-full-20261008-a -o cache_dir=runtime/pytest-cache-m3b-full -o 'addopts=--strict-config --strict-markers --cov=jarvis --cov-report=term:skip-covered --cov-fail-under=85'
+```
+
+Safe preparation source is covered by standing commit/push authority. Native package edits remain
+excluded. A new preparation commit's CI is a separate remote gate, never inferred from local tests.
 
 ### M3C — health-scoped phone acceptance
 

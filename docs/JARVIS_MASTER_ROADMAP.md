@@ -1,7 +1,7 @@
 # JARVIS Master Roadmap
 
 Status: active, mobile-MVP-first  
-Updated: 2026-10-07
+Updated: 2026-10-08
 Repository: `DanCreates1/JARVIS`, branch `main`
 
 ## Product target
@@ -83,8 +83,9 @@ The owner's standalone Garmin connector is organized locally and its saved-sessi
 passed a live read on 2026-10-05. See [connector and report evidence](GARMIN_CONNECTOR.md).
 This does not establish a protected Core session or physical-iPhone Garmin acceptance.
 M3A now verifies saved-session format compatibility and prepares an offline protected import,
-subprocess isolation, rotation/error recovery, and logout-safe PWA rendering. Live gates remain
-unexecuted; see [PWA MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
+subprocess isolation, rotation/error recovery, and logout-safe PWA rendering. M3B adds a gated,
+flags-only Core acceptance utility; exact local source and fresh import/read authority remain
+pending. Live gates remain unexecuted; see [PWA MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
 
 ### MVP 1 — Design and connection
 
