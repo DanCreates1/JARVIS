@@ -1,15 +1,18 @@
 # Local Desktop migration — 2026-10-07
 
-Status: **local checkout operational; full migration blocked**. Source removal is withheld because
-42 original pytest/cache directories cannot be read. Native mobile verification also has an
-unresolved upstream dependency-audit gate. No next Garmin integration phase was started.
+Status: **data migration verified; empty old source folder removal pending**. All 42 blocked
+pytest/cache trees were repaired, copied, and hash-verified. Complete original source and Git
+history remain preserved privately in the destination. All old source contents were removed;
+only its empty root remains locked by another process. Native mobile release verification has
+an independent upstream dependency-audit blocker. No next Garmin integration phase was started.
 
 ## Active paths and commands
 
 - Operational repository: `C:\Users\poyan\Desktop\JARVIS Desktop`
 - Connector: `runtime/integrations/garmin/python-garminconnect/` beneath that repository
 - Private reports: `runtime/garmin/reports/`
-- Private migration evidence and preserved environments: `runtime/migration-20261007/`
+- Initial private migration evidence and preserved environments: `runtime/migration-20261007/`
+- Final preservation archive and cleanup evidence: `runtime/migration-cleanup-20261007/`
 - Desktop shortcut: `C:\Users\poyan\Desktop\JARVIS Desktop.lnk`
 
 The shortcut opens a local command terminal through `scripts/open-local.cmd`. It does not start
@@ -37,7 +40,7 @@ untracked cleanup script. The destination did not exist and its local Desktop pa
 reparse point. Hidden files, `.git`, environments, ignored runtime data, reports, and package
 caches were included in copies. Existing destination files were not overwritten by the merge.
 
-| Copy | Verification |
+| Initial copy | Verification |
 | --- | --- |
 | Canonical | 98,834 accessible files/links; 7,260,757,351 file bytes; zero SHA-256 mismatches |
 | Separate checkout archive | 90,271 files; 5,749,431,243 bytes; zero mismatches; no unreadable directories |
@@ -45,11 +48,47 @@ caches were included in copies. Existing destination files were not overwritten 
 
 Canonical counts include 15 historical test junctions, recreated with targets inside the new
 local folder. Their original targets and all file hashes remain in private migration evidence.
-42 inaccessible directories contain old pytest/cache state; their contents could not be
-enumerated or verified. Robocopy recorded canonical exit `11`, separate archive exit `1`,
-connector exit `1`, and additive runtime merge exit `3`. Source removal was never attempted.
-Ownership/access repair for `.pytest_cache` was also denied; no successful source ACL change
-occurred. Both original checkouts remain intact.
+The initial copy could not enumerate 42 pytest/cache directories. Initial Robocopy recorded
+canonical exit `11`, separate archive exit `1`, connector exit `1`, and additive runtime merge
+exit `3`. Initial ownership repair failed under the ordinary Windows token; source was retained.
+
+Final cleanup used an owner-approved Windows UAC helper scoped to those exact 42 trees. It
+visited 13,902 objects and changed 6,089 ACL objects, preserving other access entries. Zero
+reparse points were encountered. All source directories then became readable. See Microsoft
+[takeown](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/takeown)
+and [icacls](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/icacls).
+Private ACL snapshots, repair receipt, logs, and scripts remain under
+`runtime/migration-cleanup-20261007/`.
+
+The recovered trees contain **6,527 files / 2,457,896,948 bytes**. Their contents were merged additively into
+matching destination paths; existing destination files were retained. All 6,527 recovered files
+match their destination SHA-256 hashes; zero destination conflicts and zero unpreserved files
+remain. Every recovered file is also verified in the complete final source archive.
+
+A fresh complete source archive lives at
+`runtime/migration-cleanup-20261007/canonical-source-final/`, including hidden files, original
+environments, runtime data, and original `.git`. Final Robocopy exit was `1`. All 15 historical
+test junctions point inside this archive. Two expired internal Codex refs from the initial
+snapshot were recovered from the earlier verified Git copy and independently hash-verified.
+
+| Final preservation gate | Result |
+| --- | --- |
+| Source at final verification | 105,348 files / 15 junctions |
+| Complete archive, including historical refs | 105,350 files / 9,718,659,476 bytes |
+| SHA-256 mismatches / unreadable directories / missing directories | 0 / 0 / 0 |
+| Changed original file bytes / unpreserved original entries | 0 / 0 |
+| Source inventory changed during verification | No |
+
+After preservation, Core quality/security gates, local operation, clean source Git, and source
+writer checks passed, all contents of the exact obsolete canonical source were removed. All
+15 old test junctions were unlinked without traversing targets. The root
+`C:\Users\poyan\OneDrive\Desktop\JARVIS` remains present with **zero children**. Windows
+refuses its nonrecursive removal because it is being used by another process. The lock owner
+remains unidentified. A read-only diagnostic using signed Microsoft Handle was canceled at
+Windows UAC; elevation was not retried, and no handle was forcibly closed. The removal receipt
+records `SourceContentsRemoved: true`
+and `SourceRemoved: false`; it does not claim full folder removal. The separate
+`C:\Users\poyan\Desktop\JARVIS` checkout remains intact.
 
 The full separate checkout, including its independent `.git`, lives under ignored
 `runtime/migration-20261007/separate-checkout/`. Its 81,582 unique files and 2,126 differing files
@@ -94,7 +133,7 @@ artifacts remain ignored.
 | Mypy | Pass; 164 source files |
 | Full pytest | 1,317 passed, 3 skipped, 1 warning; 85.45% coverage |
 | Core / bridge / connector / voice dependency audits | Pass; no known vulnerabilities |
-| History Gitleaks | Pass; 83 commits scanned before migration commit |
+| History Gitleaks | Pass; 84 commits scanned before cleanup publication |
 | Git refs / integrity / whitespace | Pass |
 | Local Core doctor | Pass with session-only `JARVIS_CLOUD_POLICY=local_only`; existing storage used |
 | Desktop command launcher | Pass |
@@ -111,23 +150,62 @@ candidate changes remain **local and uncommitted** in `mobile/package.json` and
 storage. Their publication is withheld pending a passing audit. Full `npm run verify` stops at
 that production audit, before its export steps. Core/PWA Garmin acceptance was not advanced.
 
-Only reviewed Core migration source, local launcher, and documentation are eligible for the
-standing-authorized commit/push after their required Core gates. The published report explicitly
-retains the unresolved source-access and native mobile audit blockers.
+Initial reviewed migration source and launcher were published as `6e8045d`. Cleanup documentation
+is eligible for publication under the same standing authorization after all nine required Core
+gates passed. Fresh verification again passed 1,317 tests, 3 skips, and 85.45% coverage. Local doctor,
+Core/connector Git integrity, connector imports, and Desktop shortcut checks passed. Fresh
+evidence remains under `runtime/migration-cleanup-20261007/core-gates-0249/` and its parent.
+
+Fresh native production audit still reports 15 moderate, 45 high, and zero critical findings.
+Both upstream advisories still have no patched release. This blocks native release verification
+and publication of the mobile dependency candidates. Those exact candidates and backups remain
+in the migrated destination. This independent native product blocker does not prevent data
+migration cleanup, whose preservation and Core-operation gates passed. The remaining migration
+blocker is the empty source-root lock. Cleanup does not advance native or PWA Garmin acceptance.
 
 ## Codex reopening and remaining work
 
-Available Codex tools cannot change the current project's root. In Codex, choose the local-folder
-project picker from the Projects sidebar, paste `C:\Users\poyan\Desktop\JARVIS Desktop`, confirm
-that exact folder, then start a local chat in that project. This existing chat remains associated
-with the original project until the owner reopens
-the new folder. The Desktop shortcut opens the correct terminal independently of Codex.
+This chat remains associated with the former source project. Available Codex tools cannot
+change its root. The Desktop shortcut opens the correct destination terminal independently of
+Codex; reopen the new folder through the Projects sidebar before resuming repository work.
 
-Full closure requires authorized access to the 42 original pytest/cache directories, copying and
-hash-verifying their contents, resolving the native mobile audit gate, and rechecking source
-changes/processes before deleting the exact canonical source folder. Do not use the archived
-automatic cleanup script or delete unrelated OneDrive files. No source removal is authorized by
-this report without the original verified-copy and operation prerequisites being satisfied.
+Data preservation and removal of old source contents are complete. Final folder cleanup requires
+releasing the lock on the empty old root. Reopen the destination and restart Codex as follows:
+
+1. In Codex's Projects sidebar, open the local-folder project picker, paste
+   `C:\Users\poyan\Desktop\JARVIS Desktop`, and confirm that exact folder.
+2. Save current work and close chats, terminals, and editors still associated with the old
+   source directory. If the folder remains locked, exit Codex completely and restart it, then
+   open a local chat in the destination project.
+3. From a new PowerShell window outside the old source, run the command below. It verifies the
+   exact path and emptiness, then removes only that empty folder without recursion. Cloud-sync
+   metadata is allowed; junctions and symbolic links are refused.
+
+```powershell
+Set-Location -LiteralPath 'C:\Users\poyan\Desktop\JARVIS Desktop'
+$migrationOldSource = 'C:\Users\poyan\OneDrive\Desktop\JARVIS'
+if (Test-Path -LiteralPath $migrationOldSource) {
+    $migrationResolved = (Resolve-Path -LiteralPath $migrationOldSource -ErrorAction Stop).ProviderPath
+    if ($migrationResolved -ne $migrationOldSource) { throw 'Unexpected source path.' }
+    $migrationItem = Get-Item -LiteralPath $migrationOldSource -Force -ErrorAction Stop
+    if (-not $migrationItem.PSIsContainer -or $migrationItem.LinkType -or
+        $migrationItem.LinkTarget -or $migrationItem.Target) {
+        throw 'Source root redirects elsewhere or is not a directory.'
+    }
+    if (@(Get-ChildItem -LiteralPath $migrationOldSource -Force -ErrorAction Stop).Count -ne 0) {
+        throw 'Source root is no longer empty; stop and preserve new contents.'
+    }
+    Remove-Item -LiteralPath $migrationOldSource -Force -ErrorAction Stop
+}
+```
+
+If Windows still reports that another process uses the folder, retain the empty root and
+identify its owner before retrying. Do not use recursive deletion or forcibly close handles.
+Once the folder is absent, update the private removal receipt and this report; until then,
+complete folder removal remains unverified. The archived automatic deletion script was never
+used. Original configuration, independent checkout, Credential Locker entries, home Garmin
+tokens, and private exports remain preserved. Native audit remediation is separate maintenance;
+no next Garmin integration phase is authorized or started by this cleanup.
 
 Estimated active PWA app completion: **80%**, unchanged. Basis: accepted phone chat/connection,
 implemented Garmin panel and standalone reads; protected Core-session, physical-phone Garmin,
