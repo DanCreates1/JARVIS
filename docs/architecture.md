@@ -377,3 +377,15 @@ skip Phase C research and automatic memory capture, even after restart/disable/f
 are not persisted by email adapter; private chat replies retain existing lifecycle. No second
 store, orchestrator, approval owner, scheduler or model-facing email tool. See [Email](EMAIL.md).
 IB live provider reads and any external writes remain separate fresh-authority gates.
+
+## PWA Garmin boundary
+
+`GarminReader`/`GarminSummaryService` expose one normalized read-only health view through the
+existing authenticated `client.health.read` API. Python 3.12 sidecar dependencies stay separate
+from Python 3.11 Core. The bridge uses chunked Windows Credential Locker and an explicit offline
+saved-session importer, never an upstream file-store path. Core launches `python -I` with a
+minimal system environment; timeout/cancellation reaps the child. Cache is memory-only for five
+minutes, with one refresh attempt per minute. Renewed tokens survive later read failures; rate
+limits stop category reads. Activity views discard free text. PWA health results are bound to
+session/request generation, cleared on logout/expiry/new connection, and labeled stale when old
+or a refresh fails. Setup and authority gates: [PWA Garmin](PWA_GARMIN.md).

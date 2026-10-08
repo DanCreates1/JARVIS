@@ -1,6 +1,6 @@
 # JARVIS Phase Overview
 
-Updated: 2026-10-05
+Updated: 2026-10-07
 
 ## Active product path
 
@@ -28,7 +28,7 @@ record.
 
 | Track | Status | Next gate |
 | --- | --- | --- |
-| Phone PWA | Physical-iPhone JARVIS chat accepted; Garmin panel/scoped API implemented locally; standalone saved-session batch report verified | Protected Core Garmin session integration, new health-read browser ticket, physical-iPhone acceptance |
+| Phone PWA | Physical-iPhone chat accepted; Garmin panel/API and standalone reports implemented; M3A session compatibility reviewed and offline import prepared | Fresh authority for protected session import/read, new health-read browser ticket, physical-iPhone acceptance |
 | Native MVP | Expo Go checks passed; independent native build unverified and deferred under $0/no-Mac constraint | No active native gate |
 | Mobile MVP 2 | Deferred | No active native gate |
 | Mobile MVP 3 | Deferred | No active native gate |
@@ -46,6 +46,7 @@ record.
 ## Execution rules
 
 - Use the PWA Garmin acceptance list for current phone work; native mobile milestones are deferred.
+- Current MVP 3 evidence and M3A/M3B/M3C gates: [PWA MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
 - Preserve Core as sole authority, memory, routing, permission, and audit system.
 - Keep production Core loopback-bound behind approved private-network HTTPS.
 - Require fresh owner authority for enrollment tickets, live Garmin credentials/MFA, signing,

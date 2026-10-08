@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, tzinfo
 from io import StringIO
 from pathlib import Path
 
@@ -11,6 +11,7 @@ from rich.console import Console
 from typer.testing import CliRunner
 
 import jarvis.cli as cli
+import jarvis.proactivity.runner_store as runner_store
 
 
 def test_proactivity_cli_preview_activate_disable_export_delete(
@@ -245,6 +246,14 @@ def test_proactivity_cli_foreground_tick_and_local_inbox(
     events = runner.invoke(cli.app, ["proactive", "runner-events", candidate.group(0)])
     assert events.exit_code == 0
     assert "notification_ready" in output.getvalue()
+
+    class LaterStoreClock(datetime):
+        @classmethod
+        def now(cls, tz: tzinfo | None = None) -> datetime:
+            return datetime.now(tz) + timedelta(seconds=1)
+
+    # A second clock sample must not shorten the CLI's exact one-minute snooze.
+    monkeypatch.setattr(runner_store, "datetime", LaterStoreClock)
     snoozed = runner.invoke(
         cli.app,
         [
@@ -257,7 +266,7 @@ def test_proactivity_cli_foreground_tick_and_local_inbox(
             "1",
         ],
     )
-    assert snoozed.exit_code == 0
+    assert snoozed.exit_code == 0, output.getvalue().splitlines()[-1]
     dismissed = runner.invoke(
         cli.app,
         [

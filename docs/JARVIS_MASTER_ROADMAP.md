@@ -1,7 +1,7 @@
 # JARVIS Master Roadmap
 
 Status: active, mobile-MVP-first  
-Updated: 2026-10-05
+Updated: 2026-10-07
 Repository: `DanCreates1/JARVIS`, branch `main`
 
 ## Product target
@@ -82,6 +82,9 @@ as historical plans, not prerequisites for the PWA goal.
 The owner's standalone Garmin connector is organized locally and its saved-session batch report
 passed a live read on 2026-10-05. See [connector and report evidence](GARMIN_CONNECTOR.md).
 This does not establish a protected Core session or physical-iPhone Garmin acceptance.
+M3A now verifies saved-session format compatibility and prepares an offline protected import,
+subprocess isolation, rotation/error recovery, and logout-safe PWA rendering. Live gates remain
+unexecuted; see [PWA MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
 
 ### MVP 1 — Design and connection
 
@@ -117,8 +120,9 @@ Current upstream facts verified 2026-09-28:
   releases added further token-path, symlink, atomic-write, authentication, URL, logging, and
   request hardening. MVP must use a reviewed current version and a Core-owned protected
   local-secret facility, not expose or directly trust the library's default token file. Current
-  inspection found the Windows Credential Manager/DPAPI policy but no Garmin-ready implementation;
-  that facility must be identified and verified before any token is accepted.
+  initial inspection found the Windows Credential Manager/DPAPI policy. The current isolated
+  bridge implements chunked Windows Credential Locker storage, with synthetic import/rollback
+  checks. No real protected session acceptance has been performed.
 
 Garmin data is private health data. Credentials, MFA values, tokens, raw responses, locations, and
 health data never enter logs, Git, mobile storage, audit payloads, or model-provider requests.
@@ -157,7 +161,8 @@ four MVP milestones pass and the owner explicitly reprioritizes them.
 
 ## Next milestone
 
-**MVP 3 — PWA Garmin integration and acceptance.** Connect the verified local Garmin session to
-the protected Core bridge, then complete scoped phone refresh and recovery acceptance. Fresh
+**MVP 3 / M3B — protected-session acceptance.** M3A static compatibility review and offline import
+preparation are implemented. Obtain fresh authority for the selected source import and sanitized
+Core summary; then M3C requires separate enrollment and physical-phone refresh/recovery authority. Fresh
 owner authority remains required for new enrollment tickets, login/MFA or credential changes,
 signing, paid services, and deployment. Native M2C remains deferred.

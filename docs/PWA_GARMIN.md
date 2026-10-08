@@ -1,7 +1,7 @@
 # JARVIS phone web app and Garmin
 
-Status: local read-only implementation; live Garmin account and iPhone acceptance pending.
-Updated: 2026-09-30
+Status: M3A local compatibility/preparation; protected session and iPhone acceptance pending.
+Updated: 2026-10-07
 
 Local connector organization and one-command saved-session reports were verified on 2026-10-05;
 see [Garmin connector and reports](GARMIN_CONNECTOR.md). That standalone report does not populate
@@ -27,6 +27,39 @@ no project spending. No native-build result is claimed.
   explicitly uses Windows Credential Locker, splitting the token across small entries to stay
   within its size limit. It never uses the library's file token store.
 
+## Saved-session compatibility — MVP 3 / M3A
+
+Static review found the standalone 0.3.17 and pinned bridge 0.3.16 serialize the same three fields:
+`di_token`, `di_refresh_token`, `di_client_id`. Their session loading/refresh code is compatible;
+no bridge dependency upgrade is required. Their installed/locked `curl_cffi` 0.16.3, `requests`
+2.34.2 and `ua-generator` 2.1.6 also match. This proves format compatibility, not validity of the
+owner's current session. No real token file or Credential Locker entry was opened for review.
+Evidence: [pinned 0.3.16 client](https://github.com/cyberjunky/python-garminconnect/blob/c3c1c0d66579696e3843cba20f985c66069140b9/garminconnect/client.py),
+[0.3.17 client](https://github.com/cyberjunky/python-garminconnect/blob/218e72ca5459e014435fc2d94fd18bd601fa0c14/garminconnect/client.py).
+
+The prepared `import-session` command performs an offline copy from one explicit absolute local
+JSON file to Windows Credential Locker. It accepts only the complete three-field format, rejects
+duplicate/unknown fields, control/whitespace/non-ASCII token characters, files over 65,536 bytes,
+network/device/alternate-stream paths, and symlink/junction/reparse ancestry. It reads no implicit
+`GARMINTOKENS` or default directory, imports no Garmin library, makes no network request, and
+never writes the source file. Existing protected sessions are refused. Stop Core and the standalone
+connector before authorized import; concurrent import/refresh is unsupported. Do not run two
+independent copies of the saved session afterward: upstream refresh can rotate the token, and
+Garmin's invalidation behavior has not been established.
+
+**Do not execute yet. Fresh owner authority is required for the actual import and selected source.**
+Then run in a trusted local terminal, replacing the placeholder with the selected existing file:
+
+```powershell
+rtk proxy garmin_sync\.venv\Scripts\python.exe -I src\jarvis\garmin\bridge.py import-session 'C:\ABSOLUTE\LOCAL\garmin_tokens.json'
+```
+
+The result reports only import success; live validity remains unverified. Legacy
+`oauth1_token.json`/`oauth2_token.json` and incomplete JWT_WEB-only sessions are rejected. A new
+login/MFA requires separate fresh authority, never an automatic fallback. The source remains
+unchanged; deletion or revocation of it requires separate authority. Progress and pending gates:
+[MVP 3 report](phase-reports/PWA_MVP3_PROGRESS.md).
+
 ## Trusted laptop setup
 
 Run from repository root, after approving one live Garmin Connect login for that session:
@@ -34,14 +67,22 @@ Run from repository root, after approving one live Garmin Connect login for that
 ```powershell
 rtk uv python install 3.12
 rtk uv sync --project garmin_sync --locked
-rtk proxy garmin_sync\.venv\Scripts\python.exe src\jarvis\garmin\bridge.py login
+rtk proxy garmin_sync\.venv\Scripts\python.exe -I src\jarvis\garmin\bridge.py login
 ```
 
 Enter Garmin email, password, and MFA only in that local terminal. Do not put them in chat, an
 environment variable, Git, a screenshot, or the phone. The bridge uses unofficial Garmin Connect
 web services and may need repair if Garmin changes them. It exposes read methods only. `login`
-sends credentials and MFA to Garmin over HTTPS and stores only the resulting refresh token in
-Windows Credential Locker.
+sends credentials and MFA to Garmin over HTTPS and stores only the resulting access/refresh
+session and client ID in Windows Credential Locker. It removes ambient `GARMINTOKENS` before
+login. Upstream diagnostic logs are suppressed. Core launches the isolated interpreter with
+`-I` and a minimal operating-system environment, excluding file-store/Python overrides, proxies,
+and unrelated credentials. Renewed tokens are preserved even if later profile/category reads fail;
+category reads stop on rate limiting. Activity names and unknown activity free text are discarded.
+CLI authentication overrides `NETRC` with the null device; saved-session API sessions also set
+`trust_env=False` to prevent unrelated `.netrc` credentials replacing Bearer headers
+([Requests behavior](https://requests.readthedocs.io/en/latest/user/authentication/#netrc-authentication)).
+These controls do not turn the unofficial client's authentication internals into a stable API.
 
 Keep Core bound to loopback behind the existing private Tailscale HTTPS Serve route. Do not use
 the Phase 8D launcher Run/Stop against an unowned route. After a separately approved fresh
@@ -52,7 +93,7 @@ storage and service-worker cache never hold Garmin API responses.
 To remove the local Garmin token, run:
 
 ```powershell
-rtk proxy garmin_sync\.venv\Scripts\python.exe src\jarvis\garmin\bridge.py disconnect
+rtk proxy garmin_sync\.venv\Scripts\python.exe -I src\jarvis\garmin\bridge.py disconnect
 ```
 
 This clears the local token. If access may be exposed, revoke it separately in Garmin account
@@ -60,7 +101,8 @@ security settings. Revoke the JARVIS browser device in Core if the phone is lost
 
 ## Acceptance still needed
 
-- Owner-approved trusted-local Garmin login and sanitized read of only the listed categories.
+- Owner-approved offline saved-session import or trusted-local Garmin login, with authority for
+  bounded sanitized Core reads of only the listed categories.
 - Owner-approved new browser enrollment ticket with `client.health.read` and risk ceiling 1.
 - Physical iPhone PWA shows real bounded Garmin values and chat over private HTTPS; Wi-Fi and
   cellular, loss/reconnect, logout, revocation, and stale/error presentation pass.

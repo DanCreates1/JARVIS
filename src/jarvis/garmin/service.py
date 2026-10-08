@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+from contextlib import suppress
 from datetime import datetime
 from pathlib import Path
 from time import monotonic
@@ -68,23 +70,46 @@ class GarminSummaryService:
             try:
                 process = await asyncio.create_subprocess_exec(
                     str(self._python),
+                    "-I",
                     str(self._bridge),
                     "summary",
                     stdin=asyncio.subprocess.DEVNULL,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.DEVNULL,
+                    env={
+                        key: value
+                        for key, value in os.environ.items()
+                        if key.upper()
+                        in {
+                            "SYSTEMROOT",
+                            "WINDIR",
+                            "SYSTEMDRIVE",
+                            "TEMP",
+                            "TMP",
+                            "LOCALAPPDATA",
+                            "APPDATA",
+                            "PROGRAMDATA",
+                            "USERPROFILE",
+                            "HOMEDRIVE",
+                            "HOMEPATH",
+                        }
+                    },
                 )
                 try:
                     stdout, _ = await asyncio.wait_for(process.communicate(), timeout=90)
-                except TimeoutError:
-                    process.kill()
+                except (TimeoutError, asyncio.CancelledError) as exc:
+                    if process.returncode is None:
+                        with suppress(ProcessLookupError):
+                            process.kill()
                     await process.wait()
+                    if isinstance(exc, asyncio.CancelledError):
+                        raise
                     raise GarminUnavailableError("refresh_timeout") from None
                 if process.returncode != 0 or len(stdout) > 8_192:
                     raise GarminUnavailableError("refresh_failed")
                 summary = GarminSummary.model_validate(json.loads(stdout))
-            except (OSError, ValueError, ValidationError) as exc:
-                raise GarminUnavailableError("refresh_failed") from exc
+            except (OSError, ValueError, ValidationError):
+                raise GarminUnavailableError("refresh_failed") from None
             self._cached = summary
             self._cached_at = monotonic()
             return summary

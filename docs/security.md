@@ -375,3 +375,20 @@ follow-ups. Drafts, extraction candidates and model output confer no action or s
 Current C/D boundaries and Wikimedia `authentication_required` remain unchanged. IB requires
 fresh provider/credential/private-read authority; writes additionally need exact Phase 3 approval
 and provider authorization. Limits/recovery: [Email](EMAIL.md).
+
+## PWA Garmin trust boundary
+
+Garmin tokens, account data and raw responses stay on the trusted Windows host. Explicit offline
+session import validates bounded three-field JSON and local regular-file ancestry; it rejects
+duplicate/legacy/unknown fields, network/device/stream paths, symlinks and reparse points. No
+import discovery, network, source write or automatic credential fallback exists. Actual import,
+login/MFA, health reads, enrollment and revocation require fresh owner authority. Stop Core and
+standalone readers before import; concurrent independent credential copies are unsupported.
+Credential Locker publication and rollback use generation/chunk manifests; synthetic failures
+preserve the previous session. Child environment excludes unrelated credentials and token/Python
+overrides. Upstream diagnostic logs are suppressed. CLI null-device `NETRC` override and
+saved-session `trust_env=False` prevent ambient Requests `.netrc` credential reads/header overrides.
+Phone views omit location/IDs/free-text activity names. Late health responses cannot render after
+logout/reconnection; health API data
+never enters browser persistent storage or shell cache. Sanitized summaries do not enter model
+context or audit payloads. Live acceptance remains open: [MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).

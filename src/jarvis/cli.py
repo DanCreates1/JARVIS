@@ -698,12 +698,14 @@ def proactive_snooze(
 
     async def run() -> CandidateDispatch:
         async with SQLiteProactivityRunnerStore(settings.database_path) as store:
+            now = datetime.now(UTC)
             return await store.snooze(
                 host_id=local_memory_host_id(),
                 candidate_id=candidate_id,
                 expected_version=expected_version,
-                until=datetime.now(UTC) + timedelta(minutes=minutes),
+                until=now + timedelta(minutes=minutes),
                 max_snooze_seconds=settings.proactivity_max_snooze_seconds,
+                now=now,
             )
 
     try:

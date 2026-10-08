@@ -98,3 +98,10 @@ then prove the Core summary and phone refresh. The report is a standalone local 
 not completed Core integration. New enrollment tickets, credential changes, and any new login/MFA
 require fresh owner authority. Follow [PWA Garmin acceptance](PWA_GARMIN.md); native M2C remains
 deferred under the existing $0/no-Mac constraint.
+
+M3A review on 2026-10-07 found the 0.3.17 saved JSON session format compatible with the pinned
+0.3.16 Core bridge. A strict offline `import-session` path and synthetic security/lifecycle checks
+are now prepared; see [MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md) and
+[protected import instructions](PWA_GARMIN.md). No real token was read or imported, no live Garmin
+request was made, and no new phone ticket was issued. Do not run the standalone reporter and Core
+against independent session copies after import: refresh rotation can make copies diverge.
