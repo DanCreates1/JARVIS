@@ -43,12 +43,14 @@ duplicate/unknown fields, control/whitespace/non-ASCII token characters, files o
 network/device/alternate-stream paths, and symlink/junction/reparse ancestry. It reads no implicit
 `GARMINTOKENS` or default directory, imports no Garmin library, makes no network request, and
 never writes the source file. Existing protected sessions are refused. Stop Core and the standalone
-connector before authorized import; concurrent import/refresh is unsupported. Do not run two
+connector before import; concurrent import/refresh is unsupported. Do not run two
 independent copies of the saved session afterward: upstream refresh can rotate the token, and
 Garmin's invalidation behavior has not been established.
 
-**Do not execute yet. Fresh owner authority is required for the actual import and selected source.**
-Then run in a trusted local terminal, replacing the placeholder with the selected existing file:
+The requested M3B work covers saved-session import/read and normal token renewal under the
+[Codex confirmation policy](../AGENTS.md#codex-confirmation-policy). No separate permission prompt
+is needed. Select the exact existing local JSON source before import; ask for its path if missing.
+Run in a trusted local terminal, replacing the placeholder with that selected file:
 
 ```powershell
 rtk proxy garmin_sync\.venv\Scripts\python.exe -I src\jarvis\garmin\bridge.py import-session 'C:\ABSOLUTE\LOCAL\garmin_tokens.json'
@@ -62,19 +64,19 @@ unchanged; deletion or revocation of it requires separate authority. Progress an
 
 ## Sanitized Core acceptance — MVP 3 / M3B
 
-After a successful authorized import, keep other Core/standalone readers stopped and obtain
-fresh authority for one Core summary read. Saved-session authentication may contact Garmin,
+After a successful import, keep other Core/standalone readers stopped and run the bounded Core
+summary check as part of requested M3B work. Saved-session authentication may contact Garmin,
 read profile/settings and renew tokens in Credential Locker before the six health reads. This
 is not fresh credential login/MFA authority. Never fall back to interactive login automatically.
 
-Prepared command, **do not execute with `--read` before owner approval**:
+Explicit live-read command:
 
 ```powershell
 rtk uv --cache-dir runtime/uv-cache-mvp3 run python scripts/garmin_core_check.py --read
 ```
 
-Without `--read`, the utility refuses before creating the Core service. The flag is an operator
-acknowledgment, not a permission grant. The command calls the existing Core service once, retaining
+Without `--read`, the utility prints usage guidance before creating the Core service. The flag
+selects live execution; it is not an additional approval gate. The command calls Core once, retaining
 its isolated Python 3.12 child, 90-second timeout, normalized schema, and output bounds. It prints
 only pass/unavailable, schema/freshness/activity-bound booleans and category-availability flags.
 It never prints health values, dates, activity names, account identifiers, or provider errors,
@@ -131,8 +133,8 @@ security settings. Revoke the JARVIS browser device in Core if the phone is lost
 
 ## Acceptance still needed
 
-- Owner-approved offline saved-session import or trusted-local Garmin login, with authority for
-  bounded sanitized Core reads of only the listed categories.
+- Selected explicit local source, offline saved-session import, and bounded sanitized Core reads
+  of only the listed categories. New login/MFA needs confirmation if not already approved.
 - Owner-approved new browser enrollment ticket with `client.health.read` and risk ceiling 1.
 - Physical iPhone PWA shows real bounded Garmin values and chat over private HTTPS; Wi-Fi and
   cellular, loss/reconnect, logout, revocation, and stale/error presentation pass.

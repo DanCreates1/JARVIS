@@ -1,4 +1,4 @@
-"""Owner-authorized Core check; print evidence flags, never private health values."""
+"""Explicit live Core check; print evidence flags, never private health values."""
 
 from __future__ import annotations
 
@@ -45,11 +45,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--read",
         action="store_true",
-        help="Run one live read only after fresh owner authority; saved-session renewal may occur.",
+        help="Run one live Core read; saved-session renewal may occur.",
     )
     args = parser.parse_args(argv)
     if not args.read:
-        print("Fresh owner read authority required; use --read only after approval.")
+        print("Use --read to run one live Core check. Saved-session renewal may occur.")
         return 2
 
     previous_logging_level = logging.root.manager.disable

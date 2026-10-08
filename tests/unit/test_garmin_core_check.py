@@ -118,14 +118,14 @@ def _result(capsys: pytest.CaptureFixture[str]) -> dict[str, Any]:
 def test_core_check_requires_explicit_read_without_creating_service(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    factory = Mock(side_effect=AssertionError("Unauthorized service creation"))
+    factory = Mock(side_effect=AssertionError("Unexpected live service creation"))
     monkeypatch.setattr(CHECK, "GarminSummaryService", factory)
 
     assert CHECK.main([]) == 2
 
     factory.assert_not_called()
     output = capsys.readouterr()
-    assert "authority" in (output.out + output.err).lower()
+    assert "Use --read" in output.out
     assert _PRIVATE not in output.out + output.err
 
 

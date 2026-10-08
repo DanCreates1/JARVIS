@@ -84,8 +84,9 @@ passed a live read on 2026-10-05. See [connector and report evidence](GARMIN_CON
 This does not establish a protected Core session or physical-iPhone Garmin acceptance.
 M3A now verifies saved-session format compatibility and prepares an offline protected import,
 subprocess isolation, rotation/error recovery, and logout-safe PWA rendering. M3B adds a gated,
-flags-only Core acceptance utility; exact local source and fresh import/read authority remain
-pending. Live gates remain unexecuted; see [PWA MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
+flags-only Core acceptance utility; exact local source and live evidence remain pending. Requested
+saved-session import/read/renewal needs no repeated permission under the root Codex confirmation
+policy. Live gates remain unexecuted; see [PWA MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
 
 ### MVP 1 — Design and connection
 
@@ -127,7 +128,9 @@ Current upstream facts verified 2026-09-28:
 
 Garmin data is private health data. Credentials, MFA values, tokens, raw responses, locations, and
 health data never enter logs, Git, mobile storage, audit payloads, or model-provider requests.
-Live testing requires explicit owner authorization and interactive credential/MFA entry.
+Requested saved-session reads follow the root Codex confirmation policy without additional
+permission prompts. New credential login/MFA needs confirmation if not already approved and
+interactive entry in a trusted local terminal.
 
 ### MVP 4 — Polish and release
 
@@ -163,7 +166,8 @@ four MVP milestones pass and the owner explicitly reprioritizes them.
 ## Next milestone
 
 **MVP 3 / M3B — protected-session acceptance.** M3A static compatibility review and offline import
-preparation are implemented. Obtain fresh authority for the selected source import and sanitized
-Core summary; then M3C requires separate enrollment and physical-phone refresh/recovery authority. Fresh
-owner authority remains required for new enrollment tickets, login/MFA or credential changes,
-signing, paid services, and deployment. Native M2C remains deferred.
+preparation are implemented. Obtain the exact source path, then run the requested protected import
+and sanitized Core summary without additional routine approval. M3C needs a health-scope enrollment
+decision and physical-phone evidence. Important new enrollment, login/MFA, credential changes,
+signing, paid services and deployment need confirmation only when not already explicitly approved.
+Native M2C remains deferred.

@@ -1,9 +1,9 @@
 # PWA MVP 3 — Garmin integration and acceptance
 
-- Status: `blocked-external` — M3A local preparation complete; M3B needs fresh authority
+- Status: `in-progress` — M3A complete; M3B needs exact source path and live evidence
 - Started: 2026-10-07
 - Updated: 2026-10-08
-- Active subphase: M3B — protected-session setup and sanitized Core read, awaiting owner authority
+- Active subphase: M3B — protected-session setup and sanitized Core read, awaiting source path
 - Recommended Codex model/reasoning: `gpt-6-astra`, `xhigh`
 - Current session stop: 2026-10-08T21:15:00-04:00 (conservative five-hour ceiling)
 
@@ -11,10 +11,11 @@
 
 Connect the owner's existing Garmin session to the protected Core bridge, then prove scoped
 read-only PWA refresh and recovery on the physical iPhone. M3A static compatibility review is
-complete. M3B resumes with local execution preparation; no fresh source/import/read authority,
-login/MFA, enrollment, revocation or private HTTPS route change has been granted.
+complete. Requested M3B saved-session import/read is covered by the owner's 2026-10-08 simplified
+confirmation policy. Exact source path and live evidence remain missing. New login/MFA, enrollment,
+revocation or private HTTPS route changes need confirmation if not already explicitly approved.
 
-## Baseline
+## Historical M3A baseline
 
 - Branch/HEAD: `main` at `7186da8`, tracking `origin/main`.
 - Observed worktree differs from the stated clean baseline: `mobile/package.json` and
@@ -36,8 +37,9 @@ login/MFA, enrollment, revocation or private HTTPS route change has been granted
 - [x] M3A: remove ambient token-store/Python overrides from bridge execution.
 - [x] M3A: prevent late Garmin responses from rendering after logout or re-enrollment.
 - [x] M3A: focused and applicable repository quality/security gates pass.
-- [ ] M3B: fresh owner authority for selected token import or interactive login/MFA.
-- [x] M3B: prepare a flags-only Core evidence command; live execution remains gated.
+- [x] M3B: requested saved-session import/read covered by simplified confirmation policy.
+- [ ] M3B: obtain exact existing local JSON source path and perform protected import.
+- [x] M3B: prepare a flags-only Core evidence command; explicit live execution remains unperformed.
 - [ ] M3B: sanitized Core summary from protected session; no private values in evidence.
 - [ ] M3C: fresh owner authority for one-use browser ticket adding `client.health.read`, risk 1.
 - [ ] M3C: physical-iPhone Wi-Fi/cellular, refresh, stale/error, reconnect/restart, logout/revocation.
@@ -73,10 +75,12 @@ Static sources:
 
 ### M3B — protected session and Core summary
 
-Pending fresh owner authority. Prefer explicit offline import after synthetic validation.
-Expired/revoked tokens require separate authority for Garmin login/MFA. No automatic fallback.
+Exact existing local JSON source path is still needed. Prefer explicit offline import after synthetic
+validation. Requested saved-session import/read and normal renewal need no additional approval.
+Expired/revoked tokens require confirmation for new Garmin login/MFA if not already approved.
+No automatic fallback.
 
-2026-10-08 local preparation:
+2026-10-08 local preparation before the confirmation-policy change:
 
 - Resumed Desktop `main` at `33943e8589d96334d5afbdaeff829877004d12ad`; M3A gates and CI
   passed per owner handoff. Two pre-existing native package edits remain unchanged and excluded.
@@ -123,6 +127,27 @@ rtk uv --cache-dir runtime/uv-cache-mvp3 run python -m pytest -q --basetemp runt
 
 Safe preparation source is covered by standing commit/push authority. Native package edits remain
 excluded. A new preparation commit's CI is a separate remote gate, never inferred from local tests.
+
+2026-10-08 confirmation-policy update:
+
+- Owner removed routine authorization prompts and retained confirmation only for important actions.
+  Updated root instructions, playbook and active M3B documentation. This supersedes the previous
+  per-session import/read gate above; it does not erase prior verification evidence.
+- Requested M3B work includes selected-file offline import into an empty protected store, bounded
+  Core reads, incidental authentication profile/settings reads and normal same-account renewal.
+  Missing exact source path is an information request. No token contents should be provided in chat.
+- `--read` remains an explicit live-command selector; helper help no longer asks for approval.
+  Software authentication, scope enforcement, privacy filtering and protected storage are unchanged.
+- New login/MFA, replacing/revoking tokens, enrollment/scopes, costs, destructive actions,
+  deployment and private disclosure beyond the intended service remain important decisions when
+  not already approved. Do not repeat completed M3A preparation while awaiting a source path.
+- Safe preparation `c9e39c6d9abe76aa0e871987852ebfa93b3af09d` was published and
+  [CI run 37841774497](https://github.com/DanCreates1/JARVIS/actions/runs/37841774497) passed.
+  No live Garmin import/read has run. Two native package edits remain preserved.
+- Policy/CLI wording verification: 25 existing synthetic helper cases passed in 0.31s; Ruff
+  format/lint and whitespace passed. Independent source review found no material contradiction
+  or application security change. No broader local suite rerun was needed for documentation and
+  message-only changes; the prior full gate above remains accurately dated evidence.
 
 ### M3C — health-scoped phone acceptance
 
@@ -193,8 +218,9 @@ authority. Native mobile dependency edits remain preserved and excluded from M3A
 
 ## Blockers and handoff
 
-Fresh owner authority required before actual token import, login/MFA, enrollment ticket creation,
-or revocation. Static schema compatibility is not proof of actual token validity or acceptance.
+Exact source path is needed before import; requested saved-session import/read needs no additional
+permission. Important login/MFA, enrollment and revocation actions require confirmation if not
+already approved. Static schema compatibility is not proof of actual token validity or acceptance.
 Native M2C remains deferred under the existing $0/no-Mac constraint. No MVP 4 work authorized.
 
 Estimated active PWA completion: **80%**. Basis: accepted phone chat/connection, implemented Garmin

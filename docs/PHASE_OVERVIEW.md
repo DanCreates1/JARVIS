@@ -28,7 +28,7 @@ record.
 
 | Track | Status | Next gate |
 | --- | --- | --- |
-| Phone PWA | Physical-iPhone chat accepted; Garmin panel/API and standalone reports implemented; M3A import prepared and M3B flags-only Core check prepared | Exact local source and fresh protected import/read authority; separate M3C health-read browser ticket and physical-iPhone acceptance |
+| Phone PWA | Physical-iPhone chat accepted; Garmin panel/API and standalone reports implemented; M3A import and M3B Core check prepared; routine approval prompts removed | Exact local source and live M3B evidence; separate M3C health-read enrollment decision and physical-iPhone acceptance |
 | Native MVP | Expo Go checks passed; independent native build unverified and deferred under $0/no-Mac constraint | No active native gate |
 | Mobile MVP 2 | Deferred | No active native gate |
 | Mobile MVP 3 | Deferred | No active native gate |
@@ -49,8 +49,9 @@ record.
 - Current MVP 3 evidence and M3A/M3B/M3C gates: [PWA MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
 - Preserve Core as sole authority, memory, routing, permission, and audit system.
 - Keep production Core loopback-bound behind approved private-network HTTPS.
-- Require fresh owner authority for enrollment tickets, live Garmin credentials/MFA, signing,
-  cloud builds, costs, deployments, and App Store work.
+- Follow the root Codex confirmation policy: routine requested work proceeds; important new
+  enrollment/scopes, login/MFA, signing, costs, deployments and App Store decisions need confirmation
+  only when not already explicitly approved.
 - Preserve unrelated work and historical completion evidence. Run focused checks during work and
   full applicable release/security gates before milestone closure.
 - Detailed Phase 0–11 execution remains governed by

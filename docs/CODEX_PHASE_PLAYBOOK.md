@@ -1,6 +1,6 @@
 # JARVIS Codex Phase Playbook
 
-Updated: 2026-09-08
+Updated: 2026-10-08 (Codex confirmation policy; historical phase evidence retained)
 Owner command: `Initiate Phase X and finish it.`  
 Phase range: 0–11
 
@@ -67,28 +67,30 @@ at `xhigh`. `Extra high` is retired; use `xhigh`. Luna or Mini may perform isola
 inventory/docs/test maintenance, never security design or phase closure. A listed setting is the
 minimum recommendation. Do not lower it to meet a deadline.
 
-## 3. Authority boundaries
+## 3. Consequential-action confirmation
 
-Codex may autonomously perform normal reversible implementation inside the repository: inspect,
-design, edit source/docs/tests, install locked development dependencies, run tests, launch local
-loopback services, use fake providers, and perform bounded live smoke tests with already-configured
-free credentials when public test data is guaranteed.
+Owner policy changed on 2026-10-08: execute requested work without routine permission prompts.
+Use [AGENTS.md](../AGENTS.md)'s confirmation policy. Existing explicit approval persists within
+its scope across turns/chats; older per-session approval wording does not reopen routine gates.
 
-Codex must request user authority before:
+Proceed with repository inspection/design/edits, locked setup, tests, local loopback services,
+fake providers and configured free integrations within the requested task. Requested Garmin
+saved-session work includes explicit-file offline import into an empty protected store, bounded
+Core reads, required authentication profile/settings reads, and normal same-account token renewal.
+Private tokens/health values stay local and never enter Git, diagnostics or model-provider requests.
+Safe GitHub publication remains covered by the standing repository instruction.
 
-- paying, enabling billing, upgrading a provider plan, or accepting a new material legal term;
-- creating accounts, rotating/revoking credentials, changing access control, or exposing a port;
-- sending private/sensitive data to any cloud provider;
-- deploying to a remote machine, domain, phone, server, wearable, or public environment;
-- controlling real applications/devices beyond an already-approved test fixture;
-- printing, communicating, purchasing, deleting user data, powering off, or making irreversible
-  system changes;
-- pushing Git branches/tags/releases, opening PRs, or messaging third parties unless explicitly
-  requested;
-- broadening the selected phase to complete missing prerequisite phases.
+Ask once for consequential effects not already explicitly approved: spending/billing or material
+legal commitments; new accounts, new credential login/MFA or recovery; credential replacement or
+revocation; device enrollment, scope/access changes or exposing a service; destructive user-data
+operations, history rewrites or system shutdown; signing or remote/public deployment; private
+disclosure beyond the intended service; third-party messages. Major unrelated scope changes need
+a scope decision, not a routine implementation approval.
 
-When blocked by one of these boundaries, finish every safe local prerequisite, record the exact
-blocker and verification command, then ask one concise question.
+Complete safe preparation before asking for one concrete, grouped approval. Ask for missing source
+paths or target information as information. Record real unavailable dependencies separately from
+permission questions; do not repeat completed preparation because an input is missing. This policy
+does not weaken application authentication, approvals, privacy routing, audit or security gates.
 
 ## 4. Universal execution protocol
 
