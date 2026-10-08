@@ -1,11 +1,11 @@
 # PWA MVP 3 — Garmin integration and acceptance
 
-Status: `blocked-external` — M3A local preparation complete; M3B needs fresh authority  
-Started: 2026-10-07  
-Updated: 2026-10-07  
-Active subphase: M3B — protected-session setup and sanitized Core read, awaiting owner authority  
-Recommended Codex model/reasoning: `gpt-6-astra`, `xhigh`  
-Session five-hour stop: 2026-10-08T02:45:00-04:00
+- Status: `blocked-external` — M3A local preparation complete; M3B needs fresh authority
+- Started: 2026-10-07
+- Updated: 2026-10-07
+- Active subphase: M3B — protected-session setup and sanitized Core read, awaiting owner authority
+- Recommended Codex model/reasoning: `gpt-6-astra`, `xhigh`
+- Session five-hour stop: 2026-10-08T02:45:00-04:00
 
 ## Objective
 
@@ -125,9 +125,12 @@ Full verification command (same strict flags and 85% threshold as repository con
 rtk uv --cache-dir runtime/uv-cache-mvp3 run python -m pytest -q --basetemp runtime/pytest-mvp3-full-final-193bd -o cache_dir=runtime/pytest-cache-mvp3-full-final -o 'addopts=--strict-config --strict-markers --cov=jarvis --cov-report=term:skip-covered --cov-fail-under=85'
 ```
 
-Publication uses standing safe-source authorization after local gates. Exact local/upstream
-commit identity is verified at publication; unrelated native package changes remain uncommitted.
-CI result is a separate remote gate, not inferred from local success.
+Published safe source at `cdd98321ce4253684b6958eb88342fafcd38ca1b` under standing authorization;
+local HEAD, `origin/main`, and live upstream ref matched. Existing native package changes remain
+uncommitted. Five report-only Markdown hard-break spaces were missed by the initial staged
+whitespace gate and corrected in a follow-up documentation commit, with raw Git diagnostics and
+the complete baseline-to-final whitespace check verified. Application code and full test evidence
+are unchanged. CI result is a separate remote gate, not inferred from local success.
 
 ## Recovery and known limits
 
