@@ -28,7 +28,7 @@ record.
 
 | Track | Status | Next gate |
 | --- | --- | --- |
-| Phone PWA | Physical-iPhone chat accepted; Garmin panel/API and standalone reports implemented; M3A import and M3B Core check prepared; routine approval prompts removed | Exact local source and live M3B evidence; separate M3C health-read enrollment decision and physical-iPhone acceptance |
+| Phone PWA | Physical-iPhone chat accepted; Garmin panel/API implemented; M3A/M3B complete with protected import and fresh live Core Garmin summary | M3C health-read enrollment decision and physical-iPhone acceptance |
 | Native MVP | Expo Go checks passed; independent native build unverified and deferred under $0/no-Mac constraint | No active native gate |
 | Mobile MVP 2 | Deferred | No active native gate |
 | Mobile MVP 3 | Deferred | No active native gate |

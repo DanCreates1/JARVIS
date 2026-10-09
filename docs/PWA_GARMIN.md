@@ -1,6 +1,6 @@
 # JARVIS phone web app and Garmin
 
-Status: M3A complete; M3B local evidence command prepared, protected session and iPhone acceptance pending.
+Status: M3A/M3B complete; protected live Core session accepted, health-scoped iPhone acceptance pending.
 Updated: 2026-10-08
 
 Local connector organization and one-command saved-session reports were verified on 2026-10-05;
@@ -63,6 +63,11 @@ unchanged; deletion or revocation of it requires separate authority. Progress an
 [MVP 3 report](phase-reports/PWA_MVP3_PROGRESS.md).
 
 ## Sanitized Core acceptance — MVP 3 / M3B
+
+Accepted on 2026-10-08: offline protected import succeeded, followed by one sanitized Core check
+with valid schema, fresh summary, bounded activities and all six availability flags true. No private
+values were retained in evidence. Source-path/import work is finished; do not reimport the existing
+session. Core is now the sole session owner. See [live evidence](phase-reports/PWA_MVP3_PROGRESS.md).
 
 After a successful import, keep other Core/standalone readers stopped and run the bounded Core
 summary check as part of requested M3B work. Saved-session authentication may contact Garmin,
@@ -133,8 +138,39 @@ security settings. Revoke the JARVIS browser device in Core if the phone is lost
 
 ## Acceptance still needed
 
-- Selected explicit local source, offline saved-session import, and bounded sanitized Core reads
-  of only the listed categories. New login/MFA needs confirmation if not already approved.
+### M3C enrollment and physical-phone check
+
+Protected import and Core acceptance are finished. Before phone enrollment, obtain the concrete
+decision required by the root confirmation policy: initial/recovery one-use browser tickets with
+only the prior seven PWA scopes plus `client.health.read`, risk ceiling 1; erase the prior phone
+PWA key; enroll the same iPhone; revoke the new test enrollment for recovery acceptance. Existing
+browser enrollments do not gain a scope automatically.
+
+After approval, run this in a trusted local terminal and transfer the result directly to the phone:
+
+```powershell
+rtk uv --cache-dir runtime/uv-cache-mvp3 run jarvis remote enroll "My PWA Garmin" --type browser --scope browser.session --scope identity.read --scope events.read --scope session.revoke --scope client.chat --scope client.tasks.read --scope client.status.read --scope client.health.read --risk-ceiling 1
+```
+
+The ticket expires after five minutes and is consumed once. Keep the default v1 protocol for the
+current PWA; do not add `--server-origin`. Never paste the ticket into chat or capture it in tool
+output, screenshots, logs or Git. Issue the recovery ticket only when the phone is ready for it.
+
+Record only pass/fail for these physical-iPhone checks:
+
+1. Enroll, refresh Garmin, verify bounded sections and at most three activities, then send a public
+   synthetic chat prompt. Do not report health values.
+2. Repeat Garmin/chat over Wi-Fi and cellular with Tailscale connected.
+3. Disconnect/reconnect Tailscale; confirm stale/error labels and successful recovery.
+4. Restart the loopback Core while preserving the existing private route; reconnect the same
+   phone identity and verify Garmin/chat.
+5. Revoke only the approved new test enrollment; the next protected request must deny within
+   five seconds and clear displayed Garmin values.
+6. Verify offline logout clears Garmin/identity, then re-enroll with the recovery ticket and
+   verify final Garmin/chat refresh.
+
+Desktop tests and a Core summary cannot substitute for these physical-phone checks.
+
 - Owner-approved new browser enrollment ticket with `client.health.read` and risk ceiling 1.
 - Physical iPhone PWA shows real bounded Garmin values and chat over private HTTPS; Wi-Fi and
   cellular, loss/reconnect, logout, revocation, and stale/error presentation pass.

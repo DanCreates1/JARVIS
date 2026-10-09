@@ -1,9 +1,9 @@
 # PWA MVP 3 — Garmin integration and acceptance
 
-- Status: `in-progress` — M3A complete; M3B needs exact source path and live evidence
+- Status: `in-progress` — M3A/M3B complete; M3C phone acceptance pending
 - Started: 2026-10-07
 - Updated: 2026-10-08
-- Active subphase: M3B — protected-session setup and sanitized Core read, awaiting source path
+- Active subphase: M3C — health-scoped enrollment decision and physical-iPhone acceptance
 - Recommended Codex model/reasoning: `gpt-6-astra`, `xhigh`
 - Current session stop: 2026-10-08T21:15:00-04:00 (conservative five-hour ceiling)
 
@@ -12,7 +12,7 @@
 Connect the owner's existing Garmin session to the protected Core bridge, then prove scoped
 read-only PWA refresh and recovery on the physical iPhone. M3A static compatibility review is
 complete. Requested M3B saved-session import/read is covered by the owner's 2026-10-08 simplified
-confirmation policy. Exact source path and live evidence remain missing. New login/MFA, enrollment,
+confirmation policy. Protected import and live Core evidence passed on 2026-10-08. New login/MFA, enrollment,
 revocation or private HTTPS route changes need confirmation if not already explicitly approved.
 
 ## Historical M3A baseline
@@ -38,9 +38,9 @@ revocation or private HTTPS route changes need confirmation if not already expli
 - [x] M3A: prevent late Garmin responses from rendering after logout or re-enrollment.
 - [x] M3A: focused and applicable repository quality/security gates pass.
 - [x] M3B: requested saved-session import/read covered by simplified confirmation policy.
-- [ ] M3B: obtain exact existing local JSON source path and perform protected import.
-- [x] M3B: prepare a flags-only Core evidence command; explicit live execution remains unperformed.
-- [ ] M3B: sanitized Core summary from protected session; no private values in evidence.
+- [x] M3B: obtain exact existing local JSON source path and perform protected import.
+- [x] M3B: prepare and execute a flags-only Core evidence command.
+- [x] M3B: sanitized Core summary from protected session; no private values in evidence.
 - [ ] M3C: fresh owner authority for one-use browser ticket adding `client.health.read`, risk 1.
 - [ ] M3C: physical-iPhone Wi-Fi/cellular, refresh, stale/error, reconnect/restart, logout/revocation.
 - [ ] MVP 3 closure: full repository/sidecar security gates and CI pass.
@@ -75,10 +75,47 @@ Static sources:
 
 ### M3B — protected session and Core summary
 
-Exact existing local JSON source path is still needed. Prefer explicit offline import after synthetic
-validation. Requested saved-session import/read and normal renewal need no additional approval.
-Expired/revoked tokens require confirmation for new Garmin login/MFA if not already approved.
-No automatic fallback.
+Complete on 2026-10-08. The single saved-session JSON found in the local standalone connector's
+default token directory was selected explicitly for the reviewed offline importer. Requested
+saved-session import/read and normal renewal needed no additional approval. Core now owns the
+protected session; do not repeat import or refresh the independent source copy. Expired/revoked
+tokens require confirmation for new Garmin login/MFA if not already approved. No automatic fallback.
+
+2026-10-08 live M3B acceptance:
+
+- Resumed `main` at `6adc5cf938e190304abfa1a1063bba20bd6f21ed`; both existing native package
+  edits remained untouched. No competing Core/standalone reader was running.
+- Located the single local source by filename/metadata, without printing its contents. The
+  explicit-file importer succeeded into the empty Windows Credential Locker, offline. Source
+  size and displayed last-write time remained unchanged. No new login/MFA was needed.
+- Ran exactly one `scripts/garmin_core_check.py --read` call with normal Windows/network access.
+  Result: `status=pass`, `schema_valid=true`, `fresh=true`, `activity_bound=true`; all six
+  availability flags were true: steps, resting heart rate, sleep, stress, Body Battery, activities.
+  Evidence contains no health values, dates, activity names, account identifiers, or tokens.
+- This accepts the protected Core service path. It does not accept a health-scoped phone request
+  or the physical-iPhone Wi-Fi/cellular/recovery matrix. M3C remains open.
+- No Garmin source was deleted, no token revoked, no browser ticket issued, and no private route
+  changed. Historical preparation evidence below remains historical, not a current blocker.
+
+Current M3B closure verification, 2026-10-08:
+
+| Check | Evidence |
+| --- | --- |
+| Core / sidecar lock check and locked sync | Passed; 119/20 resolved and 69/16 installed packages; no dependency changes |
+| Ruff format / lint | Passed; 408 formatted files |
+| Mypy | Passed; 164 source files |
+| Core / sidecar strict dependency audits | No known vulnerabilities |
+| Full repository gate | 1,439 passed / 3 existing optional skips; 85.59% coverage; 138.61s |
+| Gitleaks history | Passed; 89 commits, no leaks |
+| Local `jarvis doctor` | Passed; existing loopback/private defaults retained |
+| Native package preservation | Both pre-existing file hashes unchanged; excluded from this publication |
+
+The existing Starlette/httpx deprecation warning remains. The PWA Node lifecycle test ran in the
+full gate. Normal Windows access was used for protected import, live saved-session read, process
+inventory and full tests; no Windows security policy changed. The existing private Serve route
+matches its exact ownership marker, HTTPS authority and sole loopback backend; Funnel is disabled.
+No Serve configuration was changed. Current CI evidence is recorded after safe documentation
+publication; full MVP 3 closure still requires M3C.
 
 2026-10-08 local preparation before the confirmation-policy change:
 
@@ -154,6 +191,13 @@ excluded. A new preparation commit's CI is a separate remote gate, never inferre
 Pending fresh enrollment authority and physical-device evidence. Existing PWA enrollments cannot
 gain `client.health.read` implicitly. Do not run the Phase 8D launcher against an unowned route.
 
+2026-10-08 preparation: resumed loopback Core behind the verified existing owned private route,
+without changing Serve. Local and private-HTTPS `/app/` checks passed; a real unauthenticated
+Garmin API request was denied; the listener remains loopback-only. The exact eight-scope,
+risk-ceiling-1 ticket command and bounded physical-phone matrix are in [PWA_GARMIN.md](../PWA_GARMIN.md).
+One grouped enrollment/phone-key-erase/new-test-revocation/recovery decision was requested;
+no ticket was minted and no device/scope record changed. Phone acceptance remains unexecuted.
+
 ## Security and privacy
 
 Treat tokens as credential material and Garmin responses as untrusted private health data.
@@ -161,7 +205,7 @@ Import must preserve source files, perform no network request, and store only in
 Credential Locker. Core and phone receive bounded health views, never credential material.
 Synthetic fixtures only; no live values or user session contents enter Git or cloud chat.
 
-## Verification evidence
+## Historical M3A verification evidence
 
 All commands use RTK. Core tooling uses ignored `--cache-dir runtime/uv-cache-mvp3`; module
 entry points use the locked environment. Sidecar interpreter query and Windows asyncio test
@@ -218,10 +262,10 @@ authority. Native mobile dependency edits remain preserved and excluded from M3A
 
 ## Blockers and handoff
 
-Exact source path is needed before import; requested saved-session import/read needs no additional
-permission. Important login/MFA, enrollment and revocation actions require confirmation if not
-already approved. Static schema compatibility is not proof of actual token validity or acceptance.
+M3B protected import and live Core acceptance passed; source-path work is finished. M3C needs a
+concrete health-read enrollment decision and physical-iPhone evidence. Important login/MFA,
+enrollment and revocation actions require confirmation if not already approved.
 Native M2C remains deferred under the existing $0/no-Mac constraint. No MVP 4 work authorized.
 
-Estimated active PWA completion: **80%**. Basis: accepted phone chat/connection, implemented Garmin
-panel/API and standalone report; protected session and physical-phone Garmin/recovery remain.
+Estimated active PWA completion: **85%**. Basis: accepted phone chat/connection and protected live
+Core Garmin summary; health-scoped physical-phone Garmin/recovery and final polish remain.

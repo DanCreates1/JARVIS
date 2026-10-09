@@ -81,12 +81,13 @@ as historical plans, not prerequisites for the PWA goal.
 
 The owner's standalone Garmin connector is organized locally and its saved-session batch report
 passed a live read on 2026-10-05. See [connector and report evidence](GARMIN_CONNECTOR.md).
-This does not establish a protected Core session or physical-iPhone Garmin acceptance.
-M3A now verifies saved-session format compatibility and prepares an offline protected import,
-subprocess isolation, rotation/error recovery, and logout-safe PWA rendering. M3B adds a gated,
-flags-only Core acceptance utility; exact local source and live evidence remain pending. Requested
-saved-session import/read/renewal needs no repeated permission under the root Codex confirmation
-policy. Live gates remain unexecuted; see [PWA MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
+That standalone report did not establish a protected Core session or physical-iPhone Garmin
+acceptance. M3A verifies saved-session compatibility, offline import, subprocess isolation,
+rotation/error recovery and logout-safe PWA rendering. M3B passed on 2026-10-08: protected offline
+import and one flags-only live Core check succeeded, with fresh validated data and all six category
+availability flags true. Core now owns the protected session. Requested saved-session reads/renewal
+need no repeated permission. M3C health-scoped phone enrollment and physical-device acceptance
+remain; see [PWA MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
 
 ### MVP 1 — Design and connection
 
@@ -124,7 +125,7 @@ Current upstream facts verified 2026-09-28:
   local-secret facility, not expose or directly trust the library's default token file. Current
   initial inspection found the Windows Credential Manager/DPAPI policy. The current isolated
   bridge implements chunked Windows Credential Locker storage, with synthetic import/rollback
-  checks. No real protected session acceptance has been performed.
+  checks. Real protected session and bounded Core acceptance passed on 2026-10-08.
 
 Garmin data is private health data. Credentials, MFA values, tokens, raw responses, locations, and
 health data never enter logs, Git, mobile storage, audit payloads, or model-provider requests.
@@ -165,9 +166,8 @@ four MVP milestones pass and the owner explicitly reprioritizes them.
 
 ## Next milestone
 
-**MVP 3 / M3B — protected-session acceptance.** M3A static compatibility review and offline import
-preparation are implemented. Obtain the exact source path, then run the requested protected import
-and sanitized Core summary without additional routine approval. M3C needs a health-scope enrollment
-decision and physical-phone evidence. Important new enrollment, login/MFA, credential changes,
+**MVP 3 / M3C — health-scoped phone acceptance.** M3A/M3B are complete: protected import and
+fresh live Core Garmin evidence passed. Do not repeat source discovery/import. M3C needs a
+health-scope enrollment decision and physical-phone evidence. Important new enrollment, login/MFA, credential changes,
 signing, paid services and deployment need confirmation only when not already explicitly approved.
 Native M2C remains deferred.
