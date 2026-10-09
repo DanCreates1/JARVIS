@@ -89,6 +89,12 @@ availability flags true. Core now owns the protected session. Requested saved-se
 need no repeated permission. M3C health-scoped phone enrollment and physical-device acceptance
 remain; see [PWA MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
 
+M3C continuation adds shell `v6` recovery repairs: immediate local logout erase, bounded remote
+cleanup before replacement enrollment, and guards against obsolete bootstrap/status/task/chat/
+event responses. Synthetic lifecycle evidence passes; physical-iPhone rows remain unexecuted.
+No health-scoped ticket or test revocation was performed while the grouped owner decision is pending.
+Both unrelated native package candidates remain preserved and excluded under their audit hold.
+
 ### MVP 1 — Design and connection
 
 Close existing M2C live acceptance, then replace the foundation screen with a simple accessible
@@ -168,6 +174,7 @@ four MVP milestones pass and the owner explicitly reprioritizes them.
 
 **MVP 3 / M3C — health-scoped phone acceptance.** M3A/M3B are complete: protected import and
 fresh live Core Garmin evidence passed. Do not repeat source discovery/import. M3C needs a
-health-scope enrollment decision and physical-phone evidence. Important new enrollment, login/MFA, credential changes,
+pending grouped health-scope enrollment/recovery decision and physical-phone evidence on shell `v6`.
+Local recovery repairs and their synthetic evidence do not close the physical gate. Important new enrollment, login/MFA, credential changes,
 signing, paid services and deployment need confirmation only when not already explicitly approved.
 Native M2C remains deferred.

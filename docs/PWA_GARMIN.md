@@ -156,7 +156,19 @@ The ticket expires after five minutes and is consumed once. Keep the default v1 
 current PWA; do not add `--server-origin`. Never paste the ticket into chat or capture it in tool
 output, screenshots, logs or Git. Issue the recovery ticket only when the phone is ready for it.
 
-Record only pass/fail for these physical-iPhone checks:
+Record hardware/runtime versions and only pass/fail for health results in these physical checks:
+
+Reload the Home Screen PWA before testing and verify shell `v6`; an already open page can retain
+the prior JavaScript until reload. Record iPhone model/iOS version and the runtime surface, without
+device or account identifiers. Logout now clears health, device, task, chat and local identity
+without waiting for Core. New enrollment/connection waits for local cleanup and bounded remote
+cleanup; individual bootstrap/revocation requests have five-second deadlines. A successful old
+logout response can clear cookies and IndexedDB, so replacement must wait for that response or
+request cancellation ([Clear-Site-Data](https://www.w3.org/TR/clear-site-data/#fetch-integration),
+[Fetch cancellation](https://fetch.spec.whatwg.org/#abort-fetch)). Offline/failed logout proves local
+erase only; it cannot prove server revocation, particularly if bootstrap installed its cookie
+before its CSRF body was available. Server expiry or the approved exact-test-device revocation
+closes that boundary.
 
 1. Enroll, refresh Garmin, verify bounded sections and at most three activities, then send a public
    synthetic chat prompt. Do not report health values.
@@ -170,6 +182,13 @@ Record only pass/fail for these physical-iPhone checks:
    verify final Garmin/chat refresh.
 
 Desktop tests and a Core summary cannot substitute for these physical-phone checks.
+
+For the Core-restart row, restart only the verified Core process with its existing loopback port
+and exact trusted HTTPS origin. Do not use `phase8d-private.ps1 -Action Run` or `-Action Stop`:
+those actions create/remove Serve. Check the existing route and loopback listener afterward.
+For revocation, tap **Refresh Garmin** immediately after the exact test-device revocation and
+measure denial/health clearing; an already pending event poll is not that next protected request.
+Detailed dated physical evidence rows: [MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
 
 - Owner-approved new browser enrollment ticket with `client.health.read` and risk ceiling 1.
 - Physical iPhone PWA shows real bounded Garmin values and chat over private HTTPS; Wi-Fi and

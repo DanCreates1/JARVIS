@@ -381,8 +381,10 @@ and provider authorization. Limits/recovery: [Email](EMAIL.md).
 Garmin tokens, account data and raw responses stay on the trusted Windows host. Explicit offline
 session import validates bounded three-field JSON and local regular-file ancestry; it rejects
 duplicate/legacy/unknown fields, network/device/stream paths, symlinks and reparse points. No
-import discovery, network, source write or automatic credential fallback exists. Actual import,
-login/MFA, health reads, enrollment and revocation require fresh owner authority. Stop Core and
+import discovery, network, source write or automatic credential fallback exists. Requested
+selected-file import, bounded Core reads and normal saved-session renewal follow the root Codex
+confirmation policy without renewed permission. New login/MFA, enrollment/scopes and revocation
+require confirmation when not already explicitly approved. Stop Core and
 standalone readers before import; concurrent independent credential copies are unsupported.
 Credential Locker publication and rollback use generation/chunk manifests; synthetic failures
 preserve the previous session. Child environment excludes unrelated credentials and token/Python

@@ -314,9 +314,9 @@ def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(tmp_path: Pat
         assert "indexedDB" in script.text and '"JARVIS_LOGOUT"' in script.text
         assert 'headers["X-Jarvis-Browser-Origin"]=window.location.origin' in script.text
         assert "SHELL.includes(shellKey)" in worker.text and "cache.put" in worker.text
-        assert 'const CACHE="jarvis-shell-v5"' in worker.text
+        assert 'const CACHE="jarvis-shell-v6"' in worker.text
         assert "self.skipWaiting()" in worker.text
-        assert "/app/app.js?v=5" in shell.text and "/app/sw.js?v=5" in script.text
+        assert "/app/app.js?v=6" in shell.text and "/app/sw.js?v=6" in script.text
         assert "ui.logout.disabled=!state.hasIdentity" in script.text
         assert manifest.json()["start_url"] == "/app/"
         asset_bytes = sum(

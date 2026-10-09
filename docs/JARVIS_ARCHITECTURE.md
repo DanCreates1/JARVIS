@@ -585,6 +585,13 @@ volatile buffers; the client refreshes durable conversation/task state and resub
 gap or stale cursor is explicit, never filled by guessed data. There is no offline task/action
 queue, remote approval/execution route, push service, or voice upload.
 
+M3C client recovery uses a session generation for asynchronous bootstrap, subscriptions, status,
+tasks, chat and event responses. Logout erases local views/identity independently of Core reachability.
+A shared cleanup promise includes prior identity writes, local storage/cache/worker cleanup and
+bounded remote logout/bootstrap cleanup; replacement enrollment or connection waits for it.
+This preserves the existing server CSRF, cookie and Clear-Site-Data behavior. Offline local erase
+cannot establish server revocation; expiry or approved exact-device revocation closes that boundary.
+
 Phase 11C reuses that authenticated PWA surface as the only proactivity adapter. Additive migration
 013 stores one owner row per ready candidate, expiring device/feature bindings, persistent local
 adapter control, and content-free append-only transitions. Local ownership is unleased. Device

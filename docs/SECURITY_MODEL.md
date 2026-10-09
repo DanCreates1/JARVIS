@@ -374,10 +374,19 @@ drops buffers and requires safe resubscription from durable product state.
 The PWA service worker may cache only fixed `/app/` shell assets. API responses, credentials,
 messages, tasks, identifiers, notification content, and offline effects are prohibited from Cache
 Storage. The browser private key is non-exportable and lives in dedicated IndexedDB; CSRF is
-memory-only. Notifications are explicit opt-in and generic. Online logout revokes the session,
+memory-only. Notifications are explicit opt-in and generic. Successful online logout revokes the session,
 clears server buffers/cookie/site data, and erases client key/cursors/cache/service worker. Remote
 voice, push subscriptions, task execution, computer actions, approvals, and offline mutation queues
 remain unavailable.
+
+M3C logout clears client state, displayed health/device/task/chat data and local identity without
+waiting for the network. Replacement enrollment/connection waits for prior local cleanup and
+bounded remote cleanup so an old cookie/site-data-clearing response cannot erase a replacement.
+Session bootstrap and remote revocation attempts each have a five-second deadline. Session
+generation guards prevent obsolete responses, stream bodies and retry timers from restoring
+erased state. Offline/failed logout does not prove server-session revocation: a session cookie may
+already have been accepted before its CSRF body becomes available. Server expiry or separately
+approved exact-device revocation remains the recovery boundary. Physical M3C proof remains pending.
 
 Phase 8D adds one tailnet-only Tailscale Serve HTTPS listener while the JARVIS process remains on
 `127.0.0.1`. Funnel, public/LAN JARVIS listeners, broad firewall rules, port forwarding, and

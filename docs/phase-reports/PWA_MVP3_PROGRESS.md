@@ -5,7 +5,7 @@
 - Updated: 2026-10-08
 - Active subphase: M3C — health-scoped enrollment decision and physical-iPhone acceptance
 - Recommended Codex model/reasoning: `gpt-6-astra`, `xhigh`
-- Current session stop: 2026-10-08T21:15:00-04:00 (conservative five-hour ceiling)
+- Current session stop: 2026-10-09T03:45:00-04:00 (conservative five-hour ceiling)
 
 ## Objective
 
@@ -41,7 +41,7 @@ revocation or private HTTPS route changes need confirmation if not already expli
 - [x] M3B: obtain exact existing local JSON source path and perform protected import.
 - [x] M3B: prepare and execute a flags-only Core evidence command.
 - [x] M3B: sanitized Core summary from protected session; no private values in evidence.
-- [ ] M3C: fresh owner authority for one-use browser ticket adding `client.health.read`, risk 1.
+- [ ] M3C: recorded owner authority for initial/recovery browser tickets adding `client.health.read`, risk 1; reuse that approval within its scope.
 - [ ] M3C: physical-iPhone Wi-Fi/cellular, refresh, stale/error, reconnect/restart, logout/revocation.
 - [ ] MVP 3 closure: full repository/sidecar security gates and CI pass.
 
@@ -197,6 +197,86 @@ Garmin API request was denied; the listener remains loopback-only. The exact eig
 risk-ceiling-1 ticket command and bounded physical-phone matrix are in [PWA_GARMIN.md](../PWA_GARMIN.md).
 One grouped enrollment/phone-key-erase/new-test-revocation/recovery decision was requested;
 no ticket was minted and no device/scope record changed. Phone acceptance remains unexecuted.
+
+2026-10-08 M3C continuation at `7c73e60512fca60203107f44be8973bb1ede02de`:
+
+- Verified the prior chat's grouped decision remained unanswered. The current owner request asks
+  to resolve it; the same initial/recovery ticket, prior-phone-key erase, same-iPhone enrollment
+  and first-new-test-device revocation decision remains pending. No approval is inferred from
+  elapsed time, a handoff prompt, or the request to finish. No ticket was minted or device changed.
+- Read-only SQLite scope metadata shows zero active browser records with `client.health.read`.
+  No names, IDs, public keys, session credentials, tickets, or health values were output.
+- Current existing route ownership, sole loopback listener, disabled Funnel, and local/private
+  HTTPS `/app/` checks passed. The exact `/api/v1/client/garmin` route denied an unauthenticated
+  request. Serve configuration and ownership marker were preserved.
+- [Baseline CI 37866951256](https://github.com/DanCreates1/JARVIS/actions/runs/37866951256)
+  passed both jobs at the exact baseline SHA. This evidence does not cover subsequent repairs.
+- Both existing native package edits remain preserved. Their independent production audit still
+  fails (15 moderate / 45 high / zero critical); the existing native publication hold applies.
+  They remain excluded from PWA publication and do not substitute for PWA acceptance.
+- Repaired the actual pending-network logout path before acceptance: local key and health/device/
+  task/chat views clear without awaiting Core; ticket/composer fields also clear. Session generation
+  guards prevent obsolete bootstrap, subscription, status, tasks, SSE, chat, notification and
+  startup continuations from restoring cleared state. Reconnect aborts the old stream and shows
+  `Connecting`/`Connection failed` instead of preserving a misleading `Connected` indicator.
+- Replacement enrollment/connection waits for previous identity writes, local cache/worker cleanup,
+  bounded remote DELETE and stale-bootstrap CSRF cleanup. Each network attempt has a five-second
+  deadline; a bootstrap body followed by revocation can require two bounded attempts. This keeps
+  a late successful cookie/site-data-clearing response ahead of replacement credentials. Server
+  CSRF/cookie/site-data behavior remains unchanged. Shell cache and asset references advance to `v6`.
+- Offline local erase does not establish remote revocation when bootstrap's cookie was accepted but
+  its CSRF body was unavailable. Session expiry or separately approved exact-device revocation is
+  still required for that server boundary. The physical matrix must verify the actual iPhone behavior.
+- Independent source review and 24 real Node synthetic lifecycle cases passed. Focused PWA API/
+  browser identity checks passed: 7 tests, one existing Starlette/httpx warning, 1.51s. The new cases
+  exercise unresolved DELETE, delayed response bodies, replacement serialization, timeout/abort,
+  late UI restoration and failed reconnect. They contain synthetic data only.
+
+Physical evidence remains distinct from synthetic/local checks:
+
+| Physical iPhone gate | Result | Evidence required |
+| --- | --- | --- |
+| Device/runtime identification | Not reported | iPhone model, iOS version, Home Screen PWA/Safari, shell version; no device/account identifier |
+| Initial health-scoped enrollment | Not run | Approved exact eight scopes, risk 1; enrollment/session lifecycle flags |
+| Wi-Fi Garmin and public-fixture chat | Not run | Owner pass/fail; bounded sections and at most three activities |
+| Cellular Garmin and public-fixture chat | Not run | Owner pass/fail with Tailscale connected |
+| Network loss and stale/error presentation | Not run | Owner pass/fail; no queued offline chat |
+| Tailscale recovery | Not run | Owner pass/fail after reconnect and explicit refresh |
+| Core restart with same phone identity | Not run | Owner pass/fail; existing private Serve route retained |
+| New test device revocation | Not run | Next explicit protected refresh denies and clears health within 5 seconds |
+| Offline logout | Not run | Owner pass/fail; health/identity UI and local key cleared without Core response |
+| Recovery enrollment and final refresh/chat | Not run | Recovery ticket issued only when phone ready; owner pass/fail and lifecycle flags |
+
+No screenshot, private health value, account identifier, ticket or credential belongs in evidence.
+Desktop/browser simulation and Core lifecycle metadata cannot prove these physical-phone rows.
+
+Current M3C local release verification, 2026-10-08:
+
+| Check | Evidence |
+| --- | --- |
+| Core / sidecar lock check and locked sync | Passed; 119/69 and 20/16 resolved/checked packages |
+| Ruff format / lint | Passed; 408 formatted files |
+| Mypy | Passed; 164 source files |
+| Core / sidecar strict dependency audits | No known vulnerabilities |
+| Node lifecycle / focused PWA API and security | 24 / 7 passed; synthetic fixtures only |
+| Full repository gate | 1,439 passed / 3 existing optional skips / one existing warning; 85.59% coverage; 95.81s |
+| Gitleaks history / whitespace | Passed; 90 baseline commits, no leaks |
+| Local `jarvis doctor` | All checks passed; loopback defaults retained |
+| Existing private HTTPS assets | Shell, script and worker serve matching `v6`; no route changes |
+| Native package preservation | Existing hashes retained; both files excluded from publication |
+
+Full gate used locked Python 3.11.9 and Node.js 24.20.0 with unchanged strict markers/configuration
+and 85% coverage threshold. Fresh ignored workspace basetemp was verified before use:
+
+```powershell
+rtk uv --cache-dir runtime/uv-cache-mvp3 run python -m pytest -q --basetemp runtime/pytest-m3c-full-20261008-a -o cache_dir=runtime/pytest-cache-m3c-full -o 'addopts=--strict-config --strict-markers --cov=jarvis --cov-report=term:skip-covered --cov-fail-under=85'
+```
+
+Normal Windows/network access resolved sandbox Python discovery, asyncio, audit DNS and `uv`
+trampoline path failures; no gate or OS policy was weakened. No source token discovery/import,
+live Garmin service check, enrollment or revocation was repeated. Safe recovery source is covered
+by standing commit/push authority; new publication CI is a separate gate, reported after push.
+MVP 3 remains incomplete until the physical rows pass after the pending owner decision.
 
 ## Security and privacy
 
