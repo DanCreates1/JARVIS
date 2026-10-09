@@ -2,10 +2,10 @@
 
 - Status: `in-progress` — M3A/M3B complete; M3C phone acceptance pending
 - Started: 2026-10-07
-- Updated: 2026-10-08
+- Updated: 2026-10-09
 - Active subphase: M3C — health-scoped enrollment decision and physical-iPhone acceptance
 - Recommended Codex model/reasoning: `gpt-6-astra`, `xhigh`
-- Current session stop: 2026-10-09T03:45:00-04:00 (conservative five-hour ceiling)
+- Current session stop: 2026-10-09T23:00:00-04:00 (conservative five-hour ceiling)
 
 ## Objective
 
@@ -277,6 +277,49 @@ trampoline path failures; no gate or OS policy was weakened. No source token dis
 live Garmin service check, enrollment or revocation was repeated. Safe recovery source is covered
 by standing commit/push authority; new publication CI is a separate gate, reported after push.
 MVP 3 remains incomplete until the physical rows pass after the pending owner decision.
+
+2026-10-09 M3C evidence continuation at `ed4ee18f3bcc30868a1f021b6629fd0cb1441801`:
+
+- Local HEAD, tracking `origin/main`, and the live upstream `main` ref match the recovery repair.
+  [CI run 37878722474](https://github.com/DanCreates1/JARVIS/actions/runs/37878722474)
+  completed successfully at that exact SHA; both Windows quality and secret-scan jobs passed.
+  The dated local full-suite evidence above remains 1,439 passed, three existing optional skips,
+  and 85.59% coverage. No application source changed during this continuation.
+- Read the prior M3C chat's owner messages and pending grouped decision. No approval answer or
+  physical-phone result was found. Surfaced that same initial/recovery ticket, prior-phone-key
+  erase, same-iPhone enrollment and first-new-test-device revocation decision for resolution.
+  Do not mint either ticket until approved and the phone is ready; recovery uses its own later
+  five-minute window. Do not infer approval from this finish request or an unanswered question.
+- Both unrelated native package candidates retain their original SHA-256 hashes:
+  `mobile/package.json`: `a9bb3741e6b3066deb4adf8091189e35a6837d57be3ba48460e056d75b7d8342`;
+  `mobile/package-lock.json`: `d0da737979bc3f2ba193939f7d16a6889d934173bfe9a0f8180a4286c1433cf9`.
+  Their existing native audit/publication hold remains; neither is part of PWA staging or CI.
+- Initial read-only readiness check found the exact owned Serve route and marker intact,
+  Tailscale online, matching private HTTPS authority, Funnel disabled, and no backend listener.
+  Resumed only Core with its reviewed exact origin and loopback port. Windows PowerShell refused
+  the ignored local `.ps1` before execution; running the reviewed startup commands directly left
+  execution policy unchanged. Diagnostics passed before startup. The sole listener is
+  `127.0.0.1:8765`; local/private HTTPS shell, script and worker serve matching `v6`; an
+  unauthenticated request to `/api/v1/client/garmin` is denied. No launcher Run/Stop action,
+  Serve route change, firewall change or new exposure occurred.
+- Fresh read-only SQLite metadata reports zero active unexpired health-scoped browsers and zero
+  pending unexpired health tickets. Only counts were returned; no names, IDs, keys, credential
+  hashes or stored content were output. Existing route readiness proves no physical-phone row.
+- Prepared direct owner-terminal ticket handoff: after approval and phone readiness, use a
+  separate interactive no-profile PowerShell window and `rtk proxy uv` with child-only
+  `RTK_TEE=0`, `RTK_RECALL=0`, `RTK_TELEMETRY_DISABLED=1`. Do not capture ticket stdout in tool
+  output, files, transcripts, clipboard automation or chat. Current PowerShell transcription
+  policies are disabled. No ticket window was opened or ticket minted. Separate-window behavior
+  is documented by [Microsoft](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/start-process?view=powershell-5.1);
+  installed RTK 0.45.0 raw-output suppression is verified in its
+  [tagged source](https://github.com/rtk-ai/rtk/blob/v0.45.0/src/core/tee.rs).
+- Physical matrix rows above remain unexecuted. Model/iOS/runtime details and owner pass/fail
+  observations are still missing. No ticket, key, device record or Garmin session was changed,
+  no source was rediscovered/reimported, and no live health value was opened for this audit.
+
+This continuation changes only the progress report. The current whitespace and secret gates
+cover that documentation checkpoint; the full application gate above and exact-SHA CI remain
+dated baseline evidence. MVP 3 stays incomplete pending the grouped approval and physical matrix.
 
 ## Security and privacy
 
