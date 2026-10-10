@@ -1,7 +1,7 @@
 # JARVIS Master Roadmap
 
 Status: active, mobile-MVP-first  
-Updated: 2026-10-08
+Updated: 2026-10-09
 Repository: `DanCreates1/JARVIS`, branch `main`
 
 ## Product target
@@ -141,6 +141,13 @@ interactive entry in a trusted local terminal.
 
 ### MVP 4 — Polish and release
 
+Authorized accessibility fixes started 2026-10-09. M4A shell `v7` separates network availability
+from authenticated stream readiness, preserves chat reading position, announces completed replies,
+reflows enlarged text and improves contrast/targets. Synthetic lifecycle and desktop checks pass;
+physical VoiceOver/Safari, full zoom, chat cancel/retry/history and performance acceptance remain.
+See [MVP 4 progress](phase-reports/PWA_MVP4_PROGRESS.md). M3C phone Garmin acceptance remains
+separate; native package candidates stay unchanged under their dependency-audit hold.
+
 Run physical-iPhone acceptance; chat reconnect/restart; Garmin offline, token-expiry, MFA,
 disconnect, and upstream-change failures; accessibility; and basic performance checks. Development
 build and signing require explicit owner approval. App Store work is separate and optional.
@@ -174,7 +181,7 @@ four MVP milestones pass and the owner explicitly reprioritizes them.
 
 **MVP 3 / M3C — health-scoped phone acceptance.** M3A/M3B are complete: protected import and
 fresh live Core Garmin evidence passed. Do not repeat source discovery/import. M3C needs a
-pending grouped health-scope enrollment/recovery decision and physical-phone evidence on shell `v6`.
+pending grouped health-scope enrollment/recovery decision and physical-phone evidence; reload current shell `v7` before new acceptance.
 Local recovery repairs and their synthetic evidence do not close the physical gate. Important new enrollment, login/MFA, credential changes,
 signing, paid services and deployment need confirmation only when not already explicitly approved.
 Native M2C remains deferred.

@@ -592,6 +592,23 @@ bounded remote logout/bootstrap cleanup; replacement enrollment or connection wa
 This preserves the existing server CSRF, cookie and Clear-Site-Data behavior. Offline local erase
 cannot establish server revocation; expiry or approved exact-device revocation closes that boundary.
 
+MVP 4 shell v7 keeps network availability separate from authenticated transport readiness. One
+generation-bound stream owner retains its lock across offline/backoff, aborts interrupted polls and
+checks a successful current poll before enabling chat. Queued Web Locks are cancelled on session
+replacement/logout. A 401 invalidates volatile session/cursor/private views while preserving the
+enrolled key; stream 403 also requires explicit same-key reconnect or trusted-host recovery.
+Header/body deadlines are 5 seconds for bootstrap/revocation, 10 seconds for normal client and
+enrollment requests, 30 seconds for 20-second event polls, and 95 seconds for Garmin's bounded
+90-second Core operation. Partial initialization fails closed; stale async results cannot restore
+views or busy state in a newer session.
+
+Chat history has an explicit name/keyboard focus target. Incoming deltas follow only readers near
+the end without a history selection; Jump to latest returns focus to history. A separate polite
+status announces complete/failed/cancelled replies once per request rather than reading every
+delta. Failed-send drafts remain in page memory with unconfirmed-outcome guidance; no automatic
+retry, offline queue or new cancellation endpoint is introduced. Garmin keeps fetched-at context
+in page memory and marks it stale at five minutes without polling solely for freshness.
+
 Phase 11C reuses that authenticated PWA surface as the only proactivity adapter. Additive migration
 013 stores one owner row per ready candidate, expiring device/feature bindings, persistent local
 adapter control, and content-free append-only transitions. Local ownership is unleased. Device

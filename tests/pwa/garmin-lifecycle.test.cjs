@@ -18,10 +18,15 @@ function deferred() {
 function element() {
   return {
     children: [], textContent: "", disabled: false, value: "", dataset: {}, classList: { add() {}, remove() {} },
+    attributes: {}, scrollTop: 0, scrollHeight: 0, clientHeight: 0, hidden: false,
+    setAttribute(name, value) { this.attributes[name] = value; },
+    removeAttribute(name) { delete this.attributes[name]; },
+    focus() { this.focused = true; },
+    contains(node) { return this.children.includes(node); },
     listeners: {},
     append(...items) { this.children.push(...items); },
     replaceChildren(...items) { this.children = [...items]; },
-    querySelector() { return null; },
+    querySelector(selector) { const id = selector.match(/data-request="([^"]+)"/)?.[1]; return this.children.find(item => item.dataset.request === id) || null; },
     addEventListener(name, callback) { (this.listeners[name] ||= []).push(callback); },
   };
 }
@@ -55,7 +60,7 @@ function harness() {
   const context = vm.createContext({
     AbortController, DOMException, TextEncoder, URLSearchParams, Date: FakeDate, Promise, CSS: { escape: value => value },
     crypto: { randomUUID: () => "synthetic-request" },
-    document: { querySelector: get, createElement: element },
+    document: { querySelector: get, createElement: element, addEventListener: (name, callback) => { windowEvents[name] = callback; } },
     window: { location: { origin: "https://synthetic.test" }, addEventListener: (name, callback) => { windowEvents[name] = callback; } },
     navigator: { onLine: true },
     indexedDB: { open: () => storageRequest(database) },
@@ -71,7 +76,7 @@ function harness() {
     },
   });
   const run = (code) => vm.runInContext(code, context);
-  const ready = Promise.resolve().then(() => Promise.resolve());
+  const ready = (async () => { for (let turn = 0; turn < 20; turn++) await Promise.resolve(); })();
   const activate = (session = "synthetic-session") => run(`state.csrf=${JSON.stringify(session)};state.hasIdentity=true;state.healthAllowed=true;setConnected(true);`);
   const summary = (steps) => ({
     date: "2026-10-07", refreshed_at: "2026-10-07T12:00:00Z", steps,
@@ -389,7 +394,7 @@ test("stream reconnect backoff cannot reconnect a logged-out or replaced session
     await h.run("logout()");
     if (replacement) h.activate("synthetic-replacement-session");
     const label = h.get("#connection").textContent;
-    h.runTimer(delay => delay < 3500);
+    // Logout cancels and wakes the backoff instead of waiting for its old timer.
     await stream;
     assert.equal(h.get("#connection").textContent, label);
     assert.equal(h.run("state.online"), replacement);
@@ -441,7 +446,7 @@ test("failed reconnect aborts old stream and remains offline with health cleared
   await h.waitForRequests(1);
   h.respond(h.requests[0], {}, 403);
   await assert.rejects(connect, /Session bootstrap rejected \(403\)/);
-  assert.equal(h.run("state.csrf"), "synthetic-existing-session");
+  assert.equal(h.run("state.csrf"), null);
   assert.equal(h.run("state.online"), false);
   assert.equal(h.run("state.healthAllowed"), false);
   assert.equal(h.get("#connection").textContent, "Connection failed");
@@ -605,4 +610,251 @@ test("failed Garmin refresh retains prior metrics with explicit stale warning", 
     assert.match(h.get("#garmin-state").textContent, /Shown Garmin data may be stale\./);
     assert.equal(h.get("#garmin-activities").children.length, 1);
   }
+});
+
+async function flush() { for (let turn = 0; turn < 40; turn++) await Promise.resolve(); }
+function streamSession(h) {
+  h.activate();
+  h.run("state.healthAllowed=false;state.subscription='synthetic-subscription';setConnected(false,'Checking live connection')");
+}
+function respondStream(h, request, text = ": keepalive\n\n") {
+  request.pending.resolve({ ok: true, status: 200, text: async () => text });
+}
+
+test("offline and repeated online events retain one owner and require a successful current poll", async () => {
+  for (const outcome of ["success", "rejection", "stalled-body"]) {
+    const h = harness(); await h.ready; streamSession(h);
+    h.run("startStreamOwnership()"); await h.waitForRequests(1);
+    const owner = h.run("state.streamOwner"), body = deferred();
+    if (outcome === "stalled-body") h.requests[0].pending.resolve({ ok: true, status: 200, text: () => body.promise });
+    await flush(); h.context.navigator.onLine = false; h.windowEvents.offline(); await flush();
+    assert.equal(h.requests[0].options.signal.aborted, true);
+    assert.equal(h.get("#send").disabled, true);
+    if (outcome === "success") respondStream(h, h.requests[0]);
+    if (outcome === "rejection") h.requests[0].pending.reject(new Error("Synthetic offline rejection"));
+    if (outcome === "stalled-body") body.resolve('data: {"cursor":1,"topic":"chat","event_type":"chat.delta","request_id":"old","payload":{"content_delta":"Old reply"}}\n\n');
+    await flush(); assert.equal(h.run("state.cursor"), 0);
+    h.context.navigator.onLine = true; h.windowEvents.online(); h.windowEvents.online();
+    assert.equal(h.get("#send").disabled, true); assert.equal(h.run("state.streamOwner"), owner);
+    await h.waitForRequests(2); assert.equal(h.get("#send").disabled, true);
+    respondStream(h, h.requests[1], 'data: {"cursor":1,"topic":"chat","event_type":"chat.delta","request_id":"current","payload":{"content_delta":"Recovered reply"}}\n\n');
+    await h.waitForRequests(3); assert.equal(h.run("state.online"), true);
+    assert.equal(h.get("#send").disabled, false); assert.equal(h.run("state.cursor"), 1);
+    assert.match(h.get("#log").children[0].textContent, /Recovered reply/);
+    assert.equal(h.requests.filter(r => !r.options.signal.aborted && r === h.requests[2]).length, 1);
+    h.run("stopStream()"); await flush();
+  }
+});
+
+test("401 and stream 403 preserve key but online cannot reactivate rejected credentials", async () => {
+  for (const status of [401, 403]) {
+    const h = harness(); await h.ready; streamSession(h);
+    h.setIdentity({ deviceId: "synthetic-device" }); h.run("startStreamOwnership()"); await h.waitForRequests(1);
+    h.respond(h.requests[0], {}, status); await flush();
+    assert.equal(h.run("state.csrf"), null); assert.equal(h.run("state.subscription"), null);
+    assert.equal(h.run("state.hasIdentity"), true); assert.ok(await h.run("loadIdentity()"));
+    h.context.navigator.onLine = false; h.windowEvents.offline(); h.context.navigator.onLine = true; h.windowEvents.online();
+    await flush(); assert.equal(h.requests.length, 1); assert.equal(h.get("#send").disabled, true);
+    assert.match(h.get("#access-status").textContent, /Connect existing device/);
+  }
+});
+
+test("stream deadline and reconnect backoff keep Send disabled until Core responds", async () => {
+  for (const phase of ["headers", "body"]) {
+    const h = harness(); await h.ready; streamSession(h); h.run("startStreamOwnership()"); await h.waitForRequests(1);
+    const body = deferred();
+    if (phase === "body") { h.requests[0].pending.resolve({ ok: true, status: 200, text: () => body.promise }); await flush(); }
+    h.runTimer(delay => delay === 30000); await flush();
+    assert.equal(h.requests[0].options.signal.aborted, true); assert.equal(h.get("#send").disabled, true);
+    h.runTimer(delay => delay >= 500 && delay < 3500); await h.waitForRequests(2);
+    assert.equal(h.get("#send").disabled, true); respondStream(h, h.requests[1]); await h.waitForRequests(3);
+    assert.equal(h.get("#send").disabled, false);
+    if (phase === "body") body.resolve(": keepalive\n\n"); else respondStream(h, h.requests[0]);
+    h.run("stopStream()"); await flush();
+  }
+});
+
+test("Core subscription reset requires a new authenticated event poll", async () => {
+  const h = harness(); await h.ready; streamSession(h); h.run("startStreamOwnership()"); await h.waitForRequests(1);
+  h.respond(h.requests[0], {}, 404); await h.waitForRequests(2);
+  assert.equal(h.requests[1].options.method, "DELETE"); h.respond(h.requests[1], {}); await h.waitForRequests(3);
+  h.respond(h.requests[2], { id: "synthetic-restarted-subscription", next_cursor: 8 }); await h.waitForRequests(4);
+  assert.equal(h.get("#send").disabled, true); assert.match(h.requests[3].url, /after=8/);
+  respondStream(h, h.requests[3]); await h.waitForRequests(5); assert.equal(h.get("#send").disabled, false);
+  h.run("stopStream()"); await flush();
+});
+
+test("queued Web Lock and repeated startup never create another active owner", async () => {
+  const h = harness(); await h.ready; streamSession(h);
+  const lock = deferred(); let callbacks = 0;
+  h.context.navigator.locks = { request: async (name, options, callback) => { callbacks++; await lock.promise; return callback({ name }); } };
+  h.run("startStreamOwnership();startStreamOwnership()"); assert.equal(callbacks, 1); assert.equal(h.requests.length, 0);
+  assert.equal(h.get("#send").disabled, true); lock.resolve(); await h.waitForRequests(1);
+  respondStream(h, h.requests[0]); await h.waitForRequests(2); assert.equal(h.get("#send").disabled, false);
+  h.run("stopStream()"); await flush();
+});
+
+test("partial connect failure and body deadline release controls without false readiness", async () => {
+  for (const phase of ["subscription", "status", "tasks", "stalled-body"]) {
+    const h = harness(); await h.ready;
+    h.setIdentity({ deviceId: "synthetic-device", healthAllowed: false }); h.run("signedHeaders=async()=>({})");
+    const connection = h.run("connect()"), result = assert.rejects(connection);
+    h.run("connect()"); await h.waitForRequests(1); assert.equal(h.get("#connect").disabled, true);
+    h.respond(h.requests[0], { csrf_token: "synthetic-session" }, 201); await h.waitForRequests(2);
+    if (phase === "subscription") h.respond(h.requests[1], {}, 503);
+    else {
+      h.respond(h.requests[1], { id: "synthetic-subscription", next_cursor: 0 }); await h.waitForRequests(3);
+      if (phase === "status") h.respond(h.requests[2], {}, 503);
+      else if (phase === "stalled-body") {
+        h.requests[2].pending.resolve({ ok: true, status: 200, json: () => deferred().promise }); await flush(); h.runTimer(delay => delay === 10000);
+      } else {
+        h.respond(h.requests[2], { device: { display_name: "Synthetic", state: "active", key_version: 1 }, session: { id: "synthetic-session" } });
+        await h.waitForRequests(4); h.respond(h.requests[3], {}, 503);
+      }
+    }
+    await result; assert.equal(h.run("state.csrf"), null); assert.equal(h.get("#send").disabled, true);
+    assert.equal(h.get("#connect").disabled, false); assert.equal(h.get("#enroll").disabled, true);
+    assert.match(h.get("#access-status").textContent, /Retry Connect existing device/);
+  }
+});
+
+test("history updates retain scroll position and selection until Jump to latest", async () => {
+  const h = harness(); await h.ready; const log = h.get("#log");
+  log.scrollHeight = 1000; log.clientHeight = 200; log.scrollTop = 120;
+  h.run("row('jarvis','Synthetic delta','reply')"); assert.equal(log.scrollTop, 120); assert.equal(h.get("#jump-latest").hidden, false);
+  log.scrollTop = 800;
+  h.context.document.getSelection = () => ({ isCollapsed: false, anchorNode: log.children[0] });
+  h.run("row('jarvis','Selected synthetic reply','reply')"); assert.equal(log.scrollTop, 800); assert.equal(h.get("#jump-latest").hidden, false);
+  h.get("#jump-latest").listeners.click[0](); assert.equal(log.scrollTop, 1000); assert.equal(log.focused, true);
+  assert.equal(h.get("#jump-latest").hidden, true);
+});
+
+test("completed answer announced once; delta, failed and cancelled behavior explicit", async () => {
+  const h = harness(); await h.ready; let cursor = 0;
+  const event = (type, payload = {}, id = "synthetic-reply") => h.run(`processEvent(${JSON.stringify({ cursor: ++cursor, topic: "chat", event_type: type, request_id: id, payload })})`);
+  event("chat.started"); assert.equal(h.get("#chat").attributes["aria-busy"], "true");
+  const start = h.get("#chat-status").textContent;
+  event("chat.delta", { content_delta: "Synthetic " }); event("chat.frame", { type: "assistant_delta", content_delta: "answer" });
+  assert.equal(h.get("#chat-status").textContent, start);
+  event("chat.completed", { conversation_id: "synthetic-conversation" });
+  assert.equal(h.get("#chat-status").textContent, "Reply complete. JARVIS: Synthetic answer");
+  assert.equal(h.get("#chat").attributes["aria-busy"], "false");
+  h.get("#chat-status").textContent = "Sentinel"; event("chat.completed"); assert.equal(h.get("#chat-status").textContent, "Sentinel");
+  event("chat.failed", {}, "failed-reply"); assert.equal(h.get("#chat-status").textContent, "Request failed safely.");
+  event("chat.cancelled", {}, "cancelled-reply"); assert.equal(h.get("#chat-status").textContent, "Request cancelled.");
+});
+
+test("failed send keeps draft and repeated submit cannot duplicate in-flight request", async () => {
+  const h = harness(); await h.ready; h.activate(); h.run("state.subscription='synthetic-subscription'");
+  h.get("#message").value = "Synthetic draft";
+  const send = h.run("sendMessage({preventDefault(){}})"); h.run("sendMessage({preventDefault(){}})");
+  assert.equal(h.requests.length, 1); assert.equal(h.get("#send").disabled, true);
+  h.requests[0].pending.reject(new Error("Synthetic failed send")); await send;
+  assert.equal(h.get("#message").value, "Synthetic draft"); assert.equal(h.get("#send").disabled, false);
+  assert.match(h.get("#chat-status").textContent, /outcome unconfirmed.*Draft kept/);
+});
+
+test("Garmin ages on screen and retains fetched-at context while loading without new reads", async () => {
+  const h = harness(); await h.ready; h.activate();
+  const initial = h.run("refreshGarmin(false)"); h.respond(h.requests[0], h.summary(42)); await initial;
+  const refreshed = h.get("#garmin-state").textContent; h.clock.now += 299999; h.run("renderGarminStatus()");
+  assert.equal(h.get("#garmin-state").textContent, refreshed); h.clock.now += 1; h.runTimer(delay => delay === 1);
+  assert.match(h.get("#garmin-state").textContent, /Stale/); assert.equal(h.requests.length, 1);
+  const loading = h.run("refreshGarmin(true)");
+  assert.match(h.get("#garmin-state").textContent, /Checking Garmin.*last checked.*Stale/);
+  assert.equal(h.get("#refresh-garmin").disabled, true); h.requests[1].pending.reject(new Error("Synthetic failure")); await loading;
+  h.clock.now += 300000; h.windowEvents.visibilitychange(); assert.match(h.get("#garmin-state").textContent, /Stale/);
+  await h.run("logout()"); h.windowEvents.pageshow(); h.windowEvents.visibilitychange();
+  assert.equal(h.get("#garmin-state").textContent, EMPTY); assert.equal(h.run("state.healthSnapshot"), null);
+  h.respond(h.requests[2], {});
+});
+
+test("logout focus and durable result distinguish remote success, failure and timeout", async () => {
+  for (const result of [200, 503, "timeout"]) {
+    const h = harness(); await h.ready; h.activate(); await h.run("logout()");
+    assert.equal(h.get("#ticket").focused, true); assert.match(h.get("#access-status").textContent, /Server sign-out pending/);
+    if (result === "timeout") h.runTimer(delay => delay === 5000); else h.respond(h.requests[0], {}, result);
+    await flush(); assert.match(h.get("#access-status").textContent, result === 200 ? /Server sign-out confirmed/ : /Server sign-out unconfirmed/);
+    assert.match(h.get("#access-status").textContent, /Device enrollment remains on Core/);
+    assert.equal(h.get("#notice").textContent, h.get("#access-status").textContent);
+  }
+});
+
+test("malformed ticket produces persistent associated recovery and no network call", async () => {
+  const h = harness(); await h.ready; h.fakeEnrollmentCrypto(); h.get("#ticket").value = "{";
+  await assert.rejects(h.run("enroll()"), /complete JSON/);
+  assert.equal(h.requests.length, 0); assert.equal(h.get("#ticket").attributes["aria-invalid"], "true");
+  assert.match(h.get("#ticket-error").textContent, /approved, unexpired, unused ticket/); assert.equal(h.get("#enroll").disabled, false);
+});
+
+test("completed HTTP reply survives later stream frames without duplicate speech", async () => {
+  const h = harness(); await h.ready; h.activate(); h.run("state.subscription='synthetic-subscription'");
+  h.get("#message").value = "Synthetic prompt"; const send = h.run("sendMessage({preventDefault(){}})");
+  h.run("processEvent({cursor:1,topic:'chat',event_type:'chat.started',request_id:'request:synthetic-request',payload:{}})");
+  h.respond(h.requests[0], { reply: "Full synthetic answer", conversation_id: "synthetic-conversation" }); await send;
+  assert.equal(h.get("#log").children[1].textContent, "JARVIS: Full synthetic answer");
+  const announcement = h.get("#chat-status").textContent;
+  h.run("processEvent({cursor:2,topic:'chat',event_type:'chat.started',request_id:'request:synthetic-request',payload:{}});processEvent({cursor:3,topic:'chat',event_type:'chat.delta',request_id:'request:synthetic-request',payload:{content_delta:'Repeated answer'}});processEvent({cursor:4,topic:'chat',event_type:'chat.completed',request_id:'request:synthetic-request',payload:{}})");
+  assert.equal(h.get("#log").children[1].textContent, "JARVIS: Full synthetic answer");
+  assert.equal(h.get("#chat-status").textContent, announcement); assert.equal(h.run("state.cursor"), 4);
+  assert.equal(h.get("#chat").attributes["aria-busy"], "false");
+});
+
+test("logout cancels a queued owner; later lock grant cannot start a stale poll", async () => {
+  const h = harness(); await h.ready; streamSession(h); const lock = deferred(); let signal;
+  h.context.navigator.locks = { request: async (name, options, callback) => { signal = options.signal; await lock.promise; return callback({ name }); } };
+  h.run("startStreamOwnership()"); await h.run("logout()"); assert.equal(signal.aborted, true);
+  lock.resolve(); await flush(); assert.equal(h.requests.length, 1); assert.equal(h.run("state.online"), false);
+  h.respond(h.requests[0], {});
+});
+
+test("browser resume marks old health stale without another Garmin request", async () => {
+  const h = harness(); await h.ready; h.activate();
+  h.run("renderGarmin({date:'2026-10-07',refreshed_at:'2026-10-07T12:00:00Z',steps:42,activities:[]})");
+  h.clock.now += 300001; h.windowEvents.pageshow(); h.windowEvents.visibilitychange();
+  assert.match(h.get("#garmin-state").textContent, /Stale/); assert.equal(h.requests.length, 0);
+});
+
+test("unconfirmed POST outcome cannot suppress later authoritative streamed reply", async () => {
+  const h = harness(); await h.ready; h.activate(); h.run("state.subscription='synthetic-subscription'");
+  h.get("#message").value = "Synthetic draft"; const send = h.run("sendMessage({preventDefault(){}})");
+  h.requests[0].pending.reject(new Error("Synthetic response loss")); await send;
+  assert.equal(h.run("state.chatAnnounced.has('request:synthetic-request')"), false);
+  h.run("processEvent({cursor:1,topic:'chat',event_type:'chat.delta',request_id:'request:synthetic-request',payload:{content_delta:'Recovered authoritative answer'}});processEvent({cursor:2,topic:'chat',event_type:'chat.completed',request_id:'request:synthetic-request',payload:{}})");
+  assert.equal(h.get("#log").children[1].textContent, "JARVIS: Recovered authoritative answer");
+  assert.equal(h.get("#log").children[1].className, "entry jarvis");
+  assert.equal(h.get("#chat-status").textContent, "Reply complete. JARVIS: Recovered authoritative answer");
+  assert.equal(h.get("#message").value, "");
+});
+
+test("lost POST response after streamed completion preserves known answer and clears submitted draft", async () => {
+  const h = harness(); await h.ready; h.activate(); h.run("state.subscription='synthetic-subscription'");
+  h.get("#message").value = "Synthetic draft"; const send = h.run("sendMessage({preventDefault(){}})");
+  h.run("processEvent({cursor:1,topic:'chat',event_type:'chat.delta',request_id:'request:synthetic-request',payload:{content_delta:'Known answer'}});processEvent({cursor:2,topic:'chat',event_type:'chat.completed',request_id:'request:synthetic-request',payload:{}})");
+  h.requests[0].pending.reject(new Error("Synthetic lost acknowledgement")); await send;
+  assert.equal(h.get("#message").value, ""); assert.equal(h.get("#log").children[1].textContent, "JARVIS: Known answer");
+  assert.equal(h.get("#chat-status").textContent, "Reply complete. JARVIS: Known answer");
+});
+
+test("Garmin deadline bounds stalled headers/body and releases accessible loading state", async () => {
+  for (const phase of ["headers", "body"]) {
+    const h = harness(); await h.ready; h.activate(); const refresh = h.run("refreshGarmin(true)");
+    if (phase === "body") { h.requests[0].pending.resolve({ ok: true, status: 200, json: () => deferred().promise }); await flush(); }
+    assert.equal(h.get("#garmin").attributes["aria-busy"], "true"); assert.equal(h.get("#refresh-garmin").disabled, true);
+    h.runTimer(delay => delay === 95000); await refresh;
+    assert.equal(h.requests[0].options.signal.aborted, true); assert.equal(h.get("#refresh-garmin").disabled, false);
+    assert.equal(h.get("#garmin").attributes["aria-busy"], "false"); assert.match(h.get("#garmin-state").textContent, /Garmin check failed/);
+  }
+});
+
+test("steady keepalive polls do not repeatedly mutate polite connection statuses", async () => {
+  const h = harness(); await h.ready; streamSession(h); const writes = new Map();
+  for (const selector of ["#connection", "#access-status"]) {
+    const node = h.get(selector); let value = node.textContent; writes.set(selector, 0);
+    Object.defineProperty(node, "textContent", { get: () => value, set: next => { value = next; writes.set(selector, writes.get(selector) + 1); } });
+  }
+  h.run("startStreamOwnership()"); await h.waitForRequests(1); respondStream(h, h.requests[0]); await h.waitForRequests(2);
+  respondStream(h, h.requests[1]); await h.waitForRequests(3); respondStream(h, h.requests[2]); await h.waitForRequests(4);
+  assert.equal(writes.get("#connection"), 1); assert.equal(writes.get("#access-status"), 1);
+  h.run("stopStream()"); await flush();
 });

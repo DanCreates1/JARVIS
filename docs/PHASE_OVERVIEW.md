@@ -1,6 +1,6 @@
 # JARVIS Phase Overview
 
-Updated: 2026-10-08
+Updated: 2026-10-09
 
 ## Active product path
 
@@ -29,6 +29,7 @@ record.
 | Track | Status | Next gate |
 | --- | --- | --- |
 | Phone PWA | Physical-iPhone chat accepted; M3A/M3B complete; M3C shell v6 repairs offline logout and obsolete response/reconnect handling with synthetic evidence | Pending grouped health-read enrollment/recovery decision and physical-iPhone acceptance |
+| PWA MVP 4 | M4A shell v7 accessibility/reconnect fixes pass synthetic lifecycle and desktop checks | Physical accessibility, chat cancel/retry/history, performance and release acceptance remain; M3C stays separate |
 | Native MVP | Expo Go checks passed; independent native build unverified and deferred under $0/no-Mac constraint | No active native gate |
 | Mobile MVP 2 | Deferred | No active native gate |
 | Mobile MVP 3 | Deferred | No active native gate |
@@ -47,6 +48,7 @@ record.
 
 - Use the PWA Garmin acceptance list for current phone work; native mobile milestones are deferred.
 - Current MVP 3 evidence and M3A/M3B/M3C gates: [PWA MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
+- Authorized MVP 4 accessibility work and remaining gates: [PWA MVP 4 progress](phase-reports/PWA_MVP4_PROGRESS.md). Reload current shell v7 for new acceptance; historical M3C v6 evidence remains unchanged.
 - Preserve Core as sole authority, memory, routing, permission, and audit system.
 - Keep production Core loopback-bound behind approved private-network HTTPS.
 - Follow the root Codex confirmation policy: routine requested work proceeds; important new

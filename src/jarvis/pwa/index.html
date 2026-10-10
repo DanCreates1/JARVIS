@@ -9,7 +9,7 @@
   <link rel="manifest" href="/app/manifest.webmanifest">
   <link rel="icon" href="/app/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app/app.css">
-  <script src="/app/app.js?v=6" type="module"></script>
+  <script src="/app/app.js?v=7" type="module"></script>
 </head>
 <body>
   <header>
@@ -25,11 +25,13 @@
       <h2 id="setup-title">Device access</h2>
       <p>Paste one unexpired enrollment ticket created on trusted host. Private key stays non-exportable in this browser.</p>
       <label for="ticket">Enrollment ticket JSON</label>
-      <textarea id="ticket" rows="5" spellcheck="false" autocomplete="off"></textarea>
+      <textarea id="ticket" rows="5" spellcheck="false" autocomplete="off" aria-describedby="ticket-error access-status"></textarea>
+      <p id="ticket-error" class="error" role="status"></p>
       <div class="actions">
         <button id="enroll" type="button">Enroll device</button>
         <button id="connect" type="button" class="secondary">Connect existing device</button>
       </div>
+      <p id="access-status" class="hint" role="status">Enroll with an approved ticket, or connect an existing device key.</p>
     </section>
 
     <section class="panel" aria-labelledby="chat-title">
@@ -37,7 +39,9 @@
         <h2 id="chat-title">Conversation</h2>
         <button id="notify" type="button" class="quiet" disabled>Enable notifications</button>
       </div>
-      <div id="log" class="log" role="log" aria-live="polite" aria-relevant="additions"></div>
+      <div id="log" class="log" role="log" aria-live="off" aria-labelledby="chat-title" tabindex="0"></div>
+      <button id="jump-latest" type="button" class="secondary" aria-controls="log" hidden>Jump to latest</button>
+      <p id="chat-status" class="hint" role="status" aria-live="polite" aria-atomic="true"></p>
       <form id="chat">
         <label class="sr-only" for="message">Message</label>
         <textarea id="message" rows="2" maxlength="100000" placeholder="Ask JARVIS" disabled></textarea>
@@ -46,7 +50,7 @@
       <p class="hint">Offline messages are never queued. Remote voice remains disabled until secure deployment validation.</p>
     </section>
 
-    <section class="panel" aria-labelledby="garmin-title">
+    <section id="garmin" class="panel" aria-labelledby="garmin-title">
       <div class="section-head">
         <div>
           <p class="eyebrow">READ ONLY</p>
@@ -61,11 +65,12 @@
       <p class="hint">Garmin sign-in and tokens stay on your trusted laptop. Health data is never sent to JARVIS model providers.</p>
     </section>
 
-    <section class="panel" aria-labelledby="tasks-title">
+    <section id="task-panel" class="panel" aria-labelledby="tasks-title">
       <div class="section-head">
         <h2 id="tasks-title">Task status</h2>
-        <button id="refresh-tasks" type="button" class="quiet" disabled>Refresh</button>
+        <button id="refresh-tasks" type="button" class="quiet" disabled>Refresh tasks</button>
       </div>
+      <p id="tasks-state" class="hint" role="status"></p>
       <ul id="tasks"><li>No authenticated status.</li></ul>
     </section>
 
@@ -76,6 +81,6 @@
     </section>
   </main>
 
-  <div id="notice" class="notice" role="status" aria-live="assertive"></div>
+  <div id="notice" class="notice" role="status" aria-live="polite"></div>
 </body>
 </html>
