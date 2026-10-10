@@ -131,7 +131,13 @@ function row(kind,text,requestId){
   const follow=nearLatest()&&!historySelected();
   let target=requestId?ui.log.querySelector(`[data-request="${CSS.escape(requestId)}"]`):null;
   if(!target){target=document.createElement("div");target.className=`entry ${kind}`;if(requestId)target.dataset.request=requestId;ui.log.append(target);}
-  target.className=`entry ${kind}`;target.textContent=text;
+  target.className=`entry ${kind}`;
+  const previous=target.textContent,textNode=target.firstChild;
+  // Append deltas to the existing text node so selected reply text survives streaming.
+  if(text!==previous){
+    if(textNode?.nodeType===3&&target.childNodes.length===1&&text.startsWith(previous))textNode.appendData(text.slice(previous.length));
+    else target.textContent=text;
+  }
   if(follow)ui.log.scrollTop=ui.log.scrollHeight;
   ui.jumpLatest.hidden=follow&&nearLatest();
   return target;

@@ -32,7 +32,8 @@
   RGB. Focus outline exceeds 3:1 against tested fill/button colors. Panel alpha does not bring the
   measured input boundary below 3:1 over either dark background endpoint.
 - F4/F5: named, explicitly focusable history; no forced scroll while reading earlier text or
-  selecting history; named Jump to latest returns focus to history. Deltas do not trigger repeated
+  selecting history; append deltas retain a selection inside the active reply's text node. Named
+  Jump to latest returns focus to history. Deltas do not trigger repeated
   speech; a polite completed answer status is deduplicated across HTTP/SSE completion. Failed and
   cancelled events have deliberate status. Steady keepalives do not rewrite live connection
   status. Real screen-reader speech remains unverified.
@@ -68,7 +69,7 @@ Verification:
 - Existing synthetic Phase 8C transport benchmark passes 100 reconnects/10,000 events with no
   duplicates/gaps/cross-session deliveries/offline effects or retained private state. Its existing
   limits remain p95 <25ms, RSS growth <50MiB and shell <256,000 bytes. Measured p95 was
-  0.1406ms and RSS growth 0.660MiB; shell remains below 46,000 bytes. This is a transport regression
+  0.1406ms and RSS growth 0.660MiB; shell remains below 47,000 bytes. This is a transport regression
   check, not phone startup/navigation/first-delta/memory acceptance.
 - `rtk proxy npm run verify` in `mobile/`: formatting/lint/types, 38 Jest tests, Expo Doctor 21/21
   and 1,109 dependency license records pass. Existing production audit fails: **15 moderate,
@@ -85,7 +86,11 @@ and `d0da737979bc3f2ba193939f7d16a6889d934173bfe9a0f8180a4286c1433cf9` for packa
 
 Publication includes only PWA source/tests/harness and MVP 4 architecture/setup/progress docs.
 Staged Gitleaks finds no leaks. Mobile package candidates, concurrent MVP 3 report and all runtime
-artifacts are excluded. Standing commit/push authority applies; CI result remains to be recorded.
+artifacts are excluded. Standing commit/push authority applies. Implementation commit `e091930`
+was pushed to `main`; [CI run 38013362174](https://github.com/DanCreates1/JARVIS/actions/runs/38013362174)
+passed Windows quality (lock/sync, formatting/lint/types, full tests and both Python audits) and
+secret scan. Final follow-up preserves text selection inside actively streaming replies and adds
+its real-browser regression; 43 lifecycle tests and all 24 desktop cases pass after that change.
 
 Official implementation references checked 2026-10-09: [network availability](https://developer.mozilla.org/en-US/docs/Web/API/Window/online_event),
 [queued/abortable Web Locks](https://developer.mozilla.org/en-US/docs/Web/API/LockManager/request),
