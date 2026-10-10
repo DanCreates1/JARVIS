@@ -92,6 +92,22 @@ passed Windows quality (lock/sync, formatting/lint/types, full tests and both Py
 secret scan. Final follow-up preserves text selection inside actively streaming replies and adds
 its real-browser regression; 43 lifecycle tests and all 24 desktop cases pass after that change.
 
+2026-10-09 verification checkpoint at `e4133b41ba4884d593b5a27f70fab9fa6a6b6398`:
+
+- Local HEAD, tracking `origin/main`, and live upstream `main` match the final M4A implementation.
+  [CI run 38013672136](https://github.com/DanCreates1/JARVIS/actions/runs/38013672136) passed
+  both Windows quality and secret-scan jobs at that exact SHA, including the full test gate,
+  root/sidecar locked setup and dependency audits. This closes the previously unrecorded CI
+  result for the streamed-selection follow-up; physical MVP 4 acceptance remains open.
+- Fresh local reruns pass all **43 lifecycle tests** and **24 desktop geometry cases**. Keyboard,
+  named history, reading/selection retention, focus and reduced motion checks pass. Contrast
+  remains 5.7947:1 for Logout text, 4.9248:1 for input boundary against fill, and 4.6004:1
+  against panel RGB. Generated evidence remains under ignored `runtime/mvp4-fixes/`.
+- No additional application change was needed for the requested F1-F5 priorities. This checkpoint
+  updates only this report. Native package candidate hashes above remain unchanged; concurrent
+  `PWA_MVP3_PROGRESS.md` content remains untouched. No physical-device evidence, enrollment,
+  revocation, Garmin read or route change is claimed.
+
 Official implementation references checked 2026-10-09: [network availability](https://developer.mozilla.org/en-US/docs/Web/API/Window/online_event),
 [queued/abortable Web Locks](https://developer.mozilla.org/en-US/docs/Web/API/LockManager/request),
 [scroll-container keyboard access](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow),
