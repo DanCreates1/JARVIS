@@ -1,6 +1,6 @@
 # JARVIS Phase Overview
 
-Updated: 2026-10-09
+Updated: 2026-10-10
 
 ## Active product path
 
@@ -29,7 +29,7 @@ record.
 | Track | Status | Next gate |
 | --- | --- | --- |
 | Phone PWA | Physical-iPhone chat accepted; M3A/M3B complete; M3C shell v6 repairs offline logout and obsolete response/reconnect handling with synthetic evidence | Pending grouped health-read enrollment/recovery decision and physical-iPhone acceptance |
-| PWA MVP 4 | M4A shell v7 accessibility/reconnect fixes pass synthetic lifecycle and desktop checks | Physical accessibility, chat cancel/retry/history, performance and release acceptance remain; M3C stays separate |
+| PWA MVP 4 | M4A shell v7 fixes pass local checks; physical acceptance `blocked-external` while phone available later | [Safari/Home Screen matrix](PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md), actual browser zoom, later chat/performance/release gates; M3C stays separate |
 | Native MVP | Expo Go checks passed; independent native build unverified and deferred under $0/no-Mac constraint | No active native gate |
 | Mobile MVP 2 | Deferred | No active native gate |
 | Mobile MVP 3 | Deferred | No active native gate |

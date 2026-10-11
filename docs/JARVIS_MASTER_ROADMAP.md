@@ -1,7 +1,7 @@
 # JARVIS Master Roadmap
 
 Status: active, mobile-MVP-first  
-Updated: 2026-10-09
+Updated: 2026-10-10
 Repository: `DanCreates1/JARVIS`, branch `main`
 
 ## Product target
@@ -147,6 +147,11 @@ reflows enlarged text and improves contrast/targets. Synthetic lifecycle and des
 physical VoiceOver/Safari, full zoom, chat cancel/retry/history and performance acceptance remain.
 See [MVP 4 progress](phase-reports/PWA_MVP4_PROGRESS.md). M3C phone Garmin acceptance remains
 separate; native package candidates stay unchanged under their dependency-audit hold.
+
+2026-10-10 M4A continuation at `5384121`: owner reports phone available later. Physical
+accessibility remains `blocked-external`; [M4A acceptance](PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md)
+records separate Safari/Home Screen rows and a separate actual desktop 400% browser-zoom gate.
+Preparation does not close either physical acceptance or MVP 4. No application assets changed.
 
 Run physical-iPhone acceptance; chat reconnect/restart; Garmin offline, token-expiry, MFA,
 disconnect, and upstream-change failures; accessibility; and basic performance checks. Development

@@ -7,6 +7,13 @@
 - Preserve unrelated native package edits and concurrent `PWA_MVP3_PROGRESS.md` work.
 - M3C physical-phone acceptance remains separate. MVP 4 is not complete.
 
+2026-10-10 resumption: `main` at `5384121`, shell `v7`; owner reports **phone available later**.
+M4A physical acceptance is `blocked-external`; aggregate MVP 4 stays `in-progress`. Preparation:
+freeze separate Safari/Home Screen steps and sanitized results in
+[M4A acceptance](../PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md), refresh local supporting checks, run
+applicable publication gates, preserve native edits and MVP 3 report. No new application change
+or physical pass is planned without observed device evidence.
+
 ## Acceptance
 
 - [x] Authenticated transport readiness and one stream owner through synthetic offline/recovery/restart.
@@ -108,6 +115,41 @@ its real-browser regression; 43 lifecycle tests and all 24 desktop cases pass af
   `PWA_MVP3_PROGRESS.md` content remains untouched. No physical-device evidence, enrollment,
   revocation, Garmin read or route change is claimed.
 
+2026-10-10 M4A physical-acceptance preparation at baseline `5384121`:
+
+- Owner reports **phone available later**. No physical-device check was run; iPhone/iOS, keyboard
+  availability and phone-loaded shell version remain unknown. The new
+  [M4A acceptance matrix](../PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md) freezes separate Safari/Home
+  Screen steps and pending result rows for speech, enlarged text, zoom, focus, touch and recovery.
+  Actual desktop browser 400% zoom stays separate from viewport emulation and phone magnification.
+- Application assets remain shell `v7`, byte-for-byte unchanged. Fresh local evidence passes
+  **43/43 lifecycle tests** and **24/24 desktop geometry cases**, now on Windows Edge
+  **155.0.4283.45**. Named history, keyboard/focus, reading/selection retention and reduced motion
+  checks pass. Contrast remains Logout text **5.7947:1**, input boundary/fill **4.9248:1**,
+  input boundary/panel **4.6004:1**. These are desktop results, not spoken Safari acceptance.
+- `rtk uv run pytest --basetemp runtime/mvp4-fixes/pytest-20261010-m4a`: **1,439 passed,
+  3 skipped**, **85.59% coverage**, **105.43s**; one existing warning. Root and Garmin sidecar
+  lock checks/locked sync pass; Ruff format/lint (410 files), mypy (164 source files), root
+  pip-audit and sidecar audit through `--path garmin_sync/.venv/Lib/site-packages` pass.
+  Gitleaks history scans 95 commits with no leaks; local documentation links and diff checks pass.
+- Standard `jarvis doctor` initially hit console `OSError: [Errno 22] Invalid argument` using
+  `cp1252` output. The same CLI succeeds through a Node subprocess with process-only
+  `PYTHONIOENCODING=utf-8`; no repository/environment configuration changed. This is installation
+  diagnostics under default settings, not private-route or phone readiness evidence.
+- Baseline local HEAD, tracking ref and live upstream `main` match
+  `53841218d616a6d09c172cec7ed29537afef023b`.
+  [CI run 38016337629](https://github.com/DanCreates1/JARVIS/actions/runs/38016337629) succeeds
+  at that exact SHA: Windows quality and secret scan, including both Python dependency audits.
+  This is baseline CI; the documentation publication has its own subsequent run.
+- Preservation SHA256 checks pass for both native package candidates (hashes above), all four
+  inspected shell assets and `PWA_MVP3_PROGRESS.md`
+  (`eddd4479a9ae1b11029f5436e01b81ccaa6ecdebbc5b7bfb1241b0d5a01e146b`). Native verification
+  was not rerun for this documentation-only session; the existing native dependency-audit hold
+  remains. Generated browser/pytest evidence stays ignored under `runtime/mvp4-fixes/`.
+- Publication scope is four documentation files: M4A matrix, this report, phase overview and
+  master roadmap. No application behavior, Core service, private route, enrollment/revocation,
+  key erasure, Garmin read or M3C report changed. Physical M4A and aggregate MVP 4 stay open.
+
 Official implementation references checked 2026-10-09: [network availability](https://developer.mozilla.org/en-US/docs/Web/API/Window/online_event),
 [queued/abortable Web Locks](https://developer.mozilla.org/en-US/docs/Web/API/LockManager/request),
 [scroll-container keyboard access](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow),
@@ -120,9 +162,11 @@ Official implementation references checked 2026-10-09: [network availability](ht
 ## Remaining gates and handoff
 
 M4A local fixes are reviewable; **MVP 4 is not complete**. Physical Safari/Home Screen VoiceOver,
-largest text, actual 400% zoom, landscape/safe areas/software keyboard, touch exploration and focus
+largest text, website zoom/magnification, landscape/safe areas/software keyboard, touch exploration and focus
 during disabled-control transitions still need device evidence. F7/F9 recovery usability requires
-slow-reading/spoken checks. F11 needs protocol-aware cancellation/retry and Core-backed history,
+slow-reading/spoken checks. Actual desktop browser 400% zoom remains a separate unverified gate;
+phone pinch/iOS Zoom cannot substitute for layout reflow. Follow the dated
+[M4A matrix](../PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md). F11 needs protocol-aware cancellation/retry and Core-backed history,
 including uncertain commit outcome/session guards, before its phone soak. Record explicit phone
 performance thresholds before measurements and milestone closure. M3C health-scoped phone
 enrollment/revocation/Garmin recovery acceptance stays in its separate report and authority scope.
