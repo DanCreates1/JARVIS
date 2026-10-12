@@ -3,7 +3,8 @@
 - Status: `in-progress`; M4A local accessibility implementation verified, physical/release gates open.
 - Audit baseline: `ed4ee18`, shell v6; work started at `1f07d4c` after concurrent M3C evidence commit.
 - Active subphase: M4A — reconnect readiness, text reflow, contrast and chat accessibility.
-- Scope: synthetic browser/client checks; no live enrollment, revocation, Garmin reads or route changes.
+- Scope: synthetic browser/client checks and physical Safari/Home Screen accessibility acceptance
+  using existing identity/public text only; no live enrollment, revocation, Garmin reads or route changes.
 - Preserve unrelated native package edits and concurrent `PWA_MVP3_PROGRESS.md` work.
 - M3C physical-phone acceptance remains separate. MVP 4 is not complete.
 
@@ -14,6 +15,11 @@ freeze separate Safari/Home Screen steps and sanitized results in
 applicable publication gates, preserve native edits and MVP 3 report. No new application change
 or physical pass is planned without observed device evidence.
 
+2026-10-12 resumption: `main` at `2cb1f96`, shell `v7`; owner confirmed **phone available now**.
+M4A physical acceptance is `in-progress`; device metadata, phone-loaded version and actual
+Safari/Home Screen accessibility observations remain pending. Availability closes the phone-unavailable blocker,
+not an acceptance row. Use the existing matrix; M3C acceptance stays separate.
+
 ## Acceptance
 
 - [x] Authenticated transport readiness and one stream owner through synthetic offline/recovery/restart.
@@ -22,6 +28,7 @@ or physical pass is planned without observed device evidence.
 - [x] Named keyboard-focusable chat history; retain earlier reading position and selection.
 - [x] Deliberate completed/failed reply status; persistent recovery guidance. Spoken acceptance open.
 - [x] Focused synthetic tests and Core repository gate; unrelated native audit hold isolated below.
+- [x] Separate actual desktop browser 400% zoom gate on the bounded synthetic shell.
 - [ ] Physical Safari/Home Screen VoiceOver, larger text, zoom, external keyboard and touch.
 - [ ] Chat cancel/retry/history/restart soak and measured performance thresholds.
 
@@ -159,13 +166,50 @@ Official implementation references checked 2026-10-09: [network availability](ht
 [control contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html),
 [status messages](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html).
 
+2026-10-12 M4A resumption and desktop zoom checkpoint at baseline `2cb1f96`:
+
+- Owner confirmed iPhone available and Home Screen JARVIS opens with **Offline shell**.
+  **Connect existing device** result, model/iOS, enrollment state, settings, keyboard availability
+  and phone-loaded version remain pending. Instructions now proceed one phone step at a time;
+  no VoiceOver observation or physical A1-A11 pass is claimed. Safari has not yet been observed.
+- Existing private Serve route passed ownership/backend/origin checks; tailnet online, Funnel
+  disabled. Core was found stopped; resumed with its existing configuration: one Python-owned
+  listener at `127.0.0.1:8765`, no non-loopback Core listener. Local/private shell, script and worker
+  return HTTP 200 with host `v7` references. Route untouched. This is service readiness, not the
+  M3C phone Core-restart row or proof of phone-loaded assets. No Garmin read or identity operation.
+- Fresh **43/43 lifecycle tests** and **24/24 desktop geometry cases** pass on Edge
+  **155.0.4283.45**. Contrast remains Logout text **5.7947:1**, input boundary/fill **4.9248:1**,
+  input boundary/panel **4.6004:1**. Existing harness required normal local access after sandbox
+  loopback `EACCES`; no application or Windows security setting changed.
+- Separate actual desktop browser zoom gate passes in a fresh headless Edge profile with native
+  `tabs.setZoom` in automatic/per-tab mode. At 100%, `innerWidth=1280`, scrollbar-adjusted
+  `clientWidth=1265`; at 400%, `innerWidth=320`, `clientWidth=316`, visual width **316.25** and
+  root/body scroll widths **316**. DPR **4**, visual scale **1**, CSS zoom **1**. Long public fixtures
+  have no inspected horizontal overflow. Ten controls reachable/pointer-hit checks, history
+  keyboard scrolling, reading/selection retention, Jump focus, text entry and mocked Send pass.
+  Controls use test hooks; no authenticated Core action, phone, speech or WCAG conformance claim.
+  Independent read-only review confirms actual zoom and these limits. Zoom restored; isolated
+  processes closed. Final ignored evidence timestamp: `2026-10-12T17:02:09.614Z`.
+- Root/sidecar lock checks and locked sync pass; Ruff format/lint (**410 files**), mypy
+  (**164 source files**), root/sidecar audits and UTF-8 process-only `jarvis doctor` pass.
+  Windows blocked the `pytest`/`pip-audit` console launchers with Application Control error **4551**;
+  existing Python module entry points execute without changing policy. Full
+  `rtk uv --cache-dir runtime/uv-cache-mvp3 run python -m pytest --basetemp runtime/mvp4-fixes/pytest-20261012-m4a`
+  passes **1,439 tests, 3 existing skips**, **85.55% coverage**, **102.76s**, one existing warning.
+  Both audits use `python -m pip_audit`; sidecar audit uses
+  `--path garmin_sync/.venv/Lib/site-packages`. Gitleaks history scans **96 commits**, no leaks.
+- Application assets remain unchanged, shell `v7`. Native package candidates and MVP 3 report
+  retain their recorded preservation hashes. Runtime checkers, browser profiles, synthetic
+  screenshots/JSON and pytest directories stay ignored. Publication scope remains the M4A matrix,
+  MVP 4 report, overview and roadmap; physical M4A and aggregate MVP 4 remain open.
+
 ## Remaining gates and handoff
 
 M4A local fixes are reviewable; **MVP 4 is not complete**. Physical Safari/Home Screen VoiceOver,
 largest text, website zoom/magnification, landscape/safe areas/software keyboard, touch exploration and focus
 during disabled-control transitions still need device evidence. F7/F9 recovery usability requires
-slow-reading/spoken checks. Actual desktop browser 400% zoom remains a separate unverified gate;
-phone pinch/iOS Zoom cannot substitute for layout reflow. Follow the dated
+slow-reading/spoken checks. Actual desktop browser 400% zoom passed on the synthetic Edge shell
+2026-10-12; phone website zoom and magnification remain pending. Follow the dated
 [M4A matrix](../PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md). F11 needs protocol-aware cancellation/retry and Core-backed history,
 including uncertain commit outcome/session guards, before its phone soak. Record explicit phone
 performance thresholds before measurements and milestone closure. M3C health-scoped phone

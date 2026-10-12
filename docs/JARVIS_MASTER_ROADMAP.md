@@ -153,6 +153,12 @@ accessibility remains `blocked-external`; [M4A acceptance](PWA_M4A_ACCESSIBILITY
 records separate Safari/Home Screen rows and a separate actual desktop 400% browser-zoom gate.
 Preparation does not close either physical acceptance or MVP 4. No application assets changed.
 
+2026-10-12 M4A resumption at `2cb1f96`, shell `v7`: owner confirmed phone available now.
+Physical acceptance is `in-progress`; metadata, loaded phone version and separate Safari/Home
+Screen observations remain pending. No phone row is accepted from availability or desktop evidence.
+Existing loopback Core resumed without route changes. Separate actual desktop 400% browser zoom
+passes on the bounded synthetic Edge shell; phone speech/text/zoom checks remain open.
+
 Run physical-iPhone acceptance; chat reconnect/restart; Garmin offline, token-expiry, MFA,
 disconnect, and upstream-change failures; accessibility; and basic performance checks. Development
 build and signing require explicit owner approval. App Store work is separate and optional.

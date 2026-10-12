@@ -1,7 +1,7 @@
 # PWA M4A — physical accessibility acceptance
 
-Status: `blocked-external` — owner reported phone available later on 2026-10-10.
-Target: `main` baseline `5384121`, shell `v7`; application assets unchanged in this session.
+Status: `in-progress` — owner confirmed phone available on 2026-10-12; accessibility observations pending.
+Target: `main` baseline `2cb1f96`, shell `v7`; application assets unchanged in this session.
 Aggregate MVP 4 remains `in-progress`. Preparation and desktop evidence do not accept a phone row.
 
 ## Scope and prerequisites
@@ -64,7 +64,8 @@ version in each guide; menu names and configured shortcuts can differ. Reference
 Desktop 320 CSS px emulation remains supporting geometry evidence. On a desktop browser, set a
 1280 CSS px content viewport at 100%, then use actual browser zoom 400%, record resulting layout
 width and check content/controls without two-direction reading scroll. Do not use CDP viewport
-override, CSS zoom or pinch as its substitute. Gate remains pending until actual browser evidence.
+override, CSS zoom or pinch as its substitute. Dated browser evidence below closes this separate
+desktop gate for the bounded synthetic shell; phone rows remain independent.
 [W3C reflow guidance](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html) distinguishes
 320 CSS px layout reflow from magnification; [resize text](https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html)
 requires retained content/functionality at 200% text enlargement. No WCAG conformance claim follows
@@ -72,12 +73,14 @@ from this bounded matrix alone.
 
 ## Results ledger
 
-Phone metadata and version verification: **pending — phone available later**.
+Phone metadata and version verification: **pending — phone available; owner details/observations requested
+2026-10-12**. Availability alone accepts no row. Historical 2026-10-10 phone-unavailable checkpoint
+remains in the MVP 4 report.
 Use `pending`, `pass`, `fail`, or `blocked: reason`. Keep independent surface results.
 
 | Row | Safari | Home Screen | Dated sanitized observation |
 | --- | --- | --- | --- |
-| Version / device metadata | pending | pending | Phone unavailable 2026-10-10 |
+| Version / device metadata | pending | pending | Phone available 2026-10-12; Home Screen opens with Offline shell; model/iOS, enrollment state, keyboard and loaded version not yet verified |
 | A1 names / reading order | pending | pending | — |
 | A2 persistent error / recovery | pending | pending | — |
 | A3 busy / disabled focus | pending | pending | — |
@@ -90,7 +93,24 @@ Use `pending`, `pass`, `fail`, or `blocked: reason`. Keep independent surface re
 | A10 external keyboard | pending | pending | Equipment not yet confirmed |
 | A11 reduced motion / touch | pending | pending | — |
 | Logout focus / cleanup | blocked: M3C exact-device authority/evidence | blocked: M3C exact-device authority/evidence | No erasure in M4A |
-| Actual desktop browser 400% | pending | not applicable | Separate desktop gate, not phone result |
+| Actual desktop browser 400% | not applicable | not applicable | Pass: desktop Edge synthetic shell, 2026-10-12; Edge 155.0.4283.45, native automatic/per-tab browser zoom; innerWidth 1280 at 100%, 320 at 400%; root/body scrollWidth 316 equals clientWidth 316 |
+
+2026-10-12 browser evidence: fresh isolated headless Edge profile, actual
+[`tabs.setZoom`](https://developer.chrome.com/docs/extensions/reference/api/tabs#type-ZoomSettingsMode)
+in `automatic`/`per-tab` mode. Native window bounds established `innerWidth=1280` at 100%; scrollbar
+leaves `clientWidth=1265`. At 400%, `innerWidth=320`, `clientWidth=316`, visual viewport width
+`316.25`, DPR `4`, visual scale `1` and CSS zoom `1`. No horizontal overflow in inspected components
+or long public fixtures. Ten controls reachable with pointer-hit checks; keyboard history scrolling,
+reading/selection retention, Jump focus, text entry and mocked Send passed. Controls were enabled
+by test hooks; this does not prove protected Core actions, every control's activation, speech or
+phone behavior. Zoom restored; isolated processes closed. Reviewed local harness, JSON and
+synthetic screenshot remain ignored under `runtime/mvp4-fixes/`; final JSON timestamp
+`2026-10-12T17:02:09.614Z` (`13:02:09.614-04:00`). No WCAG conformance claim.
+
+2026-10-12 phone session: owner confirmed Home Screen JARVIS opens, then reported **Offline shell**.
+The next preparation step is **Connect existing device**, using any existing identity. Its result
+is pending; VoiceOver was not confirmed enabled, so this does not accept A3. Device/settings,
+reload/version proof and all accessibility rows remain pending. Safari has not yet been observed.
 
 ## Closure and resumption
 
