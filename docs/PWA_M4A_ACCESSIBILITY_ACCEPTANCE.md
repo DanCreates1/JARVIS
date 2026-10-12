@@ -83,7 +83,7 @@ Use `pending`, `pass`, `fail`, or `blocked: reason`. Keep independent surface re
 | Version / device metadata | pending | pending | Phone available 2026-10-12; Home Screen opens with Offline shell; model/iOS, enrollment state, keyboard and loaded version not yet verified |
 | A1 names / reading order | pending | pending | — |
 | A2 persistent error / recovery | pending | pending | — |
-| A3 busy / disabled focus | pending | pending | — |
+| A3 busy / disabled focus | pending | pending | 2026-10-12 Home Screen preparation: Connect existing device returned Connection failed; detailed guidance and VoiceOver behavior unobserved |
 | A4 completed speech / earlier reading | pending | pending | — |
 | A5 selection / Jump to latest | pending | pending | — |
 | A6 spoken failure / draft | pending | pending | — |
@@ -108,8 +108,8 @@ synthetic screenshot remain ignored under `runtime/mvp4-fixes/`; final JSON time
 `2026-10-12T17:02:09.614Z` (`13:02:09.614-04:00`). No WCAG conformance claim.
 
 2026-10-12 phone session: owner confirmed Home Screen JARVIS opens, then reported **Offline shell**.
-The next preparation step is **Connect existing device**, using any existing identity. Its result
-is pending; VoiceOver was not confirmed enabled, so this does not accept A3. Device/settings,
+Owner tapped **Connect existing device** once and reported **Connection failed**. Smaller error
+guidance remains pending; VoiceOver was not confirmed enabled, so this does not accept A3. Device/settings,
 reload/version proof and all accessibility rows remain pending. Safari has not yet been observed.
 
 ## Closure and resumption

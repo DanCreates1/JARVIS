@@ -169,7 +169,8 @@ Official implementation references checked 2026-10-09: [network availability](ht
 2026-10-12 M4A resumption and desktop zoom checkpoint at baseline `2cb1f96`:
 
 - Owner confirmed iPhone available and Home Screen JARVIS opens with **Offline shell**.
-  **Connect existing device** result, model/iOS, enrollment state, settings, keyboard availability
+  One **Connect existing device** attempt returned **Connection failed**; smaller error guidance,
+  model/iOS, enrollment state, settings, keyboard availability
   and phone-loaded version remain pending. Instructions now proceed one phone step at a time;
   no VoiceOver observation or physical A1-A11 pass is claimed. Safari has not yet been observed.
 - Existing private Serve route passed ownership/backend/origin checks; tailnet online, Funnel
@@ -202,6 +203,11 @@ Official implementation references checked 2026-10-09: [network availability](ht
   retain their recorded preservation hashes. Runtime checkers, browser profiles, synthetic
   screenshots/JSON and pytest directories stay ignored. Publication scope remains the M4A matrix,
   MVP 4 report, overview and roadmap; physical M4A and aggregate MVP 4 remain open.
+- Four-document checkpoint `843f916fc6df068e3164411ed6292ff71465dc3a` was pushed to `main`;
+  local HEAD, tracking ref and live upstream matched. [CI run 38282189854](https://github.com/DanCreates1/JARVIS/actions/runs/38282189854)
+  passed Windows quality and secret scan at that exact SHA. The subsequently reported phone
+  **Connection failed** preparation result is recorded above; its smaller recovery/error guidance
+  remains unknown. No physical row is closed by this publication checkpoint.
 
 ## Remaining gates and handoff
 
