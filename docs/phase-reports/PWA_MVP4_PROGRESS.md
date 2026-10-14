@@ -1,6 +1,6 @@
 # PWA MVP 4 — accessibility fixes
 
-- Status: `in-progress`; M4A local implementation verified; Safari A1/A7/A9 observed passes; resumed physical/release gates open.
+- Status: `in-progress`; M4A local implementation verified; Safari A1/A7/A9/A11 and Home Screen A1/A3/A4/A5/A7/A8/A9/A11 observed passes; remaining physical/release gates open.
 - Audit baseline: `ed4ee18`, shell v6; work started at `1f07d4c` after concurrent M3C evidence commit.
 - Active subphase: M4A — reconnect readiness, text reflow, contrast and chat accessibility.
 - Scope: synthetic browser/client checks and physical Safari/Home Screen accessibility acceptance
@@ -284,22 +284,69 @@ Official implementation references checked 2026-10-09: [network availability](ht
   separate magnification still pending. No authenticated Message keyboard or Home Screen result
   claimed; script/worker gate remains open. Current step is original Home Screen public guidance
   and two online reopenings, no protected activation. Restore usual settings after the session.
+- Owner then confirmed both Home Screen messages match: public non-health guidance before two
+  online close/reopenings and exact v7 enrolled-key startup sentence afterward. This supports
+  current Home Screen JavaScript execution and retained identity, with full script URL/CSS/worker
+  gate open. Scope evidence comes from the pre-reopening guidance and unchanged identity, not
+  the startup sentence alone. Current batch is bounded VoiceOver A1/A3 plus one existing non-health
+  Connect and 30-second steady-state speech observation; no tickets/scopes/Garmin operation.
+- Owner reported **all worked** for the updated Home Screen connection batch: clear headings/
+  names/order/unavailable states, usable busy/ready focus, Message/Send unavailable until readiness
+  and no repeated steady connection speech for 30 seconds. **Home Screen A3 passes** using the
+  existing non-health identity. Explicit Message single-touch reading is requested with the public
+  chat fixture before closing Home Screen A1; streamed speech/earlier-reading A4 remains pending.
+- Owner then reported **ALL WORKED** for Message single-touch/activation, one public blue-cube
+  fixture, earlier reading during streaming, no repeated delta interruptions or forced position
+  loss and one spoken completion. **Home Screen A1 and A4 pass** for these observed cases. No
+  transcript retained. A5 selection/reading retention and Jump to latest focus are the next batch;
+  reply-too-quick/uncertain-submission limitations remain explicit.
+- Owner reported **pass pass keep goin** for selection/earlier-reading retention during a further
+  public reply and named Jump to latest content/Conversation focus. **Home Screen A5 passes** for
+  the observed batch. Next batch covers Home Screen largest text/layout/keyboard/pinch, Reduce
+  Motion and safe ordinary/VoiceOver Refresh tasks activation, plus Safari highest website zoom/
+  pinch/empty-ticket touch. No health/enrollment/logout/notification activation requested.
+- Resumption/visual-evidence checkpoint `bdaca5d3c5d1b75357b9f9691cc3d6f0c0eb1aa7` passed
+  [CI run 38490869728](https://github.com/DanCreates1/JARVIS/actions/runs/38490869728): Windows
+  quality and secret scan at that exact SHA. No application change or CI rerun.
+- Owner reported **all worked** for the visual finish batch: actual Home Screen webpage text
+  growth at largest accessibility size, readable/separate controls in both orientations,
+  authenticated Message keyboard/caret/Send scrolling reachability, pinch/pan and no panel
+  entrance motion with Reduce Motion. Ordinary and VoiceOver Refresh tasks each updated the
+  intended panel. Safari highest offered website zoom, pinch/pan, ordinary/VoiceOver empty-ticket
+  touch and Reduce Motion reload worked. **Home Screen A7/A9 and both surfaces' bounded A11 pass**.
+  Safari maximum website percentage was requested but unreported; no protected Safari activation.
+- Owner reported **all worked** for the final separate iOS Full Screen Zoom/restoration batch:
+  usual text/website zoom restored first, VoiceOver off, magnified text/controls and panning usable
+  in Safari and Home Screen. The aggregate response covers restoration of usual Zoom, text size,
+  Safari Page Zoom, Reduce Motion and VoiceOver; exact restored values were not separately given.
+  **Home Screen A8 passes for available mechanisms**; Safari's observed A8 mechanisms pass, with
+  maximum website percentage still unreported. Screen Zoom level was not reported on either
+  surface. No numeric 400% phone reflow claim. No further phone questions queued this session.
+- Final evidence recorded `2026-10-13T21:35:15-04:00` (documentation checkpoint, not a timestamp
+  for every phone action). Application shell remains v7 with no asset changes. Native candidate
+  files and MVP 3 report retain their recorded hashes; only the four PWA documentation files are
+  included in this publication. Existing Core is left running; M3C acceptance remains separate.
 
 ## Remaining gates and handoff
 
 M4A local fixes are reviewable; **MVP 4 is not complete**. Owner resumed manual phone checks after
-brief deferral on 2026-10-13. Bounded Safari A1/A7/A9 observations passed, with 200% website zoom
-accepted as an A8 component. Home Screen names/text/layout, highest website zoom and magnification,
-reduced motion/touch, current assets and authenticated speech/focus still need device evidence.
-F7/F9 recovery usability requires
-slow-reading/spoken checks. Actual desktop browser 400% zoom passed on the synthetic Edge shell
-2026-10-12; phone website zoom and magnification remain pending. Retain the dated
+brief deferral on 2026-10-13. Bounded Safari A1/A7/A9/A11 and Home Screen
+A1/A3/A4/A5/A7/A8/A9/A11 observations passed. Safari website zoom at 200% and highest offered value,
+pinch and iOS screen magnification worked; the maximum website percentage remains unreported.
+Full phone script URL/CSS/worker verification is open despite the Home Screen v7 runtime
+fingerprint. Safari identity/script execution is unverified, so its authenticated A3-A5 remain
+unexecuted; do not enroll it for M4A. A2 invalid-ticket acceptance remains unexecuted, blocked on
+Home Screen by its retained identity. A6 failure/recovery/draft speech was not exercised; the
+earlier plain connection failure is no substitute. A10 is blocked without an external keyboard.
+Logout focus/cleanup stays blocked on separate M3C exact-device authority/evidence. Actual desktop
+browser 400% zoom passed on the synthetic Edge shell 2026-10-12. Retain the dated
 [M4A matrix](../PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md). F11 needs protocol-aware cancellation/retry and Core-backed history,
 including uncertain commit outcome/session guards, before its phone soak. Record explicit phone
 performance thresholds before measurements and milestone closure. M3C health-scoped phone
 enrollment/revocation/Garmin recovery acceptance stays in its separate report and authority scope.
 
 Estimated active PWA completion: **88%**; accepted phone chat/protected Core Garmin plus verified
-M4A local accessibility fixes. Health-scoped physical acceptance, spoken/phone accessibility,
+M4A local accessibility fixes and bounded owner-reported phone accessibility passes. Health-scoped
+physical acceptance, remaining accessibility prerequisites/failure cases,
 chat cancel/retry/history and performance/release gates remain open. Estimate is milestone-based,
 not a measured test percentage.

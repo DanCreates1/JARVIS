@@ -1,6 +1,6 @@
 # PWA M4A — physical accessibility acceptance
 
-Status: `in-progress` — owner resumed phone checks on 2026-10-13; Safari A1/A7/A9 observations passed.
+Status: `in-progress` — observed phone checks passed; unverified prerequisites and failure cases remain open.
 Target: `main` baseline `2cb1f96`, shell `v7`; application assets unchanged in this session.
 Aggregate MVP 4 remains `in-progress`. Preparation and desktop evidence do not accept a phone row.
 Use compact phone batches. Results follow actual reported observations; unexecuted checks remain unverified.
@@ -93,18 +93,18 @@ Use `pending`, `pass`, `fail`, or `blocked: reason`. Keep independent surface re
 
 | Row | Safari | Home Screen | Dated sanitized observation |
 | --- | --- | --- | --- |
-| Version / device metadata | pending | pending | iPhone 15 Pro/iOS 27.0.1 reported 2026-10-12. Safari shows v7 HTML guidance; loaded script/worker and Home Screen assets unverified. 2026-10-13 Safari context: portrait, normal text/page zoom (numeric values uninspected), VoiceOver on, no external keyboard |
-| A1 names / reading order | pass: observed Safari shell | pending | Safari 2026-10-12/13: all required control/history names clear, reading order sensible, disabled controls announce unavailable; Device access/Conversation/Garmin headings in order and touch reading clear. Full assets gate remains open. Home Screen: Enroll speaks only "enroll device button" and looks normal while connected; assets/native disabled state unverified, no failure inferred |
-| A2 persistent error / recovery | pending | pending | — |
-| A3 busy / disabled focus | pending | pending | 2026-10-12 Home Screen preparation: Connect existing device initially returned Connection failed; owner subsequently reports connected. Recovery method and VoiceOver behavior unobserved |
-| A4 completed speech / earlier reading | pending | pending | — |
-| A5 selection / Jump to latest | pending | pending | — |
-| A6 spoken failure / draft | pending | pending | — |
-| A7 largest text | pass: observed Safari layout | pending | 2026-10-13 owner reports webpage text grew at maximum accessibility text before website zoom; visual batch in both orientations worked at largest text plus Safari 200%. Home Screen unobserved |
-| A8 website zoom / magnification | pending: 200% website zoom passed | pending | Safari 200% Page Zoom visual/keyboard batch worked; highest offered website value and separate pinch/iOS Zoom observations pending |
-| A9 rotation / keyboard / safe areas | pass: empty ticket field | pending | 2026-10-13 Safari: both orientations, empty-ticket keyboard show/dismiss, caret/text/controls readable and scroll-reachable at largest accessibility text plus 200% website zoom; owner reports all worked. Authenticated Message keyboard not tested |
+| Version / device metadata | pending | pending | iPhone 15 Pro/iOS 27.0.1 reported 2026-10-12. Safari v7 HTML guidance observed; Home Screen v7 JavaScript startup fingerprint observed after two reopenings with retained identity. Full script URL/CSS/worker verification open. Safari context then advanced from normal text/zoom to largest accessibility text plus 200% Page Zoom; no external keyboard |
+| A1 names / reading order | pass: observed Safari shell | pass: observed updated Home Screen | Safari names/headings/order/unavailable states passed. Updated Home Screen names/headings/order/unavailable states plus Message single-touch sample worked. Earlier Enroll normal-state discrepancy belonged to unverified prior assets; no failure inferred. Full assets gate open |
+| A2 persistent error / recovery | pending | blocked: existing identity | Home Screen retained key confirmed; invalid-ticket test excluded to preserve it. Safari identity/script execution unverified; no invalid-ticket activation performed |
+| A3 busy / disabled focus | pending: Safari identity unverified | pass: existing non-health identity | 2026-10-13 updated Home Screen VoiceOver: one Connect, usable busy/ready focus, Message/Send unavailable until readiness, no repeated connection speech over 30 seconds; owner reports all worked. Oct12 plain connection failure/recovery was not this acceptance |
+| A4 completed speech / earlier reading | pending: Safari identity unverified | pass: observed public reply | 2026-10-13 Home Screen: public fixture sent once with VoiceOver; earlier prompt/line reading usable during streaming, no repeated delta interruption, completion spoken once. Owner reports ALL WORKED; no transcript retained |
+| A5 selection / Jump to latest | pending: Safari identity unverified | pass: observed public replies | Home Screen: further public fixture, earlier reply selection/reading usable during arrivals, named Jump to latest reaches latest and usable Conversation focus; owner reports pass. No uncertain replay or transcript retained |
+| A6 spoken failure / draft | pending | pending | No ordinary failure occurred in the accepted VoiceOver batches. Earlier plain connection failure had no observed spoken recovery/draft evidence |
+| A7 largest text | pass: observed Safari layout | pass: observed Home Screen layout | 2026-10-13 actual webpage text grew on both surfaces at largest accessibility text; readable/reachable controls in both orientations. Safari first observed growth before 200% website zoom; Home Screen confirmed in visual finish batch |
+| A8 website zoom / magnification | pending: maximum numeric value unreported; observed mechanisms passed | pass: observed pinch/iOS Zoom | Safari 200% and highest offered Page Zoom, pinch/pan, then separate iOS Full Screen Zoom worked. Highest website value and screen magnification level unreported. Home Screen pinch/pan and separate iOS Full Screen Zoom worked; no Safari Page Menu assumed. Usual text/website zoom restored before screen Zoom; final batch reports all worked, including settings restoration |
+| A9 rotation / keyboard / safe areas | pass: empty ticket field | pass: authenticated Message field | Both orientations at largest text: software keyboard show/dismiss, caret/field/control reachability and no reported clipping/trap. Safari at 200% website zoom used empty ticket field; authenticated Safari Message keyboard not tested. Home Screen Message caret and Send scroll-reachable |
 | A10 external keyboard | blocked: no external keyboard | blocked: no external keyboard | Owner confirmed no keyboard available 2026-10-13; no keyboard acceptance inferred |
-| A11 reduced motion / touch | pending | pending | — |
+| A11 reduced motion / touch | pass: observed shell and empty-ticket touch | pass: observed safe target activation | Reduce Motion reload/reopen: no panel entrance motion; distinguishable/reachable controls at largest text. Home Screen ordinary and VoiceOver Refresh tasks each updated intended panel. Safari ordinary/VoiceOver empty-ticket touch worked. Enrollment/logout/Garmin targets inspected only, never activated |
 | Logout focus / cleanup | blocked: M3C exact-device authority/evidence | blocked: M3C exact-device authority/evidence | No erasure in M4A |
 | Actual desktop browser 400% | not applicable | not applicable | Pass: desktop Edge synthetic shell, 2026-10-12; Edge 155.0.4283.45, native automatic/per-tab browser zoom; innerWidth 1280 at 100%, 320 at 400%; root/body scrollWidth 316 equals clientWidth 316 |
 
@@ -190,6 +190,59 @@ other A8 mechanisms and all Home Screen observations remain pending. No protecte
 Current Home Screen preparation asks for public non-health guidance before close/reopen twice
 online, then the v7 enrolled-key startup sentence. No Connect/enrollment/logout/health activation
 is requested. Restore usual settings after the resumed session.
+
+Owner subsequently confirmed **both messages match**: non-health Garmin guidance was observed
+on the original Home Screen surface before two online close/reopenings, then **Enrolled key found.
+Connect existing device to start a fresh session.** appeared. The exact startup sentence is emitted
+by v7 JavaScript after local identity load, absent in v6; this supports updated HTML/JavaScript and
+retained identity. It is not direct script-URL/CSS/cache-name verification or a fresh Core scope
+inventory. Startup wording alone does not prove health scope; the preceding non-health guidance
+and same-identity continuity support one existing non-health Connect within the owner's standing
+M4A authority. The current batch
+asks Home Screen VoiceOver headings/names/order/unavailable states, one Connect, usable busy/ready
+focus and 30 seconds without repeated steady-state speech. No enrollment/logout/health action.
+
+Owner reported **all worked** for that Home Screen connection batch. This accepts A3's observed
+busy/ready focus, authenticated Message/Send gating and 30-second steady connection speech.
+Updated headings/names/order/unavailable states are also reported; an explicit Message single-
+touch sample is requested in the next public-chat batch to complete A1 touch evidence. A4 now
+asks one bounded public fixture, earlier reading during streaming, no repeated delta interruption
+and one spoken completion. If the reply finishes too quickly, record that limitation rather than
+accepting unobserved streaming behavior. No uncertain-submission replay requested.
+
+Owner reported **ALL WORKED** for the Home Screen public-chat batch: Message single-touch then
+activation, one public fixture submission, earlier reading during streamed arrivals without
+repeated interruption or forced loss of position, and completion spoken once. This closes bounded
+Home Screen A1 touch evidence and A4. No transcript recorded. A5 now asks one further confirmed
+public-fixture submission, selection/earlier-reading retention during arrivals and named Jump to
+latest returning usable Conversation history focus. A reply ending too quickly remains a limitation.
+
+Owner reported **pass pass keep goin** for the Home Screen history batch. This accepts bounded A5
+selection/earlier-reading retention during a further public reply and named Jump to latest content/
+focus. Current visual batch asks Reduce Motion, largest-text Home Screen layout in both orientations,
+Message keyboard/caret/Send reachability, pinch magnification, ordinary/VoiceOver Refresh tasks
+target activation, and Safari highest offered Page Zoom/pinch/empty-ticket touch. Each observed
+surface/mechanism remains independent. No enrollment/logout/Garmin/notification action requested.
+
+2026-10-13 visual finish: owner reported **all worked** for the requested batch. Home Screen
+webpage text enlarged at largest accessibility size, controls remained readable/separate in both
+orientations, and authenticated Message keyboard/caret/Send remained scroll-reachable. Reduce
+Motion suppressed panel entrance motion; ordinary and VoiceOver Refresh tasks each reached the
+intended panel. Home Screen pinch/pan worked. Safari highest offered Page Zoom, pinch/pan,
+ordinary/VoiceOver empty-ticket touch and Reduce Motion reload worked. This accepts bounded
+Home Screen A7/A9 and both surfaces' A11; no protected Safari activation was tested. The requested
+numeric maximum website zoom was not supplied.
+
+Final evidence checkpoint recorded `2026-10-13T21:35:15-04:00`; this timestamps documentation,
+not each phone action. In the separate magnification/restoration batch, owner reported
+**all worked**. With VoiceOver off
+and usual text/website zoom restored first, iOS Full Screen Zoom reading, control reachability and
+three-finger panning worked on Safari and Home Screen. The batch included restoration of usual
+Zoom, text size, Safari Page Zoom, Reduce Motion and VoiceOver; owner's aggregate response covers
+that step, without separately reported setting values. Screen magnification level and Safari's
+maximum website zoom percentage remain unreported. Home Screen A8's available mechanisms pass;
+Safari A8 keeps the numeric-value documentation limit. These observations do not accept layout
+reflow or a numeric browser 400% gate. No more phone questions queued this session.
 
 ## Closure and resumption
 

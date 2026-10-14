@@ -168,8 +168,13 @@ none started in this M4A session. Native package edits and MVP 3 report remain p
 
 Owner subsequently resumed phone checks on 2026-10-13, requesting compact batches. Safari largest
 accessibility-text growth and rotation/empty-ticket keyboard layout passed; 200% website zoom
-component passed. Other magnification, Home Screen, authenticated speech/focus and current-asset
-gates remain open; no blanket physical pass or M4A/MVP 4 closure. M3C remains separate.
+component passed. Subsequent Home Screen names/readiness/streaming/selection/Jump focus, largest
+text, rotation/Message keyboard, pinch/iOS magnification and safe touch/Reduce Motion passed.
+Safari highest offered website zoom, pinch/iOS magnification and safe shell touch/Reduce Motion
+also worked; maximum website percentage remains unreported. Usual settings restoration was part
+of the final batch reported all worked. Full phone assets, Safari authenticated checks, error/
+failure cases and external-keyboard acceptance remain open. No blanket physical pass or
+M4A/MVP 4 closure; M3C remains separate.
 
 Run physical-iPhone acceptance; chat reconnect/restart; Garmin offline, token-expiry, MFA,
 disconnect, and upstream-change failures; accessibility; and basic performance checks. Development
