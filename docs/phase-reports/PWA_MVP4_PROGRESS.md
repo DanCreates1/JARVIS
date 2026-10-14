@@ -16,9 +16,10 @@ applicable publication gates, preserve native edits and MVP 3 report. No new app
 or physical pass is planned without observed device evidence.
 
 2026-10-12 resumption: `main` at `2cb1f96`, shell `v7`; owner confirmed **phone available now**.
-M4A physical acceptance is `in-progress`; device metadata, phone-loaded version and actual
-Safari/Home Screen accessibility observations remain pending. Availability closes the phone-unavailable blocker,
-not an acceptance row. Use the existing matrix; M3C acceptance stays separate.
+M4A physical acceptance is `in-progress`; owner reports **iPhone 15 Pro, iOS 27.0.1** and a connected
+Home Screen app. Preliminary label observations are recorded; settings, phone-loaded version and
+complete Safari/Home Screen accessibility acceptance remain pending. Availability closes the phone-unavailable blocker, not an acceptance
+row. Use the existing matrix; M3C acceptance stays separate.
 
 ## Acceptance
 
@@ -169,10 +170,42 @@ Official implementation references checked 2026-10-09: [network availability](ht
 2026-10-12 M4A resumption and desktop zoom checkpoint at baseline `2cb1f96`:
 
 - Owner confirmed iPhone available and Home Screen JARVIS opens with **Offline shell**.
-  One **Connect existing device** attempt returned **Connection failed**; smaller error guidance,
-  model/iOS, enrollment state, settings, keyboard availability
-  and phone-loaded version remain pending. Instructions now proceed one phone step at a time;
-  no VoiceOver observation or physical A1-A11 pass is claimed. Safari has not yet been observed.
+  One **Connect existing device** attempt returned **Connection failed**; owner subsequently
+  reported connected. Recovery method/error detail unreported; no cause or spoken-failure pass
+  inferred. Owner reports **iPhone 15 Pro, iOS 27.0.1**, metadata receipt recorded at
+  `2026-10-12T13:26:59-04:00`. Settings, keyboard availability and phone-loaded version remain
+  pending. Owner subsequently confirmed VoiceOver speaking, receipt recorded at
+  `2026-10-12T13:32:22-04:00`; this is enablement preparation, not JARVIS speech acceptance.
+  Owner then said the first Device access labels read their displayed text, receipt recorded at
+  `2026-10-12T13:34:25-04:00`. This is partial A1 naming evidence; disabled-state announcement,
+  remaining labels and complete reading order are unobserved. Owner subsequently reported
+  **enroll device button** on single touch, without a dimmed/unavailable word (receipt
+  `2026-10-12T13:35:40-04:00`), then **Connected; button looks normal** (receipt
+  `2026-10-12T13:36:53-04:00`). This differs from the expected host v7 disabled enrollment state;
+  phone assets/native disabled state remain unverified, so no screen-reader failure classification
+  is inferred. Public access-status guidance below Connect is requested as supporting loaded-script
+  evidence. Owner instead suspected an older website and requested the current link. The existing
+  private route, one Python loopback listener and current static shell/script/worker were rechecked;
+  HTTP 200 and host v7 references pass. Current `/app/?m4a=v7` HTML also passes; the query avoids
+  the worker's exact cached navigation key, without website-data clearing or route changes. The
+  private link was supplied only to its owner on request and remains absent from Git. Safari
+  displays **enroll with an approved ticket, or connect an existing device key.** (receipt
+  `2026-10-12T13:43:59-04:00`), the initial v7 HTML access-status paragraph absent in historical
+  v6. This does not prove loaded script/worker execution or enrollment. Asked for Safari Enroll/Send
+  VoiceOver names/state, owner said screen text is read with nothing special (receipt
+  `2026-10-12T13:47:12-04:00`). Asked specifically whether Send includes dimmed/unavailable,
+  owner answered **Yes**. This verifies that individual Safari state announcement only; full A1
+  names/order and loaded assets remain pending. Owner confirmed Refresh Garmin, Refresh tasks
+  and Logout and erase this device all clearly named during swiping, without activation. Owner
+   then confirmed Message and the Conversation history area both clearly named. Owner subsequently
+   confirmed Enrollment ticket JSON, Enroll device and Connect existing device names and sensible
+   page reading order, then all remaining greyed-out controls announcing unavailable. Explicit
+   heading traversal and test settings remain pending before closing A1. Cached/older Home Screen assets are a
+  possible explanation, not a verified cause; full phone assets and Safari identity remain
+  unverified. Instructions proceed in small phone steps.
+  No complete physical A1-A11 pass is claimed. Safari observations remain preliminary. Before another
+  A3 Connect activation, the matrix now requires public on-page non-health guidance: an existing
+  health-enabled identity can automatically refresh Garmin after authenticated polling.
 - Existing private Serve route passed ownership/backend/origin checks; tailnet online, Funnel
   disabled. Core was found stopped; resumed with its existing configuration: one Python-owned
   listener at `127.0.0.1:8765`, no non-loopback Core listener. Local/private shell, script and worker
@@ -205,9 +238,30 @@ Official implementation references checked 2026-10-09: [network availability](ht
   MVP 4 report, overview and roadmap; physical M4A and aggregate MVP 4 remain open.
 - Four-document checkpoint `843f916fc6df068e3164411ed6292ff71465dc3a` was pushed to `main`;
   local HEAD, tracking ref and live upstream matched. [CI run 38282189854](https://github.com/DanCreates1/JARVIS/actions/runs/38282189854)
-  passed Windows quality and secret scan at that exact SHA. The subsequently reported phone
-  **Connection failed** preparation result is recorded above; its smaller recovery/error guidance
-  remains unknown. No physical row is closed by this publication checkpoint.
+  passed Windows quality and secret scan at that exact SHA. Follow-up documentation checkpoint
+  `d6dd790e05ea685a1bcc8951028e02d8bcb7418c` also passed
+  [CI run 38282852401](https://github.com/DanCreates1/JARVIS/actions/runs/38282852401): Windows
+  quality and secret scan at that exact SHA. The later owner report of a recovered Home Screen
+  connection and phone metadata is recorded above. No physical row is closed by these checkpoints.
+
+2026-10-13 M4A continuation at `d6dd790`, shell `v7`:
+
+- Owner confirms phone available; Safari context is **portrait, normal text/page zoom, VoiceOver
+  on, no external keyboard**. Numeric text/zoom values uninspected; these settings do not establish
+  the previous day's exact context. A10 is blocked for both surfaces by missing equipment.
+  Owner then confirmed Device access, Conversation and Garmin announced as headings in order,
+  with clear single-touch heading reading. **Safari A1 passes for the observed shell**: required
+  names, reading order and unavailable-state announcements, combined with 2026-10-12 observations.
+  This does not close script/worker verification, Home Screen A1, authenticated transitions or M4A.
+  Next: visual larger-text checks; temporary VoiceOver-off preparation requested.
+- Core was found stopped; resumed the existing owned private route's loopback configuration.
+  Settled check: one Python-owned `127.0.0.1:8765` listener, no non-loopback listener, tailnet online,
+  origin/route/backend ownership intact, Funnel disabled. Current static shell/script/worker return
+  HTTP 200 with host v7 references. No route/identity operation, ticket or Garmin read. Service
+  readiness does not accept M3C restart or verify phone-loaded assets.
+- Git remains at `d6dd790`; all four PWA asset hashes match the prior checkpoint. Native package
+  candidate hashes and MVP 3 report hash remain preserved. Only the M4A matrix and this report are
+  edited in this continuation; no application fix or new test result claimed.
 
 ## Remaining gates and handoff
 

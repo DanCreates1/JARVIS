@@ -1,6 +1,6 @@
 # PWA M4A — physical accessibility acceptance
 
-Status: `in-progress` — owner confirmed phone available on 2026-10-12; accessibility observations pending.
+Status: `in-progress` — phone available; preliminary VoiceOver observations recorded, complete physical acceptance pending.
 Target: `main` baseline `2cb1f96`, shell `v7`; application assets unchanged in this session.
 Aggregate MVP 4 remains `in-progress`. Preparation and desktop evidence do not accept a phone row.
 
@@ -12,6 +12,12 @@ Use the existing approved private HTTPS origin and existing enrolled identity wh
 keys, revoke devices, change routes, read Garmin, or turn on notifications for this matrix.
 Safari and Home Screen may have different identity state: an unenrolled surface can run shell
 checks only. Mark its authenticated rows blocked; do not enroll it to satisfy M4A.
+
+Before another **Connect existing device** activation, confirm the already connected surface
+shows **Garmin access needs a new approved browser enrollment.** This confirms the current
+client's non-health state, not a live Core scope inventory. If absent or unverified when A3 is
+attempted, mark A3 blocked; do not reconnect to discover scope. A health-enabled identity can
+automatically refresh Garmin after the first authenticated event poll, outside this matrix.
 
 M3C health-scoped enrollment, Garmin values/freshness, Wi-Fi/cellular recovery, Core restart,
 logout/erase and test-device revocation stay in [MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
@@ -39,7 +45,7 @@ the smallest reproducible symptom. Restore the owner's previous accessibility se
 
 | ID | Action | Pass criterion |
 | --- | --- | --- |
-| A1 | With VoiceOver on, swipe through headings and controls; explore by touch. | Logical reading order; names for Enrollment ticket JSON, Enroll device, Connect existing device, the Conversation history region, Message, Send, Refresh tasks and Refresh Garmin. Disabled controls convey unavailable state. Inspect Logout label without activating it. |
+| A1 | With VoiceOver on, swipe through headings and controls; explore by touch. | Logical reading order; names for Enrollment ticket JSON, Enroll device, Connect existing device, the history region named Conversation, Message, Send, Refresh tasks and Refresh Garmin. Disabled controls convey unavailable state. Inspect Logout and erase this device label without activating it. |
 | A2 | Read empty/error guidance slowly. If the surface already has no identity, enter only `{` and activate Enroll device. Otherwise leave this invalid-ticket case blocked. | Error associated with Enrollment ticket JSON; recovery remains available after 30 seconds and can be read again. No ticket issued or successful enrollment. Existing identity remains untouched. |
 | A3 | On an already enrolled surface, focus Connect existing device and activate it. Keep VoiceOver on through checking/connected states. | Focus stays recoverable when controls become busy/disabled; no focus trap or unexpected jump into unrelated content. Message and Send become usable only after authenticated readiness. Steady connection does not repeatedly interrupt speech. |
 | A4 | Send public fixture: `Write eight numbered sentences about a fictional blue cube. Do not use tools or save memories.` Read an earlier displayed line while the reply streams. | Stream deltas do not repeatedly interrupt reading. A completed-answer status is spoken once for that reply. Earlier reading position remains usable; new answer does not force focus to the bottom. Record actual speech behavior, not DOM inference. |
@@ -73,24 +79,30 @@ from this bounded matrix alone.
 
 ## Results ledger
 
-Phone metadata and version verification: **pending — phone available; owner details/observations requested
-2026-10-12**. Availability alone accepts no row. Historical 2026-10-10 phone-unavailable checkpoint
-remains in the MVP 4 report.
+Phone: owner reports **iPhone 15 Pro, iOS 27.0.1**, recorded
+`2026-10-12T13:26:59-04:00`. This timestamps receipt of metadata, not every preceding phone action.
+Home Screen connection preparation recovered; owner confirmed VoiceOver speaking at
+`2026-10-12T13:32:22-04:00` (report receipt). For the 2026-10-13 **Safari context**, owner reports
+portrait, normal text/page zoom, VoiceOver on and no external keyboard. Numeric text/zoom values were not
+inspected; do not assign these later settings retroactively to the previous day's observations.
+Phone-loaded script/worker verification remains pending. Availability and ordinary
+connection alone accept no row. Historical 2026-10-10 phone-unavailable checkpoint remains in the
+MVP 4 report.
 Use `pending`, `pass`, `fail`, or `blocked: reason`. Keep independent surface results.
 
 | Row | Safari | Home Screen | Dated sanitized observation |
 | --- | --- | --- | --- |
-| Version / device metadata | pending | pending | Phone available 2026-10-12; Home Screen opens with Offline shell; model/iOS, enrollment state, keyboard and loaded version not yet verified |
-| A1 names / reading order | pending | pending | — |
+| Version / device metadata | pending | pending | iPhone 15 Pro/iOS 27.0.1 reported 2026-10-12. Safari shows v7 HTML guidance; loaded script/worker and Home Screen assets unverified. 2026-10-13 Safari context: portrait, normal text/page zoom (numeric values uninspected), VoiceOver on, no external keyboard |
+| A1 names / reading order | pass: observed Safari shell | pending | Safari 2026-10-12/13: all required control/history names clear, reading order sensible, disabled controls announce unavailable; Device access/Conversation/Garmin headings in order and touch reading clear. Full assets gate remains open. Home Screen: Enroll speaks only "enroll device button" and looks normal while connected; assets/native disabled state unverified, no failure inferred |
 | A2 persistent error / recovery | pending | pending | — |
-| A3 busy / disabled focus | pending | pending | 2026-10-12 Home Screen preparation: Connect existing device returned Connection failed; detailed guidance and VoiceOver behavior unobserved |
+| A3 busy / disabled focus | pending | pending | 2026-10-12 Home Screen preparation: Connect existing device initially returned Connection failed; owner subsequently reports connected. Recovery method and VoiceOver behavior unobserved |
 | A4 completed speech / earlier reading | pending | pending | — |
 | A5 selection / Jump to latest | pending | pending | — |
 | A6 spoken failure / draft | pending | pending | — |
 | A7 largest text | pending | pending | — |
 | A8 website zoom / magnification | pending | pending | Record each supported mechanism separately |
 | A9 rotation / keyboard / safe areas | pending | pending | — |
-| A10 external keyboard | pending | pending | Equipment not yet confirmed |
+| A10 external keyboard | blocked: no external keyboard | blocked: no external keyboard | Owner confirmed no keyboard available 2026-10-13; no keyboard acceptance inferred |
 | A11 reduced motion / touch | pending | pending | — |
 | Logout focus / cleanup | blocked: M3C exact-device authority/evidence | blocked: M3C exact-device authority/evidence | No erasure in M4A |
 | Actual desktop browser 400% | not applicable | not applicable | Pass: desktop Edge synthetic shell, 2026-10-12; Edge 155.0.4283.45, native automatic/per-tab browser zoom; innerWidth 1280 at 100%, 320 at 400%; root/body scrollWidth 316 equals clientWidth 316 |
@@ -108,9 +120,60 @@ synthetic screenshot remain ignored under `runtime/mvp4-fixes/`; final JSON time
 `2026-10-12T17:02:09.614Z` (`13:02:09.614-04:00`). No WCAG conformance claim.
 
 2026-10-12 phone session: owner confirmed Home Screen JARVIS opens, then reported **Offline shell**.
-Owner tapped **Connect existing device** once and reported **Connection failed**. Smaller error
-guidance remains pending; VoiceOver was not confirmed enabled, so this does not accept A3. Device/settings,
-reload/version proof and all accessibility rows remain pending. Safari has not yet been observed.
+Owner tapped **Connect existing device** once and reported **Connection failed**, then subsequently
+reported connected. Recovery method and smaller error guidance were not reported; do not infer a
+cause or a spoken-failure pass. Owner reports **iPhone 15 Pro, iOS 27.0.1**, then confirmed
+**VoiceOver speaking**. The connection observation preceded VoiceOver confirmation and does not
+accept A3. At report receipt `2026-10-12T13:34:25-04:00`, owner said the first Device access
+labels read their displayed text. This is partial A1 evidence only; no disabled-state announcement
+or complete reading order was reported. Text/zoom settings, reload/version proof and all complete
+accessibility rows remained pending at that checkpoint. Instructions proceed in small phone
+steps. Owner subsequently reported that touching **Enroll device** speaks only
+**enroll device button**, without a reported dimmed/unavailable word (receipt
+`2026-10-12T13:35:40-04:00`). Owner then reported **Connected; button looks normal** (receipt
+`2026-10-12T13:36:53-04:00`). Current host v7 disables Enroll device when an identity exists, but
+phone-loaded assets and native disabled state remain unverified. Record this discrepancy without
+assuming a screen-reader failure or accepting A1. Owner then suspected an older website and
+requested the current link instead of reporting access-status guidance. Historical v6 leaves
+Enroll device enabled and lacks the v7 access-status paragraph, so cached/older assets are one
+possible explanation, not a verified cause. The existing owned private route and one loopback
+Python listener were rechecked; current static shell/script/worker return HTTP 200 with host v7
+references. A navigation to `/app/?m4a=v7` also returns current HTML; its query avoids the worker's
+exact cached `/app/` navigation key, without clearing storage or changing routes. Current private
+link was supplied only to the owner on request, omitted from repository evidence. The current
+step was to open it in iPhone Safari and report public access-status guidance, without enrollment
+or Connect activation. Owner reported **enroll with an approved ticket, or connect an existing
+device key.** (receipt `2026-10-12T13:43:59-04:00`). This matches the initial v7 HTML paragraph,
+absent in historical v6. It does not prove current script/worker execution or an enrolled Safari
+identity. Asked for Safari VoiceOver names/state for **Enroll device** and **Send**, owner reported
+**it reads whatever that is on the screen nothing special** (receipt
+`2026-10-12T13:47:12-04:00`). Individual announcements/state words were not given; do not convert
+this into either a disabled-state pass or failure. Asked specifically whether touching **Send**
+speaks dimmed/unavailable, owner answered **Yes**. This accepts that individual Safari state
+announcement, not the complete A1 row or loaded-script/identity state. Owner subsequently
+confirmed **Refresh Garmin**, **Refresh tasks** and **Logout and erase this device** are all
+clearly named during swiping, without activation. Owner then confirmed **Message** and the history
+area **Conversation** both clearly named. Owner then confirmed **Enrollment ticket JSON**, **Enroll
+device** and **Connect existing device** clearly named, with sensible page reading order. Asked
+about Message, Refresh Garmin, Refresh tasks and Logout and erase this device, owner confirmed
+**All greyed-out controls announce unavailable**. These are bounded Safari naming/order/state
+observations, with single-touch Enroll/Send inspection and no activation. Explicit heading traversal
+and test settings were still pending at this checkpoint. Ordinary HTTP evidence and an HTML
+fingerprint cannot accept the full loaded-asset gate.
+
+2026-10-13 continuation: owner confirmed iPhone available again, then reported **portrait; normal;
+on; no keyboard** for Safari orientation, text/page zoom, VoiceOver and keyboard availability.
+Owner then confirmed **Device access**, **Conversation** and **Garmin** announced as headings in
+that order, and a single-touch heading sample read clearly (final report receipt
+`2026-10-13T20:09:13-04:00`, not an exact timestamp for every preceding phone action). This closes the bounded Safari A1
+names/order/disabled-state observation; current script/worker asset verification and Home Screen A1
+remain open. VoiceOver-off preparation is now requested for visual larger-text checks; restore
+the owner's normal settings after testing. No physical result is inferred from the desktop in-app
+browser. Core was found stopped; resumed with its existing owned private
+route and loopback configuration. Settled checks confirm one Python-owned `127.0.0.1:8765` listener,
+no non-loopback listener, tailnet online, Funnel disabled and static shell/script/worker HTTP 200
+with host v7 references. This is readiness, not M3C restart acceptance or phone asset proof. No
+route/identity operations, tickets or Garmin reads.
 
 ## Closure and resumption
 
