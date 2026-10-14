@@ -1,6 +1,6 @@
 # PWA MVP 4 — accessibility fixes
 
-- Status: `in-progress`; M4A local accessibility implementation verified, physical/release gates open.
+- Status: `in-progress`; M4A local implementation verified, bounded Safari A1 passed; remaining physical checks owner-deferred and release gates open.
 - Audit baseline: `ed4ee18`, shell v6; work started at `1f07d4c` after concurrent M3C evidence commit.
 - Active subphase: M4A — reconnect readiness, text reflow, contrast and chat accessibility.
 - Scope: synthetic browser/client checks and physical Safari/Home Screen accessibility acceptance
@@ -253,23 +253,31 @@ Official implementation references checked 2026-10-09: [network availability](ht
   with clear single-touch heading reading. **Safari A1 passes for the observed shell**: required
   names, reading order and unavailable-state announcements, combined with 2026-10-12 observations.
   This does not close script/worker verification, Home Screen A1, authenticated transitions or M4A.
-  Next: visual larger-text checks; temporary VoiceOver-off preparation requested.
+  VoiceOver off was confirmed for visual checks. Largest-text setup was requested, then owner
+  stopped remaining phone tests before confirming its setting or any webpage response (decision
+  receipt `2026-10-13T20:13:50-04:00`). Remaining physical acceptance is **owner-deferred**; no
+  further phone questions queued. Restore usual accessibility settings if changed. No A7 pass
+  or full M4A/MVP 4 acceptance follows from skipping the remaining checks.
 - Core was found stopped; resumed the existing owned private route's loopback configuration.
   Settled check: one Python-owned `127.0.0.1:8765` listener, no non-loopback listener, tailnet online,
   origin/route/backend ownership intact, Funnel disabled. Current static shell/script/worker return
   HTTP 200 with host v7 references. No route/identity operation, ticket or Garmin read. Service
   readiness does not accept M3C restart or verify phone-loaded assets.
-- Git remains at `d6dd790`; all four PWA asset hashes match the prior checkpoint. Native package
-  candidate hashes and MVP 3 report hash remain preserved. Only the M4A matrix and this report are
-  edited in this continuation; no application fix or new test result claimed.
+- Continuation started at `d6dd790`; all four PWA asset hashes match the prior checkpoint. Native
+  package candidate hashes and MVP 3 report hash remain preserved. Two-document Safari A1
+  checkpoint `345eb2453f5c7fab690726d9558777e895d92fbf` was committed/pushed after staged secret,
+  diff and local-link checks. Owner-deferral publication also updates overview and roadmap; no
+  application fix or new local test result claimed.
 
 ## Remaining gates and handoff
 
-M4A local fixes are reviewable; **MVP 4 is not complete**. Physical Safari/Home Screen VoiceOver,
+M4A local fixes are reviewable; **MVP 4 is not complete**. Owner deferred remaining manual phone
+checks on 2026-10-13; do not resume them without an owner request. Bounded Safari A1 naming/order/
+state observation passed; physical Safari/Home Screen streaming speech,
 largest text, website zoom/magnification, landscape/safe areas/software keyboard, touch exploration and focus
 during disabled-control transitions still need device evidence. F7/F9 recovery usability requires
 slow-reading/spoken checks. Actual desktop browser 400% zoom passed on the synthetic Edge shell
-2026-10-12; phone website zoom and magnification remain pending. Follow the dated
+2026-10-12; phone website zoom and magnification remain pending. Retain the dated
 [M4A matrix](../PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md). F11 needs protocol-aware cancellation/retry and Core-backed history,
 including uncertain commit outcome/session guards, before its phone soak. Record explicit phone
 performance thresholds before measurements and milestone closure. M3C health-scoped phone

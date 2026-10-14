@@ -1,8 +1,9 @@
 # PWA M4A — physical accessibility acceptance
 
-Status: `in-progress` — phone available; preliminary VoiceOver observations recorded, complete physical acceptance pending.
+Status: `owner-deferred` — owner stopped remaining phone checks on 2026-10-13; bounded Safari A1 observation passed.
 Target: `main` baseline `2cb1f96`, shell `v7`; application assets unchanged in this session.
 Aggregate MVP 4 remains `in-progress`. Preparation and desktop evidence do not accept a phone row.
+Unexecuted physical checks remain unverified. Do not resume phone questions unless the owner asks.
 
 ## Scope and prerequisites
 
@@ -99,7 +100,7 @@ Use `pending`, `pass`, `fail`, or `blocked: reason`. Keep independent surface re
 | A4 completed speech / earlier reading | pending | pending | — |
 | A5 selection / Jump to latest | pending | pending | — |
 | A6 spoken failure / draft | pending | pending | — |
-| A7 largest text | pending | pending | — |
+| A7 largest text | pending | pending | 2026-10-13 VoiceOver off confirmed for visual preparation; largest-text setting and webpage response never confirmed. Owner deferred remaining phone checks |
 | A8 website zoom / magnification | pending | pending | Record each supported mechanism separately |
 | A9 rotation / keyboard / safe areas | pending | pending | — |
 | A10 external keyboard | blocked: no external keyboard | blocked: no external keyboard | Owner confirmed no keyboard available 2026-10-13; no keyboard acceptance inferred |
@@ -167,8 +168,12 @@ Owner then confirmed **Device access**, **Conversation** and **Garmin** announce
 that order, and a single-touch heading sample read clearly (final report receipt
 `2026-10-13T20:09:13-04:00`, not an exact timestamp for every preceding phone action). This closes the bounded Safari A1
 names/order/disabled-state observation; current script/worker asset verification and Home Screen A1
-remain open. VoiceOver-off preparation is now requested for visual larger-text checks; restore
-the owner's normal settings after testing. No physical result is inferred from the desktop in-app
+remain open. VoiceOver was subsequently confirmed off for visual checks. Largest accessibility-
+text setup was requested, but owner stopped remaining phone tests before confirming the setting
+or any webpage response (decision receipt `2026-10-13T20:13:50-04:00`). A7-A9/A11 remain unexecuted;
+A2-A6 and current-asset/Home Screen acceptance remain open. A10 is blocked by missing equipment.
+Restore usual accessibility settings if changed; no further phone checks queued.
+No physical result is inferred from the desktop in-app
 browser. Core was found stopped; resumed with its existing owned private
 route and loopback configuration. Settled checks confirm one Python-owned `127.0.0.1:8765` listener,
 no non-loopback listener, tailnet online, Funnel disabled and static shell/script/worker HTTP 200

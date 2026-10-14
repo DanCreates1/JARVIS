@@ -159,6 +159,13 @@ Screen observations remain pending. No phone row is accepted from availability o
 Existing loopback Core resumed without route changes. Separate actual desktop 400% browser zoom
 passes on the bounded synthetic Edge shell; phone speech/text/zoom checks remain open.
 
+2026-10-13 M4A continuation: bounded Safari A1 names/headings/order/unavailable-state observation
+passed; phone script/worker verification and Home Screen acceptance remain open. Owner stopped
+remaining phone checks during larger-text preparation; no further phone questions queued.
+Unexecuted checks remain unverified, A10 blocked without keyboard. This deferral does not complete
+M4A or MVP 4. Later chat cancel/retry/Core-backed history and performance work remain planned;
+none started in this M4A session. Native package edits and MVP 3 report remain preserved.
+
 Run physical-iPhone acceptance; chat reconnect/restart; Garmin offline, token-expiry, MFA,
 disconnect, and upstream-change failures; accessibility; and basic performance checks. Development
 build and signing require explicit owner approval. App Store work is separate and optional.
