@@ -166,6 +166,11 @@ Unexecuted checks remain unverified, A10 blocked without keyboard. This deferral
 M4A or MVP 4. Later chat cancel/retry/Core-backed history and performance work remain planned;
 none started in this M4A session. Native package edits and MVP 3 report remain preserved.
 
+Owner subsequently resumed phone checks on 2026-10-13, requesting compact batches. Safari largest
+accessibility-text growth and rotation/empty-ticket keyboard layout passed; 200% website zoom
+component passed. Other magnification, Home Screen, authenticated speech/focus and current-asset
+gates remain open; no blanket physical pass or M4A/MVP 4 closure. M3C remains separate.
+
 Run physical-iPhone acceptance; chat reconnect/restart; Garmin offline, token-expiry, MFA,
 disconnect, and upstream-change failures; accessibility; and basic performance checks. Development
 build and signing require explicit owner approval. App Store work is separate and optional.

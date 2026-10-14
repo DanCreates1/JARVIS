@@ -29,7 +29,7 @@ record.
 | Track | Status | Next gate |
 | --- | --- | --- |
 | Phone PWA | Physical-iPhone chat accepted; M3A/M3B complete; M3C shell v6 repairs offline logout and obsolete response/reconnect handling with synthetic evidence | Pending grouped health-read enrollment/recovery decision and physical-iPhone acceptance |
-| PWA MVP 4 | M4A shell v7/local checks and actual desktop 400% zoom pass; bounded Safari A1 passed 2026-10-13; owner deferred remaining phone checks | [Safari/Home Screen matrix](PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md): remaining physical/asset gates unverified, A10 blocked without keyboard; later chat/performance/release gates open; M3C separate |
+| PWA MVP 4 | M4A shell v7/local checks and actual desktop 400% zoom pass; Safari A1/A7/A9 observed passes and 200% website zoom component passed; owner resumed phone checks 2026-10-13 | [Safari/Home Screen matrix](PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md): remaining physical/asset gates open, A10 blocked without keyboard; later chat/performance/release gates open; M3C separate |
 | Native MVP | Expo Go checks passed; independent native build unverified and deferred under $0/no-Mac constraint | No active native gate |
 | Mobile MVP 2 | Deferred | No active native gate |
 | Mobile MVP 3 | Deferred | No active native gate |

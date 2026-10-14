@@ -1,6 +1,6 @@
 # PWA MVP 4 — accessibility fixes
 
-- Status: `in-progress`; M4A local implementation verified, bounded Safari A1 passed; remaining physical checks owner-deferred and release gates open.
+- Status: `in-progress`; M4A local implementation verified; Safari A1/A7/A9 observed passes; resumed physical/release gates open.
 - Audit baseline: `ed4ee18`, shell v6; work started at `1f07d4c` after concurrent M3C evidence commit.
 - Active subphase: M4A — reconnect readiness, text reflow, contrast and chat accessibility.
 - Scope: synthetic browser/client checks and physical Safari/Home Screen accessibility acceptance
@@ -255,9 +255,9 @@ Official implementation references checked 2026-10-09: [network availability](ht
   This does not close script/worker verification, Home Screen A1, authenticated transitions or M4A.
   VoiceOver off was confirmed for visual checks. Largest-text setup was requested, then owner
   stopped remaining phone tests before confirming its setting or any webpage response (decision
-  receipt `2026-10-13T20:13:50-04:00`). Remaining physical acceptance is **owner-deferred**; no
-  further phone questions queued. Restore usual accessibility settings if changed. No A7 pass
-  or full M4A/MVP 4 acceptance follows from skipping the remaining checks.
+  receipt `2026-10-13T20:13:50-04:00`). Physical acceptance was **owner-deferred** at that checkpoint;
+  no questions queued until the subsequent owner request. No A7 pass had been observed then and
+  skipping did not accept M4A/MVP 4.
 - Core was found stopped; resumed the existing owned private route's loopback configuration.
   Settled check: one Python-owned `127.0.0.1:8765` listener, no non-loopback listener, tailnet online,
   origin/route/backend ownership intact, Funnel disabled. Current static shell/script/worker return
@@ -269,13 +269,29 @@ Official implementation references checked 2026-10-09: [network availability](ht
   diff and local-link checks. Owner-deferral publication also updates overview and roadmap; no
   application fix or new local test result claimed.
 
+2026-10-13 owner resumption after the deferral checkpoint:
+
+- Deferral checkpoint `21e60ac40bdf0d2ae9e6df16ba56ea3b7a966381` passed
+  [CI run 38489374156](https://github.com/DanCreates1/JARVIS/actions/runs/38489374156): Windows
+  quality gate and secret scan at that exact SHA, including the full tests and both Python audits.
+  This verifies publication quality; it does not accept the deferred physical rows.
+- Owner explicitly resumed phone checks (receipt `2026-10-13T20:20:26-04:00`); use compact batches
+  and record working observations. Fixed acceptance criteria and existing scope remain intact.
+- Safari visual batch at maximum accessibility text plus 200% Page Zoom: both orientations,
+  empty-ticket keyboard show/dismiss, text/caret/control readability and scrolling reachability.
+  Owner reports **all worked**, then explicitly confirms webpage text grew before website zoom.
+  **Safari A7/A9 observed passes; A8 200% website zoom passes**, with its highest offered value and
+  separate magnification still pending. No authenticated Message keyboard or Home Screen result
+  claimed; script/worker gate remains open. Current step is original Home Screen public guidance
+  and two online reopenings, no protected activation. Restore usual settings after the session.
+
 ## Remaining gates and handoff
 
-M4A local fixes are reviewable; **MVP 4 is not complete**. Owner deferred remaining manual phone
-checks on 2026-10-13; do not resume them without an owner request. Bounded Safari A1 naming/order/
-state observation passed; physical Safari/Home Screen streaming speech,
-largest text, website zoom/magnification, landscape/safe areas/software keyboard, touch exploration and focus
-during disabled-control transitions still need device evidence. F7/F9 recovery usability requires
+M4A local fixes are reviewable; **MVP 4 is not complete**. Owner resumed manual phone checks after
+brief deferral on 2026-10-13. Bounded Safari A1/A7/A9 observations passed, with 200% website zoom
+accepted as an A8 component. Home Screen names/text/layout, highest website zoom and magnification,
+reduced motion/touch, current assets and authenticated speech/focus still need device evidence.
+F7/F9 recovery usability requires
 slow-reading/spoken checks. Actual desktop browser 400% zoom passed on the synthetic Edge shell
 2026-10-12; phone website zoom and magnification remain pending. Retain the dated
 [M4A matrix](../PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md). F11 needs protocol-aware cancellation/retry and Core-backed history,

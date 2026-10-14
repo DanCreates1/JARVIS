@@ -1,9 +1,9 @@
 # PWA M4A — physical accessibility acceptance
 
-Status: `owner-deferred` — owner stopped remaining phone checks on 2026-10-13; bounded Safari A1 observation passed.
+Status: `in-progress` — owner resumed phone checks on 2026-10-13; Safari A1/A7/A9 observations passed.
 Target: `main` baseline `2cb1f96`, shell `v7`; application assets unchanged in this session.
 Aggregate MVP 4 remains `in-progress`. Preparation and desktop evidence do not accept a phone row.
-Unexecuted physical checks remain unverified. Do not resume phone questions unless the owner asks.
+Use compact phone batches. Results follow actual reported observations; unexecuted checks remain unverified.
 
 ## Scope and prerequisites
 
@@ -100,9 +100,9 @@ Use `pending`, `pass`, `fail`, or `blocked: reason`. Keep independent surface re
 | A4 completed speech / earlier reading | pending | pending | — |
 | A5 selection / Jump to latest | pending | pending | — |
 | A6 spoken failure / draft | pending | pending | — |
-| A7 largest text | pending | pending | 2026-10-13 VoiceOver off confirmed for visual preparation; largest-text setting and webpage response never confirmed. Owner deferred remaining phone checks |
-| A8 website zoom / magnification | pending | pending | Record each supported mechanism separately |
-| A9 rotation / keyboard / safe areas | pending | pending | — |
+| A7 largest text | pass: observed Safari layout | pending | 2026-10-13 owner reports webpage text grew at maximum accessibility text before website zoom; visual batch in both orientations worked at largest text plus Safari 200%. Home Screen unobserved |
+| A8 website zoom / magnification | pending: 200% website zoom passed | pending | Safari 200% Page Zoom visual/keyboard batch worked; highest offered website value and separate pinch/iOS Zoom observations pending |
+| A9 rotation / keyboard / safe areas | pass: empty ticket field | pending | 2026-10-13 Safari: both orientations, empty-ticket keyboard show/dismiss, caret/text/controls readable and scroll-reachable at largest accessibility text plus 200% website zoom; owner reports all worked. Authenticated Message keyboard not tested |
 | A10 external keyboard | blocked: no external keyboard | blocked: no external keyboard | Owner confirmed no keyboard available 2026-10-13; no keyboard acceptance inferred |
 | A11 reduced motion / touch | pending | pending | — |
 | Logout focus / cleanup | blocked: M3C exact-device authority/evidence | blocked: M3C exact-device authority/evidence | No erasure in M4A |
@@ -170,15 +170,26 @@ that order, and a single-touch heading sample read clearly (final report receipt
 names/order/disabled-state observation; current script/worker asset verification and Home Screen A1
 remain open. VoiceOver was subsequently confirmed off for visual checks. Largest accessibility-
 text setup was requested, but owner stopped remaining phone tests before confirming the setting
-or any webpage response (decision receipt `2026-10-13T20:13:50-04:00`). A7-A9/A11 remain unexecuted;
-A2-A6 and current-asset/Home Screen acceptance remain open. A10 is blocked by missing equipment.
-Restore usual accessibility settings if changed; no further phone checks queued.
+or any webpage response (decision receipt `2026-10-13T20:13:50-04:00`). A7-A9/A11 were unexecuted
+at that checkpoint; A2-A6 and current-asset/Home Screen acceptance remained open. A10 was blocked
+by missing equipment. No further phone checks were queued until the owner's subsequent resumption.
 No physical result is inferred from the desktop in-app
 browser. Core was found stopped; resumed with its existing owned private
 route and loopback configuration. Settled checks confirm one Python-owned `127.0.0.1:8765` listener,
 no non-loopback listener, tailnet online, Funnel disabled and static shell/script/worker HTTP 200
 with host v7 references. This is readiness, not M3C restart acceptance or phone asset proof. No
 route/identity operations, tickets or Garmin reads.
+
+Owner resumed phone checks (receipt `2026-10-13T20:20:26-04:00`) and requested a pragmatic, compact
+flow. Safari visual batch: maximum Larger Accessibility Sizes, observe actual webpage growth,
+Page Zoom 200%, both orientations and empty-ticket software-keyboard show/dismiss with caret,
+text and controls readable/reachable by scrolling. Owner reported **all worked** (receipt
+`2026-10-13T20:23:18-04:00`), then explicitly confirmed **Webpage text got bigger** before website
+zoom. This accepts the bounded Safari A7/A9 observations and A8's 200% website-zoom component;
+other A8 mechanisms and all Home Screen observations remain pending. No protected action taken.
+Current Home Screen preparation asks for public non-health guidance before close/reopen twice
+online, then the v7 enrolled-key startup sentence. No Connect/enrollment/logout/health activation
+is requested. Restore usual settings after the resumed session.
 
 ## Closure and resumption
 
