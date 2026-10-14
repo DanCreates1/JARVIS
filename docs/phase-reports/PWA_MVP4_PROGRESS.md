@@ -327,6 +327,33 @@ Official implementation references checked 2026-10-09: [network availability](ht
   files and MVP 3 report retain their recorded hashes; only the four PWA documentation files are
   included in this publication. Existing Core is left running; M3C acceptance remains separate.
 
+2026-10-13 resumption at baseline `114ab9a`, shell `v7`:
+
+- Local HEAD, tracking `origin/main` and live upstream `main` match
+  `114ab9a2a16eacc6a4508a7b958154cae7e75028`. Its
+  [CI run 38496582097](https://github.com/DanCreates1/JARVIS/actions/runs/38496582097) passed
+  Windows quality and secret scan, including full tests and both Python dependency audits.
+- Existing Core was already running and was reused: one Python-owned `127.0.0.1:8765` listener,
+  no non-loopback Core listener, exact owned private route/backend/origin, tailnet online and Funnel
+  disabled. Loopback/private shell, script and worker HTTP 200; host v7 references unchanged.
+  Windows refused the readiness helper's script-file entry point; reviewed code ran through
+  the supported command entry point without changing execution/security policy. No restart,
+  route/identity operation, ticket or Garmin read. This is readiness, not phone/M3C acceptance.
+- Fresh supporting validation passes **43/43 lifecycle tests** and **24/24 desktop geometry
+  cases**, Edge **155.0.4283.45**. Application assets match HEAD; native package candidates and
+  MVP 3 report retain their recorded SHA256 hashes. Generated evidence and the reviewed local
+  readiness runner stay ignored under `runtime/mvp4-fixes/`.
+- Direct phone asset inspection is unavailable on this Windows host; official WebKit remote
+  inspection requires connected macOS Safari. The matrix now states the public script/CSS/active
+  worker/cache checks explicitly. Startup wording and host HTTP checks do not close that gate.
+  Next owner batch requests Safari access guidance, maximum Page Zoom percentage and keyboard
+  availability without protected activation. No new physical result; existing acceptance rows,
+  M3C scope and **88%** milestone estimate remain unchanged. Publication updates only the matrix
+  and this report; baseline CI is retained as evidence, not represented as a fresh local full gate.
+- Documentation-only publication checks: five local links resolve, diff check passes and Gitleaks
+  scans 102 commits with no leaks. Full local Python/native release gates were not rerun for this
+  checkpoint; no milestone closure is claimed. Native packages remain excluded under their audit hold.
+
 ## Remaining gates and handoff
 
 M4A local fixes are reviewable; **MVP 4 is not complete**. Owner resumed manual phone checks after

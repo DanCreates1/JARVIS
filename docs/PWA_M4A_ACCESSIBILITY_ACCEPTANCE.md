@@ -1,7 +1,7 @@
 # PWA M4A — physical accessibility acceptance
 
 Status: `in-progress` — observed phone checks passed; unverified prerequisites and failure cases remain open.
-Target: `main` baseline `2cb1f96`, shell `v7`; application assets unchanged in this session.
+Target: resumed `main` baseline `114ab9a`, shell `v7`; application assets unchanged in this session.
 Aggregate MVP 4 remains `in-progress`. Preparation and desktop evidence do not accept a phone row.
 Use compact phone batches. Results follow actual reported observations; unexecuted checks remain unverified.
 
@@ -36,6 +36,14 @@ Expected source has `app.js?v=7` in `index.html` and `jarvis-shell-v7` in `sw.js
 check alone cannot prove which cached page the phone loaded. Record phone version verification
 method, or mark it unverified. If available, inspect only script URL/cache version using trusted
 Safari tooling; do not copy storage, cookies, network bodies or keys. No website-data clearing.
+Inspect loaded `/app/app.js?v=7`, loaded `/app/app.css`, active `/app/sw.js?v=7` and
+`jarvis-shell-v7` cache name separately for each surface. CSS URL alone does not identify its
+content; compare only the public loaded stylesheet against current source.
+[WebKit remote inspection](https://webkit.org/web-inspector/enabling-web-inspector/) requires
+an iPhone connected to macOS Safari with Web Inspector enabled. This Windows session has no
+connected iPhone inspection surface; the repository records no available Mac. Do not enable
+debugging/device trust, install a proxy or clear storage merely to close this gate. Host source,
+HTTP responses and startup wording remain supporting evidence only. Reference checked 2026-10-13.
 
 ## Procedure and fixed pass criteria
 
@@ -243,6 +251,22 @@ that step, without separately reported setting values. Screen magnification leve
 maximum website zoom percentage remain unreported. Home Screen A8's available mechanisms pass;
 Safari A8 keeps the numeric-value documentation limit. These observations do not accept layout
 reflow or a numeric browser 400% gate. No more phone questions queued this session.
+
+2026-10-13 resumption at `114ab9a`: the existing Core was already running and was reused.
+Sanitized readiness confirms one Python-owned `127.0.0.1:8765` listener, no non-loopback Core
+listener, exact owned private route/backend/origin, online tailnet and disabled Funnel. Both
+loopback and private shell/script/worker return HTTP 200 with host v7 shell/worker references.
+This accepts service readiness only; no phone asset, identity, speech or M3C result is inferred.
+Fresh supporting checks pass 43 lifecycle tests and 24 desktop geometry cases on Edge
+155.0.4283.45. Existing phone results and open rows remain unchanged.
+
+The next compact owner batch requests the Safari access-status sentence after an online reload,
+highest offered Page Zoom percentage and current external-keyboard availability. No protected
+activation is requested. Await observations before choosing A2 or authenticated Safari steps.
+Safari's initial HTML sentence alone cannot prove JavaScript execution or absence of a key.
+A2 stays blocked on Home Screen by its retained identity. A6 remains pending unless an ordinary
+failure is actually observed with VoiceOver; do not replay an uncertain send or force a separate
+M3C interruption solely for this row. No new phone outcome is recorded by this resumption.
 
 ## Closure and resumption
 
