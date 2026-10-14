@@ -269,6 +269,7 @@ class Message(CoreModel):
     """Provider-neutral message representation persisted by the core."""
 
     id: Identifier | None = None
+    client_request_id: Identifier | None = None
     conversation_id: Identifier
     role: MessageRole
     content: Annotated[str, Field(max_length=100_000)] = ""

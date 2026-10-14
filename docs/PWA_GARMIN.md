@@ -158,7 +158,7 @@ output, screenshots, logs or Git. Issue the recovery ticket only when the phone 
 
 Record hardware/runtime versions and only pass/fail for health results in these physical checks:
 
-Reload the Home Screen PWA before testing and verify shell `v7`; an already open page can retain
+Reload the Home Screen PWA before testing and verify shell `v8`; an already open page can retain
 the prior JavaScript until reload. Record iPhone model/iOS version and the runtime surface, without
 device or account identifiers. Logout now clears health, device, task, chat and local identity
 without waiting for Core. New enrollment/connection waits for local cleanup and bounded remote
@@ -183,7 +183,7 @@ closes that boundary.
 
 Desktop tests and a Core summary cannot substitute for these physical-phone checks.
 
-Shell `v7` accessibility/reconnect changes are tracked separately in
+Shell `v8` accessibility/reconnect and durable-chat changes are tracked separately in
 [MVP 4 progress](phase-reports/PWA_MVP4_PROGRESS.md). Send remains disabled until a current,
 authenticated event poll succeeds. A network-online signal alone cannot enable it. Session rejection
 clears unusable session state while retaining the enrolled key for **Connect existing device**.

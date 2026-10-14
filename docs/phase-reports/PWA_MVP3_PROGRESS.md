@@ -388,7 +388,9 @@ authority. Native mobile dependency edits remain preserved and excluded from M3A
 M3B protected import and live Core acceptance passed; source-path work is finished. M3C needs a
 concrete health-read enrollment decision and physical-iPhone evidence. Important login/MFA,
 enrollment and revocation actions require confirmation if not already approved.
-Native M2C remains deferred under the existing $0/no-Mac constraint. No MVP 4 work authorized.
+Native M2C remains deferred under the existing $0/no-Mac constraint. The owner explicitly authorized
+MVP 4/F11 implementation on 2026-10-14 while M3C acceptance stays pending; see the MVP 4 report.
+No M3C ticket, enrollment, revocation or live health-read operation was repeated for that work.
 
 Estimated active PWA completion: **85%**. Basis: accepted phone chat/connection and protected live
 Core Garmin summary; health-scoped physical-phone Garmin/recovery and final polish remain.

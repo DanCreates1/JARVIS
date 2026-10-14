@@ -1,11 +1,10 @@
-# PWA MVP 4 — accessibility fixes
+# PWA MVP 4 — accessibility and durable phone chat
 
 - Status: `in-progress`; M4A local implementation verified; Safari A1/A7/A9/A11 and Home Screen A1/A3/A4/A5/A7/A8/A9/A11 observed passes; remaining physical/release gates open.
 - Audit baseline: `ed4ee18`, shell v6; work started at `1f07d4c` after concurrent M3C evidence commit.
-- Active subphase: M4A — reconnect readiness, text reflow, contrast and chat accessibility.
-- Scope: synthetic browser/client checks and physical Safari/Home Screen accessibility acceptance
-  using existing identity/public text only; no live enrollment, revocation, Garmin reads or route changes.
-- Preserve unrelated native package edits and concurrent `PWA_MVP3_PROGRESS.md` work.
+- Active subphase: F11 — cancellation, safe retry, Core history and reconnect isolation; M4A physical acceptance remains pending.
+- Scope: owner authorized F11 implementation on 2026-10-14 while M3C/M4A physical gates remain open.
+  Existing native candidates were reviewed and advanced through compatible SDK 57 patches; audit hold remains.
 - M3C physical-phone acceptance remains separate. MVP 4 is not complete.
 
 2026-10-10 resumption: `main` at `5384121`, shell `v7`; owner reports **phone available later**.
@@ -31,7 +30,8 @@ row. Use the existing matrix; M3C acceptance stays separate.
 - [x] Focused synthetic tests and Core repository gate; unrelated native audit hold isolated below.
 - [x] Separate actual desktop browser 400% zoom gate on the bounded synthetic shell.
 - [ ] Physical Safari/Home Screen VoiceOver, larger text, zoom, external keyboard and touch.
-- [ ] Chat cancel/retry/history/restart soak and measured performance thresholds.
+- [x] F11 code and automated cancel/retry/history/restart/isolation regressions.
+- [ ] Physical F11 soak and measured phone performance thresholds.
 
 ## Evidence
 
@@ -354,6 +354,130 @@ Official implementation references checked 2026-10-09: [network availability](ht
   scans 102 commits with no leaks. Full local Python/native release gates were not rerun for this
   checkpoint; no milestone closure is claimed. Native packages remain excluded under their audit hold.
 
+## 2026-10-14 F11 execution
+
+Baseline `main` at `34b40105c695d70db5c8d92a1488e7a7e135f090`; only the two native package candidates
+were dirty. Baseline [CI 38503620663](https://github.com/DanCreates1/JARVIS/actions/runs/38503620663)
+passed at that exact SHA. Fresh initial PWA checks passed 43 lifecycle tests and 24 desktop geometry
+cases. Historical phone observations remain dated v7 evidence; no physical v8 result is inferred.
+
+Implemented shell **v8**:
+
+- **Cancel reply** sends authenticated Core cancellation, waits for generation/provider cleanup,
+  and updates the phone. Cancellation before POST prevents submission; cancellation overtaking POST
+  creates a durable Core barrier so delayed submission cannot start generation. Lost cancellation
+  acknowledgement retains recovery and triggers same-ID cancellation after a running acknowledgement.
+- **Retry request** first reads authoritative status. Accepted requests are resumed/reconciled;
+  unaccepted requests reuse the original frozen message/conversation and request ID. Repeated taps,
+  new drafts, subscription replacement and lost HTTP acknowledgements cannot create duplicate turns.
+  Cancelled/failed/interrupted requests never restart automatically.
+- **Saved conversations**, **New conversation**, **Refresh history**, and **Load earlier messages**
+  read bounded device-owned Core history. Same device/session renewal restores it after page/Core
+  restart. Only an opaque device/request reference is stored on the phone; no transcript or draft
+  is persisted. IndexedDB transaction completion precedes POST. Unknown references without a draft
+  are closed on Core before allowing re-entry, protecting against a delayed original POST.
+- Core reserves each host/device/request ID durably before starting background work. Changed
+  payloads conflict; one active turn per device, 64 process-wide and a 300-second deadline. Status
+  can attach an owned current subscription without resending text. Authority is revalidated during
+  generation. Session expiry/revocation/logout stops bound work; session renewal can reattach it.
+- Current session, history generation, conversation and request ownership reject obsolete results.
+  Existing one-owner stream/Web Locks rules remain. Terminal replies reconcile missed deltas;
+  completion during history restoration cannot disappear or announce twice. Internal tool/planning
+  messages and conversations without provable device ownership are not exposed.
+- Pre-F11 conversations have no reliable device binding and are not guessed/backfilled. New F11
+  conversations persist in Core. Large replies/history pages retain explicit excerpt flags and
+  existing output ceilings. Deleted conversation content cannot turn a delayed retry into new work.
+
+### Mobile baseline repair and unresolved audit
+
+Original candidates were preserved/reviewed before install. `rtk npm ci` reproduced their lock.
+`rtk npm run verify` then exposed seven Expo SDK patch mismatches. Compatible patches advanced
+Expo to `~57.0.29`, metro-runtime `~57.0.17`, crypto `~57.0.4`, linking `~57.0.13`, router
+`~57.0.27`, jest-expo `~57.0.6`; constants retained `~57.0.21`, resolving `57.0.22`.
+Another frozen install preserved the repaired package/lock hashes:
+
+- package: `f1f34cd63792e55bd4db5293d3e9189eac0470d7a8fc81c58dbd895cf89796c4`
+- lock: `acd08d9aa861f1f047b868a49889f3b8f04041539028f7c5ad793b5c2a66bf57`
+
+Formatting/lint/types, **38/38 Jest tests**, unchanged coverage (91.63% statements, 86.69% branches,
+93.75% functions, 93.81% lines), **Expo Doctor 21/21**, compatibility and **1,114 license records**
+pass. Separate Android/iOS exports pass (1,288/1,152 modules, 3MB/2.6MB bundles). Exports do not
+prove a native build, signing or physical-phone behavior. Generated outputs stay ignored.
+
+Aggregate mobile verify still **fails** production audit: **60 findings, 15 moderate / 45 high /
+0 critical**. Current reviewed advisories list no patched versions for
+[braces](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm),
+[node-forge](https://github.com/advisories/GHSA-86w9-cpqp-85rv), and
+[sprintf-js](https://github.com/advisories/GHSA-hp3w-g68c-fv3c). Parent ranges also constrain
+moderate decode-uri-component/uuid fixes. No forced major downgrade, audit exclusion or threshold
+change was applied. Both local mobile candidates remain preserved under the existing publication
+hold; the PWA has no dependency on their Expo runtime.
+
+### Environment and verification
+
+Windows Application Control error **4551** blocked console launchers, the old sidecar interpreter
+and compiled mypy DLL. Supported Python module entry points run pytest/pip-audit; exact locked
+mypy `1.20.2` was rebuilt from official source with
+`rtk uv sync --locked --reinstall-package mypy --no-binary-package mypy --link-mode copy`.
+Blocked Garmin environment was preserved under ignored runtime storage and rebuilt with supported
+CPython **3.12.14** and locked copy installation. Root remains **3.11.9**, Node **24.20.0**, npm
+**11.19.0**. No Windows policy changed. Root/sidecar lock/sync, audits, bootstrap and doctor passed.
+
+Initial full pytest overlapped the new migration/source files: 1,437 passed / 3 skipped / 2 failures,
+85.00% coverage. A stable targeted migration-manifest rerun passed; the PWA session/control failure
+was repaired and all original lifecycle assertions now pass. Final stable gates are recorded below
+before publication; this initial run is not represented as an acceptance pass.
+
+Fresh v8 desktop evidence: 24 geometry/font/text-spacing cases pass with new controls. Actual
+Edge **155.0.4283.45** page zoom through native `tabs.setZoom` passes: 100% `innerWidth=1280`,
+400% `innerWidth=320`, root scroll width **316**, 14 controls pointer-reachable, new controls
+keyboard-reachable, retained reading/selection and a mocked Send pass. No viewport/CSS zoom
+substitute, phone speech or authenticated Core claim. Synthetic transport benchmark passes
+**100 reconnects / 10,000 events** with zero duplicates/gaps/cross-session deliveries/offline
+effects/private state retained; p95 **0.1378ms**, RSS growth **0.785MiB**, shell **62,249 bytes**,
+within unchanged 25ms/50MiB/256,000-byte limits. This is transport evidence, not phone performance.
+All browser profiles, screenshots and JSON remain ignored under `runtime/mvp4-fixes/`.
+
+### Stable final gate
+
+| Check | Actual 2026-10-14 result |
+| --- | --- |
+| Root lock check / locked sync | Pass; 119 resolved / 69 checked |
+| Garmin sidecar lock check / locked sync | Pass; 20 resolved / 16 checked, supported Python 3.12.14 |
+| Windows bootstrap | Pass through supported bundled `pwsh` |
+| Ruff format / lint | Pass; 414 formatted files |
+| Mypy | Pass; 166 source files |
+| Full strict pytest | **1,457 passed / 3 existing optional skips**, **85.60% coverage**, **124.28s**; one existing Starlette deprecation warning |
+| Focused Core/API/security/transport/migration | **54 passed**, including 17 new F11 Core cases; actual AssistantService provider cancellation cleanup, unknown-ID cancellation, rebind/restart, privacy/deletion and storage failures |
+| Real PWA JavaScript lifecycle | **63 passed**; 43 original assertions retained plus 20 F11 cases |
+| Desktop accessibility / actual 400% | **24 cases pass** / separate native zoom pass, 14 controls |
+| Synthetic transport soak | **100 reconnects / 10,000 events pass**, unchanged ceilings |
+| Root / sidecar dependency audits | No known vulnerabilities |
+| Gitleaks required history scan | Pass; 103 baseline commits, no leaks; staged scan before commit |
+| Whitespace | Pass |
+| Mobile aggregate verify | **Fails production audit only**; repaired local tests/Doctor/licenses/exports pass as above |
+
+Executed commands: `rtk uv lock --check`, `rtk uv sync --locked`, sidecar equivalents with
+`--project garmin_sync`, `rtk proxy pwsh -NoProfile -File scripts/bootstrap.ps1`,
+`rtk uv run ruff format --check .`, `rtk uv run ruff check .`, `rtk uv run mypy src`,
+`rtk proxy uv run python -m pytest --basetemp runtime/pwa-f11-final-20261014-quality1`,
+`rtk uv run python -m pip_audit`, sidecar audit with `--path garmin_sync/.venv/Lib/site-packages`,
+`rtk proxy gitleaks detect --source . --redact --no-banner`, `rtk git diff --check`, both requested
+Node commands and the synthetic benchmark. Fresh pytest target was verified under ignored runtime;
+strict configuration/markers and **85%** coverage threshold remain unchanged. Final source stayed
+stable during the full suite. Staged/private-data review and exact-SHA publication CI follow;
+baseline CI is not substituted for that new run.
+
+Local readiness after the gate: Core was not listening and was resumed with its verified existing
+loopback/private configuration through supported `pwsh` and `python -m jarvis`. Owned Serve route,
+exact backend/origin and disabled Funnel were validated; no launcher Run/Stop or route change.
+Settled state has one Python-owned **127.0.0.1:8765** listener. Loopback/private HTTPS shell,
+script and worker return **200** with matching v8 assets; unauthenticated chat-status, history and
+Garmin requests return **401**. No credential, new ticket, health read or phone result was used.
+An initial detached helper did not persist; the managed local service session succeeded. Staged
+Gitleaks scanned approximately **156KB**, no leaks. Safe publication excludes both native package
+files under their audit hold and all ignored runtime/generated artifacts.
+
 ## Remaining gates and handoff
 
 M4A local fixes are reviewable; **MVP 4 is not complete**. Owner resumed manual phone checks after
@@ -367,13 +491,13 @@ Home Screen by its retained identity. A6 failure/recovery/draft speech was not e
 earlier plain connection failure is no substitute. A10 is blocked without an external keyboard.
 Logout focus/cleanup stays blocked on separate M3C exact-device authority/evidence. Actual desktop
 browser 400% zoom passed on the synthetic Edge shell 2026-10-12. Retain the dated
-[M4A matrix](../PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md). F11 needs protocol-aware cancellation/retry and Core-backed history,
-including uncertain commit outcome/session guards, before its phone soak. Record explicit phone
+[M4A matrix](../PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md). F11 implementation and automated regressions
+are present; physical v8 cancel/retry/history/restart soak remains pending. Record explicit phone
 performance thresholds before measurements and milestone closure. M3C health-scoped phone
 enrollment/revocation/Garmin recovery acceptance stays in its separate report and authority scope.
 
-Estimated active PWA completion: **88%**; accepted phone chat/protected Core Garmin plus verified
+Estimated active PWA completion: **92%**; accepted phone chat/protected Core Garmin plus verified
 M4A local accessibility fixes and bounded owner-reported phone accessibility passes. Health-scoped
 physical acceptance, remaining accessibility prerequisites/failure cases,
-chat cancel/retry/history and performance/release gates remain open. Estimate is milestone-based,
+physical F11 soak and performance/release gates remain open. Estimate is milestone-based,
 not a measured test percentage.

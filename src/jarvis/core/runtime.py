@@ -224,6 +224,10 @@ class AssistantService:
         event_queue: asyncio.Queue[RuntimeEvent | None] | None = None,
     ) -> RuntimeResult:
         events = _Events(event_queue)
+        client_request_id: str | None = None
+        candidate = request.metadata.get("pwa_request_id")
+        if request.metadata.get("interface") == "browser" and isinstance(candidate, str):
+            client_request_id = candidate
         turn_messages: list[Message] = []
         tool_iterations = 0
 
@@ -393,6 +397,7 @@ class AssistantService:
 
         user_message = Message(
             conversation_id=conversation.id,
+            client_request_id=client_request_id,
             role=MessageRole.USER,
             content=request.user_input,
             disclosure_sensitivity=(
@@ -628,6 +633,7 @@ class AssistantService:
             )
             assistant_message = Message(
                 conversation_id=conversation.id,
+                client_request_id=client_request_id,
                 role=MessageRole.ASSISTANT,
                 content=(response.content or "").strip(),
                 tool_calls=response.tool_calls,

@@ -78,7 +78,11 @@ device again with a new key if access should return.
 | `POST /api/v1/client/subscriptions` | browser cookie + exact origin + CSRF | `events.read` plus each topic scope | opaque session-owned subscription and initial cursor |
 | `GET /api/v1/client/events?subscription_id=...&after=N` | browser cookie + exact origin | `events.read` | finite SSE page with monotonic cursor headers |
 | `DELETE /api/v1/client/subscriptions/ID` | browser cookie + exact origin + CSRF | `events.read` | clear exact owned subscription buffer |
-| `POST /api/v1/client/chat` | browser cookie + exact origin + CSRF | `client.chat` | idempotent request result plus streamed private in-memory events |
+| `POST /api/v1/client/chat` | browser cookie + exact origin + CSRF | `client.chat` | durable immutable-ID request; 202 running or 200 terminal; private streamed events |
+| `GET /api/v1/client/chat/{request_id}` | browser cookie + exact origin | `client.chat` | exact device-owned durable status; optional validated subscription attachment |
+| `POST /api/v1/client/chat/{request_id}/cancel` | browser cookie + exact origin + CSRF | `client.chat` | Core cancellation/unknown-ID durable barrier |
+| `GET /api/v1/client/conversations` | browser cookie + exact origin | `client.chat` | bounded exact device-owned conversation list |
+| `GET /api/v1/client/conversations/{id}/messages` | browser cookie + exact origin | `client.chat` | bounded paginated phone-only visible history; private/unowned denial |
 | `GET /api/v1/client/proactivity` | browser cookie + exact origin | `client.proactivity.read` plus local adapter/feature binding | generic active ownership state only |
 | `POST /api/v1/client/proactivity/ID/claim` | browser cookie + exact origin + CSRF | proactivity read + manage plus local adapter/feature binding | short leased ownership via current version |
 | `POST /api/v1/client/proactivity/ID/renew` | browser cookie + exact origin + CSRF | same as claim | renew current caller-owned lease |
@@ -176,9 +180,10 @@ ceiling is 250 KiB. Offline mode never queues chat, task changes, approvals, or 
 Enrollment uses Web Crypto Ed25519. The PWA generates a non-exportable private `CryptoKey` and
 stores that structured-clone key in its dedicated IndexedDB database; only the public key is
 exported for the existing Phase 8A proof. The user pastes the one-time local enrollment ticket.
-The ticket, key, CSRF value, session ID, cursor, and subscription ID are never placed in a URL,
-browser local storage, service-worker cache, notification, or model context. CSRF remains only in
-JavaScript memory; cursor/subscription state is tab-scoped `sessionStorage`. Reloading or closing
+The ticket, key, CSRF value and session credential are never placed in a URL, browser local storage,
+service-worker cache, notification or model context. Payload-free cursor/subscription IDs are sent
+in authenticated event/status queries. CSRF remains only in JavaScript memory; cursor/subscription
+state is tab-scoped `sessionStorage`. Reloading or closing
 the tab requires a fresh signed browser bootstrap before any state-changing request.
 
 Use these exact enrollment scopes for the Phase 8C client:
@@ -207,10 +212,16 @@ client; a gap or expired cursor causes a clean state refresh/new subscription, n
 Server restart intentionally drops volatile event buffers; durable conversation/task state remains
 canonical and the client creates a new subscription.
 
-Chat requests carry a client-generated request ID. The server keeps at most 128 session-bound,
-128-KiB in-memory results, so response loss can retry without a second model turn while retained.
-This is not permission or effect idempotency: the Phase 8C route has no task-run, approval,
-computer-action, or offline-effect endpoint. One tab owns the live stream through the browser Locks API where
+F11 chat requests carry a client-generated durable host/device-owned request ID. Core reserves
+before generation, retains outcomes across session renewal/restart and conflicts on changed payload.
+Cancellation can overtake POST through a durable barrier. Phone history reads only owned,
+Core-tagged visible phone turns; local private and unowned conversations remain unavailable.
+The phone persists only an opaque device/request reference, never transcript or draft text.
+Bounded replies/history cap at 128KiB with explicit excerpts; generation caps at one per device,
+64 per process and 300 seconds. See [F11 contract](PWA_F11_CHAT.md) for status, cancellation,
+history pagination, restart interruption and deleted-conversation receipts. This is not permission
+or effect idempotency: the route has no task-run, approval, computer-action or offline-effect endpoint.
+One tab owns the live stream through the browser Locks API where
 available. Other tabs remain read-only until they acquire ownership or establish a new session.
 
 Notifications require an explicit user gesture and browser permission. They are non-persistent,

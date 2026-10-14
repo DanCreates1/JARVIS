@@ -21,8 +21,10 @@ to a future Phase 8D network topology.
 - Add separate chat/task/status scopes. `events.read` alone cannot subscribe to a product topic.
 - Use finite SSE pages over a bounded session-owned process-memory buffer. Events have monotonically
   increasing cursors; stale/gapped cursors require refresh and resubscription.
-- Bind request retry records and subscriptions to exact host/device/browser-session identity. Clear
-  them at logout and no later than session expiry.
+- Bind subscriptions/event buffers to exact host/device/browser-session identity. Clear them at
+  logout and no later than session expiry. F11 supersedes the historical process-local retry cache:
+  durable Core request receipts bind to host/device and survive session renewal/restart; see
+  [F11 chat contract](../PWA_F11_CHAT.md). No private event-delta buffer becomes durable.
 - Use generic opt-in non-persistent notifications. Do not include message/task content or links.
 - Ship no remote voice upload, push service, action/task execution, remote approval, or offline
   mutation queue.

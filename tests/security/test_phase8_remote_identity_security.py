@@ -14,6 +14,7 @@ from jarvis.remote import (
     RemoteAuthenticationError,
     RemoteIdentityService,
     RemoteScope,
+    RemoteSessionKind,
     SessionRequest,
     SignedRequest,
     SQLiteRemoteIdentityStore,
@@ -167,3 +168,62 @@ async def test_denial_audit_is_sanitized_bounded_and_update_protected(tmp_path: 
                 "UPDATE remote_audit_events SET reason_code = 'changed' WHERE device_id = ?",
                 (device_id,),
             )
+
+
+@pytest.mark.asyncio
+async def test_retained_core_work_revalidates_exact_current_identity_and_scope(
+    tmp_path: Path,
+) -> None:
+    store = SQLiteRemoteIdentityStore(tmp_path / "retained-authority.db")
+    await store.initialize()
+    try:
+        service = RemoteIdentityService(store)
+        key = Ed25519PrivateKey.generate()
+        device_id = await _enroll(service, key, name="Synthetic retained work")
+        payload = SessionRequest(requested_scopes=(RemoteScope.IDENTITY_READ,))
+        request, signature = _signed(
+            key,
+            device_id=device_id,
+            nonce="V" * 22,
+            token=None,
+            path="/api/v1/sessions",
+            body=payload.model_dump_json().encode(),
+        )
+        session = await service.create_session(
+            request=request, signature=signature, payload=payload
+        )
+        request, signature = _signed(
+            key,
+            device_id=device_id,
+            nonce="W" * 22,
+            token=session.token,
+            path="/api/v1/identity",
+            body=b"",
+        )
+        context = await service.authenticate_request(
+            request=request, signature=signature, required_scope=RemoteScope.IDENTITY_READ
+        )
+        await service.validate_context(context, required_scope=RemoteScope.IDENTITY_READ)
+        for change in (
+            {"host_id": "host:foreign"},
+            {"device_id": "device:foreign"},
+            {"session_id": "session:missing"},
+            {"key_version": 2},
+            {"audience": "other-audience"},
+            {"session_kind": RemoteSessionKind.BROWSER},
+            {"scopes": frozenset()},
+        ):
+            with pytest.raises(RemoteAuthenticationError) as rejected:
+                await service.validate_context(
+                    context.model_copy(update=change), required_scope=RemoteScope.IDENTITY_READ
+                )
+            assert rejected.value.code == "retained_context_changed"
+        with pytest.raises(RemoteAuthenticationError) as rejected:
+            await service.validate_context(context, required_scope=RemoteScope.CLIENT_CHAT)
+        assert rejected.value.code == "retained_context_changed"
+        assert await service.revoke_current_session(context)
+        with pytest.raises(RemoteAuthenticationError) as rejected:
+            await service.validate_context(context, required_scope=RemoteScope.IDENTITY_READ)
+        assert rejected.value.code == "retained_context_changed"
+    finally:
+        await store.close()

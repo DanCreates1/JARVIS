@@ -316,6 +316,38 @@ class RemoteIdentityService:
                 expires_at=expires_at,
             )
 
+    async def validate_context(
+        self, context: RemoteIdentityContext, *, required_scope: RemoteScope
+    ) -> None:
+        """Revalidate retained Core work without issuing credentials or widening authority."""
+        async with self._operation_lock:
+            now = self._now()
+            session = await self._store.get_session(context.session_id)
+            device = await self._store.get_device(context.device_id)
+            if (
+                session is None
+                or device is None
+                or session.device_id != context.device_id
+                or session.session_kind is not context.session_kind
+                or session.key_version != context.key_version
+                or session.audience != context.audience
+                or session.revoked_at is not None
+                or session.expires_at <= now
+                or device.record.host_id != context.host_id
+                or device.record.state is not DeviceState.ACTIVE
+                or device.record.credential_expires_at <= now
+                or device.record.key_version != context.key_version
+                or required_scope not in context.scopes
+                or required_scope not in session.scopes
+                or required_scope not in device.record.approved_scopes
+            ):
+                await self._deny(
+                    "retained_context_changed",
+                    device_id=context.device_id,
+                    session_id=context.session_id,
+                    created_at=now,
+                )
+
     async def authenticate_request(
         self,
         *,

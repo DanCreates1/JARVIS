@@ -577,8 +577,9 @@ dedicated IndexedDB store and exports only its public half for Phase 8A enrollme
 page memory; cursors/subscription IDs are tab-scoped and contain no payload.
 
 The product surface uses separate `client.chat`, `client.tasks.read`, and `client.status.read`
-scopes plus `events.read`. Task responses expose status metadata only. Chat requests use
-session-bound request IDs for bounded response-loss retry and publish private deltas only to an
+scopes plus `events.read`. Task responses expose status metadata only. F11 chat requests use
+durable host/device-owned request IDs for response-loss retry across renewed sessions/restart and
+publish private deltas only to an
 in-memory subscription bound to exact `host_id + device_id + session_id`. Each subscription has
 monotonic cursors, fixed event/count/TTL ceilings, and is cleared on logout. Restart discards these
 volatile buffers; the client refreshes durable conversation/task state and resubscribes. A cursor
@@ -592,7 +593,7 @@ bounded remote logout/bootstrap cleanup; replacement enrollment or connection wa
 This preserves the existing server CSRF, cookie and Clear-Site-Data behavior. Offline local erase
 cannot establish server revocation; expiry or approved exact-device revocation closes that boundary.
 
-MVP 4 shell v7 keeps network availability separate from authenticated transport readiness. One
+MVP 4 shell v8 keeps network availability separate from authenticated transport readiness. One
 generation-bound stream owner retains its lock across offline/backoff, aborts interrupted polls and
 checks a successful current poll before enabling chat. Queued Web Locks are cancelled on session
 replacement/logout. A 401 invalidates volatile session/cursor/private views while preserving the
@@ -605,8 +606,15 @@ views or busy state in a newer session.
 Chat history has an explicit name/keyboard focus target. Incoming deltas follow only readers near
 the end without a history selection; Jump to latest returns focus to history. A separate polite
 status announces complete/failed/cancelled replies once per request rather than reading every
-delta. Failed-send drafts remain in page memory with unconfirmed-outcome guidance; no automatic
-retry, offline queue or new cancellation endpoint is introduced. Garmin keeps fetched-at context
+delta. Failed-send drafts remain in page memory with unconfirmed-outcome guidance. F11 adds explicit
+Cancel reply, Retry request, saved conversation selection and paginated history. A durable SQLite
+reservation binds request ID, immutable payload and exact device before background generation;
+lost acknowledgements/subscriptions cannot replay the turn. Current owned subscription attachment
+requires authenticated status; cancellation and restart/deletion receipts prevent uncertain replay.
+Core-authored message tags exclude local/tool/planning additions; private/unowned conversations are
+denied. IndexedDB commits only an opaque device/request marker before POST, with no transcript or
+draft persistence. No automatic generation retry or offline queue is introduced. See
+[F11 contract](PWA_F11_CHAT.md). Garmin keeps fetched-at context
 in page memory and marks it stale at five minutes without polling solely for freshness.
 
 Phase 11C reuses that authenticated PWA surface as the only proactivity adapter. Additive migration

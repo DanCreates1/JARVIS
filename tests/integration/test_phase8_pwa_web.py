@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -13,6 +14,8 @@ from jarvis.bootstrap import RuntimeComponents
 from jarvis.config import Settings
 from jarvis.core import (
     AssistantRequest,
+    Message,
+    MessageRole,
     ModelRole,
     RuntimeResult,
     RuntimeStatus,
@@ -49,15 +52,33 @@ ALL_SCOPES = (
 
 
 class _FakeService:
+    def __init__(self, store: SQLiteConversationStore) -> None:
+        self.store = store
+        self.calls = 0
+
     async def run(self, request: AssistantRequest) -> RuntimeResult:
         return RuntimeResult(status=RuntimeStatus.COMPLETED, reply=request.user_input)
 
     async def stream(self, request: AssistantRequest) -> AsyncIterator[RuntimeStreamFrame]:
+        self.calls += 1
+        assert request.conversation_id is not None
+        for role, content in (
+            (MessageRole.USER, request.user_input),
+            (MessageRole.ASSISTANT, f"echo:{request.user_input}"),
+        ):
+            await self.store.append_message(
+                Message(
+                    conversation_id=request.conversation_id,
+                    role=role,
+                    content=content,
+                    client_request_id=request.metadata.get("pwa_request_id"),
+                )
+            )
         yield RuntimeStreamFrame(
             result=RuntimeResult(
                 status=RuntimeStatus.COMPLETED,
                 reply=f"echo:{request.user_input}",
-                conversation_id="conversation:pwa",
+                conversation_id=request.conversation_id,
             )
         )
 
@@ -166,6 +187,8 @@ def _runtime_factory(
             )
         )
         created["device_id"] = device.id
+        service = _FakeService(store)
+        created["service"] = service
         proactivity_store = None
         proactivity_adapter = None
         if wire_proactivity:
@@ -191,7 +214,7 @@ def _runtime_factory(
             settings=settings,
             store=store,
             provider=_FakeRouter(),  # type: ignore[arg-type]
-            service=_FakeService(),  # type: ignore[arg-type]
+            service=service,  # type: ignore[arg-type]
             memory_host_id=HOST_ID,
             remote_store=remote_store,
             remote_identity=remote,
@@ -314,9 +337,9 @@ def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(tmp_path: Pat
         assert "indexedDB" in script.text and '"JARVIS_LOGOUT"' in script.text
         assert 'headers["X-Jarvis-Browser-Origin"]=window.location.origin' in script.text
         assert "SHELL.includes(shellKey)" in worker.text and "cache.put" in worker.text
-        assert 'const CACHE="jarvis-shell-v7"' in worker.text
+        assert 'const CACHE="jarvis-shell-v8"' in worker.text
         assert "self.skipWaiting()" in worker.text
-        assert "/app/app.js?v=7" in shell.text and "/app/sw.js?v=7" in script.text
+        assert "/app/app.js?v=8" in shell.text and "/app/sw.js?v=8" in script.text
         assert "ui.logout.disabled=!state.hasIdentity" in script.text
         assert manifest.json()["start_url"] == "/app/"
         asset_bytes = sum(
@@ -371,10 +394,42 @@ def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(tmp_path: Pat
             "message": "hello",
         }
         first = client.post("/api/v1/client/chat", headers=auth, json=request)
-        assert first.status_code == 200 and first.json()["reply"] == "echo:hello"
+        assert first.status_code == 202 and first.json()["status"] == "running"
+        for _ in range(100):
+            completed = client.get(
+                "/api/v1/client/chat/request:pwa-one", headers={"Origin": ORIGIN}
+            )
+            if completed.json()["status"] != "running":
+                break
+            time.sleep(0.01)
+        assert completed.status_code == 200 and completed.json()["reply"] == "echo:hello"
         repeated = client.post("/api/v1/client/chat", headers=auth, json=request)
-        assert repeated.status_code == 200 and repeated.json() == first.json()
-
+        assert repeated.status_code == 200 and repeated.json() == completed.json()
+        service = created["service"]
+        assert isinstance(service, _FakeService) and service.calls == 1
+        conversations = client.get("/api/v1/client/conversations", headers=ios_headers).json()
+        assert [item["id"] for item in conversations["conversations"]] == [
+            completed.json()["conversation_id"]
+        ]
+        history = client.get(
+            f"/api/v1/client/conversations/{completed.json()['conversation_id']}/messages",
+            headers=ios_headers,
+        )
+        assert history.status_code == 200
+        assert [item["content"] for item in history.json()["messages"]] == ["hello", "echo:hello"]
+        assert {item["request_id"] for item in history.json()["messages"]} == {"request:pwa-one"}
+        changed = client.post(
+            "/api/v1/client/chat", headers=auth, json={**request, "message": "changed"}
+        )
+        assert changed.status_code == 409 and service.calls == 1
+        assert (
+            client.get("/api/v1/client/chat/request:missing", headers=ios_headers).status_code
+            == 404
+        )
+        terminal_cancel = client.post(
+            "/api/v1/client/chat/request:pwa-one/cancel", headers=auth, json={}
+        )
+        assert terminal_cancel.status_code == 200 and terminal_cancel.json() == completed.json()
         events = client.get(
             "/api/v1/client/events",
             headers={"Origin": ORIGIN},
@@ -391,6 +446,28 @@ def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(tmp_path: Pat
             params={"subscription_id": subscription_id, "after": cursor},
         )
         assert resumed.status_code == 200 and resumed.text == ": keepalive\n\n"
+
+        closed = client.delete(f"/api/v1/client/subscriptions/{subscription_id}", headers=auth)
+        assert closed.status_code == 200
+        renewed_csrf = _bootstrap(
+            client,
+            key,
+            str(created["device_id"]),
+            [scope.value for scope in ALL_SCOPES],
+            nonce="R" * 22,
+        )
+        auth = {"Origin": ORIGIN, "X-Jarvis-CSRF": renewed_csrf}
+        renewed_subscription = client.post(
+            "/api/v1/client/subscriptions", headers=auth, json={"topics": ["chat"]}
+        ).json()["id"]
+        renewed = client.post(
+            "/api/v1/client/chat",
+            headers=auth,
+            json={**request, "subscription_id": renewed_subscription},
+        )
+        assert (
+            renewed.status_code == 200 and renewed.json() == completed.json() and service.calls == 1
+        )
 
         logout = client.delete("/api/v1/sessions/current", headers=auth)
         assert logout.status_code == 200
@@ -451,6 +528,18 @@ def test_pwa_topics_and_product_routes_require_exact_scopes(tmp_path: Path) -> N
                 "/api/v1/client/proactivity/candidate:one/claim",
                 headers=headers,
                 json={"expected_version": 1},
+            ).status_code
+            == 403
+        )
+        for path in (
+            "/api/v1/client/conversations",
+            "/api/v1/client/conversations/conversation:missing/messages",
+            "/api/v1/client/chat/request:missing",
+        ):
+            assert client.get(path, headers={"Origin": ORIGIN}).status_code == 403
+        assert (
+            client.post(
+                "/api/v1/client/chat/request:missing/cancel", headers=headers, json={}
             ).status_code
             == 403
         )

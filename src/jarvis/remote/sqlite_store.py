@@ -346,6 +346,16 @@ class SQLiteRemoteIdentityStore:
                 row = await cursor.fetchone()
         return None if row is None else _stored_session(row)
 
+    async def get_session(self, session_id: str) -> StoredSession | None:
+        """Read a server-owned session for in-flight authority revalidation."""
+        async with self._operation_lock:
+            connection = await self._get_connection()
+            async with connection.execute(
+                "SELECT * FROM remote_sessions WHERE id = ?", (session_id,)
+            ) as cursor:
+                row = await cursor.fetchone()
+        return None if row is None else _stored_session(row)
+
     async def touch_session(self, *, session_id: str, device_id: str, seen_at: datetime) -> bool:
         async with self._operation_lock:
             connection = await self._get_connection()

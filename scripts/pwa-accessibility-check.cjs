@@ -89,14 +89,15 @@ async function main() {
   output.reflowReference = await evaluate("({referenceWidth:1280,layoutWidth:innerWidth,scrollWidth:document.documentElement.scrollWidth,note:'320 CSS px equivalent to 1280px at 400%; viewport simulation, not actual browser zoom'})");
   assert.ok(output.reflowReference.scrollWidth <= 321);
   await call("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: false });
-  await evaluate("document.querySelectorAll('button,textarea').forEach(e=>e.disabled=false);for(let i=0;i<80;i++)pwaTest.row('jarvis','Synthetic history '+i);document.querySelector('#ticket').focus()");
+  await evaluate("document.querySelectorAll('button,textarea,select').forEach(e=>e.disabled=false);for(let i=0;i<80;i++)pwaTest.row('jarvis','Synthetic history '+i);document.querySelector('#ticket').focus()");
   output.tabOrder = ["ticket"];
-  for (let turn = 0; turn < 10; turn++) { await key("Tab", 9); output.tabOrder.push(await evaluate("document.activeElement.id||document.activeElement.tagName")); }
+  for (let turn = 0; turn < 16; turn++) { await key("Tab", 9); output.tabOrder.push(await evaluate("document.activeElement.id||document.activeElement.tagName")); }
   assert.ok(output.tabOrder.includes("log"));
+  for(const id of ["conversation-list","new-conversation","refresh-history","cancel-chat"])assert.ok(output.tabOrder.includes(id),`Keyboard cannot reach ${id}`);
   await evaluate("document.querySelector('#log').focus();document.querySelector('#log').scrollTop=0");
   await key("PageDown", 34); await pause(350);
   output.keyboardScroll = await evaluate("document.querySelector('#log').scrollTop"); assert.ok(output.keyboardScroll > 0);
-  await key("Tab", 9, true); output.shiftTab = await evaluate("document.activeElement.id"); assert.equal(output.shiftTab, "notify");
+  await key("Tab", 9, true); output.shiftTab = await evaluate("document.activeElement.id"); assert.equal(output.shiftTab, "refresh-history");
   output.history = await evaluate(`(()=>{const log=document.querySelector('#log');log.scrollTop=120;const before=log.scrollTop;pwaTest.row('jarvis','Incoming synthetic delta','synthetic-stream');const after=log.scrollTop;const visible=!document.querySelector('#jump-latest').hidden;document.querySelector('#jump-latest').click();return {before,after,visible,atEnd:Math.abs(log.scrollHeight-log.clientHeight-log.scrollTop)<=1,focus:document.activeElement.id};})()`);
   assert.equal(output.history.before, output.history.after); assert.ok(output.history.visible && output.history.atEnd); assert.equal(output.history.focus, "log");
   output.selection = await evaluate(`(()=>{const log=document.querySelector('#log'),range=document.createRange();range.selectNodeContents(log.firstChild);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);const before=log.scrollTop;pwaTest.row('jarvis','Selected history delta','synthetic-stream');const result={before,after:log.scrollTop,selection:selection.toString(),jump:!document.querySelector('#jump-latest').hidden};selection.removeAllRanges();return result;})()`);
@@ -107,6 +108,7 @@ async function main() {
   output.accessibility = ax.nodes.filter(n => ["button", "textbox", "log", "status"].includes(n.role?.value)).map(n => ({ role: n.role.value, name: n.name?.value }));
   assert.ok(output.accessibility.some(n => n.role === "log" && n.name === "Conversation"));
   assert.ok(output.accessibility.some(n => n.role === "button" && n.name === "Refresh tasks"));
+  assert.ok(output.accessibility.some(n => n.role === "button" && n.name === "Cancel reply"));
   output.colors = await evaluate(`(()=>{const s=e=>getComputedStyle(document.querySelector(e));return {danger:[s('#logout').color,s('#logout').backgroundColor],input:[s('#ticket').borderTopColor,s('#ticket').backgroundColor],panel:s('#setup').backgroundColor,focus:s('#ticket').outlineColor};})()`);
   const luminance = color => { const rgb = color.match(/[\d.]+/g).slice(0, 3).map(Number).map(v => { const s = v / 255; return s <= .04045 ? s / 12.92 : ((s + .055) / 1.055) ** 2.4; }); return .2126 * rgb[0] + .7152 * rgb[1] + .0722 * rgb[2]; };
   const contrast = (a, b) => { const x = luminance(a), y = luminance(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };

@@ -1,7 +1,7 @@
 # JARVIS Master Roadmap
 
 Status: active, mobile-MVP-first  
-Updated: 2026-10-10
+Updated: 2026-10-14
 Repository: `DanCreates1/JARVIS`, branch `main`
 
 ## Product target
@@ -207,9 +207,18 @@ four MVP milestones pass and the owner explicitly reprioritizes them.
 
 ## Next milestone
 
+2026-10-14: owner authorized F11 implementation despite pending physical M3C/M4A gates. Shell
+**v8** adds working Core cancellation, immutable-ID safe retry, device-owned durable history and
+reconnect/session isolation. See [F11 contract](PWA_F11_CHAT.md) and
+[verified execution](phase-reports/PWA_MVP4_PROGRESS.md). Physical v8 soak, new-control accessibility
+and measured phone performance remain open. Native SDK patch mismatches were repaired locally;
+38 tests, Doctor 21/21 and both exports pass, but production audit remains 60 findings with
+unpatched upstream advisories. Native candidates retain their publication hold. Estimated PWA
+completion **92%**, based on implemented/automated milestones, not physical acceptance percentage.
+
 **MVP 3 / M3C — health-scoped phone acceptance.** M3A/M3B are complete: protected import and
 fresh live Core Garmin evidence passed. Do not repeat source discovery/import. M3C needs a
-pending grouped health-scope enrollment/recovery decision and physical-phone evidence; reload current shell `v7` before new acceptance.
+pending grouped health-scope enrollment/recovery decision and physical-phone evidence; reload current shell `v8` before new acceptance.
 Local recovery repairs and their synthetic evidence do not close the physical gate. Important new enrollment, login/MFA, credential changes,
 signing, paid services and deployment need confirmation only when not already explicitly approved.
 Native M2C remains deferred.

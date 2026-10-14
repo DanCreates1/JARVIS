@@ -204,6 +204,19 @@ class PWAEventHub:
             state.condition.notify_all()
         return candidate
 
+    async def validate_subscription(
+        self,
+        *,
+        context: RemoteIdentityContext,
+        subscription_id: str,
+        topic: PWAEventTopic,
+    ) -> None:
+        state = await self._owned(context, subscription_id)
+        if state.closed:
+            raise PWATransportError("subscription_not_found")
+        if topic not in state.record.topics:
+            raise PWATransportError("topic_not_subscribed")
+
     async def read(
         self,
         *,

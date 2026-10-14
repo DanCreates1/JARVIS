@@ -9,7 +9,7 @@
   <link rel="manifest" href="/app/manifest.webmanifest">
   <link rel="icon" href="/app/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app/app.css">
-  <script src="/app/app.js?v=7" type="module"></script>
+  <script src="/app/app.js?v=8" type="module"></script>
 </head>
 <body>
   <header>
@@ -39,6 +39,13 @@
         <h2 id="chat-title">Conversation</h2>
         <button id="notify" type="button" class="quiet" disabled>Enable notifications</button>
       </div>
+      <label for="conversation-list">Saved conversations</label>
+      <select id="conversation-list" disabled><option value="">New conversation</option></select>
+      <div class="actions">
+        <button id="new-conversation" type="button" class="secondary" disabled>New conversation</button>
+        <button id="refresh-history" type="button" class="secondary" disabled>Refresh history</button>
+        <button id="older-history" type="button" class="secondary" hidden disabled>Load earlier messages</button>
+      </div>
       <div id="log" class="log" role="log" aria-live="off" aria-labelledby="chat-title" tabindex="0"></div>
       <button id="jump-latest" type="button" class="secondary" aria-controls="log" hidden>Jump to latest</button>
       <p id="chat-status" class="hint" role="status" aria-live="polite" aria-atomic="true"></p>
@@ -47,6 +54,10 @@
         <textarea id="message" rows="2" maxlength="100000" placeholder="Ask JARVIS" disabled></textarea>
         <button id="send" type="submit" disabled>Send</button>
       </form>
+      <div class="actions">
+        <button id="cancel-chat" type="button" class="secondary" disabled>Cancel reply</button>
+        <button id="retry-chat" type="button" class="secondary" hidden disabled>Retry request</button>
+      </div>
       <p class="hint">Offline messages are never queued. Remote voice remains disabled until secure deployment validation.</p>
     </section>
 

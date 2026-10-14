@@ -1,6 +1,6 @@
 # JARVIS Phase Overview
 
-Updated: 2026-10-12
+Updated: 2026-10-14
 
 ## Active product path
 
@@ -29,7 +29,7 @@ record.
 | Track | Status | Next gate |
 | --- | --- | --- |
 | Phone PWA | Physical-iPhone chat accepted; M3A/M3B complete; M3C shell v6 repairs offline logout and obsolete response/reconnect handling with synthetic evidence | Pending grouped health-read enrollment/recovery decision and physical-iPhone acceptance |
-| PWA MVP 4 | M4A shell v7/local checks and actual desktop 400% zoom pass; Safari A1/A7/A9/A11 and Home Screen A1/A3/A4/A5/A7/A8/A9/A11 observed passes, 2026-10-13 | [Safari/Home Screen matrix](PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md): full phone assets, Safari authenticated/failure cases and maximum zoom value open; A10 blocked without keyboard; later chat/performance/release gates open; M3C separate |
+| PWA MVP 4 | F11 shell v8 implements Core cancellation, immutable-ID retry, durable owned history and reconnect isolation; automated regressions pass. Historical M4A phone observations remain v7 | [Safari/Home Screen matrix](PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md): v8 assets/F11 physical soak, remaining Safari/failure/keyboard cases, measured phone performance and release open; M3C separate; native audit remains blocked |
 | Native MVP | Expo Go checks passed; independent native build unverified and deferred under $0/no-Mac constraint | No active native gate |
 | Mobile MVP 2 | Deferred | No active native gate |
 | Mobile MVP 3 | Deferred | No active native gate |
@@ -48,7 +48,7 @@ record.
 
 - Use the PWA Garmin acceptance list for current phone work; native mobile milestones are deferred.
 - Current MVP 3 evidence and M3A/M3B/M3C gates: [PWA MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
-- Authorized MVP 4 accessibility work and remaining gates: [PWA MVP 4 progress](phase-reports/PWA_MVP4_PROGRESS.md). Reload current shell v7 for new acceptance; historical M3C v6 evidence remains unchanged.
+- Authorized MVP 4/F11 implementation and remaining gates: [PWA MVP 4 progress](phase-reports/PWA_MVP4_PROGRESS.md). Reload current shell v8 for new acceptance; historical v6/v7 evidence remains dated.
 - Preserve Core as sole authority, memory, routing, permission, and audit system.
 - Keep production Core loopback-bound behind approved private-network HTTPS.
 - Follow the root Codex confirmation policy: routine requested work proceeds; important new

@@ -31,7 +31,7 @@ function element() {
   };
 }
 
-function harness() {
+function harness(records = new Map()) {
   const nodes = new Map(), requests = [], windowEvents = {}, timers = [], storage = new Map();
   const clock = { now: Date.parse("2026-10-07T12:00:00Z") };
   class FakeDate extends Date {
@@ -41,7 +41,7 @@ function harness() {
     if (!nodes.has(selector)) nodes.set(selector, element());
     return nodes.get(selector);
   };
-  let identity;
+  let nextMarkerCommit;
   const storageRequest = (result) => {
     const request = { result };
     queueMicrotask(() => request.onsuccess?.());
@@ -50,11 +50,25 @@ function harness() {
   const database = {
     close() {},
     transaction() {
-      return { objectStore: () => ({
-        get: () => storageRequest(identity),
-        clear: () => { identity = undefined; return storageRequest(undefined); },
-        put: (value) => { identity = value; return storageRequest(value); },
-      }) };
+      const tx = {};
+      const operation = (result, mutation = () => {}, marker = false) => {
+        const request = storageRequest(result), control = marker ? nextMarkerCommit : null;
+        if (marker) nextMarkerCommit = null;
+        const finish = error => {
+          if (error) { tx.error = error; tx.onabort?.(); return; }
+          mutation(); tx.oncomplete?.();
+        };
+        if (control) { control.commit = () => finish(); control.fail = () => finish(new Error("Synthetic IndexedDB transaction abort")); }
+        else queueMicrotask(() => queueMicrotask(() => finish()));
+        return request;
+      };
+      tx.objectStore = () => ({
+        get: key => operation(records.get(key)),
+        clear: () => operation(undefined, () => records.clear()),
+        put: (value, key) => operation(value, () => records.set(key, value), key === "chat-request"),
+        delete: key => operation(undefined, () => records.delete(key)),
+      });
+      return tx;
     },
   };
   const context = vm.createContext({
@@ -77,7 +91,7 @@ function harness() {
   });
   const run = (code) => vm.runInContext(code, context);
   const ready = (async () => { for (let turn = 0; turn < 20; turn++) await Promise.resolve(); })();
-  const activate = (session = "synthetic-session") => run(`state.csrf=${JSON.stringify(session)};state.hasIdentity=true;state.healthAllowed=true;setConnected(true);`);
+  const activate = (session = "synthetic-session") => run(`state.csrf=${JSON.stringify(session)};state.deviceId='synthetic-device';state.hasIdentity=true;state.healthAllowed=true;state.historyReady=true;setConnected(true);`);
   const summary = (steps) => ({
     date: "2026-10-07", refreshed_at: "2026-10-07T12:00:00Z", steps,
     resting_heart_rate: null, sleep_minutes: null, stress: null, body_battery: null,
@@ -85,7 +99,8 @@ function harness() {
   });
   const respond = (request, body, status = 200) => request.pending.resolve({ ok: status < 400, status, json: async () => body });
   vm.runInContext(script, context);
-  const setIdentity = (value) => { identity = value; };
+  const setIdentity = (value) => { records.set("device", value); };
+  const holdMarkerCommit = () => { const control = {}; nextMarkerCommit = control; return control; };
   const waitForRequests = async (count) => {
     for (let turn = 0; turn < 50 && requests.length < count; turn++) await Promise.resolve();
     assert.equal(requests.length, count);
@@ -105,7 +120,7 @@ function harness() {
       sign: async () => new Uint8Array(64),
     };
   };
-  return { run, ready, activate, get, requests, summary, respond, windowEvents, context, clock, setIdentity, waitForRequests, runTimer, storage, fakeEnrollmentCrypto };
+  return { run, ready, activate, get, requests, summary, respond, windowEvents, context, clock, setIdentity, waitForRequests, runTimer, storage, records, holdMarkerCommit, fakeEnrollmentCrypto };
 }
 
 test("offline logout erases local identity and displayed data while remote DELETE remains pending", async () => {
@@ -348,6 +363,7 @@ test("late chat response body or error cannot restore conversation after logout"
     h.run("state.subscription='synthetic-subscription'");
     h.get("#message").value = "Synthetic public prompt";
     const send = h.run("sendMessage({preventDefault(){}})");
+    await h.waitForRequests(1);
     const body = deferred(), started = deferred();
     if (!failure) {
       h.requests[0].pending.resolve({ ok: true, status: 200, json: () => { started.resolve(); return body.promise; } });
@@ -637,6 +653,7 @@ test("offline and repeated online events retain one owner and require a successf
     h.context.navigator.onLine = true; h.windowEvents.online(); h.windowEvents.online();
     assert.equal(h.get("#send").disabled, true); assert.equal(h.run("state.streamOwner"), owner);
     await h.waitForRequests(2); assert.equal(h.get("#send").disabled, true);
+    h.run("state.chatDrafts.set('current','Synthetic recovered prompt')");
     respondStream(h, h.requests[1], 'data: {"cursor":1,"topic":"chat","event_type":"chat.delta","request_id":"current","payload":{"content_delta":"Recovered reply"}}\n\n');
     await h.waitForRequests(3); assert.equal(h.run("state.online"), true);
     assert.equal(h.get("#send").disabled, false); assert.equal(h.run("state.cursor"), 1);
@@ -680,7 +697,11 @@ test("Core subscription reset requires a new authenticated event poll", async ()
   assert.equal(h.requests[1].options.method, "DELETE"); h.respond(h.requests[1], {}); await h.waitForRequests(3);
   h.respond(h.requests[2], { id: "synthetic-restarted-subscription", next_cursor: 8 }); await h.waitForRequests(4);
   assert.equal(h.get("#send").disabled, true); assert.match(h.requests[3].url, /after=8/);
-  respondStream(h, h.requests[3]); await h.waitForRequests(5); assert.equal(h.get("#send").disabled, false);
+  respondStream(h, h.requests[3]); await h.waitForRequests(5);
+  assert.equal(h.requests[4].url, "/api/v1/client/conversations?limit=20");
+  assert.equal(h.get("#send").disabled, true);
+  h.respond(h.requests[4], { conversations: [], active_request: null });
+  await h.waitForRequests(6); assert.equal(h.get("#send").disabled, false);
   h.run("stopStream()"); await flush();
 });
 
@@ -731,7 +752,10 @@ test("history updates retain scroll position and selection until Jump to latest"
 
 test("completed answer announced once; delta, failed and cancelled behavior explicit", async () => {
   const h = harness(); await h.ready; let cursor = 0;
-  const event = (type, payload = {}, id = "synthetic-reply") => h.run(`processEvent(${JSON.stringify({ cursor: ++cursor, topic: "chat", event_type: type, request_id: id, payload })})`);
+  const event = (type, payload = {}, id = "synthetic-reply") => {
+    if (["chat.started", "chat.failed", "chat.cancelled"].includes(type)) h.run(`state.chatActive.add(${JSON.stringify(id)})`);
+    return h.run(`processEvent(${JSON.stringify({ cursor: ++cursor, topic: "chat", event_type: type, request_id: id, payload })})`);
+  };
   event("chat.started"); assert.equal(h.get("#chat").attributes["aria-busy"], "true");
   const start = h.get("#chat-status").textContent;
   event("chat.delta", { content_delta: "Synthetic " }); event("chat.frame", { type: "assistant_delta", content_delta: "answer" });
@@ -748,9 +772,11 @@ test("failed send keeps draft and repeated submit cannot duplicate in-flight req
   const h = harness(); await h.ready; h.activate(); h.run("state.subscription='synthetic-subscription'");
   h.get("#message").value = "Synthetic draft";
   const send = h.run("sendMessage({preventDefault(){}})"); h.run("sendMessage({preventDefault(){}})");
+  await h.waitForRequests(1);
   assert.equal(h.requests.length, 1); assert.equal(h.get("#send").disabled, true);
   h.requests[0].pending.reject(new Error("Synthetic failed send")); await send;
-  assert.equal(h.get("#message").value, "Synthetic draft"); assert.equal(h.get("#send").disabled, false);
+  assert.equal(h.get("#message").value, "Synthetic draft"); assert.equal(h.get("#send").disabled, true);
+  assert.equal(h.get("#retry-chat").disabled, false);
   assert.match(h.get("#chat-status").textContent, /outcome unconfirmed.*Draft kept/);
 });
 
@@ -790,6 +816,7 @@ test("malformed ticket produces persistent associated recovery and no network ca
 test("completed HTTP reply survives later stream frames without duplicate speech", async () => {
   const h = harness(); await h.ready; h.activate(); h.run("state.subscription='synthetic-subscription'");
   h.get("#message").value = "Synthetic prompt"; const send = h.run("sendMessage({preventDefault(){}})");
+  await h.waitForRequests(1);
   h.run("processEvent({cursor:1,topic:'chat',event_type:'chat.started',request_id:'request:synthetic-request',payload:{}})");
   h.respond(h.requests[0], { reply: "Full synthetic answer", conversation_id: "synthetic-conversation" }); await send;
   assert.equal(h.get("#log").children[1].textContent, "JARVIS: Full synthetic answer");
@@ -818,6 +845,7 @@ test("browser resume marks old health stale without another Garmin request", asy
 test("unconfirmed POST outcome cannot suppress later authoritative streamed reply", async () => {
   const h = harness(); await h.ready; h.activate(); h.run("state.subscription='synthetic-subscription'");
   h.get("#message").value = "Synthetic draft"; const send = h.run("sendMessage({preventDefault(){}})");
+  await h.waitForRequests(1);
   h.requests[0].pending.reject(new Error("Synthetic response loss")); await send;
   assert.equal(h.run("state.chatAnnounced.has('request:synthetic-request')"), false);
   h.run("processEvent({cursor:1,topic:'chat',event_type:'chat.delta',request_id:'request:synthetic-request',payload:{content_delta:'Recovered authoritative answer'}});processEvent({cursor:2,topic:'chat',event_type:'chat.completed',request_id:'request:synthetic-request',payload:{}})");
@@ -830,6 +858,7 @@ test("unconfirmed POST outcome cannot suppress later authoritative streamed repl
 test("lost POST response after streamed completion preserves known answer and clears submitted draft", async () => {
   const h = harness(); await h.ready; h.activate(); h.run("state.subscription='synthetic-subscription'");
   h.get("#message").value = "Synthetic draft"; const send = h.run("sendMessage({preventDefault(){}})");
+  await h.waitForRequests(1);
   h.run("processEvent({cursor:1,topic:'chat',event_type:'chat.delta',request_id:'request:synthetic-request',payload:{content_delta:'Known answer'}});processEvent({cursor:2,topic:'chat',event_type:'chat.completed',request_id:'request:synthetic-request',payload:{}})");
   h.requests[0].pending.reject(new Error("Synthetic lost acknowledgement")); await send;
   assert.equal(h.get("#message").value, ""); assert.equal(h.get("#log").children[1].textContent, "JARVIS: Known answer");
@@ -857,4 +886,429 @@ test("steady keepalive polls do not repeatedly mutate polite connection statuses
   respondStream(h, h.requests[1]); await h.waitForRequests(3); respondStream(h, h.requests[2]); await h.waitForRequests(4);
   assert.equal(writes.get("#connection"), 1); assert.equal(writes.get("#access-status"), 1);
   h.run("stopStream()"); await flush();
+});
+
+async function connectionToHistory(h, deviceId = "synthetic-device", pending = null) {
+  const start = h.requests.length;
+  h.run("signedHeaders=async()=>({})");
+  const connection = h.run("connect()");
+  await h.waitForRequests(start + 1);
+  assert.equal(h.requests[start].url, "/api/v1/browser/sessions");
+  h.respond(h.requests[start], { csrf_token: `session:${deviceId}` }, 201);
+  await h.waitForRequests(start + 2);
+  h.respond(h.requests[start + 1], { id: `subscription:${deviceId}`, next_cursor: 0 });
+  await h.waitForRequests(start + 3);
+  h.respond(h.requests[start + 2], { device: { display_name: "Synthetic", state: "active", key_version: 1 }, session: { id: `session:${deviceId}` } });
+  await h.waitForRequests(start + 4);
+  h.respond(h.requests[start + 3], []);
+  await h.waitForRequests(start + 5);
+  let listing = start + 4;
+  if (pending) {
+    assert.equal(h.requests[listing].url, `/api/v1/client/chat/${encodeURIComponent(pending.request_id)}?subscription_id=${encodeURIComponent(`subscription:${deviceId}`)}`);
+    h.respond(h.requests[listing], pending); listing++;
+    await h.waitForRequests(listing + 1);
+  }
+  assert.equal(h.requests[listing].url, "/api/v1/client/conversations?limit=20");
+  return { connection, start, listing };
+}
+
+function savedConversation(id = "synthetic-conversation") {
+  return { id, updated_at: "2026-10-07T12:00:00Z" };
+}
+
+function historyPage(conversationId, messages, requests = [], options = {}) {
+  return { conversation_id: conversationId, messages, requests, next_before: null, has_more: false, ...options };
+}
+
+test("safe Retry checks Core then resubmits original immutable request without a duplicate user turn", async () => {
+  const h = harness(); await h.ready; h.activate();
+  h.run("state.subscription='synthetic-subscription';state.conversation='synthetic-conversation'");
+  h.get("#message").value = "Original synthetic prompt";
+  const send = h.run("sendMessage({preventDefault(){}})"); await h.waitForRequests(1);
+  const original = JSON.parse(h.requests[0].options.body);
+  assert.deepEqual(JSON.parse(JSON.stringify(h.records.get("chat-request"))), { deviceId: "synthetic-device", request_id: original.request_id });
+  assert.equal(h.records.has("device"), false, "Request marker must not overwrite enrolled identity");
+  h.requests[0].pending.reject(new Error("Synthetic response loss")); await send;
+  h.get("#message").value = "Different unsent draft";
+  const retry = h.run("retryChat()"); h.run("retryChat();sendMessage({preventDefault(){}})");
+  await h.waitForRequests(2);
+  assert.equal(h.requests[1].url, `/api/v1/client/chat/${encodeURIComponent(original.request_id)}?subscription_id=synthetic-subscription`);
+  assert.equal(h.requests[1].options.method, undefined);
+  assert.equal(h.requests.filter(request => request.options.method === "POST").length, 1);
+  h.respond(h.requests[1], {}, 404); await h.waitForRequests(3);
+  assert.deepEqual(JSON.parse(h.requests[2].options.body), original);
+  assert.equal(h.get("#log").children.filter(node => node.className === "entry user").length, 1);
+  h.respond(h.requests[2], { request_id: original.request_id, status: "completed", conversation_id: original.conversation_id, reply: "One synthetic answer" });
+  await retry; await flush();
+  assert.equal(h.get("#message").value, "Different unsent draft");
+  assert.equal(h.get("#log").children.length, 2);
+  assert.equal(h.get("#log").children[1].textContent, "JARVIS: One synthetic answer");
+  assert.equal(h.records.has("chat-request"), false);
+});
+
+test("Retry finds accepted running or completed Core request without another POST", async () => {
+  for (const status of ["running", "completed"]) {
+    const h = harness(); await h.ready; h.activate(); h.run("state.subscription='synthetic-subscription'");
+    h.get("#message").value = "Synthetic accepted prompt";
+    const send = h.run("sendMessage({preventDefault(){}})"); await h.waitForRequests(1);
+    const id = JSON.parse(h.requests[0].options.body).request_id;
+    h.requests[0].pending.reject(new Error("Synthetic lost acknowledgment")); await send;
+    const retry = h.run("retryChat()"); await h.waitForRequests(2);
+    h.respond(h.requests[1], { request_id: id, status, conversation_id: "synthetic-conversation", reply: status === "completed" ? "Accepted answer" : null });
+    await retry;
+    assert.equal(h.requests.length, 2);
+    assert.equal(h.requests.filter(request => request.options.method === "POST").length, 1);
+    assert.equal(h.get("#log").children.filter(node => node.className === "entry user").length, 1);
+    assert.equal(h.run("state.pendingRequest?.request_id || null"), status === "running" ? id : null);
+    assert.equal(h.get("#retry-chat").hidden, true);
+    if (status === "running") {
+      assert.equal(h.get("#cancel-chat").disabled, false);
+      h.run(`processEvent(${JSON.stringify({ cursor: 1, topic: "chat", event_type: "chat.completed", request_id: id, payload: { conversation_id: "synthetic-conversation", reply: "Accepted answer" } })})`);
+    }
+    assert.equal(h.get("#log").children[1].textContent, "JARVIS: Accepted answer");
+    assert.equal(h.get("#message").value, "");
+  }
+});
+
+test("Cancel requires Core acknowledgment and suppresses late completion and deltas", async () => {
+  const h = harness(); await h.ready; h.activate(); h.run("state.subscription='synthetic-subscription'");
+  h.get("#message").value = "Synthetic long request";
+  const send = h.run("sendMessage({preventDefault(){}})"); await h.waitForRequests(1);
+  const id = JSON.parse(h.requests[0].options.body).request_id;
+  h.respond(h.requests[0], { request_id: id, status: "running", conversation_id: "synthetic-conversation" }, 202); await send;
+  const cancel = h.run("cancelChat()"); h.run("cancelChat()"); await h.waitForRequests(2);
+  assert.equal(h.requests[1].url, `/api/v1/client/chat/${encodeURIComponent(id)}/cancel`);
+  assert.equal(h.requests[1].options.method, "POST");
+  assert.equal(h.requests[1].options.headers["X-Jarvis-CSRF"], "synthetic-session");
+  assert.match(h.get("#chat-status").textContent, /Stopping reply on Core/);
+  assert.equal(h.run("state.pendingRequest.request_id"), id);
+  h.respond(h.requests[1], { request_id: id, status: "cancelled", conversation_id: "synthetic-conversation" }); await cancel;
+  assert.equal(h.run("state.pendingRequest"), null);
+  assert.equal(h.get("#chat-status").textContent, "Request cancelled.");
+  assert.equal(h.get("#chat").attributes["aria-busy"], "false");
+  h.run(`processEvent(${JSON.stringify({ cursor: 1, topic: "chat", event_type: "chat.delta", request_id: id, payload: { conversation_id: "synthetic-conversation", content_delta: "Obsolete answer" } })});processEvent(${JSON.stringify({ cursor: 2, topic: "chat", event_type: "chat.completed", request_id: id, payload: { conversation_id: "synthetic-conversation", reply: "Obsolete completed answer" } })})`);
+  assert.equal(h.get("#log").children[1].textContent, "Request cancelled.");
+  assert.equal(h.get("#chat-status").textContent, "Request cancelled.");
+  assert.equal(h.run("state.cursor"), 2);
+});
+
+test("reload restores Core history and resumes accepted request using only an opaque local marker", async () => {
+  const original = harness(); await original.ready;
+  original.setIdentity({ deviceId: "synthetic-device", healthAllowed: false }); original.activate();
+  original.run("state.subscription='synthetic-subscription'"); original.get("#message").value = "Core-owned synthetic prompt";
+  const send = original.run("sendMessage({preventDefault(){}})"); await original.waitForRequests(1);
+  const id = JSON.parse(original.requests[0].options.body).request_id;
+  original.respond(original.requests[0], { request_id: id, status: "running", conversation_id: "synthetic-conversation" }, 202); await send;
+  assert.deepEqual([...original.records.keys()].sort(), ["chat-request", "device"]);
+  assert.equal(JSON.stringify(original.records.get("chat-request")).includes("Core-owned synthetic prompt"), false);
+  const h = harness(original.records); await h.ready;
+  const running = { request_id: id, conversation_id: "synthetic-conversation", status: "running" };
+  const { connection, listing } = await connectionToHistory(h, "synthetic-device", running);
+  h.respond(h.requests[listing], { conversations: [savedConversation()], active_request: { request_id: id, conversation_id: "synthetic-conversation" } });
+  await h.waitForRequests(listing + 2);
+  h.respond(h.requests[listing + 1], historyPage("synthetic-conversation", [{ id: 1, role: "user", content: "Core-owned synthetic prompt", request_id: id }], [running]));
+  await h.waitForRequests(listing + 3); assert.equal(h.requests[listing + 2].url, `/api/v1/client/chat/${encodeURIComponent(id)}?subscription_id=subscription%3Asynthetic-device`);
+  h.respond(h.requests[listing + 2], running); await connection; await h.waitForRequests(listing + 4);
+  assert.equal(h.requests.filter(request => request.url === "/api/v1/client/chat" && request.options.method === "POST").length, 0);
+  assert.equal(h.get("#log").children[0].textContent, "You: Core-owned synthetic prompt");
+  assert.equal(h.run("state.pendingRequest.request_id"), id);
+  assert.equal(h.get("#send").disabled, true);
+  respondStream(h, h.requests[listing + 3], `data: ${JSON.stringify({ cursor: 1, topic: "chat", event_type: "chat.completed", request_id: id, payload: { conversation_id: "synthetic-conversation", reply: "Restored answer" } })}\n\n`);
+  await h.waitForRequests(listing + 5); await flush();
+  assert.equal(h.get("#log").children.length, 2);
+  assert.equal(h.get("#log").children[1].textContent, "JARVIS: Restored answer");
+  assert.equal(h.records.has("chat-request"), false);
+  h.run("stopStream()"); await flush();
+});
+
+test("Core-backed completed history restores after reload without replaying generation or speech", async () => {
+  const h = harness(); await h.ready; h.setIdentity({ deviceId: "synthetic-device", healthAllowed: false });
+  const { connection } = await connectionToHistory(h);
+  h.respond(h.requests[4], { conversations: [savedConversation()], active_request: null }); await h.waitForRequests(6);
+  h.respond(h.requests[5], historyPage("synthetic-conversation", [
+    { id: 1, role: "user", content: "Persisted prompt", request_id: "prior-request" },
+    { id: 2, role: "assistant", content: "Persisted answer", request_id: "prior-request" },
+  ], [{ request_id: "prior-request", conversation_id: "synthetic-conversation", status: "completed", reply: "Persisted answer" }]));
+  await connection; await h.waitForRequests(7);
+  assert.deepEqual(h.get("#log").children.map(node => node.textContent), ["You: Persisted prompt", "JARVIS: Persisted answer"]);
+  assert.equal(h.get("#chat-status").textContent, "Conversation restored from Core.");
+  assert.equal(h.get("#send").disabled, true, "Authenticated stream must also recover before Send");
+  respondStream(h, h.requests[6], `data: ${JSON.stringify({ cursor: 1, topic: "chat", event_type: "chat.completed", request_id: "prior-request", payload: { conversation_id: "synthetic-conversation", reply: "Persisted answer" } })}\n\n`);
+  await h.waitForRequests(8);
+  assert.equal(h.get("#log").children.length, 2);
+  assert.equal(h.get("#chat-status").textContent, "Conversation restored from Core.");
+  assert.equal(h.get("#send").disabled, false);
+  h.run("stopStream()"); await flush();
+});
+
+test("foreign conversation frames advance stream cursor without changing selected conversation", async () => {
+  const h = harness(); await h.ready; h.activate(); h.run("state.conversation='selected-conversation';row('jarvis','Selected answer','selected-request')");
+  let cursor = 0;
+  for (const [event_type, payload] of [
+    ["chat.started", {}], ["chat.delta", { content_delta: "Foreign delta" }], ["chat.completed", { reply: "Foreign answer" }],
+  ]) h.run(`processEvent(${JSON.stringify({ cursor: ++cursor, topic: "chat", event_type, request_id: "foreign-request", payload: { ...payload, conversation_id: "foreign-conversation" } })})`);
+  assert.equal(h.run("state.cursor"), 3);
+  assert.equal(h.run("state.conversation"), "selected-conversation");
+  assert.equal(h.run("state.pendingRequest"), null);
+  assert.equal(h.get("#log").children.length, 1);
+  assert.equal(h.get("#log").children[0].textContent, "Selected answer");
+});
+
+test("history pagination prepends older Core messages once and retains current rows", async () => {
+  const h = harness(); await h.ready; h.activate();
+  const history = h.run("refreshHistory()"); await h.waitForRequests(1);
+  h.respond(h.requests[0], { conversations: [savedConversation()], active_request: null }); await h.waitForRequests(2);
+  h.respond(h.requests[1], historyPage("synthetic-conversation", [
+    { id: 3, role: "user", content: "Recent prompt", request_id: "recent" },
+    { id: 4, role: "assistant", content: "Recent answer", request_id: "recent" },
+  ], [], { next_before: 3, has_more: true })); await history;
+  const recentRows = [...h.get("#log").children];
+  assert.equal(h.get("#older-history").hidden, false);
+  const older = h.run("refreshHistory({older:true})"); await h.waitForRequests(3);
+  assert.equal(h.requests[2].url, "/api/v1/client/conversations/synthetic-conversation/messages?limit=50&before=3");
+  h.respond(h.requests[2], historyPage("synthetic-conversation", [
+    { id: 1, role: "user", content: "Older prompt", request_id: "older" },
+    { id: 2, role: "assistant", content: "Older answer", request_id: "older" },
+  ])); await older;
+  assert.deepEqual(h.get("#log").children.map(node => node.textContent), ["You: Older prompt", "JARVIS: Older answer", "You: Recent prompt", "JARVIS: Recent answer"]);
+  assert.equal(h.get("#log").children[2], recentRows[0]); assert.equal(h.get("#log").children[3], recentRows[1]);
+  assert.equal(h.get("#older-history").hidden, true);
+});
+
+test("conversation selection rejects obsolete history page after later selection", async () => {
+  const h = harness(); await h.ready; h.activate();
+  const first = h.run("chooseConversation('conversation:first')"); await h.waitForRequests(1);
+  h.respond(h.requests[0], { conversations: [savedConversation("conversation:first"), savedConversation("conversation:second")], active_request: null }); await h.waitForRequests(2);
+  const second = h.run("chooseConversation('conversation:second')"); await h.waitForRequests(3);
+  h.respond(h.requests[2], { conversations: [savedConversation("conversation:first"), savedConversation("conversation:second")], active_request: null }); await h.waitForRequests(4);
+  h.respond(h.requests[3], historyPage("conversation:second", [{ id: 2, role: "assistant", content: "Current selected answer" }])); await second;
+  h.respond(h.requests[1], historyPage("conversation:first", [{ id: 1, role: "assistant", content: "Obsolete selected answer" }])); await first;
+  assert.equal(h.run("state.conversation"), "conversation:second");
+  assert.deepEqual(h.get("#log").children.map(node => node.textContent), ["JARVIS: Current selected answer"]);
+  assert.equal(h.get("#send").disabled, false);
+});
+
+test("session replacement clears display immediately and ignores old history body", async () => {
+  const h = harness(); await h.ready; h.activate();
+  h.run("state.conversation='old-conversation';row('jarvis','Old session synthetic answer','old-request')");
+  const history = h.run("refreshHistory()"); await h.waitForRequests(1);
+  h.respond(h.requests[0], { conversations: [savedConversation("old-conversation")], active_request: null }); await h.waitForRequests(2);
+  h.setIdentity({ deviceId: "replacement-device", healthAllowed: false });
+  const replacement = connectionToHistory(h, "replacement-device");
+  assert.equal(h.get("#log").children.length, 0);
+  assert.equal(h.run("state.conversation"), null);
+  h.respond(h.requests[1], historyPage("old-conversation", [{ id: 1, role: "assistant", content: "Delayed old session answer" }])); await history;
+  const { connection, start } = await replacement;
+  assert.equal(h.get("#log").children.length, 0);
+  h.respond(h.requests[start + 4], { conversations: [savedConversation("replacement-conversation")], active_request: null }); await h.waitForRequests(start + 6);
+  h.respond(h.requests[start + 5], historyPage("replacement-conversation", [{ id: 2, role: "assistant", content: "Replacement session answer" }]));
+  await connection; await h.waitForRequests(start + 7);
+  assert.equal(h.run("state.deviceId"), "replacement-device");
+  assert.deepEqual(h.get("#log").children.map(node => node.textContent), ["JARVIS: Replacement session answer"]);
+  h.run("stopStream()"); await flush();
+});
+
+test("New conversation ignores delayed frames belonging to previously viewed conversation", async () => {
+  const h = harness(); await h.ready; h.activate(); h.run("state.conversation='old-conversation';row('jarvis','Old answer','old-request')");
+  const change = h.run("chooseConversation(null)"); await h.waitForRequests(1);
+  h.respond(h.requests[0], { conversations: [savedConversation("old-conversation")], active_request: null }); await change;
+  assert.equal(h.run("state.conversation"), null); assert.equal(h.get("#log").children.length, 0);
+  h.run(`processEvent(${JSON.stringify({ cursor: 1, topic: "chat", event_type: "chat.started", request_id: "old-request", payload: { conversation_id: "old-conversation" } })});processEvent(${JSON.stringify({ cursor: 2, topic: "chat", event_type: "chat.completed", request_id: "old-request", payload: { conversation_id: "old-conversation", reply: "Delayed old answer" } })})`);
+  assert.equal(h.run("state.conversation"), null);
+  assert.equal(h.get("#log").children.length, 0);
+  assert.equal(h.run("state.cursor"), 2);
+});
+
+test("status completing after running history snapshot renders full answer once without replay speech", async () => {
+  const h = harness(); await h.ready; h.activate();
+  h.run("state.pendingRequest={request_id:'race-request'}");
+  const refresh = h.run("refreshHistory()"); await h.waitForRequests(1);
+  const running = { request_id: "race-request", conversation_id: "synthetic-conversation", status: "running" };
+  h.respond(h.requests[0], { conversations: [savedConversation()], active_request: running }); await h.waitForRequests(2);
+  h.respond(h.requests[1], historyPage("synthetic-conversation", [{ id: 1, role: "user", content: "Synthetic race prompt", request_id: "race-request" }], [running]));
+  await h.waitForRequests(3);
+  h.respond(h.requests[2], { ...running, status: "completed", reply: "Completed between snapshot and status" }); await refresh;
+  assert.deepEqual(h.get("#log").children.map(node => node.textContent), ["You: Synthetic race prompt", "JARVIS: Completed between snapshot and status"]);
+  assert.equal(h.run("state.pendingRequest"), null);
+  assert.equal(h.get("#chat-status").textContent, "Conversation restored from Core.");
+  h.run(`processEvent(${JSON.stringify({ cursor: 1, topic: "chat", event_type: "chat.completed", request_id: "race-request", payload: { conversation_id: "synthetic-conversation", reply: "Completed between snapshot and status" } })})`);
+  assert.equal(h.get("#log").children.length, 2);
+  assert.equal(h.get("#chat-status").textContent, "Conversation restored from Core.");
+});
+
+test("chat POST waits for IndexedDB marker transaction commit and never runs after abort", async () => {
+  for (const outcome of ["commit", "abort"]) {
+    const h = harness(); await h.ready; h.activate(); h.run("state.subscription='synthetic-subscription'");
+    const identity = { deviceId: "synthetic-device", healthAllowed: false }; h.setIdentity(identity);
+    const transaction = h.holdMarkerCommit(); h.get("#message").value = "Synthetic durable prompt";
+    const send = h.run("sendMessage({preventDefault(){}})"); await flush();
+    assert.equal(typeof transaction.commit, "function");
+    assert.equal(h.requests.length, 0, "Request success alone must not start Core generation");
+    assert.equal(h.records.has("chat-request"), false);
+    assert.equal(h.records.get("device"), identity);
+    if (outcome === "abort") {
+      transaction.fail(); await send;
+      assert.equal(h.requests.length, 0); assert.equal(h.records.has("chat-request"), false);
+      assert.equal(h.get("#message").value, "Synthetic durable prompt");
+      const reload = harness(h.records); await reload.ready;
+      const { connection } = await connectionToHistory(reload);
+      reload.respond(reload.requests[4], { conversations: [], active_request: null }); await connection; await reload.waitForRequests(6);
+      assert.equal(reload.run("state.pendingRequest"), null);
+      assert.equal(reload.requests.some(request => request.url === "/api/v1/client/chat"), false);
+      reload.run("stopStream()"); await flush();
+    } else {
+      transaction.commit(); await h.waitForRequests(1);
+      const id = JSON.parse(h.requests[0].options.body).request_id;
+      assert.equal(h.records.get("chat-request").request_id, id);
+      h.respond(h.requests[0], { request_id: id, status: "completed", conversation_id: "synthetic-conversation", reply: "Committed answer" }); await send;
+    }
+  }
+});
+
+test("Cancel during marker commit prevents chat POST and erases marker after commit settles", async () => {
+  const h = harness(); await h.ready; h.activate(); h.run("state.subscription='synthetic-subscription'");
+  h.setIdentity({ deviceId: "synthetic-device" }); const transaction = h.holdMarkerCommit();
+  h.get("#message").value = "Never send synthetic prompt";
+  const send = h.run("sendMessage({preventDefault(){}})"); await flush();
+  await h.run("cancelChat()");
+  assert.equal(h.requests.length, 0); assert.equal(h.run("state.pendingRequest"), null);
+  assert.equal(h.get("#chat-status").textContent, "Request cancelled.");
+  transaction.commit(); await send; await flush();
+  assert.equal(h.requests.length, 0); assert.equal(h.records.has("chat-request"), false);
+  assert.equal(h.records.get("device").deviceId, "synthetic-device");
+});
+
+test("lost Cancel acknowledgment followed by initial running result automatically retries same-ID cancellation", async () => {
+  const h = harness(); await h.ready; h.activate(); h.run("state.subscription='synthetic-subscription'");
+  h.get("#message").value = "Synthetic pending reservation";
+  const send = h.run("sendMessage({preventDefault(){}})"); await h.waitForRequests(1);
+  const id = JSON.parse(h.requests[0].options.body).request_id;
+  const cancelled = assert.rejects(h.run("cancelChat()"), /Synthetic lost cancellation/); await h.waitForRequests(2);
+  assert.equal(h.requests[1].url, `/api/v1/client/chat/${encodeURIComponent(id)}/cancel`);
+  h.requests[1].pending.reject(new Error("Synthetic lost cancellation")); await cancelled;
+  assert.match(h.get("#chat-status").textContent, /Cancellation unconfirmed/);
+  h.respond(h.requests[0], { request_id: id, status: "running", conversation_id: "synthetic-conversation" }, 202);
+  await h.waitForRequests(3);
+  assert.equal(h.requests[2].url, h.requests[1].url);
+  assert.equal(h.requests[2].options.method, "POST");
+  h.respond(h.requests[2], { request_id: id, status: "cancelled", conversation_id: "synthetic-conversation" }); await send;
+  assert.equal(h.run("state.pendingRequest"), null); assert.equal(h.get("#chat-status").textContent, "Request cancelled.");
+  assert.equal(h.requests.filter(request => request.url === "/api/v1/client/chat").length, 1);
+});
+
+test("restored request marker resolves its original conversation before latest unrelated history", async () => {
+  const records = new Map([
+    ["device", { deviceId: "synthetic-device", healthAllowed: false }],
+    ["chat-request", { deviceId: "synthetic-device", request_id: "original-request" }],
+  ]);
+  const h = harness(records); await h.ready;
+  const original = { request_id: "original-request", conversation_id: "original-conversation", status: "completed", reply: "Original answer" };
+  const { connection, listing } = await connectionToHistory(h, "synthetic-device", original);
+  h.respond(h.requests[listing], { conversations: [savedConversation("latest-unrelated-conversation"), savedConversation("original-conversation")], active_request: null });
+  await h.waitForRequests(listing + 2);
+  assert.equal(h.requests[listing + 1].url, "/api/v1/client/conversations/original-conversation/messages?limit=50");
+  h.respond(h.requests[listing + 1], historyPage("original-conversation", [
+    { id: 1, role: "user", content: "Original prompt", request_id: "original-request" },
+    { id: 2, role: "assistant", content: "Original answer", request_id: "original-request" },
+  ], [original])); await connection; await h.waitForRequests(listing + 3);
+  assert.equal(h.run("state.pendingRequest"), null); assert.equal(h.run("state.conversation"), "original-conversation");
+  assert.equal(h.records.has("chat-request"), false);
+  respondStream(h, h.requests[listing + 2]); await h.waitForRequests(listing + 4);
+  assert.equal(h.get("#send").disabled, false);
+  assert.deepEqual(h.get("#log").children.map(node => node.textContent), ["You: Original prompt", "JARVIS: Original answer"]);
+  h.run("stopStream()"); await flush();
+});
+
+test("unknown reload marker closes request on Core before clearing marker and enabling Send", async () => {
+  const h = harness(); await h.ready; h.activate(); h.run("state.subscription='synthetic-subscription';state.pendingRequest={request_id:'unknown-reloaded-request'};updateControls()");
+  h.records.set("chat-request", { deviceId: "synthetic-device", request_id: "unknown-reloaded-request" });
+  const check = h.run("checkPendingRequest({silent:true})"); await h.waitForRequests(1);
+  assert.equal(h.requests[0].url, "/api/v1/client/chat/unknown-reloaded-request?subscription_id=synthetic-subscription");
+  h.respond(h.requests[0], {}, 404); await h.waitForRequests(2);
+  assert.equal(h.requests[1].url, "/api/v1/client/chat/unknown-reloaded-request/cancel");
+  assert.equal(h.requests[1].options.method, "POST");
+  assert.equal(h.run("state.pendingRequest.request_id"), "unknown-reloaded-request");
+  assert.equal(h.get("#send").disabled, true);
+  assert.equal(h.records.has("chat-request"), true);
+  h.respond(h.requests[1], { request_id: "unknown-reloaded-request", status: "cancelled", conversation_id: null }); await check; await flush();
+  assert.equal(h.run("state.pendingRequest"), null); assert.equal(h.records.has("chat-request"), false);
+  assert.equal(h.get("#send").disabled, false);
+  assert.match(h.get("#chat-status").textContent, /Unaccepted request closed on Core.*Draft was not stored/);
+  assert.equal(h.requests.some(request => request.url === "/api/v1/client/chat"), false);
+});
+
+test("failed Core tombstone keeps unknown reload marker pending and offers safe Retry", async () => {
+  const h = harness(); await h.ready; h.activate(); h.run("state.subscription='synthetic-subscription';state.pendingRequest={request_id:'unknown-reloaded-request'};updateControls()");
+  h.records.set("chat-request", { deviceId: "synthetic-device", request_id: "unknown-reloaded-request" });
+  const checked = assert.rejects(h.run("checkPendingRequest({silent:true})")); await h.waitForRequests(1);
+  h.respond(h.requests[0], {}, 404); await h.waitForRequests(2); h.respond(h.requests[1], {}, 503); await checked;
+  assert.equal(h.run("state.pendingRequest.request_id"), "unknown-reloaded-request");
+  assert.equal(h.run("state.pendingRequest.cancelIntent"), true); assert.equal(h.records.has("chat-request"), true);
+  assert.equal(h.get("#send").disabled, true); assert.equal(h.get("#retry-chat").hidden, false);
+  assert.match(h.get("#chat-status").textContent, /closure unconfirmed.*retries cancellation/);
+  const retry = h.run("retryChat()"); await h.waitForRequests(3);
+  h.respond(h.requests[2], {}, 404); await h.waitForRequests(4);
+  assert.equal(h.requests[3].url, "/api/v1/client/chat/unknown-reloaded-request/cancel");
+  h.respond(h.requests[3], { request_id: "unknown-reloaded-request", status: "cancelled", conversation_id: null }); await retry; await flush();
+  assert.equal(h.run("state.pendingRequest"), null); assert.equal(h.records.has("chat-request"), false);
+  assert.equal(h.get("#send").disabled, false);
+  assert.equal(h.requests.some(request => request.url === "/api/v1/client/chat"), false);
+});
+
+test("successful event poll recovers missed terminal status using current subscription without new generation", async () => {
+  const h = harness(); await h.ready; streamSession(h);
+  h.run("state.conversation='synthetic-conversation';state.pendingRequest={request_id:'missed-terminal-request',lastChecked:Date.now()-2000};state.chatActive.add('missed-terminal-request');row('user','You: Missed synthetic prompt','missed-terminal-request:user')");
+  h.run("startStreamOwnership()"); await h.waitForRequests(1); respondStream(h, h.requests[0]); await h.waitForRequests(2);
+  assert.equal(h.requests[1].url, "/api/v1/client/chat/missed-terminal-request?subscription_id=synthetic-subscription");
+  assert.equal(h.get("#send").disabled, true);
+  h.respond(h.requests[1], { request_id: "missed-terminal-request", status: "completed", conversation_id: "synthetic-conversation", reply: "Recovered terminal answer" });
+  await h.waitForRequests(3);
+  assert.equal(h.run("state.pendingRequest"), null); assert.equal(h.get("#send").disabled, false);
+  assert.deepEqual(h.get("#log").children.map(node => node.textContent), ["You: Missed synthetic prompt", "JARVIS: Recovered terminal answer"]);
+  const announcement = h.get("#chat-status").textContent;
+  respondStream(h, h.requests[2], `data: ${JSON.stringify({ cursor: 1, topic: "chat", event_type: "chat.completed", request_id: "missed-terminal-request", payload: { conversation_id: "synthetic-conversation", reply: "Recovered terminal answer" } })}\n\n`);
+  await h.waitForRequests(4);
+  assert.equal(h.get("#log").children.length, 2); assert.equal(h.get("#chat-status").textContent, announcement);
+  assert.equal(h.requests.filter(request => request.options.method === "POST").length, 0);
+  h.run("stopStream()"); await flush();
+});
+
+test("uncertain send metadata cannot become assistant partial text during history restoration", async () => {
+  const h = harness(); await h.ready; h.activate(); h.run("state.subscription='synthetic-subscription'");
+  h.get("#message").value = "Synthetic uncertain prompt";
+  const send = h.run("sendMessage({preventDefault(){}})"); await h.waitForRequests(1);
+  const id = JSON.parse(h.requests[0].options.body).request_id;
+  h.requests[0].pending.reject(new Error("Synthetic lost send response")); await send;
+  assert.equal(h.get("#log").children[1].className, "entry meta");
+  const refresh = h.run("refreshHistory()"); await h.waitForRequests(2);
+  const running = { request_id: id, conversation_id: "synthetic-conversation", status: "running" };
+  h.respond(h.requests[1], { conversations: [savedConversation()], active_request: running }); await h.waitForRequests(3);
+  h.respond(h.requests[2], historyPage("synthetic-conversation", [{ id: 1, role: "user", content: "Synthetic uncertain prompt", request_id: id }], [running])); await h.waitForRequests(4);
+  h.respond(h.requests[3], running); await refresh;
+  assert.equal(h.get("#log").children[1].className, "entry jarvis");
+  assert.equal(h.get("#log").children[1].textContent, "JARVIS: Reply in progress…");
+  assert.equal(h.get("#log").children.some(node => /Send outcome unconfirmed/.test(node.textContent)), false);
+});
+
+test("interrupted Core receipt clears busy request and suppresses obsolete frames without bypassing readiness", async () => {
+  for (const readiness of ["ready", "history-pending", "offline"]) {
+    const h = harness(); await h.ready; h.activate();
+    h.run("state.subscription='synthetic-subscription';state.conversation='synthetic-conversation';state.pendingRequest={request_id:'interrupted-request'};state.chatActive.add('interrupted-request');state.chatDrafts.set('interrupted-request','Synthetic interrupted prompt');ui.chat.setAttribute('aria-busy','true');row('jarvis','JARVIS: Interrupted partial','interrupted-request')");
+    h.records.set("chat-request", { deviceId: "synthetic-device", request_id: "interrupted-request" });
+    if (readiness === "history-pending") h.run("state.historyReady=false");
+    if (readiness === "offline") h.run("setConnected(false)");
+    h.run(`processEvent(${JSON.stringify({ cursor: 1, topic: "chat", event_type: "chat.interrupted", request_id: "interrupted-request", payload: { conversation_id: "synthetic-conversation" } })})`);
+    await flush();
+    assert.equal(h.run("state.pendingRequest"), null); assert.equal(h.run("state.chatActive.size"), 0);
+    assert.equal(h.run("state.chatDrafts.size"), 0); assert.equal(h.records.has("chat-request"), false);
+    assert.equal(h.get("#chat").attributes["aria-busy"], "false");
+    assert.equal(h.get("#log").children[0].className, "entry meta");
+    assert.match(h.get("#chat-status").textContent, /Reply interrupted.*Original request will not run again/);
+    const message = h.get("#chat-status").textContent;
+    h.run(`processEvent(${JSON.stringify({ cursor: 2, topic: "chat", event_type: "chat.delta", request_id: "interrupted-request", payload: { conversation_id: "synthetic-conversation", content_delta: "Obsolete partial" } })});processEvent(${JSON.stringify({ cursor: 3, topic: "chat", event_type: "chat.completed", request_id: "interrupted-request", payload: { conversation_id: "synthetic-conversation", reply: "Obsolete completion" } })})`);
+    assert.equal(h.get("#log").children.length, 1); assert.equal(h.get("#log").children[0].textContent, message);
+    assert.equal(h.get("#chat-status").textContent, message); assert.equal(h.run("state.cursor"), 3);
+    assert.equal(h.get("#send").disabled, readiness !== "ready");
+    assert.equal(h.requests.length, 0, "Interrupted request cannot trigger retry generation");
+  }
 });

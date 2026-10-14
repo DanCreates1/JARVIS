@@ -8,6 +8,9 @@ from typing import Final
 CLIENT_API_PROTOCOL_VERSION: Final = "1"
 CLIENT_CAPABILITIES: Final = (
     "client.chat",
+    "client.chat.cancel",
+    "client.chat.durable-request",
+    "client.chat.history",
     "client.events",
     "client.health.read",
     "client.proactivity",

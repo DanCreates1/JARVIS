@@ -1,7 +1,7 @@
 # PWA M4A — physical accessibility acceptance
 
 Status: `in-progress` — observed phone checks passed; unverified prerequisites and failure cases remain open.
-Target: resumed `main` baseline `114ab9a`, shell `v7`; application assets unchanged in this session.
+Target: F11 shell `v8`, baseline `34b4010`, implemented 2026-10-14. Ledger below preserves historical v7 observations; no physical v8 result yet.
 Aggregate MVP 4 remains `in-progress`. Preparation and desktop evidence do not accept a phone row.
 Use compact phone batches. Results follow actual reported observations; unexecuted checks remain unverified.
 
@@ -32,12 +32,12 @@ identifiers, private origin, tickets, health values and transcripts out of evide
 pass/fail/blocked, control name and sanitized symptom only. No screenshot or recording needed.
 
 Reload online, allow the current service worker to activate, then close/reopen each surface.
-Expected source has `app.js?v=7` in `index.html` and `jarvis-shell-v7` in `sw.js`. A host source
+Expected source has `app.js?v=8` in `index.html` and `jarvis-shell-v8` in `sw.js`. A host source
 check alone cannot prove which cached page the phone loaded. Record phone version verification
 method, or mark it unverified. If available, inspect only script URL/cache version using trusted
 Safari tooling; do not copy storage, cookies, network bodies or keys. No website-data clearing.
-Inspect loaded `/app/app.js?v=7`, loaded `/app/app.css`, active `/app/sw.js?v=7` and
-`jarvis-shell-v7` cache name separately for each surface. CSS URL alone does not identify its
+Inspect loaded `/app/app.js?v=8`, loaded `/app/app.css`, active `/app/sw.js?v=8` and
+`jarvis-shell-v8` cache name separately for each surface. CSS URL alone does not identify its
 content; compare only the public loaded stylesheet against current source.
 [WebKit remote inspection](https://webkit.org/web-inspector/enabling-web-inspector/) requires
 an iPhone connected to macOS Safari with Web Inspector enabled. This Windows session has no
@@ -270,6 +270,12 @@ M3C interruption solely for this row. No new phone outcome is recorded by this r
 
 ## Closure and resumption
 
+2026-10-14 v8 supporting revalidation: all 24 desktop geometry cases pass. Separate native Edge
+155.0.4283.45 400% page zoom passes (`innerWidth` 1280 at 100%, 320 at 400%; root scroll width 316).
+Fourteen controls are pointer-reachable; new conversation/history/cancel controls are keyboard-
+reachable. Reading/selection retention and mocked Send pass. Synthetic static shell only; no v8
+physical-device, spoken-screen-reader, authenticated Core or Garmin result is inferred.
+
 M4A physical acceptance requires dated actual-device evidence for applicable rows, verified
 current phone assets, resolution/retest of critical failures, and explicit pending limitations.
 Absent identity/equipment or a required browser feature leaves the relevant gate open. No health
@@ -277,8 +283,11 @@ scope or enrollment is required for shell-only work. Run focused tests after any
 release/security gates before publication. Record outcomes in
 [MVP 4 progress](phase-reports/PWA_MVP4_PROGRESS.md); keep this ledger synchronized.
 
-Chat cancel/retry, Core-backed history across restart, full reconnect/restart soak and startup/
-navigation/first-delta/memory performance remain later MVP 4 work. This checklist adds no such
-implementation, and no physical performance threshold or result is claimed. Freeze those
-thresholds before that later measurement session. Keep `PWA_MVP3_PROGRESS.md` and native package
-candidates unchanged during M4A publication.
+F11 now implements Cancel reply, Retry request and bounded Core-backed saved history in shell v8.
+Automated regressions do not accept physical cancellation/retry/reload/restart soak or speech for
+the new controls. Recheck A1 names/order/focus for Saved conversations, New conversation, Refresh
+history, Load earlier messages, Cancel reply and Retry request when applicable. Historical v7
+passes above remain historical. Startup/navigation/first-delta/memory performance thresholds must
+be frozen before actual phone measurement; no physical performance result is claimed.
+M3C remains separate. Native candidates were repaired locally on 2026-10-14 and retain an upstream
+dependency-audit publication hold; see the current MVP 4 report.

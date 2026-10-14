@@ -7,7 +7,7 @@ import base64
 import hashlib
 import re
 from collections.abc import AsyncIterator, Awaitable, Callable
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from http.cookies import CookieError, SimpleCookie
 from pathlib import Path as FileSystemPath
@@ -65,6 +65,8 @@ from jarvis.remote import (
     TopologyNegotiator,
     client_contract_metadata,
 )
+from jarvis.remote.chat import PWAChatCoordinator
+from jarvis.remote.chat_store import PWAChatError
 from jarvis.research import (
     ResearchInterface,
     ResearchNotFoundError,
@@ -222,13 +224,24 @@ def create_app(
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         components = await runtime_factory(configured)
         app.state.runtime = components
+        chat = PWAChatCoordinator(
+            service=components.service,
+            conversations=components.store,
+            hub=pwa_hub,
+            identity=components.remote_identity,
+        )
+        await chat.initialize()
+        app.state.pwa_chat = chat
         try:
             yield
         finally:
             try:
-                await pwa_hub.close()
+                await chat.close()
             finally:
-                await components.close()
+                try:
+                    await pwa_hub.close()
+                finally:
+                    await components.close()
 
     app = FastAPI(title="JARVIS API", version="1.0", lifespan=lifespan)
     app.state.pwa_hub = pwa_hub
@@ -770,92 +783,76 @@ def create_app(
         context = _remote_context(request)
         runtime = _runtime(request)
         _require_remote_host(runtime, context)
-        hub = _pwa_hub(request)
         try:
-            is_new, cached = await hub.begin_request(
+            result = await _pwa_chat(request).submit(
                 context=context,
                 request_id=payload.request_id,
-            )
-            if not is_new:
-                if cached is None:
-                    return JSONResponse(
-                        status_code=202,
-                        content={"request_id": payload.request_id, "status": "running"},
-                    )
-                return JSONResponse(content=cached)
-            await hub.publish(
-                context=context,
                 subscription_id=payload.subscription_id,
-                topic=PWAEventTopic.CHAT,
-                event_type="chat.started",
-                request_id=payload.request_id,
-                payload={},
+                request=_assistant_request(payload),
             )
-            result: object | None = None
-            emitted_delta = False
-            async for frame in runtime.service.stream(_assistant_request(payload)):
-                if frame.event is not None:
-                    event_payload = frame.event.model_dump(mode="json")
-                    emitted_delta = emitted_delta or frame.event.type.value == "assistant_delta"
-                    await hub.publish(
-                        context=context,
-                        subscription_id=payload.subscription_id,
-                        topic=PWAEventTopic.CHAT,
-                        event_type="chat.frame",
-                        request_id=payload.request_id,
-                        payload=event_payload,
-                    )
-                if frame.result is not None:
-                    result = frame.result
-            if result is None:
-                raise RuntimeError("assistant stream ended without a result")
-            rendered = cast(dict[str, object], jsonable_encoder(result))
-            reply = rendered.get("reply")
-            if not emitted_delta and isinstance(reply, str):
-                for offset in range(0, len(reply), 16_000):
-                    await hub.publish(
-                        context=context,
-                        subscription_id=payload.subscription_id,
-                        topic=PWAEventTopic.CHAT,
-                        event_type="chat.delta",
-                        request_id=payload.request_id,
-                        payload={"content_delta": reply[offset : offset + 16_000]},
-                    )
-            await hub.complete_request(
-                context=context,
-                request_id=payload.request_id,
-                result=cast(Any, rendered),
-            )
-            await hub.publish(
-                context=context,
-                subscription_id=payload.subscription_id,
-                topic=PWAEventTopic.CHAT,
-                event_type="chat.completed",
-                request_id=payload.request_id,
-                payload=cast(
-                    Any,
-                    {
-                        "status": rendered.get("status"),
-                        "conversation_id": rendered.get("conversation_id"),
-                    },
-                ),
-            )
-            return JSONResponse(content=rendered)
         except PWATransportError as exc:
-            await hub.abandon_request(context=context, request_id=payload.request_id)
             raise _pwa_transport_http_error(exc) from None
-        except Exception:
-            await hub.abandon_request(context=context, request_id=payload.request_id)
-            with suppress(PWATransportError):
-                await hub.publish(
-                    context=context,
-                    subscription_id=payload.subscription_id,
-                    topic=PWAEventTopic.CHAT,
-                    event_type="chat.failed",
-                    request_id=payload.request_id,
-                    payload={"error": "request_failed"},
-                )
-            raise HTTPException(status_code=502, detail="Assistant request failed") from None
+        except PWAChatError as exc:
+            raise _pwa_chat_http_error(exc) from None
+        return JSONResponse(
+            status_code=202 if result["status"] == "running" else 200, content=result
+        )
+
+    @app.get("/api/v1/client/chat/{request_id}")
+    async def pwa_chat_status(
+        request: Request,
+        request_id: Annotated[str, Path(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$")],
+        subscription_id: Annotated[
+            str | None, Query(pattern=r"^subscription:[0-9a-f-]{36}$")
+        ] = None,
+    ) -> dict[str, Any]:
+        context = _remote_context(request)
+        _require_remote_host(_runtime(request), context)
+        try:
+            return await _pwa_chat(request).status(
+                context=context, request_id=request_id, subscription_id=subscription_id
+            )
+        except PWATransportError as exc:
+            raise _pwa_transport_http_error(exc) from None
+        except PWAChatError as exc:
+            raise _pwa_chat_http_error(exc) from None
+
+    @app.post("/api/v1/client/chat/{request_id}/cancel")
+    async def cancel_pwa_chat(
+        request: Request,
+        request_id: Annotated[str, Path(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$")],
+    ) -> Response:
+        context = _remote_context(request)
+        _require_remote_host(_runtime(request), context)
+        try:
+            result = await _pwa_chat(request).cancel(context=context, request_id=request_id)
+        except PWAChatError as exc:
+            raise _pwa_chat_http_error(exc) from None
+        return JSONResponse(
+            status_code=202 if result["status"] == "running" else 200, content=result
+        )
+
+    @app.get("/api/v1/client/conversations")
+    async def pwa_conversations(request: Request) -> dict[str, Any]:
+        context = _remote_context(request)
+        _require_remote_host(_runtime(request), context)
+        return await _pwa_chat(request).store.conversations(context)
+
+    @app.get("/api/v1/client/conversations/{conversation_id}/messages")
+    async def pwa_conversation_messages(
+        request: Request,
+        conversation_id: Annotated[str, Path(min_length=1, max_length=200)],
+        before: Annotated[int | None, Query(ge=1)] = None,
+        limit: Annotated[int, Query(ge=1, le=50)] = 50,
+    ) -> dict[str, Any]:
+        context = _remote_context(request)
+        _require_remote_host(_runtime(request), context)
+        try:
+            return await _pwa_chat(request).store.messages(
+                context=context, conversation_id=conversation_id, before=before, limit=limit
+            )
+        except PWAChatError as exc:
+            raise _pwa_chat_http_error(exc) from None
 
     @app.delete("/api/v1/sessions/current")
     async def revoke_current_remote_session(
@@ -865,6 +862,7 @@ def create_app(
         if not revoked:
             raise HTTPException(status_code=409, detail="Session already changed")
         if _remote_context(request).session_kind is RemoteSessionKind.BROWSER:
+            await _pwa_chat(request).clear_session(_remote_context(request).session_id)
             await _pwa_hub(request).clear_session(_remote_context(request).session_id)
             response.delete_cookie(
                 key=_BROWSER_SESSION_COOKIE,
@@ -1545,6 +1543,22 @@ def _pwa_transport_http_error(error: PWATransportError) -> HTTPException:
     return HTTPException(status_code=404, detail="PWA subscription unavailable")
 
 
+def _pwa_chat(request: Request) -> PWAChatCoordinator:
+    return cast(PWAChatCoordinator, request.app.state.pwa_chat)
+
+
+def _pwa_chat_http_error(error: PWAChatError) -> HTTPException:
+    if error.code == "request_conflict":
+        return HTTPException(status_code=409, detail="Chat request payload changed")
+    if error.code == "request_running":
+        return HTTPException(status_code=409, detail="Chat request already running")
+    if error.code == "chat_capacity":
+        return HTTPException(status_code=429, detail="Chat capacity exceeded")
+    if error.code == "response_too_large":
+        return HTTPException(status_code=413, detail="Chat response too large")
+    return HTTPException(status_code=404, detail="Chat state unavailable")
+
+
 def _remote_scope_for_request(method: str, path: str) -> tuple[bool, RemoteScope | None]:
     if (method, path) in {
         ("POST", "/api/v1/enrollments/complete"),
@@ -1554,6 +1568,12 @@ def _remote_scope_for_request(method: str, path: str) -> tuple[bool, RemoteScope
         return True, None
     if method == "DELETE" and path.startswith("/api/v1/client/subscriptions/"):
         return False, RemoteScope.EVENTS_READ
+    if path.startswith("/api/v1/client/chat/") and method in {"GET", "POST"}:
+        return False, RemoteScope.CLIENT_CHAT
+    if (
+        path == "/api/v1/client/conversations" or path.startswith("/api/v1/client/conversations/")
+    ) and method == "GET":
+        return False, RemoteScope.CLIENT_CHAT
     if path == "/api/v1/client/proactivity" and method == "GET":
         return False, RemoteScope.CLIENT_PROACTIVITY_READ
     if path.startswith("/api/v1/client/proactivity/") and method == "POST":
