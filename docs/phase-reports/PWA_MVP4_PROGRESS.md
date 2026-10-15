@@ -2,7 +2,7 @@
 
 - Status: `in-progress`; M4A local implementation verified; Safari A1/A7/A9/A11 and Home Screen A1/A3/A4/A5/A7/A8/A9/A11 observed passes; remaining physical/release gates open.
 - Audit baseline: `ed4ee18`, shell v6; work started at `1f07d4c` after concurrent M3C evidence commit.
-- Active subphase: F11 — cancellation, safe retry, Core history and reconnect isolation; M4A physical acceptance remains pending.
+- Active subphase: F11 physical acceptance — cancellation, safe retry, Core history and reconnect isolation; M4A physical acceptance remains pending.
 - Scope: owner authorized F11 implementation on 2026-10-14 while M3C/M4A physical gates remain open.
   Existing native candidates were reviewed and advanced through compatible SDK 57 patches; audit hold remains.
 - M3C physical-phone acceptance remains separate. MVP 4 is not complete.
@@ -34,6 +34,82 @@ row. Use the existing matrix; M3C acceptance stays separate.
 - [ ] Physical F11 soak and measured phone performance thresholds.
 
 ## Evidence
+
+### 2026-10-15 — F11 physical acceptance initiated
+
+Baseline `main` at `4fa75e3`, shell **v8**; exact-SHA
+[baseline CI 38652127469](https://github.com/DanCreates1/JARVIS/actions/runs/38652127469) independently
+verified **passed**. Resume scope is
+physical F11 acceptance, with M3C decision, remaining M4A rows and phone performance still open.
+Execution sequence: verify unchanged host readiness; collect phone metadata/non-health prerequisite;
+run compact F11 functional/accessibility batches; coordinate reopen/network/Core interruptions;
+measure against frozen targets; record only observed results and run applicable publication gates.
+See [F11 physical acceptance](../PWA_F11_PHYSICAL_ACCEPTANCE.md) for the ledger and fixed budgets.
+
+Fresh supporting checks: `rtk proxy node --test tests/pwa/garmin-lifecycle.test.cjs` **63/63 pass**;
+`rtk proxy node scripts/pwa-accessibility-check.cjs` **24/24 pass**. Read-only readiness reused
+existing validators with v8 markers: exact owned private route/backend/origin, online tailnet,
+Funnel disabled, one Python-owned `127.0.0.1:8765` listener and zero non-loopback Core listeners.
+Both loopback/private shell, script, CSS and worker return **200** and byte-match current source;
+unauthenticated chat-status/history/Garmin requests return **401**. This makes no authenticated
+health call and cannot prove phone-loaded assets.
+The process-command inventory matches four wrapper/child entries; it is not four listeners.
+Existing Core reused; no service restart, route change, enrollment, ticket or Garmin read.
+
+Held `mobile/package.json` and `mobile/package-lock.json` hashes still match the 2026-10-14
+checkpoint below; files remain excluded from publication. Owner phone metadata/status requested;
+no new physical observation received at this preparation checkpoint. All F11 phone rows remain
+pending; memory measurement lacks established phone instrumentation. Historical v7 M4A passes
+are preserved. Estimated completion stays **92%**, milestone-based; preparation accepts no gate.
+
+Baseline full gate exposed a real immediate-cancellation race: **1 failed / 1,456 passed /
+3 skipped**, **85.60% coverage**, **131.30s**. Concurrent callers could observe `settled=True`
+before terminal storage/audit/event completion and return the stale `running` receipt. A delayed-
+storage regression reproduced the defect before the fix. `_settle_unstarted` now retains the
+coordinator lock through terminal persistence/audit/publication and active-turn removal, so a
+concurrent cancellation waits for settlement. No API, schema, scope, shell version or provider
+behavior changes. The strengthened existing test verifies no early return, no provider generation,
+one terminal audit and one terminal event. Focused Core/API/transport checks: **28 passed**.
+This is targeted development evidence (`--no-cov`); the unchanged full **85%** coverage gate is
+rerun separately. Lock semantics checked against
+[Python 3.11 synchronization documentation](https://docs.python.org/3.11/library/asyncio-sync.html#asyncio.Lock).
+
+The next full run exposed two further baseline cancellation issues: **2 failed / 1,455 passed /
+3 skipped**, **85.65% coverage**, **107.38s**. Interrupted initial audit insertion could leave a
+transaction open, blocking terminal writes on the separate chat connection. Audit insertion now
+rolls back on `BaseException`, including cancellation, under its existing operation lock, matching
+message-write recovery. Two injected commit-failure/cancellation regressions failed before the
+fix and pass afterward; no orphan audit survives and the next write remains usable. The provider-
+cleanup test now checks the exact two audit records without assuming distinct Windows timestamps;
+SQL ordering is unspecified when their timestamps tie. Combined focused storage/Core/API/transport:
+**34 passed**. Earlier failed full runs remain failures; final full-gate evidence follows.
+
+Final stable local release gate on 2026-10-15:
+
+| Check | Result |
+| --- | --- |
+| Root / Garmin lock checks and locked sync | pass; 119/69 and 20/16 resolved/checked |
+| Windows bootstrap / Doctor | pass; supported bundled `pwsh`; Doctor requires `PYTHONIOENCODING=utf-8` on this console |
+| Ruff format / lint / Mypy | pass; 415 formatted files, 166 typed source files |
+| Full strict pytest | **1,459 passed / 3 existing optional skips**, **85.65% coverage**, **105.67s**; existing Starlette warning |
+| Focused storage/Core/API/transport | **34 passed**; regression reproductions failed before their fixes |
+| PWA lifecycle / desktop geometry | **63 / 24 passed**; Edge 155.0.4283.45; application assets unchanged |
+| Root / Garmin dependency audits | no known vulnerabilities |
+| Gitleaks history / staged | pass; 107 baseline commits / approximately 18.51KB staged at initial scan; final scan before commit |
+| Relative documentation links / whitespace | 46 links across six documentation files resolve; diff checks pass |
+| Native package candidates | unchanged; existing production-audit hold retained, native verification not rerun |
+
+Full command: `rtk proxy uv run python -m pytest -q --tb=short --cov-report=
+--basetemp runtime/pwa-f11-physical-20261015-quality3` (one command; standard configured coverage
+and **85%** threshold retained). The two earlier full runs are documented above, not hidden by
+the passing final run. Pytest targets were fresh verified workspace-local ignored runtime paths.
+No application source changed after this passing gate. Publication includes the two bounded
+cancellation fixes, regression tests and six acceptance/status documents; excludes both held
+mobile files and every runtime artifact. Exact-SHA CI for this publication remains to be checked.
+
+The existing running Core predates this source fix. Coordinate an idle restart using its verified
+existing loopback/private configuration before physical testing of the patched cancellation path;
+that preparation is not physical Core-restart acceptance. No live restart was performed here.
 
 2026-10-09 changes, shell `v7`:
 
@@ -505,12 +581,13 @@ earlier plain connection failure is no substitute. A10 is blocked without an ext
 Logout focus/cleanup stays blocked on separate M3C exact-device authority/evidence. Actual desktop
 browser 400% zoom passed on the synthetic Edge shell 2026-10-12. Retain the dated
 [M4A matrix](../PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md). F11 implementation and automated regressions
-are present; physical v8 cancel/retry/history/restart soak remains pending. Record explicit phone
-performance thresholds before measurements and milestone closure. M3C health-scoped phone
+are present; physical v8 cancel/retry/history/restart soak remains pending. Use the 2026-10-15 frozen
+phone performance targets before measurements and milestone closure. M3C health-scoped phone
 enrollment/revocation/Garmin recovery acceptance stays in its separate report and authority scope.
 
 Estimated active PWA completion: **92%**; accepted phone chat/protected Core Garmin plus verified
 M4A local accessibility fixes and bounded owner-reported phone accessibility passes. Health-scoped
 physical acceptance, remaining accessibility prerequisites/failure cases,
-physical F11 soak and performance/release gates remain open. Estimate is milestone-based,
+physical F11 soak and performance/release gates remain open. Targets are now frozen in the
+[F11 physical ledger](../PWA_F11_PHYSICAL_ACCEPTANCE.md); no phone sample accepted. Estimate is milestone-based,
 not a measured test percentage.

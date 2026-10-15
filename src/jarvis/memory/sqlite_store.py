@@ -345,23 +345,27 @@ class SQLiteConversationStore:
         )
         async with self._operation_lock:
             connection = await self._get_connection()
-            await connection.execute(
-                """
-                INSERT INTO audit_records
-                    (id, conversation_id, action, outcome, risk, detail_json, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    record.id,
-                    record.conversation_id,
-                    record.action,
-                    record.outcome.value,
-                    record.risk.value,
-                    _dump_json(record.detail),
-                    record.created_at.isoformat(timespec="microseconds"),
-                ),
-            )
-            await connection.commit()
+            try:
+                await connection.execute(
+                    """
+                    INSERT INTO audit_records
+                        (id, conversation_id, action, outcome, risk, detail_json, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        record.id,
+                        record.conversation_id,
+                        record.action,
+                        record.outcome.value,
+                        record.risk.value,
+                        _dump_json(record.detail),
+                        record.created_at.isoformat(timespec="microseconds"),
+                    ),
+                )
+                await connection.commit()
+            except BaseException:
+                await connection.rollback()
+                raise
         return record
 
     async def list_audit_records(self, *, limit: int = 100) -> Sequence[AuditRecord]:

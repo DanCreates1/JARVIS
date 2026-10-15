@@ -1,6 +1,6 @@
 # JARVIS Phase Overview
 
-Updated: 2026-10-14
+Updated: 2026-10-15
 
 ## Active product path
 
@@ -49,6 +49,7 @@ record.
 - Use the PWA Garmin acceptance list for current phone work; native mobile milestones are deferred.
 - Current MVP 3 evidence and M3A/M3B/M3C gates: [PWA MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
 - Authorized MVP 4/F11 implementation and remaining gates: [PWA MVP 4 progress](phase-reports/PWA_MVP4_PROGRESS.md). Reload current shell v8 for new acceptance; historical v6/v7 evidence remains dated.
+- F11 physical acceptance initiated at `4fa75e3`: [phone ledger and frozen performance targets](PWA_F11_PHYSICAL_ACCEPTANCE.md). Host readiness and fresh 63 lifecycle/24 desktop checks pass; no new phone observation or phase closure.
 - Preserve Core as sole authority, memory, routing, permission, and audit system.
 - Keep production Core loopback-bound behind approved private-network HTTPS.
 - Follow the root Codex confirmation policy: routine requested work proceeds; important new

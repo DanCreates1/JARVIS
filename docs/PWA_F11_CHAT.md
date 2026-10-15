@@ -70,6 +70,10 @@ ignores delayed frames from a previously viewed request.
 
 ## Verification and open gates
 
+Physical procedure, independent result ledger and frozen phone performance targets:
+[F11 physical acceptance](PWA_F11_PHYSICAL_ACCEPTANCE.md), initiated 2026-10-15 at `4fa75e3`.
+No new phone result is implied by preparation.
+
 Synthetic Core/provider, API/security, real-script lifecycle and desktop geometry checks are
 recorded in [MVP 4 progress](phase-reports/PWA_MVP4_PROGRESS.md). They contain no real account,
 transcript or health data. M3C Garmin acceptance remains in its separate report. Physical v8

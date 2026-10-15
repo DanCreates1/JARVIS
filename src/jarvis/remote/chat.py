@@ -225,19 +225,20 @@ class PWAChatCoordinator:
         await self.store.close()
 
     async def _settle_unstarted(self, active: _ActiveTurn) -> None:
+        # Concurrent cancels must wait for the terminal receipt, audit and event, rather
+        # than interpreting an in-progress settlement as already committed.
         async with self._lock:
             if active.settled:
                 return
             active.settled = True
-        result = chat_result(
-            active.request_id, active.conversation_id, "cancelled", error="cancelled"
-        )
-        try:
-            await self._save_result(active, result)
-            await self._audit(active, "cancelled")
-            await self._publish(active, "chat.cancelled", result, terminal=True)
-        finally:
-            async with self._lock:
+            result = chat_result(
+                active.request_id, active.conversation_id, "cancelled", error="cancelled"
+            )
+            try:
+                await self._save_result(active, result)
+                await self._audit(active, "cancelled")
+                await self._publish(active, "chat.cancelled", result, terminal=True)
+            finally:
                 self._active.pop(
                     (active.context.host_id, active.context.device_id, active.request_id), None
                 )

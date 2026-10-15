@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import re
 import sqlite3
 from contextlib import closing
@@ -146,3 +147,32 @@ async def test_explicit_memory_audit_and_deletion_apis(tmp_path: Path) -> None:
             await store.list_memories(limit=0)
         with pytest.raises(ValueError, match="audit limit"):
             await store.list_audit_records(limit=501)
+
+
+@pytest.mark.parametrize("failure", [asyncio.CancelledError, RuntimeError])
+async def test_failed_audit_commit_rolls_back_without_poisoning_next_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: type[BaseException]
+) -> None:
+    async with SQLiteConversationStore(tmp_path / "jarvis.db") as store:
+        connection = await store._get_connection()
+
+        async def failed_commit() -> None:
+            raise failure()
+
+        with monkeypatch.context() as patch:
+            patch.setattr(connection, "commit", failed_commit)
+            with pytest.raises(failure):
+                await store.append_audit_record(
+                    conversation_id=None,
+                    action="pwa.chat",
+                    outcome=AuditOutcome.REQUESTED,
+                    risk=ToolRisk.READ_ONLY,
+                )
+        assert await store.list_audit_records() == []
+        audit = await store.append_audit_record(
+            conversation_id=None,
+            action="pwa.chat",
+            outcome=AuditOutcome.FAILED,
+            risk=ToolRisk.READ_ONLY,
+        )
+        assert await store.list_audit_records() == [audit]

@@ -183,7 +183,7 @@ async def test_cancel_stops_actual_assistant_provider_and_keeps_one_user_turn(
             for message in await h.store.recent_messages(first["conversation_id"], limit=10)
         ] == [MessageRole.USER]
         audits = await h.store.list_audit_records()
-        assert [(record.action, record.outcome.value) for record in audits] == [
+        assert sorted((record.action, record.outcome.value) for record in audits) == [
             ("pwa.chat", "failed"),
             ("pwa.chat", "requested"),
         ]
@@ -533,14 +533,38 @@ async def test_local_deletion_during_generation_stops_provider_and_emits_interru
 
 
 @pytest.mark.asyncio
-async def test_concurrent_immediate_cancel_has_one_terminal_audit_and_event(tmp_path: Path) -> None:
+async def test_concurrent_immediate_cancel_has_one_terminal_audit_and_event(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     async with _harness(tmp_path) as h:
         await _submit(h)
-        results = await asyncio.gather(
-            h.chat.cancel(context=_context(), request_id="request:one"),
-            h.chat.cancel(context=_context(), request_id="request:one"),
-        )
+        active = next(iter(h.chat._active.values()))
+        assert active.task is not None and not active.started
+        active.task.cancel()
+        save_started = asyncio.Event()
+        release_save = asyncio.Event()
+        original = h.chat._save_result
+
+        async def delayed_save(*args: object, **kwargs: object) -> None:
+            save_started.set()
+            await release_save.wait()
+            await original(*args, **kwargs)
+
+        monkeypatch.setattr(h.chat, "_save_result", delayed_save)
+        first = asyncio.create_task(h.chat.cancel(context=_context(), request_id="request:one"))
+        second = None
+        try:
+            await asyncio.wait_for(save_started.wait(), timeout=3)
+            second = asyncio.create_task(
+                h.chat.cancel(context=_context(), request_id="request:one")
+            )
+            done, _ = await asyncio.wait({second}, timeout=0.05)
+            assert not done, "Concurrent cancellation returned before terminal storage committed"
+        finally:
+            release_save.set()
+            results = await asyncio.gather(first, *([second] if second is not None else []))
         assert results[0] == results[1] and results[0]["status"] == "cancelled"
+        assert h.provider.calls == 0
         audits = await h.store.list_audit_records()
         assert sum(record.detail["status"] == "cancelled" for record in audits) == 1
         page = await h.hub.read(

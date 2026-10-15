@@ -207,6 +207,17 @@ four MVP milestones pass and the owner explicitly reprioritizes them.
 
 ## Next milestone
 
+2026-10-15: initiated [F11 physical acceptance](PWA_F11_PHYSICAL_ACCEPTANCE.md) at `4fa75e3`,
+shell **v8**, with compact owner batches and phone performance budgets frozen before samples.
+Fresh 63 lifecycle/24 desktop cases and existing private-route readiness pass. Phone observations
+are pending; no new physical gate accepted. M3C grouped decision, remaining M4A cases and phone
+performance stay open. Held native dependency files remain unchanged and excluded from publication.
+The full local gate found an immediate-cancellation settlement race; fixed with a delayed-storage
+regression, cancellation-safe audit rollback and 34 focused storage/Core/API/transport passes.
+Final local release gate passes **1,459 tests / 3 optional skips**, **85.65% coverage**, with
+format/lint/types, root/sidecar audits and secret scans clear. Existing Core needs a coordinated
+idle restart to load the patch before physical acceptance.
+
 2026-10-14: owner authorized F11 implementation despite pending physical M3C/M4A gates. Shell
 **v8** adds working Core cancellation, immutable-ID safe retry, device-owned durable history and
 reconnect/session isolation. See [F11 contract](PWA_F11_CHAT.md) and
