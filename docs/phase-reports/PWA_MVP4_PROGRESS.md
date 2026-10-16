@@ -133,6 +133,23 @@ Requested only the Garmin panel's public status wording, omitting health numbers
 authenticated F11 steps remain paused until the non-health prerequisite is established. No new
 physical row accepted; progress remains the **92%** milestone estimate.
 
+Subsequent owner wording matches disconnected shell **Connect JARVIS to see Garmin data.** and
+its standard privacy hint; no health values reported. Code review found the previous procedural
+precheck circular on fresh startup: the non-health new-enrollment sentence is set only after
+successful Connect. Corrected F11/M4A procedure to accept equivalent trusted current Core metadata
+before connection, without changing application scopes, authentication or Garmin-read behavior.
+
+Bounded read-only SQLite query (`mode=ro`, host-bound, active browser rows only, limit 101) emitted
+only count/booleans: **1 active browser**, exact prior seven scopes, **no health scope**, risk
+ceiling at most 1; bounded inventory true. No IDs/names/keys/tokens or private content emitted;
+no migrations, authentication, tickets, enrollment, scope changes or health reads. This proves
+the Core-enforced non-health boundary for any accepted existing browser session; a request for
+additional health scope fails existing subset validation. Generic phone guidance proves neither
+current scripts nor retained identity. Requested the public **Enrolled key found. Connect existing
+device to start a fresh session.** startup wording; physical F11-P0/Connect still pending.
+Owner reports **different wording**. Requested exact public Device access sentence, without
+tickets/keys/device IDs. No identity absence, wrong surface or old loaded script is inferred.
+
 2026-10-09 changes, shell `v7`:
 
 - F1: network availability cannot enable protected controls. First successful authenticated poll

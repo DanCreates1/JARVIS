@@ -217,7 +217,9 @@ regression, cancellation-safe audit rollback and 34 focused storage/Core/API/tra
 Final local release gate passes **1,459 tests / 3 optional skips**, **85.65% coverage**, with
 format/lint/types, root/sidecar audits and secret scans clear. On the owner's phone-ready return,
 Core was already stopped; patched Core was started on the verified existing private route.
-Authenticated phone checks await confirmation of existing non-health guidance; no new physical
+Trusted read-only Core metadata confirms the only active browser has exactly the prior seven
+scopes and no health scope; corrected the circular pre-Connect wording check for fresh startup.
+Retained phone identity/current runtime and physical connection remain unverified; no new physical
 pass. Source publication `a0b60fb` CI passed.
 
 2026-10-14: owner authorized F11 implementation despite pending physical M3C/M4A gates. Shell

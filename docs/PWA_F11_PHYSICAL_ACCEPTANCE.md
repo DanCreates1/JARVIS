@@ -10,7 +10,8 @@ rechecked at `2026-10-15T22:15:54-04:00`: one loopback listener and private v8 a
 This does not change shell v8 assets and is not the observed in-flight restart required by F11-P6.
 Owner confirms phone available. A bundled metadata/non-health/status prompt received **no**;
 its referent is unconfirmed. Requested Garmin status wording only, without health values.
-Metadata, non-health prerequisite and connection status remain unverified; Connect stays paused.
+Phone metadata, retained identity/runtime and connection status remain unverified; Connect stays
+paused. Subsequent read-only Core evidence establishes the non-health boundary below.
 Availability alone accepts no physical row.
 
 ## Execution boundary
@@ -20,10 +21,23 @@ HTTPS route. Record date/time with offset, phone/iOS, surface, connection type, 
 text/zoom, VoiceOver and keyboard availability. Use public synthetic prompts only; retain row
 results, counts, durations and sanitized symptoms, never transcripts, origin, identifiers or keys.
 
-Before Connect, confirm the existing surface displays **Garmin access needs a new approved browser
-enrollment.** If that non-health prerequisite cannot be established, stop authenticated checks.
-Do not connect to discover scope. Enrollment, erasure, revocation and Garmin acceptance remain
+Before Connect, establish the existing identity's non-health boundary from previously connected
+guidance with same-identity continuity, or a current trusted Core metadata check showing every
+active browser enrollment has exactly the prior seven scopes and no `client.health.read`.
+Fresh disconnected startup displays **Connect JARVIS to see Garmin data.**; the new-enrollment
+guidance is assigned only after Connect and cannot be required before a fresh connection.
+If neither evidence path is established, stop authenticated checks; do not connect to discover
+scope. Enrollment, erasure, revocation and Garmin acceptance remain
 in [MVP 3](phase-reports/PWA_MVP3_PROGRESS.md); its pending grouped decision stays pending.
+
+2026-10-15 continuation: owner reports the generic disconnected Garmin text and privacy hint.
+Read-only Core metadata inventory finds one active browser enrollment, exactly the prior seven
+scopes, no health scope and risk ceiling at most 1. No IDs, names, keys or tokens emitted, no
+state changed. This establishes the Core non-health boundary; retained phone identity/runtime
+and physical connection still need observation. The generic text is not a scope/asset pass.
+Owner subsequently reports different Device access wording from the expected enrolled-key startup
+sentence. Exact public wording requested; no missing-key, wrong-surface or stale-script diagnosis
+inferred from that answer alone.
 
 Reload online and close/reopen twice without clearing website data. Inspect the new controls and
 record their behavior as a v8 runtime fingerprint. This supports current execution; it does not

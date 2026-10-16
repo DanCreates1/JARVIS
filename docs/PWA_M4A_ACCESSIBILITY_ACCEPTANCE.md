@@ -15,11 +15,18 @@ keys, revoke devices, change routes, read Garmin, or turn on notifications for t
 Safari and Home Screen may have different identity state: an unenrolled surface can run shell
 checks only. Mark its authenticated rows blocked; do not enroll it to satisfy M4A.
 
-Before another **Connect existing device** activation, confirm the already connected surface
-shows **Garmin access needs a new approved browser enrollment.** This confirms the current
-client's non-health state, not a live Core scope inventory. If absent or unverified when A3 is
-attempted, mark A3 blocked; do not reconnect to discover scope. A health-enabled identity can
-automatically refresh Garmin after the first authenticated event poll, outside this matrix.
+Before another **Connect existing device** activation, establish non-health state from the
+previously connected surface's **Garmin access needs a new approved browser enrollment.** with
+same-identity continuity, or trusted current Core metadata proving every active browser enrollment
+has exactly the prior seven scopes and no `client.health.read`. Fresh disconnected startup
+shows generic **Connect JARVIS to see Garmin data.**; code sets the new-enrollment guidance only
+after Connect, so a fresh startup cannot provide it beforehand. If neither evidence path exists,
+mark A3 blocked; do not reconnect to discover scope. A health-enabled identity can automatically
+refresh Garmin after the first authenticated event poll, outside this matrix.
+
+2026-10-15 read-only Core inventory: one active browser enrollment, exactly the prior seven scopes,
+no health scope, risk ceiling at most 1. Aggregate booleans/count only; no IDs, keys or account
+data emitted. This establishes the Core boundary, not phone identity, assets or an A3 pass.
 
 M3C health-scoped enrollment, Garmin values/freshness, Wi-Fi/cellular recovery, Core restart,
 logout/erase and test-device revocation stay in [MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
