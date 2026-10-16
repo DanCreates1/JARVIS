@@ -1,7 +1,7 @@
 # JARVIS Master Roadmap
 
 Status: active, mobile-MVP-first  
-Updated: 2026-10-14
+Updated: 2026-10-16
 Repository: `DanCreates1/JARVIS`, branch `main`
 
 ## Product target
@@ -206,6 +206,14 @@ multi-GPU serving; the former broad M3–M9 and H1–H8 mobile/health plans. Rec
 four MVP milestones pass and the owner explicitly reprioritizes them.
 
 ## Next milestone
+
+2026-10-16 continuation at `5ef5c36`: owner reports **Connect existing device → Connection
+failed**. Host checks find Tailscale **NoState**, offline, empty Serve configuration and stopped
+Core. Starting the existing Tailscale app restores its saved profile and exact prior private route;
+reviewed local Core launcher restores one loopback listener. No login, enrollment, profile switch
+or route edits. All four private/loopback v8 assets match source; repaired schema and both chat-only
+browser enrollments remain present. Original-request Retry, Send state, exact phone surface,
+two reopenings and VoiceOver remain pending. Held mobile edits and M3C stay separate.
 
 2026-10-15: initiated [F11 physical acceptance](PWA_F11_PHYSICAL_ACCEPTANCE.md) at `4fa75e3`,
 shell **v8**, with compact owner batches and phone performance budgets frozen before samples.

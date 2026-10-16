@@ -112,6 +112,30 @@ still byte-match v8 source and unauthenticated history/status remain **401**. Do
 Requested one original-request Retry after Connected (Connect existing device once only if
 needed). This repair restart does not accept F11-P6 in-flight interruption. Phone result pending.
 
+### 2026-10-16 — connection failure and host recovery at `5ef5c36`
+
+Owner reports one **Connect existing device** attempt returns **Connection failed**; original
+request Retry outcome remains unobserved. This does not establish phone-key loss. Successful
+enrollment stores the non-exportable device key in that browser surface; generating a ticket
+alone does not save an enrolled identity. No new ticket or enrollment requested.
+
+At `2026-10-16T17:11:39-04:00`, host Tailscale reports **NoState**, offline, with empty Serve
+configuration and zero Core listeners. Its Windows service is running. Existing Tailscale app
+was started; the saved selected profile subsequently recovered **Running** and the exact prior
+private route/origin without login, profile switching or route edits. Core was stopped; the
+reviewed existing hidden local launcher started it after route/boundary validation.
+At `17:13:49-04:00`, one Python-owned loopback listener, zero non-loopback listeners, exact
+owned route/origin, online tailnet and disabled Funnel pass. Shell/script/CSS/worker byte-match
+v8 source over loopback and private HTTPS; unauthenticated history/status return **401**.
+Bounded read-only metadata confirms **2 active unexpired browser enrollments**, exact seven
+chat scopes, risk ceiling at most 1, repaired sequence columns/deletion trigger, and zero running
+host receipts. No identifiers, credentials, transcript or health data emitted.
+
+Requested one Connect on the same phone surface, then one original-request Retry only if still
+offered after Connected. Pending: connection/request status, Send state and exact surface.
+Reopen/VoiceOver batches remain paused until observed recovery. This idle startup accepts no
+F11-P6 interruption. Held mobile package hashes match the 2026-10-14 checkpoint; M3C unchanged.
+
 Reload online and close/reopen twice without clearing website data. Inspect the new controls and
 record their behavior as a v8 runtime fingerprint. This supports current execution; it does not
 close the separate loaded script/CSS/worker/cache verification in
@@ -126,7 +150,7 @@ Do not repeatedly tap Send or manually resend an uncertain request. Retry reques
 | ID | Compact batch and fixed pass criterion | Result |
 | --- | --- | --- |
 | F11-P0 | Confirm metadata, non-health guidance and retained identity; reload/reopen twice. Saved conversations, New conversation and Refresh history appear. Record version method separately from full asset proof. | partial; paused for reported unconfirmed outcome blocking Send: metadata/normal zoom reported, exact surface/runtime/controls and reopen continuity pending; Core non-health boundary verified |
-| F11-P1 | Connect existing device once if needed. With VoiceOver, inspect Saved conversations, New conversation, Refresh history, Load earlier messages, Cancel reply and Retry request when available. Names, order, unavailable/busy states and focus usable; Send waits authenticated readiness. | partial observation: Connected, Send enabled and one public request/reply reported; full VoiceOver/readiness row pending |
+| F11-P1 | Connect existing device once if needed. With VoiceOver, inspect Saved conversations, New conversation, Refresh history, Load earlier messages, Cancel reply and Retry request when available. Names, order, unavailable/busy states and focus usable; Send waits authenticated readiness. | historical Connected/Send/one reply report; 2026-10-16 Connect failed while host offline, host restored, phone recovery pending; full VoiceOver/readiness row pending |
 | F11-P2 | Send once: `Write 40 numbered sentences about a fictional blue cube. Do not use tools or save memories.` During generation activate Cancel reply once. Observe confirmed cancellation, no later completion replacing it, usable focus and a subsequent new public request succeeding. If completion wins the race, cancellation remains untested. | pending |
 | F11-P3 | During a separate public request, briefly disconnect/reconnect phone Tailscale. When Retry request is offered, activate it once. Recover the original outcome with one user turn and at most one answer; no replacement submission or false completion. Record whether running/completed/cancelled/failed/interrupted. If Retry never appears, its physical gate remains pending. | pending |
 | F11-P4 | Finish public turns in two new conversations; Refresh history, switch saved conversations and reopen the app. Correct owned history restores without duplicate turns or replayed completion speech. Use Load earlier messages only when real bounded pagination exists; otherwise keep pagination pending. Do not create 50+ turns merely to expose it. | pending |

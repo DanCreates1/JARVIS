@@ -1,6 +1,6 @@
 # JARVIS Phase Overview
 
-Updated: 2026-10-15
+Updated: 2026-10-16
 
 ## Active product path
 
@@ -29,7 +29,7 @@ record.
 | Track | Status | Next gate |
 | --- | --- | --- |
 | Phone PWA | Physical-iPhone chat accepted; M3A/M3B complete; M3C shell v6 repairs offline logout and obsolete response/reconnect handling with synthetic evidence | Pending grouped health-read enrollment/recovery decision and physical-iPhone acceptance |
-| PWA MVP 4 | F11 shell v8 implements Core cancellation, immutable-ID retry, durable owned history and reconnect isolation. Earlier connection/basic reply reported; continuation at `55be543` confirms metadata and exposes unconfirmed Send from legacy Core schema. Compatibility repair passes 26 focused Core/API checks; actual recovery and full F11 rows pending. Historical M4A passes remain v7 | [Safari/Home Screen matrix](PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md): recovered Send, exact surface/runtime, reopen continuity, VoiceOver, soak and measured performance open; M3C separate; native audit remains blocked |
+| PWA MVP 4 | F11 shell v8 implements Core cancellation, immutable-ID retry, durable owned history and reconnect isolation. Legacy-schema repair passes 26 focused Core/API checks. On 2026-10-16 Connect failed while host offline; saved Tailscale profile/private route and local Core restored, v8 assets verified. Phone recovery and full F11 rows pending. Historical M4A passes remain v7 | [Safari/Home Screen matrix](PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md): recovered Send, exact surface/runtime, reopen continuity, VoiceOver, soak and measured performance open; M3C separate; native audit remains blocked |
 | Native MVP | Expo Go checks passed; independent native build unverified and deferred under $0/no-Mac constraint | No active native gate |
 | Mobile MVP 2 | Deferred | No active native gate |
 | Mobile MVP 3 | Deferred | No active native gate |

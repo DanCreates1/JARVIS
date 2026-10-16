@@ -35,6 +35,31 @@ row. Use the existing matrix; M3C acceptance stays separate.
 
 ## Evidence
 
+### 2026-10-16 — host recovery before F11-P0/P1 at `5ef5c36`
+
+Owner reports **Connect existing device → Connection failed**. No original-request Retry result,
+current Send state or exact phone surface observed. A generated one-use enrollment ticket is not
+the saved credential: successful enrollment writes the browser's non-exportable device key.
+No key loss, enrollment failure or schema regression inferred from the connection symptom.
+
+Read-only diagnostics at `2026-10-16T17:11:39-04:00` find Tailscale **NoState**, host offline,
+empty Serve configuration and zero Core listeners; Windows service is running. Starting the
+existing Tailscale app restores its saved selected profile and prior exact private route/origin.
+No login, profile switch, enrollment, security setting or route mutation. The reviewed existing
+hidden Core launcher then restores the stopped local service. At `17:13:49-04:00`, exact route,
+online host, Funnel disabled, one Python-owned loopback listener and zero non-loopback listeners
+pass. Four process wrappers/children are not four listeners. All four loopback/private v8 assets
+byte-match source; unauthenticated history/status return **401**. Bounded read-only metadata:
+**2 active unexpired browser enrollments**, exact prior seven chat scopes, risk at most 1,
+repaired sequence columns/deletion trigger and zero running host receipts.
+
+Requested one same-surface Connect and, only after Connected if still offered, one original-request
+Retry. Phone recovery and exact surface remain pending; two reopenings and VoiceOver await recovery.
+No F11 row or restart-interruption result accepted. Application source unchanged; prior source
+release gate remains historical evidence, no new application test run claimed. Held mobile package
+hashes match the 2026-10-14 checkpoint and remain excluded; M3C unchanged. Completion estimate
+stays **92%**, milestone-based; physical recovery/accessibility/performance gates remain open.
+
 ### 2026-10-15 — F11-P0/P1 metadata and legacy-schema repair at `55be543`
 
 Owner reports **iPhone 15 Pro, iOS 27.0.1, Wi-Fi, portrait, normal text, VoiceOver off,
