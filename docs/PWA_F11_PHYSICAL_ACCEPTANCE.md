@@ -4,9 +4,14 @@ Status: `in-progress`; initiated 2026-10-15 at `4fa75e3`, shell **v8**.
 No new physical result recorded. Aggregate MVP 4 remains incomplete.
 
 Readiness gate found and repaired concurrent immediate-cancellation settlement on 2026-10-15.
-The existing Core process predates that Python fix; coordinate an idle restart with the verified
-existing configuration before patched phone checks. This does not change shell v8 assets and is
-not the observed in-flight restart required by F11-P6.
+The initial Core process predated that Python fix. At the owner's return on 2026-10-15, Core was
+already stopped; patched Core was started using the verified existing configuration. Readiness
+rechecked at `2026-10-15T22:15:54-04:00`: one loopback listener and private v8 assets HTTP 200.
+This does not change shell v8 assets and is not the observed in-flight restart required by F11-P6.
+Owner confirms phone available. A bundled metadata/non-health/status prompt received **no**;
+its referent is unconfirmed. Requested Garmin status wording only, without health values.
+Metadata, non-health prerequisite and connection status remain unverified; Connect stays paused.
+Availability alone accepts no physical row.
 
 ## Execution boundary
 

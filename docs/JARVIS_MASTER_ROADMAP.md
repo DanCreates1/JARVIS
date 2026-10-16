@@ -215,8 +215,10 @@ performance stay open. Held native dependency files remain unchanged and exclude
 The full local gate found an immediate-cancellation settlement race; fixed with a delayed-storage
 regression, cancellation-safe audit rollback and 34 focused storage/Core/API/transport passes.
 Final local release gate passes **1,459 tests / 3 optional skips**, **85.65% coverage**, with
-format/lint/types, root/sidecar audits and secret scans clear. Existing Core needs a coordinated
-idle restart to load the patch before physical acceptance.
+format/lint/types, root/sidecar audits and secret scans clear. On the owner's phone-ready return,
+Core was already stopped; patched Core was started on the verified existing private route.
+Authenticated phone checks await confirmation of existing non-health guidance; no new physical
+pass. Source publication `a0b60fb` CI passed.
 
 2026-10-14: owner authorized F11 implementation despite pending physical M3C/M4A gates. Shell
 **v8** adds working Core cancellation, immutable-ID safe retry, device-owned durable history and

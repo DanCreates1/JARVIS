@@ -105,11 +105,33 @@ and **85%** threshold retained). The two earlier full runs are documented above,
 the passing final run. Pytest targets were fresh verified workspace-local ignored runtime paths.
 No application source changed after this passing gate. Publication includes the two bounded
 cancellation fixes, regression tests and six acceptance/status documents; excludes both held
-mobile files and every runtime artifact. Exact-SHA CI for this publication remains to be checked.
+mobile files and every runtime artifact. Published source `a0b60fb055de932202a37119b9471d0dc4962559`:
+[exact-SHA CI 38814848115](https://github.com/DanCreates1/JARVIS/actions/runs/38814848115) **passed**,
+verified during the owner's phone-ready resumption. Local/tracking/live upstream matched at publication.
 
-The existing running Core predates this source fix. Coordinate an idle restart using its verified
+At the initial preparation checkpoint, the running Core predated this source fix. Coordinate an idle restart using its verified
 existing loopback/private configuration before physical testing of the patched cancellation path;
 that preparation is not physical Core-restart acceptance. No live restart was performed here.
+
+Phone-ready resumption, 2026-10-15: owner replied **yes good to go**. This confirms availability,
+not phone version, tailnet status, retained non-health scope, loaded assets or an acceptance row.
+Requested the existing Home Screen connection status/non-health guidance and whether previously
+reported iPhone 15 Pro/iOS 27.0.1 remains current. No Connect/enrollment/logout/health action queued.
+
+Core was found stopped: zero backend listeners and zero matching Core commands. Existing owned
+Serve route/backend/origin, online tailnet and disabled Funnel all validated. Reviewed existing
+`runtime/mvp4-fixes/f11-start.ps1` started patched Core through supported `pwsh` and the locked
+Python module entry point; no route or identity changes. Settled verification at
+`2026-10-15T22:15:54-04:00`: one Python-owned **127.0.0.1:8765** listener, no non-loopback listener;
+loopback/private shell/script/worker **200**, v8 markers match. This is readiness, not F11-P6
+physical interruption or M3C acceptance. Held mobile files remain the only pre-existing changes.
+No application source changed; source CI/local release evidence above remains applicable.
+
+Owner answered **no** to the bundled metadata/non-health/status prompt. Its referent is ambiguous;
+do not infer missing scope, an enrolled health identity, a different phone or a connection failure.
+Requested only the Garmin panel's public status wording, omitting health numbers. Connect and
+authenticated F11 steps remain paused until the non-health prerequisite is established. No new
+physical row accepted; progress remains the **92%** milestone estimate.
 
 2026-10-09 changes, shell `v7`:
 
