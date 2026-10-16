@@ -224,6 +224,13 @@ request/reply. Fresh aggregate metadata finds two active browsers, both chat-onl
 and risk ceiling at most 1. No ticket/identity details retained or enrollment mutation performed
 in this continuation. Phone metadata/current runtime, retained-key continuity and full F11 rows
 remain pending; M3C stays separate. Source publication `a0b60fb` CI passed.
+Continuation at `55be543` records iPhone 15 Pro/iOS 27.0.1, Wi-Fi, portrait, normal text/zoom,
+VoiceOver off and no external keyboard; exact surface remains unresolved. Owner reports Send
+blocked by an unconfirmed outcome, with Core finding no accepted request. Live schema lacks
+sequence columns and deletion safeguard from early applied migration 017; synthetic reproduction
+confirms insertion failure. Transactional startup repair and named insert columns pass 26 focused
+Core/API checks. Full release and actual phone recovery evidence are tracked in MVP 4 progress;
+P0/P1 reopen/VoiceOver acceptance stays open. Held native files and M3C remain separate.
 
 2026-10-14: owner authorized F11 implementation despite pending physical M3C/M4A gates. Shell
 **v8** adds working Core cancellation, immutable-ID safe retry, device-owned durable history and

@@ -15,6 +15,12 @@ from jarvis.memory.sqlite_store import SQLiteConversationStore
 from jarvis.remote.models import RemoteIdentityContext
 
 MAX_CHAT_RESPONSE_BYTES = 131_072
+_INSERT_REQUEST = (
+    "INSERT INTO pwa_chat_requests "
+    "(host_id,device_id,request_id,fingerprint,conversation_id,session_id,"
+    "start_sequence,end_sequence,status,result_json,created_at,updated_at) "
+    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
+)
 
 
 class PWAChatError(RuntimeError):
@@ -68,10 +74,42 @@ class SQLitePWAChatStore:
                 await connection.execute("PRAGMA foreign_keys = ON")
                 await connection.execute("PRAGMA busy_timeout = 5000")
                 await SQLiteConversationStore._apply_migrations(connection)
+                await self._upgrade_legacy_schema(connection)
             except BaseException:
                 await connection.close()
                 raise
             self._connection = connection
+
+    @staticmethod
+    async def _upgrade_legacy_schema(connection: aiosqlite.Connection) -> None:
+        """Repair early applied 017 schemas without replacing rows or replay receipts."""
+        await connection.execute("BEGIN IMMEDIATE")
+        try:
+            async with connection.execute("PRAGMA table_info(pwa_chat_requests)") as cursor:
+                columns = {str(row[1]) for row in await cursor.fetchall()}
+            if "start_sequence" not in columns:
+                await connection.execute(
+                    "ALTER TABLE pwa_chat_requests ADD COLUMN start_sequence "
+                    "INTEGER NOT NULL DEFAULT 0 CHECK(start_sequence >= 0)"
+                )
+            if "end_sequence" not in columns:
+                await connection.execute(
+                    "ALTER TABLE pwa_chat_requests ADD COLUMN end_sequence INTEGER"
+                )
+            await connection.execute(
+                "CREATE TRIGGER IF NOT EXISTS pwa_chat_conversation_deleted "
+                "BEFORE DELETE ON conversations BEGIN "
+                "UPDATE pwa_chat_requests SET status='interrupted',result_json=json_object("
+                "'request_id',request_id,'conversation_id',NULL,'status','interrupted','reply',NULL,"
+                "'error',json_object('code','conversation_deleted','message',"
+                "'Conversation was deleted.')) WHERE conversation_id=OLD.id; END"
+            )
+            # Historical sequence bounds are unknown. History still requires exact ownership
+            # and client_request_id; defaults never authorize older/unattributed messages.
+            await connection.commit()
+        except BaseException:
+            await connection.rollback()
+            raise
 
     async def close(self) -> None:
         async with self._lock:
@@ -163,7 +201,7 @@ class SQLitePWAChatStore:
                     sequence = await cursor.fetchone()
                 assert sequence is not None
                 await connection.execute(
-                    "INSERT INTO pwa_chat_requests VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                    _INSERT_REQUEST,
                     (
                         context.host_id,
                         context.device_id,
@@ -214,7 +252,7 @@ class SQLitePWAChatStore:
                 result = chat_result(request_id, None, "cancelled", error="cancelled")
                 timestamp = _now()
                 await connection.execute(
-                    "INSERT INTO pwa_chat_requests VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                    _INSERT_REQUEST,
                     (
                         context.host_id,
                         context.device_id,

@@ -35,6 +35,94 @@ row. Use the existing matrix; M3C acceptance stays separate.
 
 ## Evidence
 
+### 2026-10-15 — F11-P0/P1 metadata and legacy-schema repair at `55be543`
+
+Owner reports **iPhone 15 Pro, iOS 27.0.1, Wi-Fi, portrait, normal text, VoiceOver off,
+no external keyboard**. Follow-up confirms normal zoom and describes surface as **Safari as the
+app**; exact Safari-tab versus Home Screen surface remains unresolved. Owner reports **cannot
+send because outcome is unconfirmed**; requested one Retry request activation if available, then
+public status and Send state. Reopen/VoiceOver batches paused for recovery; no resend, reload,
+data clearing or cancellation requested. Visible controls were not confirmed.
+Owner subsequently reports **still not working**. This establishes no recovered Send outcome;
+Retry availability/activation and exact post-attempt public status were unconfirmed at that point.
+Requested the status/error wording and Retry state without another activation. Physical acceptance stays
+paused at recovery failure; no passing reopen or VoiceOver result inferred.
+Two reopenings, retained identity and VoiceOver outcomes remain
+unobserved; metadata alone accepts no complete F11 row. External-keyboard acceptance lacks
+equipment. Historical connection/basic reply evidence remains intact.
+
+Read-only host readiness at `2026-10-15T22:38:53-04:00` passes the existing owned route/backend/
+origin, online tailnet, disabled Funnel, one Python-owned loopback listener and zero non-loopback
+listeners. Loopback/private shell/script/CSS/worker byte-match current v8 source; unauthenticated
+history/status return **401**. Bounded host-owned SQLite read (`mode=ro`, limit 101) finds **2
+active unexpired browser enrollments**, exact prior seven scopes, no health scope and risk ceiling
+at most 1. Aggregate count/booleans only; no identifier, transcript, token or health content.
+Existing Core reused; no route/service/enrollment/credential mutation or Garmin call.
+
+Bounded metadata-only receipt inventory found zero durable chat receipts for active host-owned
+browser devices; phone request identity/cause was unestablished at that checkpoint. Existing real-script focused
+recovery command (`rtk proxy node --test --test-name-pattern='safe Retry|Retry finds|unconfirmed
+POST' tests/pwa/garmin-lifecycle.test.cjs`, one command) passes **4/4**. This synthetic evidence
+does not accept the reported phone failure or a physical retry row.
+
+Held native package/lock hashes match the 2026-10-14 checkpoint and remain excluded from
+publication. At the metadata checkpoint application source was unchanged; subsequent repair follows.
+Completion estimate stays **92%**, milestone-based; P0/P1 and later physical gates remain open.
+
+Owner then reports the public **Send outcome unconfirmed. Retry request checks Core using the same
+request ID. Your draft is kept.** and **Core has no accepted request. Retry request safely uses
+the original request ID.** statuses. Running OpenAPI confirms current durable status/cancel routes
+and request fields. Read-only production schema inspection reveals early already-applied migration
+017 lacks `start_sequence`, `end_sequence` and `pwa_chat_conversation_deleted`. Current positional
+12-value insertion therefore cannot create a receipt in its 10-column table. The synthetic legacy
+regression fails before repair (**3 failed / 1 passed**; missing-both error: **table
+pwa_chat_requests has 10 columns but 12 values were supplied**). Direct `uv run pytest` was blocked
+by Windows Application Control (`os error 4551`); supported `uv run python -m pytest` executes.
+
+Chat-store initialization now adds only missing columns and deletion trigger in one rollback-safe
+transaction. Named insert columns avoid dependency on column order. No migration rewrite, row
+replacement, receipt deletion, history backfill, scope expansion or phone-data clearing. Historical
+sequence defaults do not authorize history; exact owner/request attribution still applies. Five
+new regression cases cover modern/partial/early schemas, byte-preserved prior receipt fields,
+terminal no-replay, new reservation, restart interruption, cancellation barrier, deletion privacy,
+reopen idempotence and cancelled-upgrade rollback. Combined focused Core/API suite: **26 passed**.
+SQLite official [ADD COLUMN](https://www.sqlite.org/lang_altertable.html#altertabaddcol) and
+[transaction](https://www.sqlite.org/lang_transaction.html) documentation checked before repair.
+Full release and repaired-host/phone recovery results follow; P0/P1 remain unaccepted.
+
+Idle Core restart used the exact verified existing Python listener, checked zero running
+host receipts, then reused reviewed `runtime/mvp4-fixes/f11-start.ps1` through supported bundled
+`pwsh` with a hidden window. Existing route/enrollment unchanged. Read-only check at
+`2026-10-15T22:51:01-04:00` confirms both columns and deletion trigger present, still zero receipts.
+One loopback listener, zero non-loopback listeners, private route/tailnet/Funnel boundary and v8
+HTTP markers pass. At `22:51:45-04:00` private/loopback shell/script/CSS/worker byte-match source,
+unauthenticated history/status remain **401**, and Doctor passes with UTF-8 console environment.
+Requested one original-request Retry after Connected, with Connect existing device only if needed.
+No phone replacement submission, credential change, route mutation, Garmin read or F11-P6
+in-flight-interruption acceptance. Actual recovery result remains pending.
+
+Final repair release gate (after deletion-safeguard hardening):
+
+| Check | Result |
+| --- | --- |
+| Root lock check / locked sync | pass; 119 resolved / 69 checked |
+| Ruff format / lint / Mypy | pass; 415 formatted files / 166 source files |
+| Full strict pytest | **1,464 passed / 3 existing optional skips**, **85.67% coverage**, **124.33s**; existing Starlette warning |
+| Focused Core/API | **26 passed**, including five new compatibility/rollback cases |
+| PWA real-script lifecycle | **63 passed**; assets unchanged, geometry not rerun |
+| Root dependency audit | no known vulnerabilities |
+| Doctor / live host | pass; repaired columns/trigger, existing private boundary and unchanged v8 assets verified |
+| History / staged secret scans | pass; 111 commits / approximately 21.52KB staged; no leaks |
+| Documentation / whitespace | all **47 local links** across six edited documents resolve; diff check passes |
+| Held native candidates | original hashes unchanged; publication hold retained; no native gate rerun |
+
+Full command: `rtk proxy uv run python -m pytest -q --tb=short --cov-report=
+--basetemp runtime/f11-legacy-schema-release-final-20261015` (one command; configured **85%**
+coverage gate retained). An earlier full repair run passed **1,464 / 3**, **85.51%**, **112.37s**;
+final run above follows the added deletion safeguard. Runtime test artifacts and local service
+helpers stay ignored. Publication includes only repair source/tests and six acceptance/status
+documents. No full physical row, phone performance sample or MVP completion claimed.
+
 ### 2026-10-15 — F11 phone connection confirmed at `22d50db`
 
 Checkpoint `2026-10-15T22:34:16-04:00`; shell **v8** source unchanged. Previous chat supplied

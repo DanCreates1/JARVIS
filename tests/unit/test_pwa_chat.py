@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sqlite3
 from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
+import aiosqlite
 import pytest
 
 from jarvis.core import (
@@ -25,6 +27,130 @@ from jarvis.remote.chat_store import MAX_CHAT_RESPONSE_BYTES, PWAChatError, SQLi
 from jarvis.remote.service import RemoteAuthenticationError
 from tests.fakes import FakeChatProvider, FakeToolPolicy
 from tests.unit.test_phase8_pwa_transport import _context
+
+
+@pytest.mark.parametrize(
+    "missing_columns",
+    [(), ("start_sequence",), ("end_sequence",), ("start_sequence", "end_sequence")],
+)
+async def test_legacy_phone_schema_preserves_receipts_and_supports_retry(
+    tmp_path: Path, missing_columns: tuple[str, ...]
+) -> None:
+    database = tmp_path / "legacy-phone.db"
+    original = SQLitePWAChatStore(database)
+    await original.initialize()
+    _, accepted = await original.reserve(
+        context=_context(),
+        request_id="request:preserved",
+        fingerprint="original",
+        conversation_id=None,
+    )
+    completed = {**accepted, "status": "completed", "reply": "Public fixture"}
+    await original.complete(context=_context(), request_id="request:preserved", result=completed)
+    await original.close()
+
+    # Reproduce the already-applied early migration 017, with neither sequence column.
+    with sqlite3.connect(database) as connection:
+        connection.execute("DROP TRIGGER pwa_chat_conversation_deleted")
+        for column in missing_columns:
+            connection.execute(f"ALTER TABLE pwa_chat_requests DROP COLUMN {column}")
+        before = connection.execute(
+            "SELECT host_id,device_id,request_id,fingerprint,conversation_id,session_id,"
+            "status,result_json,created_at,updated_at FROM pwa_chat_requests"
+        ).fetchall()
+
+    upgraded = SQLitePWAChatStore(database)
+    try:
+        await upgraded.initialize()
+        with sqlite3.connect(database) as connection:
+            assert (
+                connection.execute(
+                    "SELECT host_id,device_id,request_id,fingerprint,conversation_id,session_id,"
+                    "status,result_json,created_at,updated_at FROM pwa_chat_requests"
+                ).fetchall()
+                == before
+            )
+        assert await upgraded.get(context=_context(), request_id="request:preserved") == completed
+        is_new, replay = await upgraded.reserve(
+            context=_context(),
+            request_id="request:preserved",
+            fingerprint="original",
+            conversation_id=None,
+        )
+        assert not is_new and replay == completed
+        is_new, running = await upgraded.reserve(
+            context=_context(), request_id="request:new", fingerprint="new", conversation_id=None
+        )
+        assert is_new and running["status"] == "running"
+        await upgraded.recover_interrupted()
+        assert (await upgraded.get(context=_context(), request_id="request:new"))[
+            "status"
+        ] == "interrupted"
+        barrier = await upgraded.cancel_unknown(context=_context(), request_id="request:delayed")
+        is_new, replay = await upgraded.reserve(
+            context=_context(),
+            request_id="request:delayed",
+            fingerprint="delayed",
+            conversation_id=None,
+        )
+        assert not is_new and replay == barrier
+    finally:
+        await upgraded.close()
+    reopened = SQLitePWAChatStore(database)
+    try:
+        await reopened.initialize()
+        assert await reopened.get(context=_context(), request_id="request:preserved") == completed
+        with sqlite3.connect(database) as connection:
+            connection.execute("PRAGMA foreign_keys=ON")
+            connection.execute(
+                "DELETE FROM conversations WHERE id=?", (accepted["conversation_id"],)
+            )
+        deleted = await reopened.get(context=_context(), request_id="request:preserved")
+        assert deleted["status"] == "interrupted" and deleted["reply"] is None
+        is_new, replay = await reopened.reserve(
+            context=_context(),
+            request_id="request:preserved",
+            fingerprint="original",
+            conversation_id=None,
+        )
+        assert not is_new and replay == deleted
+    finally:
+        await reopened.close()
+
+
+async def test_legacy_phone_schema_cancelled_upgrade_rolls_back(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    database = tmp_path / "legacy-cancel.db"
+    original = SQLitePWAChatStore(database)
+    await original.initialize()
+    await original.close()
+    with sqlite3.connect(database) as connection:
+        connection.execute("ALTER TABLE pwa_chat_requests DROP COLUMN start_sequence")
+        connection.execute("ALTER TABLE pwa_chat_requests DROP COLUMN end_sequence")
+
+    execute = aiosqlite.Connection.execute
+
+    def cancel_second_add(connection: aiosqlite.Connection, sql: str, *args: object):
+        if sql == "ALTER TABLE pwa_chat_requests ADD COLUMN end_sequence INTEGER":
+            raise asyncio.CancelledError
+        return execute(connection, sql, *args)
+
+    upgraded = SQLitePWAChatStore(database)
+    with monkeypatch.context() as patch:
+        patch.setattr(aiosqlite.Connection, "execute", cancel_second_add)
+        with pytest.raises(asyncio.CancelledError):
+            await upgraded.initialize()
+    with sqlite3.connect(database) as connection:
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(pwa_chat_requests)")}
+        assert "start_sequence" not in columns and "end_sequence" not in columns
+    try:
+        await upgraded.initialize()
+        assert (await upgraded.cancel_unknown(context=_context(), request_id="request:retry"))[
+            "status"
+        ] == "cancelled"
+    finally:
+        await upgraded.close()
 
 
 class _BlockingProvider:

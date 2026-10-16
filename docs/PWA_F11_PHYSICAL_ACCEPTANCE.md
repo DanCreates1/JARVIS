@@ -58,10 +58,59 @@ performed by this continuation. Existing route/backend/origin and online tailnet
 disabled; one Python-owned loopback listener, zero non-loopback listeners; loopback/private shell,
 script and worker return **200**, shell/worker v8 markers match.
 
-Current phone/iOS, Home Screen surface, network, accessibility settings, v8 runtime controls and
-reload/reopen identity continuity remain unconfirmed. F11-P0/P1 remain pending as complete rows;
+At that checkpoint, current phone/iOS, surface, network, accessibility settings, v8 runtime
+controls and reload/reopen identity continuity remained unconfirmed. F11-P0/P1 remained pending as complete rows;
 no cancel/retry/history/interruption/soak or performance result inferred. Held native package files
 retain their recorded hashes. M3C Garmin enrollment/acceptance remains separate and unchanged.
+
+### 2026-10-15 — F11-P0/P1 continuation at `55be543`
+
+Owner reports **iPhone 15 Pro, iOS 27.0.1, Wi-Fi, portrait, normal text, VoiceOver off,
+no external keyboard**. Follow-up reports **normal zoom** and describes surface as **Safari as
+the app**; exact Safari-tab versus Home Screen surface remains unresolved. Owner also reports
+**cannot send because outcome is unconfirmed**. Visible-control inventory was not supplied.
+Paused reopen/accessibility batches for explicit original-request recovery: one Retry request
+activation if visible/enabled, then report public status and Send state. No resubmission, reload,
+data clearing or cancellation requested. Owner answers **still not working** after this instruction;
+Retry visibility/activation and exact post-attempt status remain unspecified. Requested only public
+status/error wording and Retry availability; no further activation queued. Metadata does
+not establish retained identity, phone-loaded runtime, reopen continuity or VoiceOver usability.
+
+Read-only readiness checked at `2026-10-15T22:38:53-04:00`: existing owned private route/backend/
+origin valid, tailnet online, Funnel disabled; one Python-owned loopback listener, zero
+non-loopback listeners. Loopback/private shell, script, CSS and worker byte-match current v8
+source; unauthenticated history/status return **401**. Bounded host-owned read-only Core metadata
+finds **2 active unexpired browser enrollments**, both exactly the prior seven scopes, no health
+scope and risk ceiling at most 1. No identity fields or private content emitted; no enrollment,
+route, service, credential or health operation performed. Held native package hashes match the
+recorded checkpoint. Bounded metadata-only receipt inventory found zero durable chat receipts
+for active host-owned browser devices; this does not identify the phone request or establish why
+it was unconfirmed. Four focused existing real-script retry/uncertain-outcome tests pass; synthetic
+success does not resolve the reported phone failure. P0/P1 remain open pending recovery and
+owner-operated observations. Prior connection/basic-reply report remains historical evidence,
+not proof of current Send readiness.
+
+Owner subsequently supplies public status matching **Send outcome unconfirmed. Retry request
+checks Core using the same request ID. Your draft is kept.** and **Core has no accepted request.
+Retry request safely uses the original request ID.**. Running API contract includes current
+durable status/cancel routes, but read-only live schema inspection finds both sequence columns
+and the conversation-deletion trigger missing from the already-applied early migration 017.
+Synthetic regression reproduces **table pwa_chat_requests has 10 columns but 12 values were
+supplied** before the repair. Startup compatibility repair adds missing columns and deletion
+safeguard transactionally; explicit insert columns handle appended column order. Receipts and
+history ownership remain intact; no historical request is inferred or replayed.
+Focused Core/API checks pass **26/26**, including legacy/repaired schemas, preservation, terminal
+replay, restart interruption, cancellation barriers, deletion privacy and cancelled-upgrade rollback.
+Full release gate and repaired-host/phone recovery observations are recorded in the progress report.
+Reopen and VoiceOver rows remain pending until actual phone recovery is observed.
+
+Repair deployed to existing local Core after verifying the exact Python-owned loopback listener
+and **zero running host receipts**. Idle restart changed no route or enrolled identity. At
+`2026-10-15T22:51:01-04:00`, both sequence columns and deletion trigger are present; prior zero
+receipt count remains zero. Private/loopback readiness passes; at `22:51:45-04:00` all four assets
+still byte-match v8 source and unauthenticated history/status remain **401**. Doctor passes.
+Requested one original-request Retry after Connected (Connect existing device once only if
+needed). This repair restart does not accept F11-P6 in-flight interruption. Phone result pending.
 
 Reload online and close/reopen twice without clearing website data. Inspect the new controls and
 record their behavior as a v8 runtime fingerprint. This supports current execution; it does not
@@ -76,7 +125,7 @@ Do not repeatedly tap Send or manually resend an uncertain request. Retry reques
 
 | ID | Compact batch and fixed pass criterion | Result |
 | --- | --- | --- |
-| F11-P0 | Confirm metadata, non-health guidance and retained identity; reload/reopen twice. Saved conversations, New conversation and Refresh history appear. Record version method separately from full asset proof. | pending: phone metadata, runtime/controls and reopen continuity; Core non-health boundary verified |
+| F11-P0 | Confirm metadata, non-health guidance and retained identity; reload/reopen twice. Saved conversations, New conversation and Refresh history appear. Record version method separately from full asset proof. | partial; paused for reported unconfirmed outcome blocking Send: metadata/normal zoom reported, exact surface/runtime/controls and reopen continuity pending; Core non-health boundary verified |
 | F11-P1 | Connect existing device once if needed. With VoiceOver, inspect Saved conversations, New conversation, Refresh history, Load earlier messages, Cancel reply and Retry request when available. Names, order, unavailable/busy states and focus usable; Send waits authenticated readiness. | partial observation: Connected, Send enabled and one public request/reply reported; full VoiceOver/readiness row pending |
 | F11-P2 | Send once: `Write 40 numbered sentences about a fictional blue cube. Do not use tools or save memories.` During generation activate Cancel reply once. Observe confirmed cancellation, no later completion replacing it, usable focus and a subsequent new public request succeeding. If completion wins the race, cancellation remains untested. | pending |
 | F11-P3 | During a separate public request, briefly disconnect/reconnect phone Tailscale. When Retry request is offered, activate it once. Recover the original outcome with one user turn and at most one answer; no replacement submission or false completion. Record whether running/completed/cancelled/failed/interrupted. If Retry never appears, its physical gate remains pending. | pending |

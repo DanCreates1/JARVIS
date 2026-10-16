@@ -63,6 +63,16 @@ Deleting conversation content preserves a content-free no-replay receipt. Histor
 unowned and local private conversations; local CLI/tool/email/attachment additions cannot silently
 become phone history. Pre-F11 conversations have no provable device owner and are not backfilled.
 
+The 2026-10-15 phone continuation exposed an early already-applied migration 017 with neither
+sequence column nor the deletion trigger. Chat-store startup now repairs those known omissions
+inside one transaction, without rewriting migration 017 or replacing existing rows. Named insert
+columns support both original and appended column order. Historical sequence bounds stay unknown
+(0/null); exact ownership and `client_request_id` still govern visible history. Cancelled repair
+rolls back; normal Core recovery still interrupts unresolved work and preserves no-replay receipts.
+This uses SQLite's [ADD COLUMN](https://www.sqlite.org/lang_altertable.html#altertabaddcol)
+and [transaction](https://www.sqlite.org/lang_transaction.html) behavior; no website-data clearing
+or phone re-enrollment is required.
+
 The browser guards response/body continuations by session and CSRF, histories by selection
 generation, and events by the current request/conversation. One stream owner survives ordinary
 offline recovery; cancelled queued Web Locks cannot acquire an obsolete owner. New conversation

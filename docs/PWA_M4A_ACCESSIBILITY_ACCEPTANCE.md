@@ -4,6 +4,9 @@ Status: `in-progress` — observed phone checks passed; unverified prerequisites
 Target: F11 shell `v8`, baseline `34b4010`, implemented 2026-10-14. Ledger below preserves historical v7 observations; no physical v8 result yet.
 2026-10-15 F11 acceptance resumed at `4fa75e3`; use the [physical F11 ledger](PWA_F11_PHYSICAL_ACCEPTANCE.md) for new-control/recovery checks and frozen phone performance targets. Existing M4A results below remain unchanged.
 Aggregate MVP 4 remains `in-progress`. Preparation and desktop evidence do not accept a phone row.
+2026-10-15 continuation at `55be543` records current phone metadata and an unconfirmed-send failure
+in the [F11 ledger](PWA_F11_PHYSICAL_ACCEPTANCE.md). Reopen/VoiceOver batches pause for legacy Core
+schema repair and actual recovery; historical accessibility passes do not accept this v8 failure.
 Use compact phone batches. Results follow actual reported observations; unexecuted checks remain unverified.
 
 ## Scope and prerequisites
