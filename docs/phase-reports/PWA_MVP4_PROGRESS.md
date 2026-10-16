@@ -35,6 +35,32 @@ row. Use the existing matrix; M3C acceptance stays separate.
 
 ## Evidence
 
+### 2026-10-15 — F11 phone connection confirmed at `22d50db`
+
+Checkpoint `2026-10-15T22:34:16-04:00`; shell **v8** source unchanged. Previous chat supplied
+the owner the trusted-host chat-only ticket command. Owner reports **Connected**, followed by
+**Send enabled; one reply** after a single public synthetic request in this continuation. No ticket,
+key, device ID or transcript retained in repository evidence. Enrollment/connection outcome is
+supported by the phone report and fresh Core metadata: **2 active browser enrollments**, both exactly the prior seven
+scopes, no health scope and risk ceiling at most 1. The earlier inventory had one active browser;
+aggregate metadata does not map the phone identity or prove retained-key continuity.
+
+Read-only readiness passes existing owned route/backend/origin, online tailnet, disabled Funnel,
+one Python-owned **127.0.0.1:8765** listener and zero non-loopback listeners. Loopback/private
+shell, script and worker return **200**, shell/worker v8 markers match. No service restart, route
+change, ticket/enrollment mutation, revocation or Garmin read performed here. Held mobile package
+and lock hashes match the 2026-10-14 checkpoint; MVP 3 report and application assets remain untouched.
+
+This accepts only the reported connection/basic one-turn outcome. F11-P0 metadata, current phone
+surface/runtime/controls and two reopenings remain pending. F11-P1 VoiceOver/readiness ordering,
+P2–P7, frozen timing/memory targets and remaining M4A cases stay open. No performance sample or
+full physical row accepted. M3C Garmin enrollment decision/acceptance remains separate. Completion
+estimate stays **92%**, milestone-based; connection checkpoint alone closes no full milestone.
+Publication scope is these four acceptance/status documents only. All **41 relative links** resolve;
+Whitespace, preservation hashes and staged Gitleaks pass; no leaks found in approximately **6KB**.
+Existing source release evidence below remains applicable;
+no application or native test rerun is claimed for this documentation-only continuation.
+
 ### 2026-10-15 — F11 physical acceptance initiated
 
 Baseline `main` at `4fa75e3`, shell **v8**; exact-SHA

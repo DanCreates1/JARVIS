@@ -209,18 +209,21 @@ four MVP milestones pass and the owner explicitly reprioritizes them.
 
 2026-10-15: initiated [F11 physical acceptance](PWA_F11_PHYSICAL_ACCEPTANCE.md) at `4fa75e3`,
 shell **v8**, with compact owner batches and phone performance budgets frozen before samples.
-Fresh 63 lifecycle/24 desktop cases and existing private-route readiness pass. Phone observations
-are pending; no new physical gate accepted. M3C grouped decision, remaining M4A cases and phone
+Fresh 63 lifecycle/24 desktop cases and existing private-route readiness pass. Full physical rows
+remain pending. M3C grouped decision, remaining M4A cases and phone
 performance stay open. Held native dependency files remain unchanged and excluded from publication.
 The full local gate found an immediate-cancellation settlement race; fixed with a delayed-storage
 regression, cancellation-safe audit rollback and 34 focused storage/Core/API/transport passes.
 Final local release gate passes **1,459 tests / 3 optional skips**, **85.65% coverage**, with
 format/lint/types, root/sidecar audits and secret scans clear. On the owner's phone-ready return,
 Core was already stopped; patched Core was started on the verified existing private route.
-Trusted read-only Core metadata confirms the only active browser has exactly the prior seven
+Initial trusted read-only Core metadata confirmed one active browser with exactly the prior seven
 scopes and no health scope; corrected the circular pre-Connect wording check for fresh startup.
-Retained phone identity/current runtime and physical connection remain unverified; no new physical
-pass. Source publication `a0b60fb` CI passed.
+Continuation at `22d50db` records owner-reported **Connected**, **Send enabled** and one public
+request/reply. Fresh aggregate metadata finds two active browsers, both chat-only, no health scope
+and risk ceiling at most 1. No ticket/identity details retained or enrollment mutation performed
+in this continuation. Phone metadata/current runtime, retained-key continuity and full F11 rows
+remain pending; M3C stays separate. Source publication `a0b60fb` CI passed.
 
 2026-10-14: owner authorized F11 implementation despite pending physical M3C/M4A gates. Shell
 **v8** adds working Core cancellation, immutable-ID safe retry, device-owned durable history and

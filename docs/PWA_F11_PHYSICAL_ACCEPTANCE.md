@@ -1,7 +1,8 @@
 # F11 — physical phone acceptance
 
 Status: `in-progress`; initiated 2026-10-15 at `4fa75e3`, shell **v8**.
-No new physical result recorded. Aggregate MVP 4 remains incomplete.
+Phone connection/one-turn checkpoint recorded below; full F11 rows remain pending.
+Aggregate MVP 4 remains incomplete.
 
 Readiness gate found and repaired concurrent immediate-cancellation settlement on 2026-10-15.
 The initial Core process predated that Python fix. At the owner's return on 2026-10-15, Core was
@@ -10,8 +11,8 @@ rechecked at `2026-10-15T22:15:54-04:00`: one loopback listener and private v8 a
 This does not change shell v8 assets and is not the observed in-flight restart required by F11-P6.
 Owner confirms phone available. A bundled metadata/non-health/status prompt received **no**;
 its referent is unconfirmed. Requested Garmin status wording only, without health values.
-Phone metadata, retained identity/runtime and connection status remain unverified; Connect stays
-paused. Subsequent read-only Core evidence establishes the non-health boundary below.
+At that initial checkpoint, phone metadata, retained identity/runtime and connection status remained
+unverified; Connect was paused. Subsequent evidence and connection results appear below.
 Availability alone accepts no physical row.
 
 ## Execution boundary
@@ -39,6 +40,29 @@ Owner subsequently reports different Device access wording from the expected enr
 sentence. Exact public wording requested; no missing-key, wrong-surface or stale-script diagnosis
 inferred from that answer alone.
 
+### 2026-10-15 — phone connection checkpoint at `22d50db`
+
+Recorded `2026-10-15T22:34:16-04:00` (documentation checkpoint, not a timing sample).
+Prior chat supplied the owner a trusted-host, one-use ticket command with exactly the seven
+chat scopes and risk ceiling 1; the phone creates its own non-exportable private key. No ticket,
+key or device ID was requested or shared in this continuation. Owner first reported **Connected**
+with Send unconfirmed, then **Send enabled; one reply** after one synthetic public request.
+This establishes the reported phone connection and basic send/reply outcome. No transcript retained
+in repository evidence.
+
+Fresh read-only Core inventory now finds **2 active browser enrollments**, both with exactly the
+prior seven scopes, no `client.health.read` and no risk ceiling above 1. This supports a new
+chat-only enrollment since the earlier one-browser inventory; it does not map the phone's identity
+or establish retained-key continuity. No enrollment, ticket, revocation or health operation was
+performed by this continuation. Existing route/backend/origin and online tailnet validate, Funnel
+disabled; one Python-owned loopback listener, zero non-loopback listeners; loopback/private shell,
+script and worker return **200**, shell/worker v8 markers match.
+
+Current phone/iOS, Home Screen surface, network, accessibility settings, v8 runtime controls and
+reload/reopen identity continuity remain unconfirmed. F11-P0/P1 remain pending as complete rows;
+no cancel/retry/history/interruption/soak or performance result inferred. Held native package files
+retain their recorded hashes. M3C Garmin enrollment/acceptance remains separate and unchanged.
+
 Reload online and close/reopen twice without clearing website data. Inspect the new controls and
 record their behavior as a v8 runtime fingerprint. This supports current execution; it does not
 close the separate loaded script/CSS/worker/cache verification in
@@ -52,8 +76,8 @@ Do not repeatedly tap Send or manually resend an uncertain request. Retry reques
 
 | ID | Compact batch and fixed pass criterion | Result |
 | --- | --- | --- |
-| F11-P0 | Confirm metadata, non-health guidance and retained identity; reload/reopen twice. Saved conversations, New conversation and Refresh history appear. Record version method separately from full asset proof. | pending: owner observations |
-| F11-P1 | Connect existing device once if needed. With VoiceOver, inspect Saved conversations, New conversation, Refresh history, Load earlier messages, Cancel reply and Retry request when available. Names, order, unavailable/busy states and focus usable; Send waits authenticated readiness. | pending |
+| F11-P0 | Confirm metadata, non-health guidance and retained identity; reload/reopen twice. Saved conversations, New conversation and Refresh history appear. Record version method separately from full asset proof. | pending: phone metadata, runtime/controls and reopen continuity; Core non-health boundary verified |
+| F11-P1 | Connect existing device once if needed. With VoiceOver, inspect Saved conversations, New conversation, Refresh history, Load earlier messages, Cancel reply and Retry request when available. Names, order, unavailable/busy states and focus usable; Send waits authenticated readiness. | partial observation: Connected, Send enabled and one public request/reply reported; full VoiceOver/readiness row pending |
 | F11-P2 | Send once: `Write 40 numbered sentences about a fictional blue cube. Do not use tools or save memories.` During generation activate Cancel reply once. Observe confirmed cancellation, no later completion replacing it, usable focus and a subsequent new public request succeeding. If completion wins the race, cancellation remains untested. | pending |
 | F11-P3 | During a separate public request, briefly disconnect/reconnect phone Tailscale. When Retry request is offered, activate it once. Recover the original outcome with one user turn and at most one answer; no replacement submission or false completion. Record whether running/completed/cancelled/failed/interrupted. If Retry never appears, its physical gate remains pending. | pending |
 | F11-P4 | Finish public turns in two new conversations; Refresh history, switch saved conversations and reopen the app. Correct owned history restores without duplicate turns or replayed completion speech. Use Load earlier messages only when real bounded pagination exists; otherwise keep pagination pending. Do not create 50+ turns merely to expose it. | pending |
