@@ -207,6 +207,17 @@ four MVP milestones pass and the owner explicitly reprioritizes them.
 
 ## Next milestone
 
+2026-10-16 continuation at `473347e`: owner reports Home Screen **Connected; fixed the problem**
+and general **yes all good** to bundled status/Send/new-control checks. Exact original-request
+outcome and individual controls remain unitemized; no physical retry gate accepted. Current
+private host/v8 assets remain verified. Core metadata finds 4 active chat-only browser enrollments
+and 10 completed host receipts; aggregate counts cannot identify the original request or prove
+phone continuity. Owner reports both idle reopenings and three-history-control VoiceOver batch
+pass, with same saved conversation and no duplicate answer; no unresolved indicator reported.
+Final VoiceOver reconnect/readiness-ordering and conditional controls pending; explicit online
+reload/full phone assets and exact original terminal status unverified separately. F11-P0/P1
+remain partial; held mobile edits preserved, M3C separate.
+
 2026-10-16 continuation at `5a5bed2`: owner reports **Enrollment completed** after the supplied
 chat-only ticket command. Current read-only host checks pass online Tailscale, exact existing
 private route, one loopback Core listener, matching v8 assets and unauthenticated **401** responses.

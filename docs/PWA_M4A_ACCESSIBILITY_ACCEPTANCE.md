@@ -1,9 +1,16 @@
 # PWA M4A — physical accessibility acceptance
 
 Status: `in-progress` — observed phone checks passed; unverified prerequisites and failure cases remain open.
-Target: F11 shell `v8`, baseline `34b4010`, implemented 2026-10-14. Ledger below preserves historical v7 observations; no physical v8 result yet.
+Target: F11 shell `v8`, baseline `34b4010`, implemented 2026-10-14. Ledger below preserves historical v7 observations; bounded new-control observations are recorded separately below.
 2026-10-15 F11 acceptance resumed at `4fa75e3`; use the [physical F11 ledger](PWA_F11_PHYSICAL_ACCEPTANCE.md) for new-control/recovery checks and frozen phone performance targets. Existing M4A results below remain unchanged.
 Aggregate MVP 4 remains `in-progress`. Preparation and desktop evidence do not accept a phone row.
+2026-10-16 continuation at `473347e`: owner reports Home Screen Connected, **2/2 idle reopenings**
+with same conversation/no duplicate, and VoiceOver names/order/unavailable states/focus passing
+for Saved conversations, New conversation and Refresh history. See the F11 ledger. This is
+owner-reported bounded evidence; no exact original-request outcome, timing, process eviction,
+explicit standalone online reload or complete loaded asset proof inferred. Final VoiceOver
+reconnect/readiness-ordering and conditional controls remain pending. Historical M4A rows below
+are not relabeled as full v8 passes; M3C unchanged.
 2026-10-15 continuation at `55be543` records current phone metadata and an unconfirmed-send failure
 in the [F11 ledger](PWA_F11_PHYSICAL_ACCEPTANCE.md). Reopen/VoiceOver batches pause for legacy Core
 schema repair and actual recovery; historical accessibility passes do not accept this v8 failure.

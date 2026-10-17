@@ -35,6 +35,40 @@ row. Use the existing matrix; M3C acceptance stays separate.
 
 ## Evidence
 
+### 2026-10-16 — Home Screen recovery reported at `473347e`
+
+Owner reports **Connected; fixed the problem** in Home Screen, then answers **yes all good**
+to the bundled original-request/status/Send/new-controls check. Record this as general recovery
+confirmation only: exact original terminal status, Retry availability/activation and individual
+control observations were not itemized. No specific original-request retry or full F11 row passes
+from that shorthand response. Next owner batch stops if Retry/unconfirmed outcome remains;
+otherwise performs two idle Home Screen close/reopen cycles, then VoiceOver inspection of the
+three new history controls if both cycles pass. Owner answers **all good** to that ordered
+pass/fail batch: record **2/2 idle reopenings passed**, Connected/Send usable, same saved
+conversation, no duplicate answer, and VoiceOver names/order/unavailable states/focus passed for
+Saved conversations, New conversation and Refresh history. No remaining Retry/unconfirmed blocker
+reported. Current identity retained across those cycles; original pre-enrollment identity and
+exact original terminal status remain unestablished. No measured timing, process eviction or
+full phone asset inspection inferred. No new public request requested by Codex.
+
+Final P1 batch pending: VoiceOver through one explicit Connect/Checking/Connected transition,
+Message/Send unavailable until readiness, recoverable focus/no trap/no repeated announcements;
+inspect Load earlier messages, Cancel reply and Retry request only if present, record absences.
+Explicit online reload remains unobserved separately from the two reopenings.
+
+Fresh read-only readiness passes existing private route/backend/origin, online Tailscale,
+disabled Funnel, one Python-owned loopback listener and zero non-loopback listeners. All four
+loopback/private assets byte-match v8 source; unauthenticated history/status return **401**.
+Core metadata now finds **4 active unexpired browser enrollments**, all exact prior seven chat
+scopes, no health scope, risk ceiling at most 1; compatibility columns/trigger intact. Separate
+bounded host receipt metadata (maximum 100 rows, no content/IDs) finds **10 completed**, zero
+running/failed/cancelled/interrupted receipts. Aggregate outcomes cannot identify the original
+request, establish phone identity continuity or accept physical duplicate/retry behavior.
+
+No ticket, enrollment mutation, service restart, route change, revocation, health read or request
+submission performed by Codex. Held mobile package hashes still match their checkpoint. Source
+unchanged; M3C separate; completion estimate stays **92%**, pending physical acceptance.
+
 ### 2026-10-16 — Home Screen connection failure after Safari enrollment
 
 Owner distinguishes surfaces: Safari works, while Home Screen **Enroll device** is disabled.

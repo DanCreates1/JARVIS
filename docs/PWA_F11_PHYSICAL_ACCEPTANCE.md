@@ -162,6 +162,30 @@ session issuance and authenticated follow-up activity for earlier enrollments, w
 that window; it cannot attribute the phone attempt or diagnose the failing step. Preserve original
 page/request/key; no erasure, re-enrollment, replacement submission or full physical pass.
 
+### 2026-10-16 — Home Screen recovery report at `473347e`
+
+Owner reports **Connected; fixed the problem** in Home Screen, then **yes all good** to the
+bundled request/status/Send/new-controls check. General recovery is owner-confirmed; original
+terminal status, Retry availability/activation and individual control observations remain
+unitemized. No specific original-request outcome or physical retry gate inferred. Requested
+two idle close/reopen cycles only if Retry/unconfirmed outcome no longer remains, then VoiceOver
+inspection of Saved conversations, New conversation and Refresh history if both cycles pass.
+Owner answers **all good** to that explicit ordered pass/fail batch: **2/2 idle close/reopen
+cycles pass**, Connected/Send enabled, same saved conversation, no duplicate answer; VoiceOver
+names/order/unavailable states/focus pass for Saved conversations, New conversation and Refresh
+history. No remaining Retry/unconfirmed blocker reported. Current-identity continuity across
+these two cycles is supported; original pre-enrollment identity or exact request terminal outcome
+is not established. No timing sample, process eviction or full phone-loaded asset proof inferred.
+Final P1 VoiceOver reconnect/readiness/focus batch and conditional-control availability requested;
+results pending. Explicit online reload remains unobserved separately from the two reopenings.
+
+Fresh host readiness still passes existing private boundary and four source-matched v8 assets;
+unauthenticated history/status **401**. Read-only Core metadata shows **4 active unexpired browser
+enrollments**, exact seven chat scopes/no health scope/risk ceiling at most 1; repaired schema
+intact. Bounded metadata-only host inventory finds **10 completed receipts**, none running.
+Counts cannot identify the original request or accept any phone row. No service/route/identity
+mutation, request submission or health read by Codex; held mobile hashes unchanged, M3C separate.
+
 After recovery and original-request disposition are established, reload online and close/reopen
 twice without clearing website data. Inspect the new controls and
 record their behavior as a v8 runtime fingerprint. This supports current execution; it does not
@@ -176,8 +200,8 @@ Do not repeatedly tap Send or manually resend an uncertain request. Retry reques
 
 | ID | Compact batch and fixed pass criterion | Result |
 | --- | --- | --- |
-| F11-P0 | Confirm metadata, non-health guidance and retained identity; reload/reopen twice. Saved conversations, New conversation and Refresh history appear. Record version method separately from full asset proof. | partial; paused for reported unconfirmed outcome blocking Send: metadata/normal zoom reported, exact surface/runtime/controls and reopen continuity pending; Core non-health boundary verified |
-| F11-P1 | Connect existing device once if needed. With VoiceOver, inspect Saved conversations, New conversation, Refresh history, Load earlier messages, Cancel reply and Retry request when available. Names, order, unavailable/busy states and focus usable; Send waits authenticated readiness. | historical Connected/Send/one reply report; 2026-10-16 repeated Connect failure, host currently online and new chat-only enrollment owner-reported; current phone readiness/original-request continuity and full VoiceOver row pending |
+| F11-P0 | Confirm metadata, non-health guidance and retained identity; reload/reopen twice. Saved conversations, New conversation and Refresh history appear. Record version method separately from full asset proof. | partial; Home Screen Connected, 2/2 idle reopenings with current identity/same conversation/no duplicate and three new controls owner-reported; Core non-health boundary verified. Version method: new-control fingerprint only; explicit online reload and full loaded assets unverified separately. Exact original terminal status unitemized; no remaining unconfirmed blocker reported |
+| F11-P1 | Connect existing device once if needed. With VoiceOver, inspect Saved conversations, New conversation, Refresh history, Load earlier messages, Cancel reply and Retry request when available. Names, order, unavailable/busy states and focus usable; Send waits authenticated readiness. | partial; owner-reported VoiceOver names/order/unavailable states/focus pass for three new history controls; final VoiceOver reconnect/readiness-ordering and conditional-control availability pending |
 | F11-P2 | Send once: `Write 40 numbered sentences about a fictional blue cube. Do not use tools or save memories.` During generation activate Cancel reply once. Observe confirmed cancellation, no later completion replacing it, usable focus and a subsequent new public request succeeding. If completion wins the race, cancellation remains untested. | pending |
 | F11-P3 | During a separate public request, briefly disconnect/reconnect phone Tailscale. When Retry request is offered, activate it once. Recover the original outcome with one user turn and at most one answer; no replacement submission or false completion. Record whether running/completed/cancelled/failed/interrupted. If Retry never appears, its physical gate remains pending. | pending |
 | F11-P4 | Finish public turns in two new conversations; Refresh history, switch saved conversations and reopen the app. Correct owned history restores without duplicate turns or replayed completion speech. Use Load earlier messages only when real bounded pagination exists; otherwise keep pagination pending. Do not create 50+ turns merely to expose it. | pending |
