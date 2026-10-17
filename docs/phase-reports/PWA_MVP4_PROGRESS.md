@@ -35,6 +35,28 @@ row. Use the existing matrix; M3C acceptance stays separate.
 
 ## Evidence
 
+### 2026-10-16 — chat-only enrollment reported at `5a5bed2`
+
+Prior continuation ended with another **Connection failed** report while Core was running and
+host Tailscale reported offline. A chat-only ticket command was supplied; issuance/enrollment
+was unconfirmed at handoff. Owner now reports **Enrollment completed**. This is an enrollment
+report, not a current Connected/Send, original-request recovery or retained-key-continuity pass.
+Exact enrolled surface, original page/draft/Retry state and current connection remain requested.
+Do not resubmit the original request through a new device identity or infer history transfer.
+
+Read-only host checkpoint at `2026-10-16T20:33:01-04:00`: Tailscale **Running**, host online,
+existing route/backend/origin exact, Funnel disabled, one Python-owned loopback Core listener,
+zero non-loopback listeners. All four assets byte-match v8 source over loopback/private HTTPS;
+unauthenticated history/status return **401**. Bounded read-only Core metadata finds **3 active
+unexpired browser enrollments**, all exactly the prior seven chat scopes, no health scope and
+risk ceiling at most 1. Repaired sequence columns/deletion trigger remain present; zero running
+host receipts. Counts do not identify the phone or resolve the original request.
+
+No service restart, route change, ticket issuance, enrollment mutation, revocation or health read
+performed by Codex in this continuation. Held mobile package hashes match their checkpoint.
+M3C grouped health/recovery decision remains separate. Application source unchanged; physical
+F11-P0/P1 and later rows remain open. Completion estimate stays **92%**, milestone-based.
+
 ### 2026-10-16 — host recovery before F11-P0/P1 at `5ef5c36`
 
 Owner reports **Connect existing device → Connection failed**. No original-request Retry result,

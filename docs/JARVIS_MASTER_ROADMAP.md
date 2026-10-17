@@ -207,6 +207,15 @@ four MVP milestones pass and the owner explicitly reprioritizes them.
 
 ## Next milestone
 
+2026-10-16 continuation at `5a5bed2`: owner reports **Enrollment completed** after the supplied
+chat-only ticket command. Current read-only host checks pass online Tailscale, exact existing
+private route, one loopback Core listener, matching v8 assets and unauthenticated **401** responses.
+Core metadata now shows **3 active unexpired browser enrollments**, all exact seven chat scopes,
+no health scope; repaired schema intact, zero running host receipts. Current phone connection,
+Send/Retry/draft state, exact enrolled surface and original-request identity continuity remain
+unconfirmed. No new Send/Retry requested before these observations; no history transfer inferred.
+F11-P0/P1 remain open; held mobile edits unchanged and M3C separate.
+
 2026-10-16 continuation at `5ef5c36`: owner reports **Connect existing device → Connection
 failed**. Host checks find Tailscale **NoState**, offline, empty Serve configuration and stopped
 Core. Starting the existing Tailscale app restores its saved profile and exact prior private route;
