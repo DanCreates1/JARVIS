@@ -8,8 +8,10 @@ Aggregate MVP 4 remains `in-progress`. Preparation and desktop evidence do not a
 with same conversation/no duplicate, and VoiceOver names/order/unavailable states/focus passing
 for Saved conversations, New conversation and Refresh history. See the F11 ledger. This is
 owner-reported bounded evidence; no exact original-request outcome, timing, process eviction,
-explicit standalone online reload or complete loaded asset proof inferred. Final VoiceOver
-reconnect/readiness-ordering and conditional controls remain pending. Historical M4A rows below
+explicit standalone online reload or complete loaded asset proof inferred. Owner subsequently
+reports the final VoiceOver reconnect/readiness-ordering/focus batch **all good**: pass for that
+batch. Conditional controls were inspected only if present; presence/absence unitemized, no
+specific availability or active-generation behavior inferred. Historical M4A rows below
 are not relabeled as full v8 passes; M3C unchanged.
 2026-10-15 continuation at `55be543` records current phone metadata and an unconfirmed-send failure
 in the [F11 ledger](PWA_F11_PHYSICAL_ACCEPTANCE.md). Reopen/VoiceOver batches pause for legacy Core

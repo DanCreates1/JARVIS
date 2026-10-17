@@ -214,9 +214,11 @@ private host/v8 assets remain verified. Core metadata finds 4 active chat-only b
 and 10 completed host receipts; aggregate counts cannot identify the original request or prove
 phone continuity. Owner reports both idle reopenings and three-history-control VoiceOver batch
 pass, with same saved conversation and no duplicate answer; no unresolved indicator reported.
-Final VoiceOver reconnect/readiness-ordering and conditional controls pending; explicit online
-reload/full phone assets and exact original terminal status unverified separately. F11-P0/P1
-remain partial; held mobile edits preserved, M3C separate.
+Final VoiceOver reconnect/readiness-ordering/focus batch subsequently owner-reported passing;
+conditional-control presence/absence remains unitemized. Explicit online reload/full phone
+assets and exact original terminal status unverified separately. F11-P0 remains partial; P1
+observed batches pass with conditional-availability limitation. Held mobile edits preserved,
+M3C separate.
 
 2026-10-16 continuation at `5a5bed2`: owner reports **Enrollment completed** after the supplied
 chat-only ticket command. Current read-only host checks pass online Tailscale, exact existing

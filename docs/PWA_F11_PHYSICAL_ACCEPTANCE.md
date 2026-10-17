@@ -176,8 +176,13 @@ names/order/unavailable states/focus pass for Saved conversations, New conversat
 history. No remaining Retry/unconfirmed blocker reported. Current-identity continuity across
 these two cycles is supported; original pre-enrollment identity or exact request terminal outcome
 is not established. No timing sample, process eviction or full phone-loaded asset proof inferred.
-Final P1 VoiceOver reconnect/readiness/focus batch and conditional-control availability requested;
-results pending. Explicit online reload remains unobserved separately from the two reopenings.
+Owner subsequently answers **all good** to the final VoiceOver reconnect/readiness/focus batch:
+Message/Send unavailable through Connecting/Checking, usable after Connected, focus recoverable,
+no trap/repeated connection announcements. Record owner-reported pass for that batch. Conditional
+Load earlier messages/Cancel reply/Retry request inspection was included only if present; exact
+presence/absence unitemized, so no specific availability or active-generation behavior inferred.
+Completed reconnect check need not repeat. Explicit online reload remains unobserved separately
+from the two reopenings.
 
 Fresh host readiness still passes existing private boundary and four source-matched v8 assets;
 unauthenticated history/status **401**. Read-only Core metadata shows **4 active unexpired browser
@@ -201,7 +206,7 @@ Do not repeatedly tap Send or manually resend an uncertain request. Retry reques
 | ID | Compact batch and fixed pass criterion | Result |
 | --- | --- | --- |
 | F11-P0 | Confirm metadata, non-health guidance and retained identity; reload/reopen twice. Saved conversations, New conversation and Refresh history appear. Record version method separately from full asset proof. | partial; Home Screen Connected, 2/2 idle reopenings with current identity/same conversation/no duplicate and three new controls owner-reported; Core non-health boundary verified. Version method: new-control fingerprint only; explicit online reload and full loaded assets unverified separately. Exact original terminal status unitemized; no remaining unconfirmed blocker reported |
-| F11-P1 | Connect existing device once if needed. With VoiceOver, inspect Saved conversations, New conversation, Refresh history, Load earlier messages, Cancel reply and Retry request when available. Names, order, unavailable/busy states and focus usable; Send waits authenticated readiness. | partial; owner-reported VoiceOver names/order/unavailable states/focus pass for three new history controls; final VoiceOver reconnect/readiness-ordering and conditional-control availability pending |
+| F11-P1 | Connect existing device once if needed. With VoiceOver, inspect Saved conversations, New conversation, Refresh history, Load earlier messages, Cancel reply and Retry request when available. Names, order, unavailable/busy states and focus usable; Send waits authenticated readiness. | owner-reported history-control and VoiceOver reconnect/readiness/focus batches pass; conditional controls inspected only if present, exact presence/absence unitemized. No active-generation Cancel/Retry or pagination acceptance inferred; availability limitation retained |
 | F11-P2 | Send once: `Write 40 numbered sentences about a fictional blue cube. Do not use tools or save memories.` During generation activate Cancel reply once. Observe confirmed cancellation, no later completion replacing it, usable focus and a subsequent new public request succeeding. If completion wins the race, cancellation remains untested. | pending |
 | F11-P3 | During a separate public request, briefly disconnect/reconnect phone Tailscale. When Retry request is offered, activate it once. Recover the original outcome with one user turn and at most one answer; no replacement submission or false completion. Record whether running/completed/cancelled/failed/interrupted. If Retry never appears, its physical gate remains pending. | pending |
 | F11-P4 | Finish public turns in two new conversations; Refresh history, switch saved conversations and reopen the app. Correct owned history restores without duplicate turns or replayed completion speech. Use Load earlier messages only when real bounded pagination exists; otherwise keep pagination pending. Do not create 50+ turns merely to expose it. | pending |

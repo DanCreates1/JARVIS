@@ -51,9 +51,13 @@ reported. Current identity retained across those cycles; original pre-enrollment
 exact original terminal status remain unestablished. No measured timing, process eviction or
 full phone asset inspection inferred. No new public request requested by Codex.
 
-Final P1 batch pending: VoiceOver through one explicit Connect/Checking/Connected transition,
-Message/Send unavailable until readiness, recoverable focus/no trap/no repeated announcements;
-inspect Load earlier messages, Cancel reply and Retry request only if present, record absences.
+Owner subsequently answers **all good** to the final P1 batch: VoiceOver through one explicit
+Connect/Checking/Connected transition, Message/Send unavailable until readiness, recoverable
+focus/no trap/no repeated announcements. Record this reconnect/readiness batch as owner-reported
+pass. The instruction included inspecting Load earlier messages, Cancel reply and Retry request
+only if present; their presence/absence was not itemized. No specific conditional control's
+availability or active-generation behavior inferred; retain that limitation rather than repeating
+the completed reconnect check. Previous VoiceOver setting restoration was included in the batch.
 Explicit online reload remains unobserved separately from the two reopenings.
 
 Fresh read-only readiness passes existing private route/backend/origin, online Tailscale,
