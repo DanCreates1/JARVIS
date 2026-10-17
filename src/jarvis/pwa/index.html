@@ -9,7 +9,7 @@
   <link rel="manifest" href="/app/manifest.webmanifest">
   <link rel="icon" href="/app/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app/app.css">
-  <script src="/app/app.js?v=8" type="module"></script>
+  <script src="/app/app.js?v=9" type="module"></script>
 </head>
 <body>
   <header>
@@ -20,23 +20,17 @@
     <output id="connection" class="status" aria-live="polite">Offline shell</output>
   </header>
 
-  <main>
-    <section id="setup" class="panel" aria-labelledby="setup-title">
-      <h2 id="setup-title">Device access</h2>
-      <p>Paste one unexpired enrollment ticket created on trusted host. Private key stays non-exportable in this browser.</p>
-      <label for="ticket">Enrollment ticket JSON</label>
-      <textarea id="ticket" rows="5" spellcheck="false" autocomplete="off" aria-describedby="ticket-error access-status"></textarea>
-      <p id="ticket-error" class="error" role="status"></p>
-      <div class="actions">
-        <button id="enroll" type="button">Enroll device</button>
-        <button id="connect" type="button" class="secondary">Connect existing device</button>
-      </div>
-      <p id="access-status" class="hint" role="status">Enroll with an approved ticket, or connect an existing device key.</p>
-    </section>
+  <nav class="navigation" aria-label="Primary">
+    <a id="nav-chat" href="#/chat" aria-current="page" aria-controls="view-chat">Chat</a>
+    <a id="nav-garmin" href="#/garmin" aria-controls="view-garmin">Garmin</a>
+    <a id="nav-settings" href="#/settings" aria-controls="view-settings">Settings</a>
+  </nav>
 
-    <section class="panel" aria-labelledby="chat-title">
+  <main>
+    <div id="view-chat" class="view">
+    <section class="panel conversation" aria-labelledby="chat-title">
       <div class="section-head">
-        <h2 id="chat-title">Conversation</h2>
+        <h2 id="chat-title" tabindex="-1">Conversation</h2>
         <button id="notify" type="button" class="quiet" disabled>Enable notifications</button>
       </div>
       <label for="conversation-list">Saved conversations</label>
@@ -58,22 +52,7 @@
         <button id="cancel-chat" type="button" class="secondary" disabled>Cancel reply</button>
         <button id="retry-chat" type="button" class="secondary" hidden disabled>Retry request</button>
       </div>
-      <p class="hint">Offline messages are never queued. Remote voice remains disabled until secure deployment validation.</p>
-    </section>
-
-    <section id="garmin" class="panel" aria-labelledby="garmin-title">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">READ ONLY</p>
-          <h2 id="garmin-title">Garmin</h2>
-        </div>
-        <button id="refresh-garmin" type="button" class="quiet" disabled>Refresh Garmin</button>
-      </div>
-      <p id="garmin-state" role="status">Connect JARVIS to see Garmin data.</p>
-      <dl id="garmin-metrics" class="metrics"></dl>
-      <h3>Recent activities</h3>
-      <ul id="garmin-activities"><li>No Garmin data yet.</li></ul>
-      <p class="hint">Garmin sign-in and tokens stay on your trusted laptop. Health data is never sent to JARVIS model providers.</p>
+      <p class="hint">Use Settings to enroll or connect your device. Offline messages are never queued. Remote voice remains disabled until secure deployment validation.</p>
     </section>
 
     <section id="task-panel" class="panel" aria-labelledby="tasks-title">
@@ -84,12 +63,46 @@
       <p id="tasks-state" class="hint" role="status"></p>
       <ul id="tasks"><li>No authenticated status.</li></ul>
     </section>
+    </div>
+
+    <div id="view-garmin" class="view" hidden>
+    <section id="garmin" class="panel" aria-labelledby="garmin-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">READ ONLY</p>
+          <h2 id="garmin-title" tabindex="-1">Garmin</h2>
+        </div>
+        <button id="refresh-garmin" type="button" class="quiet" disabled>Refresh Garmin</button>
+      </div>
+      <p id="garmin-state" role="status">Connect JARVIS to see Garmin data.</p>
+      <dl id="garmin-metrics" class="metrics"></dl>
+      <h3>Recent activities</h3>
+      <ul id="garmin-activities"><li>No Garmin data yet.</li></ul>
+      <p class="hint">Garmin sign-in and tokens stay on your trusted laptop. Health data is never sent to JARVIS model providers.</p>
+    </section>
+    </div>
+
+    <div id="view-settings" class="view" hidden>
+    <h2 id="settings-title" class="view-title" tabindex="-1">Settings</h2>
+    <section id="setup" class="panel" aria-labelledby="setup-title">
+      <h3 id="setup-title">Device access</h3>
+      <p>Paste one unexpired enrollment ticket created on trusted host. Private key stays non-exportable in this browser.</p>
+      <label for="ticket">Enrollment ticket JSON</label>
+      <textarea id="ticket" rows="5" spellcheck="false" autocomplete="off" aria-describedby="ticket-error access-status"></textarea>
+      <p id="ticket-error" class="error" role="status"></p>
+      <div class="actions">
+        <button id="enroll" type="button">Enroll device</button>
+        <button id="connect" type="button" class="secondary">Connect existing device</button>
+      </div>
+      <p id="access-status" class="hint" role="status">Enroll with an approved ticket, or connect an existing device key.</p>
+    </section>
 
     <section class="panel device" aria-labelledby="device-title">
-      <h2 id="device-title">Device</h2>
+      <h3 id="device-title">Device</h3>
       <dl id="device-status"><div><dt>State</dt><dd>Offline</dd></div></dl>
       <button id="logout" type="button" class="danger" disabled>Logout and erase this device</button>
     </section>
+    </div>
   </main>
 
   <div id="notice" class="notice" role="status" aria-live="polite"></div>

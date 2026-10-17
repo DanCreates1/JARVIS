@@ -4,6 +4,11 @@ Implemented 2026-10-14 in Home Screen PWA shell **v8**. Physical-iPhone F11 soak
 Core remains authoritative for authentication, scopes, permissions, routing, transcript and audit.
 Native signing remains deferred under the $0/no-Mac constraint.
 
+F12 carries these contracts into shell **v9** with Chat / Garmin / Settings navigation. Conversation
+and task controls live in Chat; enrollment/connect/logout live in Settings. Shared session,
+conversation, pending request and stream ownership survive view changes. See [F12](PWA_F12_NAVIGATION.md).
+Remaining physical checks are **skipped by owner; unverified**; v8 evidence below remains historical.
+
 ## Phone behavior
 
 Connect existing device restores its owned conversation from Core before enabling Send, followed

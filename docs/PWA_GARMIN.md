@@ -1,7 +1,14 @@
 # JARVIS phone web app and Garmin
 
 Status: M3A/M3B complete; protected live Core session accepted, health-scoped iPhone acceptance pending.
-Updated: 2026-10-09
+Updated: 2026-10-16
+
+Shell v9 separates **Chat / Garmin / Settings** with persistent navigation. Open Settings for
+existing enrollment/connect/device/logout actions; open Garmin for the existing scoped summary
+and explicit Refresh Garmin. Selecting Garmin makes no health request and grants no access.
+See [F12 navigation](PWA_F12_NAVIGATION.md). All remaining manual phone checks below are
+**skipped by owner; unverified**; historical procedures are retained, not queued instructions.
+M3C enrollment/scope/recovery authority remains separate from F12.
 
 Local connector organization and one-command saved-session reports were verified on 2026-10-05;
 see [Garmin connector and reports](GARMIN_CONNECTOR.md). That standalone report does not populate

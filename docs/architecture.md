@@ -378,6 +378,27 @@ are not persisted by email adapter; private chat replies retain existing lifecyc
 store, orchestrator, approval owner, scheduler or model-facing email tool. See [Email](EMAIL.md).
 IB live provider reads and any external writes remain separate fresh-authority gates.
 
+## PWA navigation boundary
+
+Shell v9 presents persistent Chat / Garmin / Settings links over the same client DOM, Core APIs
+and session owner. Allowlisted `#/chat`, `#/garmin`, `#/settings` fragments contain only public view
+selection; History API state is null. Unknown fragments normalize to Chat. No transcript, draft,
+request identifier or health value enters navigation history/storage. Initial load selects Chat
+unless a valid fragment is present, without connecting or moving focus.
+
+Inactive containers use `hidden`; the current link exposes `aria-current="page"`. Selection and
+browser back/forward focus the visible heading. Navigation wraps with enlarged text and scrolls
+normally on short viewports so it cannot cover all content. Connection status stays shared across
+views. Selecting a view does not call enrollment, connect, subscriptions, chat, Garmin, notification
+permission or logout. Existing explicit actions and scope checks retain authority.
+
+Chat retains its draft, conversation, request and stream owner while hidden. Reading position and
+follow-latest intent are tracked in memory because hidden content has no layout; incoming replies
+cannot replace a saved reading position. Logout exposes Settings before erasure, clears private data
+in all views, and focuses the ticket only if Settings remains selected when cleanup finishes.
+Back/forward only selects cleared views. API responses remain excluded from the shell cache.
+See [F12 navigation](PWA_F12_NAVIGATION.md) for scope and verification.
+
 ## PWA Garmin boundary
 
 `GarminReader`/`GarminSummaryService` expose one normalized read-only health view through the

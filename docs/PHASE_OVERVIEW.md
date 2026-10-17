@@ -5,7 +5,9 @@ Updated: 2026-10-16
 Owner override: **skip all further manual/physical phone checks**; outstanding rows are skipped
 and unverified, not development blockers or passes. No phone-check requests until explicit owner
 resumption. Automated code/security gates and authority/privacy/$0 controls remain enforced.
-Next development: [F12 — Chat / Garmin / Settings navigation](PWA_F12_NAVIGATION.md).
+Completed development: [F12 — Chat / Garmin / Settings navigation](PWA_F12_NAVIGATION.md), shell v9.
+No subsequent phase queued. Active PWA estimate: **94%**, milestone-based, including verified F12
+navigation; skipped phone checks add no acceptance credit.
 
 ## Active product path
 
@@ -34,7 +36,7 @@ record.
 | Track | Status | Next gate |
 | --- | --- | --- |
 | Phone PWA | Historical chat acceptance; M3A/M3B complete; remaining manual M3C phone checks skipped by owner, unverified | Continue development; health-access authority remains separate, no new enrollment granted |
-| PWA MVP 4 | F11 shell v8 implementation and dated automated/owner-reported evidence preserved. Remaining F11/M4A phone checks skipped by owner, unverified; MVP physical acceptance not claimed | Develop [F12 navigation](PWA_F12_NAVIGATION.md) with automated gates; native audit hold remains |
+| PWA MVP 4 | F12 shell v9 Chat / Garmin / Settings implemented; automated gates pass. Dated F11 evidence preserved. Remaining F11/M4A phone checks skipped by owner, unverified; MVP physical acceptance not claimed | No next phase queued; [F12 completion](phase-reports/PWA_F12_COMPLETION.md); native audit hold remains |
 | Native MVP | Expo Go checks passed; independent native build unverified and deferred under $0/no-Mac constraint | No active native gate |
 | Mobile MVP 2 | Deferred | No active native gate |
 | Mobile MVP 3 | Deferred | No active native gate |
@@ -53,7 +55,7 @@ record.
 
 - Use the PWA Garmin acceptance list for current phone work; native mobile milestones are deferred.
 - Current MVP 3 evidence and M3A/M3B/M3C gates: [PWA MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
-- Authorized MVP 4/F11 implementation and remaining gates: [PWA MVP 4 progress](phase-reports/PWA_MVP4_PROGRESS.md). Reload current shell v8 for new acceptance; historical v6/v7 evidence remains dated.
+- Authorized MVP 4/F11 implementation and remaining gates: [PWA MVP 4 progress](phase-reports/PWA_MVP4_PROGRESS.md). Current source is shell v9; historical v6/v7/v8 evidence remains dated. Manual phone checks stay skipped.
 - F11 physical acceptance initiated at `4fa75e3`: [phone ledger and frozen performance targets](PWA_F11_PHYSICAL_ACCEPTANCE.md). Host readiness and fresh 63 lifecycle/24 desktop checks pass; no new phone observation or phase closure.
 - Preserve Core as sole authority, memory, routing, permission, and audit system.
 - Keep production Core loopback-bound behind approved private-network HTTPS.

@@ -256,8 +256,11 @@ Remote voice, persistent push, remote effects, and multi-replica deployment rema
 
 ## Native mobile foundation
 
-The current $0 phone path uses the existing Home Screen PWA for JARVIS chat and a read-only Garmin
-panel; see [PWA Garmin setup](docs/PWA_GARMIN.md). Native build acceptance remains deferred under
+The current $0 phone path uses Home Screen PWA shell v9 with persistent **Chat / Garmin / Settings**
+navigation. Chat includes conversation and tasks; Settings holds enrollment, connection and logout.
+Navigation preserves in-flight work and makes no API requests. See [F12 navigation](docs/PWA_F12_NAVIGATION.md)
+and [PWA Garmin setup](docs/PWA_GARMIN.md). Manual phone checks are skipped by owner; unverified.
+Native build acceptance remains deferred under
 the no-Mac, no-paid-membership constraint.
 
 Mobile M1 adds an isolated Expo SDK 57, React Native 0.86, TypeScript, and Expo Router workspace

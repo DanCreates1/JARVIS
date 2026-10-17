@@ -14,7 +14,9 @@ historical evidence remains, no pass or physical/MVP completion inferred. This p
 older phone execution directions below. Automated code/security gates and all authority/privacy,
 $0, publication and native dependency holds remain. See root [AGENTS.md](../AGENTS.md).
 
-Next development: [F12 — Chat / Garmin / Settings navigation](PWA_F12_NAVIGATION.md).
+Completed development: [F12 — Chat / Garmin / Settings navigation](PWA_F12_NAVIGATION.md), shell v9.
+No subsequent phase queued. Active PWA estimate: **94%**, milestone-based, including verified F12
+navigation; skipped phone checks add no acceptance credit.
 
 ## Product target
 
@@ -218,14 +220,16 @@ smart-home work; custom voice; fine-tuning; larger local models; PostgreSQL/Redi
 multi-GPU serving; the former broad M3–M9 and H1–H8 mobile/health plans. Reconsider only after the
 four MVP milestones pass and the owner explicitly reprioritizes them.
 
-## Next milestone
+## Current development boundary
 
-**F12 — Chat / Garmin / Settings navigation** is the next development subphase. Current source
-already provides F11 chat/history/recovery and protected Core Garmin; the PWA still presents one
-long page. Implement the roadmap's three surfaces with persistent navigation and existing typed
-Core contracts, preserving session/stream/request ownership, privacy and explicit health actions.
-Use automated lifecycle/layout/security gates. No manual phone checks, new enrollment/access,
-native audit workaround or deployment included. Full bounded scope: [F12 plan](PWA_F12_NAVIGATION.md).
+**F12 — Chat / Garmin / Settings navigation** is complete within its bounded repository scope.
+Shell v9 presents all three surfaces with persistent accessible links, focus/back/forward behavior
+and existing Core contracts. Session/stream/request/conversation/draft ownership survives selection;
+view selection performs no API action. **73** lifecycle tests, **72** desktop layout cases plus six
+short-viewport focus cases, full **1,464 passed / 3 optional skips** at **85.67%** coverage, audits,
+secret scan and synthetic transport gates pass. See [F12 completion](phase-reports/PWA_F12_COMPLETION.md).
+No new enrollment/access, native audit workaround or deployment. Manual phone checks remain
+**skipped by owner; unverified**; no physical/MVP completion claimed. No subsequent phase queued.
 
 The dated F11 notes below are historical evidence, not instructions to resume skipped phone checks.
 

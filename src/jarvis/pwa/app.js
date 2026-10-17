@@ -7,6 +7,37 @@ const encoder=new TextEncoder();
 const state={csrf:null,subscription:null,cursor:0,conversation:null,online:false,stopping:false,streamAbort:null,streamOwner:null,streamWake:null,hasIdentity:false,sessionGeneration:0,logoutPending:null,bootstrap:null,identityWrite:null,connecting:false,enrolling:false,sending:false,tasksBusy:false,healthAllowed:false,healthGeneration:0,healthAbort:null,healthSnapshot:null,healthTimer:null,healthMessage:"",chatActive:new Set(),chatAnnounced:new Map(),chatDrafts:new Map(),deviceId:null,pendingRequest:null,chatAction:null,chatMarkerWrite:null,historyGeneration:0,historyBusy:false,historyBefore:null,historyReady:false};
 const ui=Object.fromEntries(Object.entries({connection:"connection",setup:"setup",ticket:"ticket",ticketError:"ticket-error",accessStatus:"access-status",enroll:"enroll",connect:"connect",notify:"notify",logout:"logout",chat:"chat",chatStatus:"chat-status",message:"message",send:"send",log:"log",jumpLatest:"jump-latest",conversations:"conversation-list",newConversation:"new-conversation",refreshHistory:"refresh-history",olderHistory:"older-history",cancelChat:"cancel-chat",retryChat:"retry-chat",tasks:"tasks",taskPanel:"task-panel",tasksState:"tasks-state",refreshTasks:"refresh-tasks",device:"device-status",notice:"notice",garmin:"garmin",refreshGarmin:"refresh-garmin",garminState:"garmin-state",garminMetrics:"garmin-metrics",garminActivities:"garmin-activities"}).map(([name,id])=>[name,document.querySelector(`#${id}`)]));
 
+// Navigation owns presentation only. Session, requests and private data stay in their existing owners.
+const views=Object.fromEntries(["chat","garmin","settings"].map(name=>[name,{panel:document.querySelector(`#view-${name}`),link:document.querySelector(`#nav-${name}`),heading:document.querySelector(`#${name}-title`)}]));
+const navigation={view:null,chatScroll:0,chatFollow:true};
+function selectView(name,{replace=false,focus=true}={}){
+  if(!Object.hasOwn(views,name))name="chat";
+  const hash=`#/${name}`;
+  if(window.location.hash!==hash)window.history[replace?"replaceState":"pushState"](null,"",hash);
+  if(navigation.view==="chat"){
+    navigation.chatScroll=ui.log.scrollTop;navigation.chatFollow=nearLatest()&&!historySelected();
+  }
+  navigation.view=name;
+  for(const [key,view] of Object.entries(views)){
+    view.panel.hidden=key!==name;
+    if(key===name)view.link.setAttribute("aria-current","page");else view.link.removeAttribute("aria-current");
+  }
+  document.title=`${views[name].link.textContent} · JARVIS`;
+  if(name==="chat"){ui.log.scrollTop=navigation.chatFollow?ui.log.scrollHeight:navigation.chatScroll;updateJump();}
+  if(focus){window.scrollTo(0,0);views[name].heading.focus();}
+}
+function restoreView({focus=true}={}){
+  const name=window.location.hash.slice(2),valid=window.location.hash===`#/${name}`&&Object.hasOwn(views,name);
+  if(!valid||navigation.view!==name)selectView(valid?name:"chat",{replace:true,focus});
+}
+for(const [name,view] of Object.entries(views))view.link.addEventListener("click",event=>{
+  if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+  event.preventDefault();selectView(name);
+});
+window.addEventListener("popstate",()=>restoreView());
+window.addEventListener("hashchange",()=>restoreView());
+restoreView({focus:false});
+
 function renderGarmin(summary){
   ui.garminMetrics.replaceChildren();
   const values=[["Steps",summary.steps],["Resting heart rate",summary.resting_heart_rate==null?null:`${summary.resting_heart_rate} bpm`],["Sleep",summary.sleep_minutes==null?null:`${Math.floor(summary.sleep_minutes/60)}h ${summary.sleep_minutes%60}m`],["Stress",summary.stress],["Body Battery",summary.body_battery]];
@@ -132,9 +163,9 @@ function setConnected(value,label=value?"Connected":"Offline shell"){
   updateControls();
 }
 function announce(message){ui.notice.textContent=message;}
-function nearLatest(){return ui.log.scrollHeight-ui.log.clientHeight-ui.log.scrollTop<=48;}
+function nearLatest(){return navigation.view!=="chat"?navigation.chatFollow:ui.log.scrollHeight-ui.log.clientHeight-ui.log.scrollTop<=48;}
 function historySelected(){const selection=document.getSelection?.();return Boolean(selection&&!selection.isCollapsed&&ui.log.contains(selection.anchorNode));}
-function updateJump(){ui.jumpLatest.hidden=nearLatest()&&!historySelected();}
+function updateJump(){if(navigation.view==="chat")ui.jumpLatest.hidden=nearLatest()&&!historySelected();}
 function row(kind,text,requestId){
   const follow=nearLatest()&&!historySelected();
   let target=requestId?ui.log.querySelector(`[data-request="${CSS.escape(requestId)}"]`):null;
@@ -146,7 +177,7 @@ function row(kind,text,requestId){
     if(textNode?.nodeType===3&&target.childNodes.length===1&&text.startsWith(previous))textNode.appendData(text.slice(previous.length));
     else target.textContent=text;
   }
-  if(follow)ui.log.scrollTop=ui.log.scrollHeight;
+  if(follow&&navigation.view==="chat")ui.log.scrollTop=ui.log.scrollHeight;
   ui.jumpLatest.hidden=follow&&nearLatest();
   return target;
 }
@@ -165,6 +196,7 @@ function completeReply(id,message,completed=false){
 }
 
 function clearChat(){
+  navigation.chatScroll=0;navigation.chatFollow=true;
   ++state.historyGeneration;state.historyBusy=false;state.historyBefore=null;state.historyReady=false;
   state.pendingRequest=null;state.chatAction=null;state.chatActive.clear();state.chatAnnounced.clear();state.chatDrafts.clear();
   ui.log.replaceChildren();ui.conversations.replaceChildren();ui.conversations.value="";ui.olderHistory.hidden=true;ui.jumpLatest.hidden=true;ui.chatStatus.textContent="";
@@ -461,6 +493,7 @@ async function cancelPendingOnCore(pending,generation,csrf){
 async function enableNotifications(){const generation=state.sessionGeneration,csrf=state.csrf;if(!("Notification" in window))throw new Error("Notifications unsupported");const permission=await Notification.requestPermission();if(!currentSession(generation,csrf))return;if(permission!=="granted")throw new Error("Notification permission denied");sessionStorage.setItem("jarvis-notifications","enabled");ui.notify.textContent="Notifications enabled";announce("Notifications contain generic text only");}
 function notifyGeneric(){if(sessionStorage.getItem("jarvis-notifications")==="enabled"&&document.hidden&&Notification.permission==="granted")new Notification("JARVIS",{body:"JARVIS has an update.",tag:"jarvis-update",renotify:false,silent:true});}
 async function logout(){
+  selectView("settings",{replace:true,focus:false});
   const csrf=state.csrf,generation=++state.sessionGeneration,bootstrap=state.bootstrap,write=state.identityWrite,markerWrite=state.chatMarkerWrite,previous=state.logoutPending;
   clearGarmin();stopStream();if(bootstrap&&!bootstrap.headersReceived)bootstrap.controller.abort();
   state.csrf=null;state.subscription=null;state.cursor=0;state.conversation=null;state.hasIdentity=false;
@@ -479,7 +512,7 @@ async function logout(){
     if(state.sessionGeneration===generation){
       setConnected(false,"Logged out — device key erased");
       ui.accessStatus.textContent="Local device key and displayed data erased. Server sign-out pending. New access needs an approved enrollment ticket.";
-      announce(ui.accessStatus.textContent);ui.ticket.focus();
+      announce(ui.accessStatus.textContent);if(navigation.view==="settings")ui.ticket.focus();
     }
   })();
   const pending=Promise.allSettled([previous,remote,bootstrapCleanup,local]);state.logoutPending=pending;
@@ -504,6 +537,6 @@ window.addEventListener("online",()=>{
 });
 window.addEventListener("pageshow",()=>{renderGarminStatus();if(state.csrf&&state.subscription&&!state.connecting){state.streamAbort?.abort();setConnected(false,"Checking live connection");startStreamOwnership();}});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderGarminStatus();if(state.csrf&&state.subscription&&!state.connecting){state.streamAbort?.abort();setConnected(false,"Checking live connection");startStreamOwnership();}}});
-if("serviceWorker" in navigator)navigator.serviceWorker.register("/app/sw.js?v=8",{scope:"/app/"}).catch(()=>announce("Offline shell unavailable"));
+if("serviceWorker" in navigator)navigator.serviceWorker.register("/app/sw.js?v=9",{scope:"/app/"}).catch(()=>announce("Offline shell unavailable"));
 const initialGeneration=state.sessionGeneration;
 loadIdentity().then(identity=>{if(state.sessionGeneration!==initialGeneration)return;state.hasIdentity=Boolean(identity);updateControls();if(identity){ui.accessStatus.textContent="Enrolled key found. Connect existing device to start a fresh session.";announce(ui.accessStatus.textContent);}}).catch(()=>{if(state.sessionGeneration===initialGeneration)announce("Device storage unavailable");});

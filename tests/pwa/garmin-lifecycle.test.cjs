@@ -31,14 +31,29 @@ function element() {
   };
 }
 
-function harness(records = new Map()) {
+function harness(records = new Map(), hash = "") {
   const nodes = new Map(), requests = [], windowEvents = {}, timers = [], storage = new Map();
+  const location = { origin: "https://synthetic.test", hash }, historyEntries = [{ state: null, hash }];
+  let historyIndex = 0;
+  const history = {
+    pushState(state, _, hash) { historyEntries.splice(++historyIndex); historyEntries.push({ state, hash }); location.hash = hash; },
+    replaceState(state, _, hash) { historyEntries[historyIndex] = { state, hash }; location.hash = hash; },
+    go(delta) {
+      historyIndex += delta; location.hash = historyEntries[historyIndex].hash;
+      windowEvents.popstate(); windowEvents.hashchange();
+    },
+  };
   const clock = { now: Date.parse("2026-10-07T12:00:00Z") };
   class FakeDate extends Date {
     static now() { return clock.now; }
   }
   const get = (selector) => {
-    if (!nodes.has(selector)) nodes.set(selector, element());
+    if (!nodes.has(selector)) {
+      const node = element(); node.id = selector.slice(1);
+      node.focus = () => { node.focused = true; context.document.activeElement = node; };
+      if (selector.startsWith("#nav-")) node.textContent = selector.slice(5).replace(/^./, letter => letter.toUpperCase());
+      nodes.set(selector, node);
+    }
     return nodes.get(selector);
   };
   let nextMarkerCommit;
@@ -75,7 +90,7 @@ function harness(records = new Map()) {
     AbortController, DOMException, TextEncoder, URLSearchParams, Date: FakeDate, Promise, CSS: { escape: value => value },
     crypto: { randomUUID: () => "synthetic-request" },
     document: { querySelector: get, createElement: element, addEventListener: (name, callback) => { windowEvents[name] = callback; } },
-    window: { location: { origin: "https://synthetic.test" }, addEventListener: (name, callback) => { windowEvents[name] = callback; } },
+    window: { location, history, scrollTo() {}, addEventListener: (name, callback) => { windowEvents[name] = callback; } },
     navigator: { onLine: true },
     indexedDB: { open: () => storageRequest(database) },
     sessionStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
@@ -120,7 +135,7 @@ function harness(records = new Map()) {
       sign: async () => new Uint8Array(64),
     };
   };
-  return { run, ready, activate, get, requests, summary, respond, windowEvents, context, clock, setIdentity, waitForRequests, runTimer, storage, records, holdMarkerCommit, fakeEnrollmentCrypto };
+  return { run, ready, activate, get, requests, summary, respond, windowEvents, context, clock, setIdentity, waitForRequests, runTimer, storage, records, holdMarkerCommit, fakeEnrollmentCrypto, history, historyEntries, location };
 }
 
 test("offline logout erases local identity and displayed data while remote DELETE remains pending", async () => {
@@ -1311,4 +1326,159 @@ test("interrupted Core receipt clears busy request and suppresses obsolete frame
     assert.equal(h.get("#send").disabled, readiness !== "ready");
     assert.equal(h.requests.length, 0, "Interrupted request cannot trigger retry generation");
   }
+});
+
+test("initial navigation accepts only three public fragments without side effects or private history", async () => {
+  for (const hash of ["", "#/chat", "#/garmin", "#/settings", "#/__proto__", "#/constructor", "#/unknown?message=synthetic", "#settings"]) {
+    const h = harness(new Map(), hash); await h.ready;
+    const selected = ["#/chat", "#/garmin", "#/settings"].includes(hash) ? hash.slice(2) : "chat";
+    assert.equal(h.run("navigation.view"), selected); assert.equal(h.location.hash, `#/${selected}`);
+    for (const name of ["chat", "garmin", "settings"]) {
+      assert.equal(h.get(`#view-${name}`).hidden, name !== selected);
+      assert.equal(h.get(`#nav-${name}`).attributes["aria-current"], name === selected ? "page" : undefined);
+    }
+    assert.equal(h.context.document.activeElement, undefined, "Startup must not steal focus");
+    assert.equal(h.requests.length, 0); assert.equal(h.storage.size, 0); assert.equal(h.records.size, 0);
+    assert.equal(h.run("state.csrf"), null); assert.equal(h.run("state.streamOwner"), null);
+    assert.deepEqual(h.historyEntries, [{ state: null, hash: `#/${selected}` }]);
+  }
+});
+
+test("navigation links support keyboard clicks, modifiers, repeated selections, back and forward", async () => {
+  const h = harness(); await h.ready;
+  const click = (name, extra = {}) => {
+    let prevented = false;
+    h.get(`#nav-${name}`).listeners.click[0]({ button: 0, preventDefault() { prevented = true; }, ...extra });
+    return prevented;
+  };
+  for (const extra of [{ ctrlKey: true }, { metaKey: true }, { shiftKey: true }, { altKey: true }, { button: 1 }]) {
+    assert.equal(click("settings", extra), false); assert.equal(h.run("navigation.view"), "chat");
+  }
+  assert.equal(click("garmin"), true); assert.equal(h.context.document.activeElement.id, "garmin-title");
+  click("settings"); click("settings"); assert.equal(h.historyEntries.length, 3);
+  assert.equal(h.context.document.title, "Settings · JARVIS");
+  h.history.go(-1); assert.equal(h.run("navigation.view"), "garmin"); assert.equal(h.context.document.activeElement.id, "garmin-title");
+  h.history.go(-1); assert.equal(h.run("navigation.view"), "chat"); assert.equal(h.context.document.activeElement.id, "chat-title");
+  h.history.go(1); assert.equal(h.run("navigation.view"), "garmin");
+  h.location.hash = "#/unrecognized"; h.windowEvents.hashchange();
+  assert.equal(h.run("navigation.view"), "chat"); assert.equal(h.location.hash, "#/chat");
+  assert.ok(h.historyEntries.every(entry => entry.state === null)); assert.equal(h.requests.length, 0);
+});
+
+test("navigation preserves one queued stream owner, session, conversation and in-memory draft", async () => {
+  const h = harness(); await h.ready; streamSession(h);
+  const lock = deferred(); let owners = 0;
+  h.context.navigator.locks = { request: async (_, options, callback) => { owners++; await lock.promise; return callback({}); } };
+  h.run("state.conversation='synthetic-conversation';startStreamOwnership()");
+  const owner = h.run("state.streamOwner"), generation = h.run("state.sessionGeneration");
+  h.get("#message").value = "Unsent synthetic draft";
+  h.run("selectView('garmin');selectView('settings');selectView('chat')");
+  assert.equal(owners, 1); assert.equal(h.requests.length, 0); assert.equal(h.run("state.streamOwner"), owner);
+  assert.equal(owner.controller.signal.aborted, false); assert.equal(h.run("state.sessionGeneration"), generation);
+  assert.equal(h.run("state.conversation"), "synthetic-conversation"); assert.equal(h.get("#message").value, "Unsent synthetic draft");
+  lock.resolve(); await h.waitForRequests(1); h.run("selectView('settings')");
+  respondStream(h, h.requests[0]); await h.waitForRequests(2);
+  assert.equal(h.run("state.online"), true); assert.equal(h.get("#connection").textContent, "Connected");
+  assert.equal(h.run("navigation.view"), "settings"); assert.equal(h.run("state.streamOwner"), owner);
+  assert.ok(h.requests.every(request => request.url.startsWith("/api/v1/client/events?")));
+  h.run("stopStream()"); await flush();
+});
+
+test("off-screen streaming retains reader position and returning to Chat shows one completed answer", async () => {
+  const h = harness(); await h.ready; h.activate();
+  h.run("state.subscription='synthetic-subscription';state.conversation='synthetic-conversation'");
+  h.get("#message").value = "Synthetic navigation prompt";
+  const send = h.run("sendMessage({preventDefault(){}})"); await h.waitForRequests(1);
+  const id = JSON.parse(h.requests[0].options.body).request_id;
+  const log = h.get("#log"); log.scrollHeight = 2000; log.clientHeight = 300; log.scrollTop = 120;
+  h.run("selectView('garmin')");
+  // Real browsers report zero layout for hidden ancestors. Never overwrite the saved position.
+  log.scrollTop = 0; log.scrollHeight = 0; log.clientHeight = 0;
+  h.run(`processEvent(${JSON.stringify({ cursor: 1, topic: "chat", event_type: "chat.delta", request_id: id, payload: { content_delta: "Partial", conversation_id: "synthetic-conversation" } })})`);
+  h.run("selectView('settings')");
+  h.respond(h.requests[0], { request_id: id, status: "completed", conversation_id: "synthetic-conversation", reply: "One complete synthetic reply" }); await send;
+  assert.equal(h.run("state.pendingRequest"), null); assert.equal(h.requests.length, 1);
+  log.scrollHeight = 2400; log.clientHeight = 300;
+  h.run("selectView('chat')");
+  assert.equal(log.scrollTop, 120); assert.equal(h.get("#jump-latest").hidden, false);
+  assert.equal(log.children.length, 2); assert.equal(log.children[1].textContent, "JARVIS: One complete synthetic reply");
+  assert.equal(h.get("#message").value, ""); assert.equal(h.get("#send").disabled, false);
+});
+
+test("hidden Chat follows latest only when the reader left it at the end", async () => {
+  const h = harness(); await h.ready;
+  const log = h.get("#log"); log.scrollHeight = 1000; log.clientHeight = 300; log.scrollTop = 700;
+  h.run("selectView('garmin')"); log.scrollTop = 0; log.scrollHeight = 0; log.clientHeight = 0;
+  h.run("row('jarvis','Synthetic off-screen reply','synthetic-request')");
+  log.scrollHeight = 1400; log.clientHeight = 300; h.run("selectView('chat')");
+  assert.equal(log.scrollTop, 1400); assert.equal(h.get("#jump-latest").hidden, true);
+});
+
+test("navigation during uncertain Retry preserves original request and explicit Cancel behavior", async () => {
+  const h = harness(); await h.ready; h.activate(); h.run("state.subscription='synthetic-subscription'");
+  h.get("#message").value = "Original synthetic prompt";
+  const send = h.run("sendMessage({preventDefault(){}})"); await h.waitForRequests(1);
+  const original = JSON.parse(h.requests[0].options.body);
+  h.run("selectView('garmin')"); h.requests[0].pending.reject(new Error("Synthetic lost acknowledgment")); await send;
+  h.run("selectView('chat')"); assert.equal(h.get("#retry-chat").hidden, false);
+  const retry = h.run("retryChat()"); await h.waitForRequests(2);
+  h.run("selectView('settings');selectView('garmin')");
+  h.respond(h.requests[1], {}, 404); await h.waitForRequests(3);
+  assert.deepEqual(JSON.parse(h.requests[2].options.body), original);
+  h.respond(h.requests[2], { request_id: original.request_id, conversation_id: "synthetic-conversation", status: "running" }, 202); await retry;
+  h.run("selectView('chat')"); const cancel = h.run("cancelChat()"); await h.waitForRequests(4);
+  h.run("selectView('settings')");
+  h.respond(h.requests[3], { request_id: original.request_id, conversation_id: "synthetic-conversation", status: "cancelled" }); await cancel;
+  h.run("selectView('chat')"); assert.equal(h.get("#chat-status").textContent, "Request cancelled.");
+  assert.equal(h.get("#log").children.filter(row => row.className === "entry user").length, 1);
+  assert.equal(h.requests.length, 4); assert.equal(h.run("state.pendingRequest"), null);
+});
+
+test("view selection neither reads Garmin nor grants health access; an explicit refresh survives navigation", async () => {
+  const h = harness(); await h.ready; h.activate(); h.run("state.healthAllowed=false;updateControls();selectView('garmin')");
+  assert.equal(h.requests.length, 0); assert.equal(h.get("#refresh-garmin").disabled, true);
+  h.run("state.healthAllowed=true;updateControls()"); const refresh = h.run("refreshGarmin(true)");
+  const controller = h.run("state.healthAbort");
+  h.run("selectView('settings');selectView('chat');selectView('garmin')");
+  assert.equal(h.requests.length, 1); assert.equal(h.requests[0].url, "/api/v1/client/garmin?refresh=true");
+  assert.equal(h.run("state.healthAbort"), controller); assert.equal(controller.signal.aborted, false);
+  h.respond(h.requests[0], h.summary(123)); await refresh;
+  h.clock.now += 300000; h.run("selectView('settings');selectView('garmin')"); h.runTimer(delay => delay === 300000);
+  assert.match(h.get("#garmin-state").textContent, /Stale/); assert.equal(h.requests.length, 1);
+});
+
+test("offline navigation keeps chat disabled and preserves the same recovery stream owner", async () => {
+  const h = harness(); await h.ready; streamSession(h); h.run("startStreamOwnership()"); await h.waitForRequests(1);
+  const owner = h.run("state.streamOwner");
+  h.context.navigator.onLine = false; h.windowEvents.offline(); await flush();
+  h.run("selectView('settings');selectView('garmin');selectView('chat')");
+  assert.equal(h.requests.length, 1); assert.equal(h.get("#send").disabled, true); assert.equal(h.get("#connection").textContent, "Network offline");
+  h.context.navigator.onLine = true; h.windowEvents.online(); await h.waitForRequests(2);
+  assert.equal(h.run("state.streamOwner"), owner); assert.equal(h.get("#send").disabled, true);
+  h.run("selectView('garmin')"); respondStream(h, h.requests[1]); await h.waitForRequests(3);
+  assert.equal(h.get("#connection").textContent, "Connected"); h.run("selectView('chat')");
+  assert.equal(h.get("#send").disabled, false); h.run("stopStream()"); await flush();
+});
+
+test("logout erases hidden views and late results cannot resurrect them through back navigation", async () => {
+  const h = harness(); await h.ready; h.activate(); h.setIdentity({ deviceId: "synthetic-device" });
+  h.get("#message").value = "Synthetic private draft";
+  const garmin = h.run("refreshGarmin(true)"), status = h.run("refreshStatus()"), tasks = h.run("refreshTasks()");
+  h.run("selectView('garmin');selectView('settings')"); await h.run("logout()");
+  assert.equal(h.run("navigation.view"), "settings"); assert.equal(h.context.document.activeElement.id, "ticket");
+  h.respond(h.requests[0], h.summary(999)); h.respond(h.requests[1], { device: { display_name: "Obsolete" }, session: { id: "old" } }); h.respond(h.requests[2], [{ id: "obsolete-task", status: "running" }]);
+  await Promise.all([garmin, status, tasks]); h.history.go(-1); h.history.go(-1);
+  for (const id of ["garmin-metrics", "garmin-activities", "device-status", "tasks", "log"]) assert.equal(h.get(`#${id}`).children.length, 0);
+  assert.equal(h.get("#message").value, ""); assert.equal(h.run("state.csrf"), null); assert.equal(h.get("#send").disabled, true);
+  assert.equal(h.records.size, 0); assert.equal(h.requests.length, 4);
+  h.respond(h.requests[3], {}); await flush();
+});
+
+test("late logout cleanup cannot hide a newer view or focus an invisible ticket", async () => {
+  const h = harness(); await h.ready; h.activate();
+  const cleanup = deferred(); h.context.navigator.serviceWorker = { getRegistrations: () => cleanup.promise };
+  const logout = h.run("logout()"); await flush(); h.run("selectView('chat')");
+  cleanup.resolve([]); await logout;
+  assert.equal(h.run("navigation.view"), "chat"); assert.equal(h.context.document.activeElement.id, "chat-title");
+  assert.equal(h.get("#view-settings").hidden, true); h.respond(h.requests[0], {}); await flush();
 });

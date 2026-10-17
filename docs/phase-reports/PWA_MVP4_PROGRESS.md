@@ -2,7 +2,7 @@
 
 - Status: `in-progress`; repository implementation verified; remaining manual phone checks **skipped by owner; unverified** (2026-10-16). Automated/release gates remain.
 - Audit baseline: `ed4ee18`, shell v6; work started at `1f07d4c` after concurrent M3C evidence commit.
-- Active subphase: phone-check track stopped by owner; next development is [F12 navigation](../PWA_F12_NAVIGATION.md).
+- Active subphase: [F12 navigation](../PWA_F12_NAVIGATION.md) complete within repository/automated scope, shell v9; no subsequent phase queued. Phone-check track stays stopped by owner.
 - Scope: owner authorized F11 implementation on 2026-10-14 while M3C/M4A physical gates remain open.
   Existing native candidates were reviewed and advanced through compatible SDK 57 patches; audit hold remains.
 - M3C physical-phone acceptance remains separate. MVP 4 is not complete.
@@ -34,6 +34,27 @@ row. Use the existing matrix; M3C acceptance stays separate.
 - [ ] Physical F11 soak and measured phone performance thresholds.
 
 ## Evidence
+
+### 2026-10-16 — F12 navigation at `0d77f8c`
+
+Shell **v9** separates Chat (conversation/tasks), Garmin and Settings (device access/status/logout)
+with persistent links, visible shared connection status and accessible selection/focus/back/forward.
+Navigation grants no authority and triggers no API action. Existing session, stream owner,
+pending request, conversation and draft remain shared. Hidden replies retain reading position;
+logout clears every view and does not focus a hidden ticket after later navigation.
+
+Automated evidence: **73/73** lifecycle tests (63 original plus 10 navigation cases), **72** desktop
+geometry/font/spacing cases across all views, six short-viewport focus cases, browser history,
+keyboard and accessibility-tree checks. Full strict pytest: **1,464 passed / 3 existing optional
+skips**, **85.67%** coverage; root/sidecar locks, bootstrap, Ruff, mypy, audits, Gitleaks and doctor
+pass. Synthetic transport: **100 reconnects / 10,000 events**, zero duplicates/gaps/cross-session
+deliveries/offline effects/private state retained. See [F12 completion](PWA_F12_COMPLETION.md).
+
+Held mobile package/lock hashes match the previous checkpoint and remain unpublished. Native audit
+hold and M3C authority stay separate. All manual phone checks remain **skipped by owner; unverified**.
+No phone observation, real health read, enrollment, route change or deployment performed. PWA estimate
+is now **94%**, milestone-based: F12 navigation adds verified capability; skipped physical checks
+add no acceptance credit. Aggregate MVP 4 remains incomplete.
 
 ### 2026-10-16 — owner overrides manual phone gates
 
@@ -870,7 +891,7 @@ not a measured test percentage.
 
 ## Current development handoff — 2026-10-16
 
-Initiate **F12 — Chat / Garmin / Settings navigation** from [its plan](../PWA_F12_NAVIGATION.md).
-All manual phone checks are skipped by owner until explicit resumption. Continue implementation
-and automated verification; preserve held mobile package candidates and separate M3C authority.
-Current estimate remains **92%** on the existing MVP milestone basis; F12 is queued, not implemented.
+**F12 complete** within bounded repository/automated scope; see [completion](PWA_F12_COMPLETION.md).
+Current source is shell v9. No subsequent phase queued. Manual phone checks stay skipped by owner;
+unverified. Preserve held mobile candidates and separate M3C authority. Current estimate **94%**
+includes verified F12 navigation on the existing MVP milestone basis; no physical/MVP closure.
