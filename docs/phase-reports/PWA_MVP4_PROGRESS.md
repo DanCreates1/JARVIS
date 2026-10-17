@@ -35,6 +35,25 @@ row. Use the existing matrix; M3C acceptance stays separate.
 
 ## Evidence
 
+### 2026-10-16 — Home Screen connection failure after Safari enrollment
+
+Owner distinguishes surfaces: Safari works, while Home Screen **Enroll device** is disabled.
+Owner then reports Home Screen **Connect existing device → Connection failed**. Safari's
+reported success does not establish an accepted chat turn or Home Screen recovery. Source disables
+Enroll when an identity exists or an enrollment/connection is in progress; this control alone
+does not prove missing/revoked credentials. No erasure, re-enrollment or original-request resend
+requested. Exact secondary error in Device access/page notice is pending, without another Connect.
+
+Current host checks still pass online Tailscale, exact existing private route/origin, disabled
+Funnel, one loopback Python listener and v8 shell/script/worker markers. Bounded host-owned
+read-only browser audit finds recent successful signature/session issuance, including earlier
+enrollment identities; corresponding sessions show authenticated follow-up activity. No denial
+appears in the bounded existing-browser audit window. This neither identifies Home Screen's
+attempt nor excludes an unknown-device/pre-authentication or later connection failure. Public
+secondary error is needed before selecting a repair; no authentication bypass or key loss inferred.
+Application source and held native package files remain unchanged. F11-P0/P1 remain open;
+M3C separate; milestone completion estimate remains **92%**.
+
 ### 2026-10-16 — chat-only enrollment reported at `5a5bed2`
 
 Prior continuation ended with another **Connection failed** report while Core was running and

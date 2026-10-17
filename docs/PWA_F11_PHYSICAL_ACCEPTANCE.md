@@ -153,6 +153,15 @@ before any Send/Retry/reopen action. Do not transfer or resubmit uncertain work 
 device identity. No enrollment mutation, service/route change, revocation or health read by Codex;
 held mobile edits match checkpoint. M3C remains separate. No full F11 row accepted.
 
+Owner subsequently distinguishes **Safari works** from Home Screen's disabled **Enroll device**.
+One requested Home Screen **Connect existing device** returns **Connection failed**. Disabled
+Enroll alone establishes neither missing key nor failure: source also disables it for an existing
+identity or a busy connection. Requested exact secondary Device access/page-notice error without
+another Connect. Host readiness still passes. Bounded existing-browser audit shows successful
+session issuance and authenticated follow-up activity for earlier enrollments, with no denial in
+that window; it cannot attribute the phone attempt or diagnose the failing step. Preserve original
+page/request/key; no erasure, re-enrollment, replacement submission or full physical pass.
+
 After recovery and original-request disposition are established, reload online and close/reopen
 twice without clearing website data. Inspect the new controls and
 record their behavior as a v8 runtime fingerprint. This supports current execution; it does not
