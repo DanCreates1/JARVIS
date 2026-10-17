@@ -8,6 +8,12 @@ This is the authoritative Codex execution playbook for JARVIS phases. The root `
 this file whenever the user starts, continues, or finishes a phase. The master roadmap describes
 product direction; this file tells Codex how to execute and prove the work.
 
+Owner override, 2026-10-16: root [AGENTS.md](../AGENTS.md)'s **development without manual phone
+gates** policy supersedes manual/physical phone execution requirements throughout this playbook.
+Skip those checks, preserve their unverified status, and do not block development or request phone
+actions. Resume only on explicit owner instruction. Automated gates and security/authority controls
+remain enforced; skipped phone checks do not establish physical acceptance or phase completion.
+
 ## 1. Command contract
 
 Accepted trigger examples:

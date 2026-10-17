@@ -1,8 +1,15 @@
 # F11 — physical phone acceptance
 
-Status: `in-progress`; initiated 2026-10-15 at `4fa75e3`, shell **v8**.
+Status: **manual execution skipped by owner, 2026-10-16; remaining checks unverified**.
+Initiated 2026-10-15 at `4fa75e3`, shell **v8**.
 Phone connection/one-turn checkpoint recorded below; full F11 rows remain pending.
 Aggregate MVP 4 remains incomplete.
+
+Owner now directs skipping all phone checks and continuing development. Do not execute/request
+the procedures below or use them as development prerequisites unless owner explicitly resumes
+phone checking. Existing passes remain historical evidence; all outstanding rows, original-outcome
+follow-ups and timing/memory series are **skipped by owner; unverified**, not passed. The ledger
+below preserves pre-override observations. Next development: [F12 navigation](PWA_F12_NAVIGATION.md).
 
 Readiness gate found and repaired concurrent immediate-cancellation settlement on 2026-10-15.
 The initial Core process predated that Python fix. At the owner's return on 2026-10-15, Core was

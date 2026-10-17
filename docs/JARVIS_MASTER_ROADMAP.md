@@ -1,8 +1,20 @@
 # JARVIS Master Roadmap
 
-Status: active, mobile-MVP-first  
+Status: active, development-first PWA path; manual phone checks skipped by owner
 Updated: 2026-10-16
 Repository: `DanCreates1/JARVIS`, branch `main`
+
+## Current owner execution policy — 2026-10-16
+
+Skip all further manual/physical phone checks. Do not request phone actions, queue phone-check
+follow-ups or block continued development on F11/M4A/M3C/native physical acceptance, reload,
+accessibility, network/restart, soak or phone performance/instrumentation evidence. Resume only
+if owner explicitly requests phone checking. Outstanding checks are **skipped by owner; unverified**;
+historical evidence remains, no pass or physical/MVP completion inferred. This policy supersedes
+older phone execution directions below. Automated code/security gates and all authority/privacy,
+$0, publication and native dependency holds remain. See root [AGENTS.md](../AGENTS.md).
+
+Next development: [F12 — Chat / Garmin / Settings navigation](PWA_F12_NAVIGATION.md).
 
 ## Product target
 
@@ -176,9 +188,9 @@ of the final batch reported all worked. Full phone assets, Safari authenticated 
 failure cases and external-keyboard acceptance remain open. No blanket physical pass or
 M4A/MVP 4 closure; M3C remains separate.
 
-Run physical-iPhone acceptance; chat reconnect/restart; Garmin offline, token-expiry, MFA,
-disconnect, and upstream-change failures; accessibility; and basic performance checks. Development
-build and signing require explicit owner approval. App Store work is separate and optional.
+Continue repository development and automated chat/Garmin recovery, accessibility/layout and
+performance checks. Manual phone execution is skipped by the current owner policy above.
+Development build and signing require explicit owner approval. App Store work is separate and optional.
 
 ## Release gates
 
@@ -187,8 +199,9 @@ closure:
 
 - enrollment, signed sessions, revocation, rotation, logout, reconnect, and lost-phone behavior
   fail closed;
-- chat streaming, cancellation, retry, history, Core restart, and network transitions pass on a
-  physical iPhone;
+- chat streaming, cancellation, retry, history, Core restart and network transitions pass automated
+  regression checks; remaining physical-iPhone evidence is skipped/unverified and does not block
+  development or establish physical acceptance;
 - Garmin adapter tests use mocks by default; schemas reject malformed or oversized data; timeouts,
   bounded retries, local rate limits, disconnect, token deletion, and sanitized audit pass;
 - accessibility labels, Dynamic Type, contrast, focus/order, reduced-motion behavior, and common
@@ -206,6 +219,15 @@ multi-GPU serving; the former broad M3–M9 and H1–H8 mobile/health plans. Rec
 four MVP milestones pass and the owner explicitly reprioritizes them.
 
 ## Next milestone
+
+**F12 — Chat / Garmin / Settings navigation** is the next development subphase. Current source
+already provides F11 chat/history/recovery and protected Core Garmin; the PWA still presents one
+long page. Implement the roadmap's three surfaces with persistent navigation and existing typed
+Core contracts, preserving session/stream/request ownership, privacy and explicit health actions.
+Use automated lifecycle/layout/security gates. No manual phone checks, new enrollment/access,
+native audit workaround or deployment included. Full bounded scope: [F12 plan](PWA_F12_NAVIGATION.md).
+
+The dated F11 notes below are historical evidence, not instructions to resume skipped phone checks.
 
 2026-10-16 continuation at `473347e`: owner reports Home Screen **Connected; fixed the problem**
 and general **yes all good** to bundled status/Send/new-control checks. Exact original-request

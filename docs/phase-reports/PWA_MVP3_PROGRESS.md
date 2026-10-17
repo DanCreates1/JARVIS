@@ -1,13 +1,19 @@
 # PWA MVP 3 — Garmin integration and acceptance
 
-- Status: `in-progress` — M3A/M3B complete; M3C phone acceptance pending
+- Status: `in-progress` — M3A/M3B complete; remaining M3C phone acceptance skipped by owner, unverified
 - Started: 2026-10-07
-- Updated: 2026-10-09
-- Active subphase: M3C — health-scoped enrollment decision and physical-iPhone acceptance
+- Updated: 2026-10-16
+- Active subphase: M3C paused; manual phone acceptance **skipped by owner; unverified** (2026-10-16)
 - Recommended Codex model/reasoning: `gpt-6-astra`, `xhigh`
 - Current session stop: 2026-10-09T23:00:00-04:00 (conservative five-hour ceiling)
 
 ## Objective
+
+Owner override, 2026-10-16: skip remaining manual phone checks; do not request phone actions or
+make M3C physical acceptance a prerequisite for continued development. Historical evidence and
+unverified rows remain intact. Health-scope/enrollment/revocation authority is not granted by
+this change; do not issue tickets or change device access to satisfy skipped checks. Resume manual
+phone acceptance only on explicit owner instruction. Automated Core/sidecar security gates remain.
 
 Connect the owner's existing Garmin session to the protected Core bridge, then prove scoped
 read-only PWA refresh and recovery on the physical iPhone. M3A static compatibility review is

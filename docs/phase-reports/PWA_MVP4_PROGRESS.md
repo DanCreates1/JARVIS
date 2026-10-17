@@ -1,8 +1,8 @@
 # PWA MVP 4 — accessibility and durable phone chat
 
-- Status: `in-progress`; M4A local implementation verified; Safari A1/A7/A9/A11 and Home Screen A1/A3/A4/A5/A7/A8/A9/A11 observed passes; remaining physical/release gates open.
+- Status: `in-progress`; repository implementation verified; remaining manual phone checks **skipped by owner; unverified** (2026-10-16). Automated/release gates remain.
 - Audit baseline: `ed4ee18`, shell v6; work started at `1f07d4c` after concurrent M3C evidence commit.
-- Active subphase: F11 physical acceptance — cancellation, safe retry, Core history and reconnect isolation; M4A physical acceptance remains pending.
+- Active subphase: phone-check track stopped by owner; next development is [F12 navigation](../PWA_F12_NAVIGATION.md).
 - Scope: owner authorized F11 implementation on 2026-10-14 while M3C/M4A physical gates remain open.
   Existing native candidates were reviewed and advanced through compatible SDK 57 patches; audit hold remains.
 - M3C physical-phone acceptance remains separate. MVP 4 is not complete.
@@ -34,6 +34,21 @@ row. Use the existing matrix; M3C acceptance stays separate.
 - [ ] Physical F11 soak and measured phone performance thresholds.
 
 ## Evidence
+
+### 2026-10-16 — owner overrides manual phone gates
+
+Owner explicitly directs skipping **all phone checks** and returning to development. Root
+AGENTS/playbook now forbid further manual phone requests or using unfinished phone acceptance
+as a development prerequisite unless the owner explicitly resumes that work. Remaining F11-P0–P7,
+M4A/M3C/native physical, accessibility, reload, network/restart, soak and timing/memory checks are
+**skipped by owner; unverified**. Historical results below remain unchanged. No new phone pass,
+measurement, MVP completion or original-request terminal outcome inferred.
+
+Next development queued: **F12 — Chat / Garmin / Settings navigation**, implementing the existing
+three-surface product target over the current single-page PWA. See its bounded development plan.
+No F12 application code started in this policy update. Automated checks, auth/privacy/approval,
+health/device authority, $0 limits and held mobile publication restrictions remain enforced.
+Completion estimate remains **92%**, milestone-based; waiving manual execution adds no capability.
 
 ### 2026-10-16 — Home Screen recovery reported at `473347e`
 
@@ -824,7 +839,11 @@ Core remains running on the verified existing loopback/private route. No v8 phys
 M3C enrollment decision or native audit pass is claimed. Next milestone: physical F11 acceptance
 alongside the remaining M4A matrix; M3C requires its separate pending grouped decision/evidence.
 
-## Remaining gates and handoff
+## Historical remaining phone gates — superseded for development on 2026-10-16
+
+The phone execution directions in this historical section are superseded by the current owner
+override at the top of this report. Do not resume or request them. Unverified evidence remains
+unverified; next development is F12, independent of these skipped manual checks.
 
 M4A local fixes are reviewable; **MVP 4 is not complete**. Owner resumed manual phone checks after
 brief deferral on 2026-10-13. Bounded Safari A1/A7/A9/A11 and Home Screen
@@ -848,3 +867,10 @@ physical acceptance, remaining accessibility prerequisites/failure cases,
 physical F11 soak and performance/release gates remain open. Targets are now frozen in the
 [F11 physical ledger](../PWA_F11_PHYSICAL_ACCEPTANCE.md); no phone sample accepted. Estimate is milestone-based,
 not a measured test percentage.
+
+## Current development handoff — 2026-10-16
+
+Initiate **F12 — Chat / Garmin / Settings navigation** from [its plan](../PWA_F12_NAVIGATION.md).
+All manual phone checks are skipped by owner until explicit resumption. Continue implementation
+and automated verification; preserve held mobile package candidates and separate M3C authority.
+Current estimate remains **92%** on the existing MVP milestone basis; F12 is queued, not implemented.

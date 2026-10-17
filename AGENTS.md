@@ -2,6 +2,20 @@
 
 These repository instructions apply to every Codex task in JARVIS.
 
+## Owner override — development without manual phone gates (2026-10-16)
+
+- Skip all further manual/physical phone checks until the owner explicitly requests their return.
+  This includes F11-P0–P7, M4A, M3C and native phone acceptance, manual accessibility, reload,
+  device/network/restart, soak and phone performance/instrumentation checks.
+- Do not ask the owner to perform or report these checks, queue reminders for them, or make them
+  prerequisites for continued development. Proceed with repository implementation and automated
+  verification. This overrides older phone-check execution requirements in repository documents.
+- Record unexecuted phone checks as **skipped by owner; unverified**. Preserve historical evidence;
+  do not turn skips into passes, invent measurements or claim physical acceptance/MVP completion.
+- Automated functional/security/quality gates, privacy/authentication/approval controls, the $0
+  limit, consequential-action confirmations and held native dependency publication hold remain.
+  Skipping phone checks grants no enrollment, scope, credential, health-data or deployment authority.
+
 ## Cross-chat handoff
 
 - After completing a task or subphase, end the final reply with a standalone, copy-pasteable

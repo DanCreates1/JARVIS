@@ -1,6 +1,8 @@
 # PWA M4A — physical accessibility acceptance
 
-Status: `in-progress` — observed phone checks passed; unverified prerequisites and failure cases remain open.
+Status: **remaining manual phone checks skipped by owner, 2026-10-16; unverified**.
+Do not request/execute further phone procedures or block development on this matrix. Resume only
+on explicit owner instruction. Historical results below are preserved; skipped rows are not passes.
 Target: F11 shell `v8`, baseline `34b4010`, implemented 2026-10-14. Ledger below preserves historical v7 observations; bounded new-control observations are recorded separately below.
 2026-10-15 F11 acceptance resumed at `4fa75e3`; use the [physical F11 ledger](PWA_F11_PHYSICAL_ACCEPTANCE.md) for new-control/recovery checks and frozen phone performance targets. Existing M4A results below remain unchanged.
 Aggregate MVP 4 remains `in-progress`. Preparation and desktop evidence do not accept a phone row.

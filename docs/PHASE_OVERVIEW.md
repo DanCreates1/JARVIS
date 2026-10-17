@@ -2,6 +2,11 @@
 
 Updated: 2026-10-16
 
+Owner override: **skip all further manual/physical phone checks**; outstanding rows are skipped
+and unverified, not development blockers or passes. No phone-check requests until explicit owner
+resumption. Automated code/security gates and authority/privacy/$0 controls remain enforced.
+Next development: [F12 — Chat / Garmin / Settings navigation](PWA_F12_NAVIGATION.md).
+
 ## Active product path
 
 The $0 iPhone Home Screen PWA is the active product path. Existing Phase 8 PWA chat and secure
@@ -28,8 +33,8 @@ record.
 
 | Track | Status | Next gate |
 | --- | --- | --- |
-| Phone PWA | Physical-iPhone chat accepted; M3A/M3B complete; M3C shell v6 repairs offline logout and obsolete response/reconnect handling with synthetic evidence | Pending grouped health-read enrollment/recovery decision and physical-iPhone acceptance |
-| PWA MVP 4 | F11 shell v8 implements Core cancellation, immutable-ID retry, durable owned history and reconnect isolation. Legacy-schema repair passes 26 focused Core/API checks. On 2026-10-16 Home Screen recovery, 2/2 idle reopenings/same conversation/no duplicate, three-history-control VoiceOver and final VoiceOver reconnect/readiness/focus batches owner-reported passing; host/private v8 assets verified. Exact original outcome and full F11 rows pending. Historical M4A passes remain dated | [Safari/Home Screen matrix](PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md): conditional-control availability unitemized; explicit reload/full runtime proof, soak and measured performance open; M3C separate; native audit remains blocked |
+| Phone PWA | Historical chat acceptance; M3A/M3B complete; remaining manual M3C phone checks skipped by owner, unverified | Continue development; health-access authority remains separate, no new enrollment granted |
+| PWA MVP 4 | F11 shell v8 implementation and dated automated/owner-reported evidence preserved. Remaining F11/M4A phone checks skipped by owner, unverified; MVP physical acceptance not claimed | Develop [F12 navigation](PWA_F12_NAVIGATION.md) with automated gates; native audit hold remains |
 | Native MVP | Expo Go checks passed; independent native build unverified and deferred under $0/no-Mac constraint | No active native gate |
 | Mobile MVP 2 | Deferred | No active native gate |
 | Mobile MVP 3 | Deferred | No active native gate |
