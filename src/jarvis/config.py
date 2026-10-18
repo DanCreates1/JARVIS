@@ -184,6 +184,7 @@ class Settings(BaseSettings):
     proactivity_pwa_adapter_enabled: bool = False
     proactivity_device_lease_seconds: int = Field(default=60, ge=30, le=300)
     vision_capture_enabled: bool = False
+    pwa_voice_enabled: bool = False
     voice_always_listening_enabled: Literal[False] = False
     voice_acoustic_always_listening_enabled: Literal[False] = False
     voice_sample_rate_hz: Literal[16_000] = 16_000

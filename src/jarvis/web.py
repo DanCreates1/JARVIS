@@ -76,6 +76,12 @@ from jarvis.research import (
     SourceState,
     UnansweredQuestionStatus,
 )
+from jarvis.voice.pwa import (
+    UPLOAD_SECONDS,
+    VOICE_PATH,
+    PWAVoiceError,
+    PWAVoiceService,
+)
 
 RuntimeFactory = Callable[[Settings], Awaitable[RuntimeComponents]]
 _REMOTE_TOKEN_PATTERN = re.compile(r"^[A-Za-z0-9_-]{43,128}$")
@@ -215,10 +221,12 @@ def create_app(
     *,
     runtime_factory: RuntimeFactory = build_runtime,
     garmin_reader: GarminReader | None = None,
+    voice_service: PWAVoiceService | None = None,
 ) -> FastAPI:
     configured = settings or Settings()
     pwa_hub = PWAEventHub()
     garmin_service = garmin_reader or GarminSummaryService()
+    voice = voice_service or PWAVoiceService(configured)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -232,10 +240,12 @@ def create_app(
         )
         await chat.initialize()
         app.state.pwa_chat = chat
+        voice.start()
         try:
             yield
         finally:
             try:
+                await voice.close()
                 await chat.close()
             finally:
                 try:
@@ -245,6 +255,7 @@ def create_app(
 
     app = FastAPI(title="JARVIS API", version="1.0", lifespan=lifespan)
     app.state.pwa_hub = pwa_hub
+    app.state.pwa_voice = voice
     origin_policy = BrowserOriginPolicy(configured.trusted_browser_origins)
     rate_limiter = FixedWindowRateLimiter(max_entries=configured.remote_rate_limit_entries)
 
@@ -253,6 +264,10 @@ def create_app(
         response = await call_next(request)
         if request.url.path == "/app" or request.url.path.startswith("/app/"):
             _apply_pwa_security_headers(response, path=request.url.path)
+            if request.url.path in {"/app", "/app/"} and voice.allowed():
+                response.headers["Permissions-Policy"] = (
+                    "camera=(), microphone=(self), geolocation=()"
+                )
         else:
             _apply_security_headers(response, api_only=request.url.path.startswith("/api/"))
         trusted_origin = getattr(request.state, "trusted_origin", None)
@@ -262,6 +277,15 @@ def create_app(
 
     @app.middleware("http")
     async def remote_v1_authentication(request: Request, call_next: Any) -> Any:
+        try:
+            return await authenticate_remote(request, call_next)
+        finally:
+            lease = getattr(request.state, "voice_lease", None)
+            if lease is not None:
+                voice.release_upload(lease)
+
+    async def authenticate_remote(request: Request, call_next: Any) -> Any:
+        lease: object | None = None
         public_route, required_scope = _remote_scope_for_request(request.method, request.url.path)
         if request.url.path.startswith("/api/v1/"):
             try:
@@ -280,7 +304,43 @@ def create_app(
                     _apply_cors_headers(response, trusted_origin, preflight=True)
                     _apply_security_headers(response, api_only=True)
                     return response
-                body = await _read_bounded_remote_body(request)
+                if request.url.path == VOICE_PATH:
+                    if request.method != "POST":
+                        return _remote_error(405, "Method not allowed")
+                    if _header_values(request, "content-type") != ("application/octet-stream",):
+                        return _remote_error(415, "Canonical PCM required")
+                    browser = _browser_cookie_token(request)
+                    service = _remote_identity(request)
+                    if browser is not None:
+                        if _header_values(request, "authorization") or any(
+                            _header_values(request, name) for name in _REMOTE_HEADER_NAMES
+                        ):
+                            raise ValueError("mixed credentials")
+                        request.state.trusted_origin = origin_policy.require(origins)
+                        admission = await service.authenticate_browser_session(
+                            cookie_token=browser,
+                            csrf_token=_csrf_token(request),
+                            require_csrf=True,
+                            required_scope=RemoteScope.CLIENT_CHAT,
+                        )
+                    else:
+                        origin_policy.optional(origins)
+                        admission = await service.admit_signed_upload(_bearer_token(request))
+                    _require_remote_host(_runtime(request), admission)
+                    lengths = _header_values(request, "content-length")
+                    if lengths and int(lengths[0]) > voice.max_bytes:
+                        raise RemoteBodyTooLargeError
+                    decision = rate_limiter.check(
+                        f"voice:{admission.host_id}:{admission.device_id}", limit=6
+                    )
+                    if not decision.allowed:
+                        return _remote_rate_error(decision.retry_after_seconds)
+                    lease = voice.reserve()
+                    request.state.voice_lease = lease
+                    async with asyncio.timeout(UPLOAD_SECONDS):
+                        body = await _read_bounded_remote_body(request, limit=voice.max_bytes)
+                else:
+                    body = await _read_bounded_remote_body(request)
                 browser_token = _browser_cookie_token(request)
                 if browser_token is not None and _header_values(request, "authorization"):
                     return _remote_error(400, "Ambiguous remote authentication")
@@ -342,9 +402,60 @@ def create_app(
                 return _remote_error(403, "Browser origin denied")
             except RemoteBodyTooLargeError:
                 return _remote_error(413, "Remote request body too large")
+            except TimeoutError:
+                return _remote_error(408, "Voice upload timed out")
+            except HTTPException as exc:
+                return _remote_error(exc.status_code, str(exc.detail))
+            except PWAVoiceError as exc:
+                return _remote_error(exc.status, exc.code)
             except (UnicodeError, ValueError):
                 return _remote_error(400, "Malformed remote authentication headers")
         return await call_next(request)
+
+    @app.get("/api/v1/client/voice")
+    async def voice_availability(request: Request) -> dict[str, object]:
+        _require_remote_host(_runtime(request), _remote_context(request))
+        return voice.metadata()
+
+    @app.post(VOICE_PATH)
+    async def voice_transcription(request: Request) -> dict[str, object]:
+        context = cast(RemoteIdentityContext, request.state.remote_identity)
+
+        async def validate() -> None:
+            await _remote_identity(request).validate_context(
+                context, required_scope=RemoteScope.CLIENT_CHAT
+            )
+
+        outcome = "failed"
+        started = asyncio.get_running_loop().time()
+        try:
+            result = await voice.transcribe(
+                await request.body(),
+                lease=request.state.voice_lease,
+                validate=validate,
+                disconnected=request.is_disconnected,
+            )
+            outcome = "completed"
+        except PWAVoiceError as exc:
+            raise HTTPException(exc.status, exc.code) from None
+        except RemoteAuthenticationError:
+            raise HTTPException(401, "Remote authentication failed") from None
+        finally:
+            await _runtime(request).store.append_audit_record(
+                conversation_id=None,
+                action="pwa.voice",
+                outcome=outcome,
+                risk="read_only",
+                detail={"duration_ms": round((asyncio.get_running_loop().time() - started) * 1000)},
+            )
+        # Audit I/O may yield; validate again after it, immediately before exposing text.
+        try:
+            await validate()
+        except RemoteAuthenticationError:
+            raise HTTPException(401, "Remote authentication failed") from None
+        if not voice.allowed():
+            raise HTTPException(503, "voice_unavailable")
+        return {"text": result.text, "duration_ms": result.duration_ms}
 
     @app.get("/app", include_in_schema=False)
     @app.get("/app/", include_in_schema=False)
@@ -358,6 +469,10 @@ def create_app(
     @app.get("/app/app.js", include_in_schema=False)
     async def pwa_javascript() -> FileResponse:
         return FileResponse(_PWA_ROOT / "app.js", media_type="text/javascript")
+
+    @app.get("/app/pcm-worklet.js", include_in_schema=False)
+    async def pwa_pcm_worklet() -> FileResponse:
+        return FileResponse(_PWA_ROOT / "pcm-worklet.js", media_type="text/javascript")
 
     @app.get("/app/sw.js", include_in_schema=False)
     async def pwa_service_worker() -> FileResponse:
@@ -557,6 +672,9 @@ def create_app(
                 {
                     **client_contract_metadata(),
                     "online": True,
+                    "voice": voice.metadata()
+                    if RemoteScope.CLIENT_CHAT in context.scopes
+                    else {"available": False},
                     "device": {
                         "id": device.id,
                         "display_name": device.display_name,
@@ -1590,6 +1708,8 @@ def _remote_scope_for_request(method: str, path: str) -> tuple[bool, RemoteScope
         "/api/v1/client/subscriptions": RemoteScope.EVENTS_READ,
         "/api/v1/client/events": RemoteScope.EVENTS_READ,
         "/api/v1/client/chat": RemoteScope.CLIENT_CHAT,
+        "/api/v1/client/voice": RemoteScope.CLIENT_CHAT,
+        VOICE_PATH: RemoteScope.CLIENT_CHAT,
     }.get(path)
 
 
@@ -1626,6 +1746,8 @@ def _validate_remote_request_shape(request: Request) -> None:
     if len(content_lengths) > 1:
         raise ValueError("duplicate content length")
     if content_lengths:
+        if not re.fullmatch(r"[0-9]+", content_lengths[0]):
+            raise ValueError("invalid content length")
         try:
             content_length = int(content_lengths[0])
         except ValueError as exc:
@@ -1640,15 +1762,20 @@ class RemoteBodyTooLargeError(ValueError):
     pass
 
 
-async def _read_bounded_remote_body(request: Request) -> bytes:
+async def _read_bounded_remote_body(
+    request: Request, *, limit: int = _MAX_REMOTE_BODY_BYTES
+) -> bytes:
     chunks: list[bytes] = []
     total = 0
     async for chunk in request.stream():
         total += len(chunk)
-        if total > _MAX_REMOTE_BODY_BYTES:
+        if total > limit:
             raise RemoteBodyTooLargeError
         chunks.append(chunk)
     body = b"".join(chunks)
+    lengths = _header_values(request, "content-length")
+    if lengths and int(lengths[0]) != total:
+        raise ValueError("content length mismatch")
     request._body = body
     return body
 

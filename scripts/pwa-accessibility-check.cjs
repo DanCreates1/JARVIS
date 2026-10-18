@@ -15,7 +15,7 @@ fs.mkdirSync(outputDir, { recursive: true });
 const browserPath = process.env.PWA_TEST_BROWSER || "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const profile = fs.mkdtempSync(path.join(outputDir, "edge-profile-"));
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json" };
-const allowed = new Set(["index.html", "app.js", "app.css", "sw.js", "manifest.webmanifest", "icon.svg"]);
+const allowed = new Set(["index.html", "app.js", "app.css", "sw.js", "pcm-worklet.js", "manifest.webmanifest", "icon.svg"]);
 const apiRequests = [];
 const server = http.createServer((request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");
@@ -25,7 +25,7 @@ const server = http.createServer((request, response) => {
     response.writeHead(404); response.end(); return;
   }
   let content = fs.readFileSync(path.join(assets, file));
-  if (file === "app.js") content = Buffer.from(content.toString("utf8") + "\nglobalThis.pwaTest={row,processEvent,logout,setConnected,renderGarmin,state,selectView,navigation};\n");
+  if (file === "app.js") content = Buffer.from(content.toString("utf8").replace('catch{if(state.voice===op)discardVoice("Microphone unavailable', 'catch(error){globalThis.voiceTestError=String(error);if(state.voice===op)discardVoice("Microphone unavailable') + "\nglobalThis.pwaTest={row,processEvent,logout,setConnected,renderGarmin,state,selectView,navigation,updateControls};\n");
   response.writeHead(200, { "Content-Type": types[path.extname(file)], "Cache-Control": "no-store" });
   response.end(content);
 });
@@ -60,7 +60,7 @@ async function main() {
     return result.result.value;
   };
   const key = async (name, code, shift = false) => {
-    for (const type of ["keyDown", "keyUp"]) await call("Input.dispatchKeyEvent", { type, key: name, code: name, windowsVirtualKeyCode: code, modifiers: shift ? 8 : 0 });
+    for (const type of ["keyDown", "keyUp"]) await call("Input.dispatchKeyEvent", { type, key: name, code: name===" "?"Space":name, windowsVirtualKeyCode: code, modifiers: shift ? 8 : 0, ...(type==="keyDown"&&["Enter"," "].includes(name)?{text:name==="Enter"?"\r":" "}:{}) });
   };
   await call("Page.enable"); await call("Page.navigate", { url: `http://127.0.0.1:${port}/app/` });
   let loaded = false;
@@ -170,8 +170,40 @@ async function main() {
   assert.ok(output.contrast.danger >= 4.5); assert.ok(output.contrast.inputFill >= 3 && output.contrast.inputPanel >= 3); assert.ok(output.contrast.focusFill >= 3 && output.contrast.focusButton >= 3);
   await call("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
   output.reducedMotion = await evaluate("getComputedStyle(document.querySelector('.panel')).animationName"); assert.equal(output.reducedMotion, "none");
+  await select("chat");
+  // Actual browser AudioWorklet, synthetic oscillator MediaStream, fake transcription response.
+  // No real microphone permission, Core request or private speech.
+  await evaluate(`(()=>{
+    const original=window.fetch;window.voiceEvidence={permissionCalls:0,uploads:0,bytes:0};
+    window.fetch=async(url,options)=>{if(String(url).endsWith('/client/voice/transcriptions')){voiceEvidence.uploads++;voiceEvidence.bytes=options.body.byteLength;voiceEvidence.stopped=voiceEvidence.stream.getTracks().every(t=>t.readyState==='ended');return new Response(JSON.stringify({text:'Synthetic editable browser draft',duration_ms:Math.round(options.body.byteLength/32)}),{headers:{'Content-Type':'application/json'}});}return original(url,options);};
+    navigator.mediaDevices.getUserMedia=async()=>{voiceEvidence.permissionCalls++;const context=new AudioContext({sampleRate:48000}),oscillator=context.createOscillator(),destination=context.createMediaStreamDestination();oscillator.frequency.value=440;oscillator.connect(destination);oscillator.start();await context.resume();voiceEvidence.generator=context;voiceEvidence.stream=destination.stream;return destination.stream;};
+    pwaTest.state.csrf='synthetic';pwaTest.state.historyReady=true;pwaTest.state.voiceReady=true;pwaTest.state.chatActive.clear();pwaTest.state.pendingRequest=null;pwaTest.state.sending=false;pwaTest.state.historyBusy=false;pwaTest.state.chatAction=null;document.querySelector('#message').value='';pwaTest.setConnected(true);document.querySelector('#record-message').focus();
+  })()`);
+  assert.equal(await evaluate("voiceEvidence.permissionCalls"),0);
+  assert.equal(await evaluate("document.querySelector('#record-message').disabled"),false,JSON.stringify(await evaluate("({online:pwaTest.state.online,ready:pwaTest.state.voiceReady,history:pwaTest.state.historyReady,hidden:document.hidden,focus:document.activeElement.id,nav:pwaTest.navigation.view})")));
+  await key("Enter",13);
+  for(let turn=0;turn<100;turn++){if(await evaluate("pwaTest.state.voice?.phase==='recording'"))break;await pause(30);}
+  assert.equal(await evaluate("pwaTest.state.voice?.phase"),"recording",JSON.stringify(await evaluate("({error:globalThis.voiceTestError,status:document.querySelector('#voice-status').textContent,evidence:{...voiceEvidence,generator:undefined,stream:undefined}})")));
+  assert.equal(await evaluate("document.activeElement.id"),"stop-recording");
+  const voiceAx=await call("Accessibility.getFullAXTree");
+  for(const name of ["Stop recording","Discard recording"])assert.ok(voiceAx.nodes.some(n=>n.role?.value==='button'&&n.name?.value===name));
+  assert.ok(!voiceAx.nodes.some(n=>n.role?.value==='button'&&n.name?.value==='Record message'));
+  output.voice={geometry:[]};
+  for(const width of [320,375,390,430,844,1280])for(const font of [16,32]){
+    await call("Emulation.setDeviceMetricsOverride",{width,height:844,deviceScaleFactor:1,mobile:false});await call("Page.setFontSizes",{fontSizes:{standard:font,fixed:font}});
+    const geometry=await evaluate(`({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,controls:['stop-recording','discard-recording'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return {width:r.width,height:r.height};})})`);
+    assert.ok(geometry.scrollWidth<=width+1);for(const control of geometry.controls)assert.ok(control.width>=44&&control.height>=44);output.voice.geometry.push({font,...geometry});
+  }
+  for(let turn=0;turn<200;turn++){if(await evaluate("(pwaTest.state.voice?.bytes||0)>=4096"))break;await pause(30);}
+  assert.ok(await evaluate("(pwaTest.state.voice?.bytes||0)>=4096"),"Actual worklet must deliver PCM before Stop");
+  await evaluate("document.querySelector('#stop-recording').focus()");await key(" ",32);
+  for(let turn=0;turn<100;turn++){if(await evaluate("!pwaTest.state.voice"))break;await pause(30);}
+  Object.assign(output.voice,await evaluate("({...voiceEvidence,generator:undefined,stream:undefined,draft:document.querySelector('#message').value,readOnly:document.querySelector('#message').readOnly,focus:document.activeElement.id,status:document.querySelector('#voice-status').textContent})"));
+  assert.equal(output.voice.uploads,1,JSON.stringify(output.voice));assert.ok(output.voice.bytes>=3840&&output.voice.bytes<=960000);assert.ok(output.voice.stopped);assert.equal(output.voice.draft,'Synthetic editable browser draft');assert.equal(output.voice.readOnly,false);assert.equal(output.voice.focus,'message');
+  await evaluate("voiceEvidence.generator.close();document.querySelector('#message').value='';pwaTest.updateControls();document.querySelector('#record-message').focus()");await key(" ",32);await pause(150);await key("Escape",27);
+  assert.equal(await evaluate("pwaTest.state.voice"),null);assert.equal(await evaluate("voiceEvidence.uploads"),1);await evaluate("voiceEvidence.generator.close()");
   await select("garmin");
-  await evaluate("pwaTest.state.hasIdentity=true;pwaTest.setConnected(false);pwaTest.logout()");
+  await evaluate("pwaTest.state.csrf=null;pwaTest.state.hasIdentity=true;pwaTest.setConnected(false);pwaTest.logout()");
   output.logoutFocus = await evaluate("document.activeElement.id"); assert.equal(output.logoutFocus, "ticket");
   await call("Page.setFontSizes", { fontSizes: { standard: 32, fixed: 32 } });
   await call("Emulation.setDeviceMetricsOverride", { width: 320, height: 844, deviceScaleFactor: 1, mobile: false });

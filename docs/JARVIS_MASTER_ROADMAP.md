@@ -14,10 +14,10 @@ historical evidence remains, no pass or physical/MVP completion inferred. This p
 older phone execution directions below. Automated code/security gates and all authority/privacy,
 $0, publication and native dependency holds remain. See root [AGENTS.md](../AGENTS.md).
 
-Completed development: [F12 — Chat / Garmin / Settings navigation](PWA_F12_NAVIGATION.md), shell v9.
-Proposed next subphase: [F13 — PWA push-to-talk](PWA_F13_PUSH_TO_TALK.md); planning complete,
-implementation not started. Active PWA estimate: **94%**, milestone-based, including verified F12
-navigation; planning and skipped phone checks add no acceptance credit.
+Completed development: [F13 — PWA push-to-talk](phase-reports/PWA_F13_COMPLETION.md), shell v10;
+F13A–F13D implemented and verified within repository/automated scope. Production voice stays off.
+No next phase queued. Active PWA estimate: **94%**, based on existing MVP milestones. Optional
+voice adds verified capability; skipped phone checks add no physical/MVP acceptance credit.
 
 ## Product target
 
@@ -221,13 +221,13 @@ smart-home work; custom voice; fine-tuning; larger local models; PostgreSQL/Redi
 multi-GPU serving; the former broad M3–M9 and H1–H8 mobile/health plans. Reconsider only after the
 four MVP milestones pass and the owner explicitly reprioritizes them.
 
-2026-10-17 owner direction authorizes planning optional foreground PWA voice input as **F13**.
+2026-10-17 owner direction authorizes optional foreground PWA voice input as **F13**.
 The [F13 plan](PWA_F13_PUSH_TO_TALK.md) reuses local speech and Core controls, returns an editable
-draft and retains explicit Send. Implementation has not started; basic MVP exit criteria remain.
+draft and retains explicit Send. F13A–F13D now implemented; basic MVP exit criteria remain.
 
 ## Current development boundary
 
-**F12 — Chat / Garmin / Settings navigation** is complete within its bounded repository scope.
+Prior **F12 — Chat / Garmin / Settings navigation** evidence remains dated and complete.
 Shell v9 presents all three surfaces with persistent accessible links, focus/back/forward behavior
 and existing Core contracts. Session/stream/request/conversation/draft ownership survives selection;
 view selection performs no API action. **73** lifecycle tests, **72** desktop layout cases plus six
@@ -236,14 +236,14 @@ secret scan and synthetic transport gates pass. See [F12 completion](phase-repor
 No new enrollment/access, native audit workaround or deployment. Manual phone checks remain
 **skipped by owner; unverified**; no physical/MVP completion claimed.
 
-**Proposed F13 — PWA push-to-talk** is planned against `7517e6a`/shell v9. Bounded foreground
-capture → authenticated local transcription → reviewable draft → existing explicit Send. Existing
-Core identity/origin/CSRF/scope, voice kill, privacy routing and approval controls remain required.
-PCM clips stay within the unchanged 1 MiB remote body ceiling. Default-off capability, no cloud
-speech, new enrollment/scope, production enablement, native package change or deployment. Optional
-speech adapters are absent from the inspected root environment; locked-extra/model readiness is
-an implementation prerequisite. See [plan and gates](PWA_F13_PUSH_TO_TALK.md). Planning only;
-estimate stays **94%**, native publication hold retained, all manual phone checks skipped/unverified.
+**F13 — PWA push-to-talk** is complete within repository/automated scope from `b6fd3fd`, shell v10.
+Bounded foreground capture → authenticated local transcription → reviewable draft → explicit Send.
+Core identity/origin/CSRF/scope, voice kill, privacy routing and approvals remain authoritative.
+Locked voice adapters/model are ready; real local STT passes on synthetic SAPI audio. Production
+capability remains default off. No enrollment/scope, credential, deployment or native package change.
+See [completion evidence](phase-reports/PWA_F13_COMPLETION.md). Estimate stays **94%** on existing
+MVP milestones; optional input adds no physical acceptance credit. Native publication hold remains.
+All manual phone checks **skipped by owner; unverified**. No next phase queued.
 
 The dated F11 notes below are historical evidence, not instructions to resume skipped phone checks.
 

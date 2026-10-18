@@ -36,6 +36,7 @@ PWA_ASSETS = (
     "index.html",
     "app.css",
     "app.js",
+    "pcm-worklet.js",
     "sw.js",
     "manifest.webmanifest",
     "icon.svg",

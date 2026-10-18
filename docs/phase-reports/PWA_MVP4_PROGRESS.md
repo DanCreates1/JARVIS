@@ -2,7 +2,7 @@
 
 - Status: `in-progress`; repository implementation verified; remaining manual phone checks **skipped by owner; unverified** (2026-10-16). Automated/release gates remain.
 - Audit baseline: `ed4ee18`, shell v6; work started at `1f07d4c` after concurrent M3C evidence commit.
-- Completed subphase: [F12 navigation](../PWA_F12_NAVIGATION.md), repository/automated scope, shell v9. Proposed next: [F13 push-to-talk](../PWA_F13_PUSH_TO_TALK.md), planning complete; implementation not started. Phone-check track stays stopped by owner.
+- Completed subphase: [F13 push-to-talk](PWA_F13_COMPLETION.md), F13A–F13D repository/automated scope, shell v10. Production voice stays off. No next phase queued. Phone-check track stays stopped by owner.
 - Scope: owner authorized F11 implementation on 2026-10-14 while M3C/M4A physical gates remain open.
   Existing native candidates were reviewed and advanced through compatible SDK 57 patches; audit hold remains.
 - M3C physical-phone acceptance remains separate. MVP 4 is not complete.
@@ -34,6 +34,21 @@ row. Use the existing matrix; M3C acceptance stays separate.
 - [ ] Physical F11 soak and measured phone performance thresholds.
 
 ## Evidence
+
+### 2026-10-17 — F13 implementation from `b6fd3fd`
+
+F13A–F13D complete within repository/automated scope. Core-owned transcription-only service,
+authenticated bounded PCM upload, default-off host gate/readiness/software kill, one actual native
+worker slot, scoped identity revalidation and metadata-only audit are implemented. Shell v10 adds
+deliberate foreground microphone controls, cleanup on lifecycle changes and editable transcript
+draft; existing Send remains explicit. Worklet resampling, late ownership, privacy/failure/auth
+and desktop accessibility are verified. Real CPU/int8 `base.en` STT recognizes synthetic SAPI audio;
+browser fixture responses remain separate fake evidence. Full gate counts and limitations live in
+[F13 completion](PWA_F13_COMPLETION.md). Native manifests remain held and unpublished.
+
+Active PWA estimate stays **94%** on existing MVP milestones: F13 is optional input capability,
+not physical acceptance. Manual phone checks **skipped by owner; unverified**. Aggregate MVP 4
+remains incomplete. No deployment, production enablement, enrollment, scope or credential change.
 
 ### 2026-10-17 — proposed F13 planning at `7517e6a`
 
@@ -907,9 +922,9 @@ physical F11 soak and performance/release gates remain open. Targets are now fro
 [F11 physical ledger](../PWA_F11_PHYSICAL_ACCEPTANCE.md); no phone sample accepted. Estimate is milestone-based,
 not a measured test percentage.
 
-## Current development handoff — 2026-10-16
+## Current development handoff — 2026-10-17
 
-**F12 complete** within bounded repository/automated scope; see [completion](PWA_F12_COMPLETION.md).
-Current source is shell v9. No subsequent phase queued. Manual phone checks stay skipped by owner;
+**F13A–F13D complete** within bounded repository/automated scope; see [completion](PWA_F13_COMPLETION.md).
+Current source is shell v10. No subsequent phase queued. Manual phone checks stay skipped by owner;
 unverified. Preserve held mobile candidates and separate M3C authority. Current estimate **94%**
 includes verified F12 navigation on the existing MVP milestone basis; no physical/MVP closure.

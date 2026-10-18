@@ -86,11 +86,12 @@ function harness(records = new Map(), hash = "") {
       return tx;
     },
   };
+  const listen = (name, callback) => { const previous = windowEvents[name]; windowEvents[name] = (...args) => { previous?.(...args); callback(...args); }; };
   const context = vm.createContext({
     AbortController, DOMException, TextEncoder, URLSearchParams, Date: FakeDate, Promise, CSS: { escape: value => value },
     crypto: { randomUUID: () => "synthetic-request" },
-    document: { querySelector: get, createElement: element, addEventListener: (name, callback) => { windowEvents[name] = callback; } },
-    window: { location, history, scrollTo() {}, addEventListener: (name, callback) => { windowEvents[name] = callback; } },
+    document: { querySelector: get, createElement: element, addEventListener: listen },
+    window: { location, history, scrollTo() {}, addEventListener: listen },
     navigator: { onLine: true },
     indexedDB: { open: () => storageRequest(database) },
     sessionStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
@@ -136,6 +137,117 @@ function harness(records = new Map(), hash = "") {
     };
   };
   return { run, ready, activate, get, requests, summary, respond, windowEvents, context, clock, setIdentity, waitForRequests, runTimer, storage, records, holdMarkerCommit, fakeEnrollmentCrypto, history, historyEntries, location };
+}
+
+function voiceHarness() {
+  const h = harness(), permission = deferred(), tracks = [{ stopped: 0, stop() { this.stopped++; } }];
+  const stream = { getTracks: () => tracks }, resources = { requests: 0, closed: 0, disconnected: 0, ports: 0, nodes: [] };
+  h.context.navigator.mediaDevices = { getUserMedia(options) { resources.requests++; assert.equal(options.video, false); return permission.promise; } };
+  h.context.window.AudioContext = class {
+    constructor() { this.sampleRate = 48000; this.state = "running"; resources.context = this; }
+    audioWorklet = { addModule: async url => { assert.equal(url, "/app/pcm-worklet.js?v=10"); } };
+    createMediaStreamSource() { return { connect: node => { assert.equal(node.options.numberOfOutputs, 1); }, disconnect: () => resources.disconnected++ }; }
+    async resume() {}
+    async close() { resources.closed++; this.state = "closed"; }
+  };
+  h.context.window.AudioWorkletNode = class {
+    constructor(context, name, options) {
+      this.options = options; resources.nodes.push(this);
+      this.port = { onmessage: null, close: () => resources.ports++, postMessage: data => { if (data === "stop") queueMicrotask(() => this.port.onmessage?.({ data: { done: true } })); } };
+    }
+    disconnect() { resources.disconnected++; }
+    connect() {}
+  };
+  h.voiceActivate = () => { h.activate(); h.run("state.voiceReady=true;updateControls()"); };
+  h.grant = () => permission.resolve(stream);
+  h.deny = () => permission.reject(new Error("denied"));
+  h.voiceResources = resources; h.voiceTracks = tracks;
+  h.voiceChunk = (size = 2048) => resources.nodes.at(-1).port.onmessage({ data: { pcm: new ArrayBuffer(size) } });
+  h.voiceStart = async () => { const promise = h.run("recordMessage()"); h.grant(); await promise; };
+  return h;
+}
+
+test("voice has no permission/network side effects before explicit Record; empty current Chat required", async () => {
+  const h = voiceHarness(); await h.ready; h.voiceActivate();
+  h.run("selectView('settings');selectView('chat')");
+  assert.equal(h.voiceResources.requests, 0); assert.equal(h.requests.length, 0);
+  for (const block of ["ui.message.value='draft'", "state.pendingRequest={request_id:'uncertain'}", "state.historyBusy=true", "state.voiceReady=false"]) {
+    h.run(block); await h.run("recordMessage()"); assert.equal(h.voiceResources.requests, 0);
+    h.run("ui.message.value='';state.pendingRequest=null;state.historyBusy=false;state.voiceReady=true");
+  }
+});
+
+test("voice Stop releases microphone before upload; transcript remains editable until explicit Send", async () => {
+  const h = voiceHarness(); await h.ready; h.voiceActivate(); await h.voiceStart();
+  assert.equal(h.run("state.voice.phase"), "recording"); assert.equal(h.get("#message").readOnly, true);
+  h.voiceChunk(); h.voiceChunk(); const stop = h.run("stopRecording()"); await h.waitForRequests(1);
+  assert.ok(h.voiceTracks.every(t => t.stopped)); assert.equal(h.voiceResources.closed, 1); assert.equal(h.voiceResources.ports, 1);
+  assert.equal(h.requests[0].url, "/api/v1/client/voice/transcriptions");
+  assert.equal(h.requests[0].options.body.length, 4096); assert.equal(h.requests[0].options.cache, "no-store");
+  assert.equal(h.requests[0].options.headers["Content-Type"], "application/octet-stream");
+  h.respond(h.requests[0], { text: "<script>Synthetic draft</script>", duration_ms: 128 }); await stop;
+  assert.equal(h.get("#message").value, "<script>Synthetic draft</script>"); assert.equal(h.get("#message").readOnly, false);
+  assert.equal(h.get("#voice-status").textContent, "Review transcript, then Send."); assert.equal(h.requests.length, 1);
+  assert.equal(h.storage.size, 0); assert.equal(h.records.size, 0);
+});
+
+test("voice denial, never resolved permission and late grant leave text usable and stop all tracks", async () => {
+  for (const action of ["deny", "timeout", "discard"]) {
+    const h = voiceHarness(); await h.ready; h.voiceActivate(); const start = h.run("recordMessage()");
+    if (action === "deny") h.deny();
+    else { if (action === "timeout") h.runTimer(delay => delay === 30000); else h.run("discardVoice()"); h.grant(); }
+    await start; assert.equal(h.run("state.voice"), null); assert.equal(h.get("#message").readOnly, false);
+    assert.equal(h.requests.length, 0); if (action !== "deny") assert.ok(h.voiceTracks.every(t => t.stopped));
+  }
+});
+
+for (const action of ["discard", "escape", "hide", "pagehide", "offline", "navigation", "conversation", "session", "track", "mute", "context", "processor", "input"]) {
+  test(`voice ${action} cancels capture and releases every resource without upload`, async () => {
+    const h = voiceHarness(); await h.ready; h.voiceActivate(); await h.voiceStart(); h.voiceChunk();
+    if (action === "discard") h.run("discardVoice()");
+    if (action === "escape") h.windowEvents.keydown({ key: "Escape", preventDefault() {} });
+    if (action === "hide") { h.context.document.hidden = true; h.windowEvents.visibilitychange(); }
+    if (action === "pagehide") h.windowEvents.pagehide();
+    if (action === "offline") { h.context.navigator.onLine = false; h.windowEvents.offline(); }
+    if (action === "navigation") h.run("selectView('settings')");
+    if (action === "conversation") h.run("chooseConversation(null)");
+    if (action === "session") h.run("invalidateSession()");
+    if (action === "track") h.voiceTracks[0].onended();
+    if (action === "mute") h.voiceTracks[0].onmute();
+    if (action === "context") { h.voiceResources.context.state = "suspended"; h.voiceResources.context.onstatechange(); }
+    if (action === "processor") h.voiceResources.nodes[0].onprocessorerror();
+    if (action === "input") { h.get("#message").value = "replacement"; h.get("#message").listeners.input[0](); }
+    assert.equal(h.run("state.voice"), null); assert.ok(h.voiceTracks.every(t => t.stopped)); assert.equal(h.voiceResources.closed, 1);
+    assert.equal(h.voiceResources.ports, 1); assert.equal(h.voiceResources.disconnected, 2);
+    assert.equal(h.requests.filter(r => r.url.includes("voice")).length, 0);
+  });
+}
+
+test("voice hard wall duration stops then uploads; short, malformed and excess capture rejected", async () => {
+  const h = voiceHarness(); await h.ready; h.voiceActivate(); await h.voiceStart(); h.voiceChunk(); h.voiceChunk();
+  h.runTimer(delay => delay === 30000); await h.waitForRequests(1); h.respond(h.requests[0], { text: "bounded", duration_ms: 128 });
+  for (let i = 0; i < 20; i++) await Promise.resolve();
+  assert.equal(h.get("#message").value, "bounded");
+  for (const size of [2, 2050, 2047]) {
+    const n = voiceHarness(); await n.ready; n.voiceActivate(); await n.voiceStart(); n.voiceChunk(size); await n.run("stopRecording()");
+    assert.equal(n.requests.length, 0); assert.equal(n.run("state.voice"), null);
+  }
+});
+
+for (const action of ["discard", "conversation", "session", "composer", "logout", "back"]) {
+  test(`voice late upload result cannot overwrite ${action} owner or Send automatically`, async () => {
+    const h = voiceHarness(); await h.ready; h.voiceActivate(); await h.voiceStart(); h.voiceChunk(); h.voiceChunk();
+    const stop = h.run("stopRecording()"); await h.waitForRequests(1);
+    if (action === "discard") h.run("discardVoice()");
+    if (action === "conversation") h.run("state.conversation='other'");
+    if (action === "session") h.run("state.sessionGeneration++");
+    if (action === "composer") h.run("state.composerRevision++;ui.message.value='edited'");
+    if (action === "logout") await h.run("logout()");
+    if (action === "back") { h.run("selectView('settings')"); h.history.go(-1); }
+    h.respond(h.requests[0], { text: "obsolete", duration_ms: 128 }); await stop;
+    assert.notEqual(h.get("#message").value, "obsolete"); assert.equal(h.run("state.voice"), null);
+    assert.equal(h.requests.filter(r => r.url === "/api/v1/client/chat").length, 0);
+  });
 }
 
 test("offline logout erases local identity and displayed data while remote DELETE remains pending", async () => {

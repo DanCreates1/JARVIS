@@ -278,6 +278,38 @@ not automatic restore. Set `JARVIS_RESEARCH_ENABLED=false` and restart to disabl
 retaining the approved ledger for inspection/export/deletion. Run `jarvis doctor`; the `research
 parser sandbox` row verifies the isolated worker and locked PDF dependency.
 
+## PWA F13 voice preparation
+
+PWA voice is implemented in shell v10 and remains production-disabled:
+`JARVIS_PWA_VOICE_ENABLED=false`. Existing host software voice enablement is independently required.
+No new scope is needed beyond existing same-host `client.chat`; no browser voice-enable API exists.
+This release does not authorize changing host controls, enrollment or deployment.
+
+Prepare locked local adapters/model with existing setup, without microphone capture:
+
+```powershell
+rtk uv sync --locked --extra voice
+rtk proxy uv run --extra voice python -X utf8 -m jarvis voice setup
+rtk proxy uv run --extra voice python -X utf8 scripts/pwa-voice-acceptance.py
+```
+
+Use `python -m jarvis` when Windows Application Control blocks generated console launchers.
+Setup explicitly downloads public local models. Runtime requests use local-files-only CPU/int8 STT;
+missing adapters/cache fail unavailable while text remains usable. Plain base sync removes optional
+speech packages; retain `--extra voice` on voice tests/runs/audits. Acceptance script uses synthetic
+Windows SAPI speech and an isolated ignored fixture control file; host voice settings stay unchanged.
+Results stay under `runtime/mvp4-fixes/f13-voice/`, excluded from Git.
+
+When separately authorized host controls and secure origin are ready, Record starts deliberate
+foreground capture, Stop closes microphone tracks before upload, Discard/Escape discards, and a
+successful transcript fills an editable draft. Existing explicit Send is required. Navigation,
+hidden/pagehide/offline/session/logout and audio failure discard active work. No capture resumes
+automatically. Uploads are 120–30,000 ms canonical PCM, at most 960,000 bytes, with a 15-second read
+deadline, six starts/device/minute and one runtime transcription slot. Cancelled native inference
+keeps that slot until actual worker termination. Cached offline documents deny microphone.
+
+Manual phone checks remain **skipped by owner; unverified**. See [F13 evidence](phase-reports/PWA_F13_COMPLETION.md).
+
 ## Optional local voice
 
 Voice dependencies are locked but excluded from the text-only environment. Install them explicitly:

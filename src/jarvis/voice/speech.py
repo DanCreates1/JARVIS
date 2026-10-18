@@ -218,8 +218,8 @@ class FasterWhisperSTTProvider:
         speech_segments: Sequence[SpeechSegment],
         cancel: asyncio.Event,
     ) -> AsyncIterator[TranscriptEvent]:
-        if clip.channels != 1:
-            raise VoiceProviderError("faster-whisper adapter requires mono PCM")
+        if clip.channels != 1 or clip.sample_rate_hz != 16_000:
+            raise VoiceProviderError("faster-whisper adapter requires mono 16 kHz PCM")
         if not speech_segments:
             speech_segments = (SpeechSegment(start_ms=0, end_ms=clip.duration_ms),)
         collected: list[str] = []

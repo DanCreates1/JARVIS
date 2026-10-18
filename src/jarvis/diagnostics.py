@@ -348,6 +348,7 @@ def _pwa_shell_check() -> DiagnosticCheck:
         "index.html",
         "app.css",
         "app.js",
+        "pcm-worklet.js",
         "sw.js",
         "manifest.webmanifest",
         "icon.svg",

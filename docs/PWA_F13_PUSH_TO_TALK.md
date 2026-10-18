@@ -1,8 +1,11 @@
-# Proposed F13 — PWA push-to-talk
+# F13 — PWA push-to-talk
 
-Status: **planning complete; implementation not started**, 2026-10-17.
+Status: **F13A–F13D complete within repository/automated scope**, 2026-10-17.
+Implementation checkpoint: `b6fd3fd`; shell v9 → **v10**. Production capability stays default off.
+See [completion evidence](phase-reports/PWA_F13_COMPLETION.md). No next phase queued.
+The original planning contracts and observations below remain as dated design evidence.
 Baseline: `7517e6a` on `main`; F12 complete within repository/automated scope, shell **v9**.
-Scope of this session: inspect, design, document and publish safe planning changes only.
+Original planning-session scope: inspect, design, document and publish safe planning changes only.
 
 ## Result to build
 

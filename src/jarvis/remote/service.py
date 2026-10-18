@@ -348,6 +348,26 @@ class RemoteIdentityService:
                     created_at=now,
                 )
 
+    async def admit_signed_upload(self, token: str) -> RemoteIdentityContext:
+        """Bounded upload admission only; full signed-body proof still required afterward."""
+        session = await self._store.get_session_by_token_sha256(_sha256_hex(token.encode("ascii")))
+        if session is None or session.session_kind is not RemoteSessionKind.SIGNED_API:
+            raise RemoteAuthenticationError("invalid_session")
+        device = await self._store.get_device(session.device_id)
+        if device is None:
+            raise RemoteAuthenticationError("invalid_device")
+        context = RemoteIdentityContext(
+            host_id=device.record.host_id,
+            device_id=session.device_id,
+            session_id=session.id,
+            key_version=session.key_version,
+            audience=session.audience,
+            scopes=frozenset(session.scopes),
+            session_kind=session.session_kind,
+        )
+        await self.validate_context(context, required_scope=RemoteScope.CLIENT_CHAT)
+        return context
+
     async def authenticate_request(
         self,
         *,

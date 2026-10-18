@@ -380,7 +380,7 @@ IB live provider reads and any external writes remain separate fresh-authority g
 
 ## PWA navigation boundary
 
-Shell v9 presents persistent Chat / Garmin / Settings links over the same client DOM, Core APIs
+Shell v10 presents persistent Chat / Garmin / Settings links over the same client DOM, Core APIs
 and session owner. Allowlisted `#/chat`, `#/garmin`, `#/settings` fragments contain only public view
 selection; History API state is null. Unknown fragments normalize to Chat. No transcript, draft,
 request identifier or health value enters navigation history/storage. Initial load selects Chat
@@ -398,6 +398,24 @@ cannot replace a saved reading position. Logout exposes Settings before erasure,
 in all views, and focuses the ticket only if Settings remains selected when cleanup finishes.
 Back/forward only selects cleared views. API responses remain excluded from the shell cache.
 See [F12 navigation](PWA_F12_NAVIGATION.md) for scope and verification.
+
+## PWA transcription boundary
+
+F13 composes `PWAVoiceService` into existing web/Core lifecycle, without another Core runtime,
+desktop microphone, TTS, chat call or conversation creation. Explicit foreground capture uses a
+same-origin worklet: area-average streaming resampling to 16 kHz mono signed LE PCM, bounded blocks,
+silent render output, maximum 30 seconds. Only a current session/conversation/composer owner may
+receive an editable memory-only draft. Existing explicit Send owns Core storage and privacy routing.
+
+`JARVIS_PWA_VOICE_ENABLED` defaults false. Existing software voice control, local adapter readiness,
+same-host `client.chat` authority and cookie/CSRF/origin or final signed-body proof remain required.
+Upload admission authenticates before body collection, reserves one host runtime slot, enforces six
+starts/device/minute, 960,000 bytes and a 15-second read deadline. Local STT deadline is capped at
+90 seconds. Identity and kill state are rechecked during work and before return. Cancellation drops
+results and requests adapter cancellation; native worker retains capacity until actual termination.
+No audio/transcript persistence, cloud speech or runtime model download exists. APIs remain no-store;
+shell documents fetch current policy online and cached offline documents always deny microphone.
+See [F13 contract](PWA_F13_PUSH_TO_TALK.md) and [completion evidence](phase-reports/PWA_F13_COMPLETION.md).
 
 ## PWA Garmin boundary
 

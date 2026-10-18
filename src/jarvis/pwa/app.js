@@ -7,6 +7,8 @@ const encoder=new TextEncoder();
 const state={csrf:null,subscription:null,cursor:0,conversation:null,online:false,stopping:false,streamAbort:null,streamOwner:null,streamWake:null,hasIdentity:false,sessionGeneration:0,logoutPending:null,bootstrap:null,identityWrite:null,connecting:false,enrolling:false,sending:false,tasksBusy:false,healthAllowed:false,healthGeneration:0,healthAbort:null,healthSnapshot:null,healthTimer:null,healthMessage:"",chatActive:new Set(),chatAnnounced:new Map(),chatDrafts:new Map(),deviceId:null,pendingRequest:null,chatAction:null,chatMarkerWrite:null,historyGeneration:0,historyBusy:false,historyBefore:null,historyReady:false};
 const ui=Object.fromEntries(Object.entries({connection:"connection",setup:"setup",ticket:"ticket",ticketError:"ticket-error",accessStatus:"access-status",enroll:"enroll",connect:"connect",notify:"notify",logout:"logout",chat:"chat",chatStatus:"chat-status",message:"message",send:"send",log:"log",jumpLatest:"jump-latest",conversations:"conversation-list",newConversation:"new-conversation",refreshHistory:"refresh-history",olderHistory:"older-history",cancelChat:"cancel-chat",retryChat:"retry-chat",tasks:"tasks",taskPanel:"task-panel",tasksState:"tasks-state",refreshTasks:"refresh-tasks",device:"device-status",notice:"notice",garmin:"garmin",refreshGarmin:"refresh-garmin",garminState:"garmin-state",garminMetrics:"garmin-metrics",garminActivities:"garmin-activities"}).map(([name,id])=>[name,document.querySelector(`#${id}`)]));
 
+Object.assign(state,{voice:null,voiceReady:false,voiceMax:30000,composerRevision:0});
+Object.assign(ui,Object.fromEntries(Object.entries({record:"record-message",stopVoice:"stop-recording",discardVoice:"discard-recording",voiceStatus:"voice-status"}).map(([key,id])=>[key,document.querySelector(`#${id}`)])));
 // Navigation owns presentation only. Session, requests and private data stay in their existing owners.
 const views=Object.fromEntries(["chat","garmin","settings"].map(name=>[name,{panel:document.querySelector(`#view-${name}`),link:document.querySelector(`#nav-${name}`),heading:document.querySelector(`#${name}-title`)}]));
 const navigation={view:null,chatScroll:0,chatFollow:true};
@@ -17,6 +19,7 @@ function selectView(name,{replace=false,focus=true}={}){
   if(navigation.view==="chat"){
     navigation.chatScroll=ui.log.scrollTop;navigation.chatFollow=nearLatest()&&!historySelected();
   }
+  if(name!=="chat")discardVoice();
   navigation.view=name;
   for(const [key,view] of Object.entries(views)){
     view.panel.hidden=key!==name;
@@ -116,6 +119,7 @@ function stopStream(){
   state.streamOwner=null;
 }
 function invalidateSession(label="Session expired",guidance="Session expired. Connect existing device to renew. If rejected, ask your trusted host for device recovery."){
+  discardVoice();state.voiceReady=false;
   ++state.sessionGeneration;stopStream();state.csrf=null;state.subscription=null;state.cursor=0;state.conversation=null;
   clearChat();
   clearGarmin();state.connecting=false;state.sending=false;state.tasksBusy=false;state.chatActive.clear();state.chatAnnounced.clear();state.chatDrafts.clear();ui.chat.setAttribute("aria-busy","false");ui.chatStatus.textContent="";ui.tasksState.textContent="";
@@ -127,7 +131,7 @@ async function api(path,options={}){
   const headers={...(options.headers||{})},method=options.method||"GET",csrf=state.csrf,generation=state.sessionGeneration;
   if(method==="GET")headers["X-Jarvis-Browser-Origin"]=window.location.origin;
   if(method!=="GET"&&state.csrf)headers["X-Jarvis-CSRF"]=state.csrf;
-  const timeout=path.startsWith("/client/events?")?30000:path.startsWith("/client/garmin")?95000:10000;
+  const timeout=path.startsWith("/client/voice/transcriptions")?110000:path.startsWith("/client/events?")?30000:path.startsWith("/client/garmin")?95000:10000;
   const response=await timedFetch(`${API}${path}`,{credentials:"include",cache:"no-store",...options,headers},timeout);
   if(options.signal?.aborted){response.discard();throw new DOMException("Request aborted","AbortError");}
   if(response.status===401){response.discard();if(currentSession(generation,csrf))invalidateSession();throw new ApiError("Session expired",401);}
@@ -150,6 +154,7 @@ function updateControls(){
   ui.connect.disabled=Boolean(state.enrolling)||Boolean(state.connecting);
   ui.logout.disabled=!state.hasIdentity;
   ui.setup.setAttribute("aria-busy",String(Boolean(state.enrolling||state.connecting)));
+  updateVoiceControls();
   ui.garmin.setAttribute("aria-busy",String(Boolean(state.healthAbort)));
   ui.taskPanel.setAttribute("aria-busy",String(Boolean(state.tasksBusy)));
 }
@@ -158,7 +163,7 @@ function setConnected(value,label=value?"Connected":"Offline shell"){
   const connectionText=navigator.onLine?label:"Network offline";
   if(ui.connection.textContent!==connectionText)ui.connection.textContent=connectionText;
   ui.connection.className=`status ${state.online?"online":navigator.onLine?"warn":""}`;
-  if(!state.online){cancelGarmin();if(state.healthAllowed){state.healthMessage=navigator.onLine?"Connection unavailable. Shown Garmin data may be stale.":"Offline. Shown Garmin data may be stale.";renderGarminStatus();}}
+  if(!state.online){discardVoice();cancelGarmin();if(state.healthAllowed){state.healthMessage=navigator.onLine?"Connection unavailable. Shown Garmin data may be stale.":"Offline. Shown Garmin data may be stale.";renderGarminStatus();}}
   else if(/^(Offline\.|Connection unavailable\.)/.test(state.healthMessage)){state.healthMessage="";renderGarminStatus();}
   updateControls();
 }
@@ -196,6 +201,7 @@ function completeReply(id,message,completed=false){
 }
 
 function clearChat(){
+  discardVoice();
   navigation.chatScroll=0;navigation.chatFollow=true;
   ++state.historyGeneration;state.historyBusy=false;state.historyBefore=null;state.historyReady=false;
   state.pendingRequest=null;state.chatAction=null;state.chatActive.clear();state.chatAnnounced.clear();state.chatDrafts.clear();
@@ -249,6 +255,7 @@ function selectCurrentConversation(){
   ui.conversations.value=state.conversation;
 }
 async function refreshHistory({conversation,older=false}={}){
+  discardVoice();
   if(!state.csrf||state.historyBusy)return;
   const generation=state.sessionGeneration,csrf=state.csrf,history=++state.historyGeneration,operation={};state.historyBusy=operation;updateControls();
   const current=()=>currentSession(generation,csrf)&&state.historyGeneration===history;
@@ -284,6 +291,7 @@ async function refreshHistory({conversation,older=false}={}){
   finally{if(state.historyBusy===operation)state.historyBusy=false;updateControls();}
 }
 async function chooseConversation(conversation){
+  discardVoice();
   if(!state.online||state.pendingRequest||state.sending||state.chatActive.size||state.chatAction)return;
   clearChat();state.conversation=conversation||null;
   await refreshHistory({conversation:state.conversation});updateControls();
@@ -345,7 +353,7 @@ async function connect(){
   }finally{if(state.connecting===generation)state.connecting=false;updateControls();}
   if(current())startStreamOwnership();
 }
-async function refreshStatus(){const generation=state.sessionGeneration,csrf=state.csrf,status=await (await api("/client/status")).json();if(!currentSession(generation,csrf))return;ui.device.replaceChildren();const entries=[["Name",status.device.display_name],["State",status.device.state],["Key version",status.device.key_version],["Session",status.session.id]];for(const [name,value] of entries){const wrap=document.createElement("div"),dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=name;dd.textContent=String(value);wrap.append(dt,dd);ui.device.append(wrap);}}
+async function refreshStatus(){const generation=state.sessionGeneration,csrf=state.csrf,status=await (await api("/client/status")).json();if(!currentSession(generation,csrf))return;state.voiceReady=status.voice?.available===true;state.voiceMax=Math.min(30000,Math.max(120,status.voice?.max_duration_ms||30000));updateVoiceControls();ui.device.replaceChildren();const entries=[["Name",status.device.display_name],["State",status.device.state],["Key version",status.device.key_version],["Session",status.session.id]];for(const [name,value] of entries){const wrap=document.createElement("div"),dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=name;dd.textContent=String(value);wrap.append(dt,dd);ui.device.append(wrap);}}
 async function refreshTasks(){
   if(state.tasksBusy)return;
   const generation=state.sessionGeneration,csrf=state.csrf;const operation={};state.tasksBusy=operation;ui.tasksState.textContent="Checking tasks…";updateControls();
@@ -439,6 +447,7 @@ function startStreamOwnership(){
   return owner.promise;
 }
 async function sendMessage(event){
+  if(state.voice){event.preventDefault();return;}
   event.preventDefault();if(!state.online||!state.subscription||state.sending||state.pendingRequest||state.chatActive.size||!state.historyReady||state.historyBusy)return;
   const message=ui.message.value.trim();if(!message)return;
   const pending={request_id:randomId("request"),payload:{message,conversation_id:state.conversation},uncertain:false,posted:false};state.pendingRequest=pending;
@@ -525,6 +534,86 @@ async function logout(){
   });
   await local;
 }
+function voiceCurrent(op){return state.voice===op&&currentSession(op.generation,op.csrf)&&state.conversation===op.conversation&&state.composerRevision===op.revision&&navigation.view==="chat"&&!document.hidden&&state.online;}
+function updateVoiceControls(){
+  const op=state.voice,blocked=state.sending||state.pendingRequest||state.chatActive.size||state.historyBusy||state.chatAction;
+  ui.record.disabled=!state.online||!state.historyReady||!state.voiceReady||Boolean(op)||Boolean(blocked)||Boolean(ui.message.value);
+  ui.record.hidden=Boolean(op);ui.stopVoice.hidden=op?.phase!=="recording";ui.discardVoice.hidden=!op;
+  ui.message.readOnly=Boolean(op);if(op)ui.send.disabled=true;
+  if(!op&&state.online&&state.voiceReady&&ui.voiceStatus.textContent.startsWith("Local voice unavailable."))ui.voiceStatus.textContent=`Record up to ${state.voiceMax/1000} seconds. Review transcript, then Send.`;
+}
+function closeVoiceGraph(op){
+  clearTimeout(op.permissionTimer);clearTimeout(op.timer);clearTimeout(op.tick);clearTimeout(op.drainTimer);
+  op.stream?.getTracks().forEach(track=>{track.onended=null;track.onmute=null;track.stop();});op.stream=null;
+  if(op.node){op.node.onprocessorerror=null;op.node.port.onmessage=null;op.node.port.close();op.node.disconnect();op.node=null;}
+  op.source?.disconnect();op.source=null;
+  if(op.context){op.context.onstatechange=null;op.context.close().catch(()=>{});op.context=null;}
+}
+function discardVoice(label="Recording discarded. Type or record a new message."){
+  const op=state.voice;if(!op)return;
+  state.voice=null;op.abort.abort();op.drain?.();closeVoiceGraph(op);op.chunks=[];
+  ui.voiceStatus.textContent=label;updateControls();
+}
+async function recordMessage(){
+  updateVoiceControls();if(ui.record.disabled||navigation.view!=="chat"||document.hidden)return;
+  if(!navigator.mediaDevices?.getUserMedia||!window.AudioContext||!window.AudioWorkletNode){ui.voiceStatus.textContent="Microphone capture unsupported. Type a message.";return;}
+  const op={generation:state.sessionGeneration,csrf:state.csrf,conversation:state.conversation,revision:state.composerRevision,phase:"permission",abort:new AbortController(),chunks:[],bytes:0};state.voice=op;
+  ui.voiceStatus.textContent="Requesting microphone permission. Discard or Escape cancels.";updateControls();
+  op.permissionTimer=setTimeout(()=>{if(state.voice===op)discardVoice("Microphone permission timed out. Type or record again.");},30000);
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,sampleRate:16000,echoCancellation:true,noiseSuppression:true},video:false});
+    if(!voiceCurrent(op)){stream.getTracks().forEach(track=>track.stop());return;}
+    op.stream=stream;stream.getTracks().forEach(track=>{track.onended=track.onmute=()=>discardVoice("Microphone interrupted. Recording discarded.");});
+    op.context=new window.AudioContext({sampleRate:16000});
+    if(op.context.sampleRate<16000||op.context.sampleRate>96000)throw new Error("Unsupported sample rate");
+    await op.context.audioWorklet.addModule("/app/pcm-worklet.js?v=10");if(!voiceCurrent(op))return;
+    op.node=new window.AudioWorkletNode(op.context,"jarvis-pcm",{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[1],processorOptions:{maxSamples:state.voiceMax*16}});
+    // Worklet writes only zeros to this output; connection keeps browser render graph pulling.
+    op.node.connect(op.context.destination);
+    op.node.onprocessorerror=()=>discardVoice("Audio capture failed. Type a message.");
+    op.node.port.onmessage=event=>{
+      if(!voiceCurrent(op))return;
+      if(event.data.error){discardVoice("Audio capture overloaded. Type a message.");return;}
+      if(event.data.pcm){
+        const bytes=new Uint8Array(event.data.pcm);
+        if(bytes.length>2048||bytes.length%2||op.bytes+bytes.length>state.voiceMax*32){discardVoice("Recording limit exceeded. Type or record again.");return;}
+        op.chunks.push(bytes);op.bytes+=bytes.length;op.node?.port.postMessage("ack");
+      }
+      if(event.data.done){if(op.drain)op.drain();else stopRecording(op,true);}
+    };
+    op.source=op.context.createMediaStreamSource(stream);op.source.connect(op.node);
+    await op.context.resume();if(!voiceCurrent(op))return;
+    clearTimeout(op.permissionTimer);op.phase="recording";op.started=Date.now();
+    op.context.onstatechange=()=>{if(op.context?.state!=="running")discardVoice("Audio context interrupted. Recording discarded.");};
+    const tick=()=>{if(state.voice!==op||op.phase!=="recording")return;ui.voiceStatus.textContent=`Microphone on: ${Math.floor((Date.now()-op.started)/1000)} seconds. Stop or Discard.`;op.tick=setTimeout(tick,1000);};tick();
+    op.timer=setTimeout(()=>stopRecording(op),state.voiceMax);updateControls();ui.stopVoice.focus();
+  }catch{if(state.voice===op)discardVoice("Microphone unavailable or permission denied. Type a message.");}
+}
+async function stopRecording(op=state.voice,done=false){
+  if(!op||!voiceCurrent(op)||op.phase!=="recording")return;
+  op.phase="stopping";clearTimeout(op.timer);clearTimeout(op.tick);
+  op.stream?.getTracks().forEach(track=>{track.onended=null;track.onmute=null;track.stop();});
+  ui.voiceStatus.textContent="Microphone off. Preparing local transcription.";updateControls();
+  if(!done)await new Promise(resolve=>{op.drain=resolve;op.drainTimer=setTimeout(()=>{discardVoice("Audio capture did not finish. Type or record again.");resolve();},1000);op.node.port.postMessage("stop");});
+  if(!voiceCurrent(op))return;closeVoiceGraph(op);
+  if(op.bytes<3840){discardVoice("Recording too short. Type or record again.");return;}
+  const pcm=new Uint8Array(op.bytes);let offset=0;for(const chunk of op.chunks){pcm.set(chunk,offset);offset+=chunk.length;}op.chunks=[];
+  op.phase="transcribing";ui.voiceStatus.textContent="Transcribing locally. Discard or Escape cancels.";updateControls();
+  try{
+    const result=await(await api("/client/voice/transcriptions",{method:"POST",headers:{"Content-Type":"application/octet-stream"},body:pcm,signal:op.abort.signal})).json();
+    if(!voiceCurrent(op)||ui.message.value)return;
+    if(typeof result.text!=="string"||!result.text.trim()||result.text.length>100000)throw new Error("Invalid transcript");
+    ui.message.value=result.text;state.composerRevision++;state.voice=null;ui.voiceStatus.textContent="Review transcript, then Send.";updateControls();ui.message.focus();
+  }catch{if(state.voice===op)discardVoice("Local transcription unavailable. Type or record again.");}
+  finally{if(state.voice===op)discardVoice();}
+}
+ui.record.addEventListener("click",recordMessage);
+ui.stopVoice.addEventListener("click",()=>stopRecording());
+ui.discardVoice.addEventListener("click",()=>{discardVoice();ui.record.focus();});
+ui.message.addEventListener("input",()=>{state.composerRevision++;if(state.voice)discardVoice();updateVoiceControls();});
+document.addEventListener("keydown",event=>{if(event.key==="Escape"&&state.voice){event.preventDefault();discardVoice();ui.record.focus();}});
+window.addEventListener("pagehide",()=>discardVoice());
+document.addEventListener("visibilitychange",()=>{if(document.hidden)discardVoice();});
 async function guarded(action){try{await action();}catch(error){announce(error.message||"Operation failed safely");}}
 
 ui.enroll.addEventListener("click",()=>guarded(enroll));ui.connect.addEventListener("click",()=>guarded(connect));ui.chat.addEventListener("submit",sendMessage);ui.notify.addEventListener("click",()=>guarded(enableNotifications));ui.logout.addEventListener("click",()=>guarded(logout));ui.refreshTasks.addEventListener("click",()=>guarded(refreshTasks));
@@ -537,6 +626,6 @@ window.addEventListener("online",()=>{
 });
 window.addEventListener("pageshow",()=>{renderGarminStatus();if(state.csrf&&state.subscription&&!state.connecting){state.streamAbort?.abort();setConnected(false,"Checking live connection");startStreamOwnership();}});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderGarminStatus();if(state.csrf&&state.subscription&&!state.connecting){state.streamAbort?.abort();setConnected(false,"Checking live connection");startStreamOwnership();}}});
-if("serviceWorker" in navigator)navigator.serviceWorker.register("/app/sw.js?v=9",{scope:"/app/"}).catch(()=>announce("Offline shell unavailable"));
+if("serviceWorker" in navigator)navigator.serviceWorker.register("/app/sw.js?v=10",{scope:"/app/"}).catch(()=>announce("Offline shell unavailable"));
 const initialGeneration=state.sessionGeneration;
 loadIdentity().then(identity=>{if(state.sessionGeneration!==initialGeneration)return;state.hasIdentity=Boolean(identity);updateControls();if(identity){ui.accessStatus.textContent="Enrolled key found. Connect existing device to start a fresh session.";announce(ui.accessStatus.textContent);}}).catch(()=>{if(state.sessionGeneration===initialGeneration)announce("Device storage unavailable");});

@@ -9,7 +9,7 @@
   <link rel="manifest" href="/app/manifest.webmanifest">
   <link rel="icon" href="/app/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app/app.css">
-  <script src="/app/app.js?v=9" type="module"></script>
+  <script src="/app/app.js?v=10" type="module"></script>
 </head>
 <body>
   <header>
@@ -48,11 +48,17 @@
         <textarea id="message" rows="2" maxlength="100000" placeholder="Ask JARVIS" disabled></textarea>
         <button id="send" type="submit" disabled>Send</button>
       </form>
+      <div class="actions" aria-label="Voice message">
+        <button id="record-message" type="button" class="secondary" disabled aria-describedby="voice-status">Record message</button>
+        <button id="stop-recording" type="button" class="secondary" hidden>Stop recording</button>
+        <button id="discard-recording" type="button" class="secondary" hidden>Discard recording</button>
+      </div>
+      <p id="voice-status" class="hint" role="status" aria-live="polite" aria-atomic="true">Local voice unavailable. Type a message.</p>
       <div class="actions">
         <button id="cancel-chat" type="button" class="secondary" disabled>Cancel reply</button>
         <button id="retry-chat" type="button" class="secondary" hidden disabled>Retry request</button>
       </div>
-      <p class="hint">Use Settings to enroll or connect your device. Offline messages are never queued. Remote voice remains disabled until secure deployment validation.</p>
+      <p class="hint">Use Settings to enroll or connect your device. Offline messages are never queued. Voice requires host enablement; review transcript, then Send.</p>
     </section>
 
     <section id="task-panel" class="panel" aria-labelledby="tasks-title">
