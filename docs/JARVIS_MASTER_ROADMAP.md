@@ -1,7 +1,7 @@
 # JARVIS Master Roadmap
 
 Status: active, development-first PWA path; manual phone checks skipped by owner
-Updated: 2026-10-16
+Updated: 2026-10-17
 Repository: `DanCreates1/JARVIS`, branch `main`
 
 ## Current owner execution policy — 2026-10-16
@@ -15,8 +15,9 @@ older phone execution directions below. Automated code/security gates and all au
 $0, publication and native dependency holds remain. See root [AGENTS.md](../AGENTS.md).
 
 Completed development: [F12 — Chat / Garmin / Settings navigation](PWA_F12_NAVIGATION.md), shell v9.
-No subsequent phase queued. Active PWA estimate: **94%**, milestone-based, including verified F12
-navigation; skipped phone checks add no acceptance credit.
+Proposed next subphase: [F13 — PWA push-to-talk](PWA_F13_PUSH_TO_TALK.md); planning complete,
+implementation not started. Active PWA estimate: **94%**, milestone-based, including verified F12
+navigation; planning and skipped phone checks add no acceptance credit.
 
 ## Product target
 
@@ -220,6 +221,10 @@ smart-home work; custom voice; fine-tuning; larger local models; PostgreSQL/Redi
 multi-GPU serving; the former broad M3–M9 and H1–H8 mobile/health plans. Reconsider only after the
 four MVP milestones pass and the owner explicitly reprioritizes them.
 
+2026-10-17 owner direction authorizes planning optional foreground PWA voice input as **F13**.
+The [F13 plan](PWA_F13_PUSH_TO_TALK.md) reuses local speech and Core controls, returns an editable
+draft and retains explicit Send. Implementation has not started; basic MVP exit criteria remain.
+
 ## Current development boundary
 
 **F12 — Chat / Garmin / Settings navigation** is complete within its bounded repository scope.
@@ -229,7 +234,16 @@ view selection performs no API action. **73** lifecycle tests, **72** desktop la
 short-viewport focus cases, full **1,464 passed / 3 optional skips** at **85.67%** coverage, audits,
 secret scan and synthetic transport gates pass. See [F12 completion](phase-reports/PWA_F12_COMPLETION.md).
 No new enrollment/access, native audit workaround or deployment. Manual phone checks remain
-**skipped by owner; unverified**; no physical/MVP completion claimed. No subsequent phase queued.
+**skipped by owner; unverified**; no physical/MVP completion claimed.
+
+**Proposed F13 — PWA push-to-talk** is planned against `7517e6a`/shell v9. Bounded foreground
+capture → authenticated local transcription → reviewable draft → existing explicit Send. Existing
+Core identity/origin/CSRF/scope, voice kill, privacy routing and approval controls remain required.
+PCM clips stay within the unchanged 1 MiB remote body ceiling. Default-off capability, no cloud
+speech, new enrollment/scope, production enablement, native package change or deployment. Optional
+speech adapters are absent from the inspected root environment; locked-extra/model readiness is
+an implementation prerequisite. See [plan and gates](PWA_F13_PUSH_TO_TALK.md). Planning only;
+estimate stays **94%**, native publication hold retained, all manual phone checks skipped/unverified.
 
 The dated F11 notes below are historical evidence, not instructions to resume skipped phone checks.
 

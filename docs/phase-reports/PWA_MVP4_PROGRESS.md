@@ -2,7 +2,7 @@
 
 - Status: `in-progress`; repository implementation verified; remaining manual phone checks **skipped by owner; unverified** (2026-10-16). Automated/release gates remain.
 - Audit baseline: `ed4ee18`, shell v6; work started at `1f07d4c` after concurrent M3C evidence commit.
-- Active subphase: [F12 navigation](../PWA_F12_NAVIGATION.md) complete within repository/automated scope, shell v9; no subsequent phase queued. Phone-check track stays stopped by owner.
+- Completed subphase: [F12 navigation](../PWA_F12_NAVIGATION.md), repository/automated scope, shell v9. Proposed next: [F13 push-to-talk](../PWA_F13_PUSH_TO_TALK.md), planning complete; implementation not started. Phone-check track stays stopped by owner.
 - Scope: owner authorized F11 implementation on 2026-10-14 while M3C/M4A physical gates remain open.
   Existing native candidates were reviewed and advanced through compatible SDK 57 patches; audit hold remains.
 - M3C physical-phone acceptance remains separate. MVP 4 is not complete.
@@ -34,6 +34,24 @@ row. Use the existing matrix; M3C acceptance stays separate.
 - [ ] Physical F11 soak and measured phone performance thresholds.
 
 ## Evidence
+
+### 2026-10-17 — proposed F13 planning at `7517e6a`
+
+Owner requests a bounded PWA push-to-talk plan reusing local speech and Core controls. Inspecting
+v9 confirms existing remote identity/origin/CSRF/scope and 1 MiB body ceiling, a microphone-denying
+Permissions Policy, and reusable Phase 2 STT/VAD/software kill contracts. Root Python **3.11.9**
+has NumPy but no faster-whisper/Silero/sounddevice; model readiness was not exercised. Plan:
+explicit foreground capture, at most 30 seconds of canonical PCM, authenticated local-only
+transcription, editable memory-only draft, then existing explicit Send. No capture or chat auto-send.
+
+[F13 plan](../PWA_F13_PUSH_TO_TALK.md) freezes initial resource limits, lifecycle/privacy/authority
+rules, four implementation milestones and automated acceptance gates. No application code,
+dependency install/download, configuration change, enrollment, health read or deployment ran.
+Held native hashes still match F12 and remain excluded from publication. Planning checks cover
+documentation links, whitespace, safe-source secret scanning and hash preservation; no new F13
+runtime or physical acceptance claimed. Manual phone checks remain **skipped by owner; unverified**.
+Estimate stays **94%**, based on verified implementation milestones; planning adds no credit.
+Aggregate MVP 4 remains incomplete. Next work is F13 implementation only when requested.
 
 ### 2026-10-16 — F12 navigation at `0d77f8c`
 
