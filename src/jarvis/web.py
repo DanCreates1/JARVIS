@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 from http.cookies import CookieError, SimpleCookie
 from pathlib import Path as FileSystemPath
 from typing import Annotated, Any, Literal, Self, cast
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 from fastapi import FastAPI, HTTPException, Path, Query, Request, Response
 from fastapi.encoders import jsonable_encoder
@@ -65,6 +65,7 @@ from jarvis.remote import (
     TopologyNegotiator,
     client_contract_metadata,
 )
+from jarvis.remote.attachments import MAX_STAGE_BYTES
 from jarvis.remote.chat import PWAChatCoordinator
 from jarvis.remote.chat_store import PWAChatError
 from jarvis.research import (
@@ -204,6 +205,15 @@ class PWAChatInput(BaseModel):
     conversation_id: str | None = Field(default=None, max_length=200)
     model_role: ModelRole | None = None
     reasoning_level: ReasoningLevel | None = None
+    upload_ids: tuple[Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], ...] = Field(
+        default=(), max_length=4
+    )
+
+
+class PWASearchInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    query: str = Field(min_length=1, max_length=200)
+    before: int | None = Field(default=None, ge=1)
 
 
 class ProactivityOwnershipInput(BaseModel):
@@ -237,6 +247,7 @@ def create_app(
             conversations=components.store,
             hub=pwa_hub,
             identity=components.remote_identity,
+            attachments=components.attachments,
         )
         await chat.initialize()
         app.state.pwa_chat = chat
@@ -283,6 +294,11 @@ def create_app(
             lease = getattr(request.state, "voice_lease", None)
             if lease is not None:
                 voice.release_upload(lease)
+            upload_owner = getattr(request.state, "upload_owner", None)
+            if upload_owner is not None and not getattr(request.state, "upload_finished", False):
+                _pwa_chat(request).uploads.discard(
+                    upload_owner, request.url.path.rsplit("/", 1)[-1]
+                )
 
     async def authenticate_remote(request: Request, call_next: Any) -> Any:
         lease: object | None = None
@@ -304,10 +320,17 @@ def create_app(
                     _apply_cors_headers(response, trusted_origin, preflight=True)
                     _apply_security_headers(response, api_only=True)
                     return response
-                if request.url.path == VOICE_PATH:
+                attachment_upload = (
+                    request.method == "POST"
+                    and re.fullmatch(r"/api/v1/client/attachments/[0-9a-f]{32}", request.url.path)
+                    is not None
+                )
+                if request.url.path == VOICE_PATH or attachment_upload:
                     if request.method != "POST":
                         return _remote_error(405, "Method not allowed")
-                    if _header_values(request, "content-type") != ("application/octet-stream",):
+                    if not attachment_upload and _header_values(request, "content-type") != (
+                        "application/octet-stream",
+                    ):
                         return _remote_error(415, "Canonical PCM required")
                     browser = _browser_cookie_token(request)
                     service = _remote_identity(request)
@@ -328,17 +351,28 @@ def create_app(
                         admission = await service.admit_signed_upload(_bearer_token(request))
                     _require_remote_host(_runtime(request), admission)
                     lengths = _header_values(request, "content-length")
-                    if lengths and int(lengths[0]) > voice.max_bytes:
+                    upload_limit = MAX_STAGE_BYTES if attachment_upload else voice.max_bytes
+                    if lengths and int(lengths[0]) > upload_limit:
                         raise RemoteBodyTooLargeError
                     decision = rate_limiter.check(
-                        f"voice:{admission.host_id}:{admission.device_id}", limit=6
+                        f"{'attachments' if attachment_upload else 'voice'}:{admission.host_id}:{admission.device_id}",
+                        limit=12 if attachment_upload else 6,
                     )
                     if not decision.allowed:
                         return _remote_rate_error(decision.retry_after_seconds)
-                    lease = voice.reserve()
-                    request.state.voice_lease = lease
+                    if attachment_upload:
+                        runtime_attachments = _runtime(request).attachments
+                        if runtime_attachments is None or not runtime_attachments.enabled:
+                            return _remote_error(503, "attachments_disabled")
+                        _pwa_chat(request).uploads.reserve(
+                            admission, request.url.path.rsplit("/", 1)[-1]
+                        )
+                        request.state.upload_owner = admission
+                    else:
+                        lease = voice.reserve()
+                        request.state.voice_lease = lease
                     async with asyncio.timeout(UPLOAD_SECONDS):
-                        body = await _read_bounded_remote_body(request, limit=voice.max_bytes)
+                        body = await _read_bounded_remote_body(request, limit=upload_limit)
                 else:
                     body = await _read_bounded_remote_body(request)
                 browser_token = _browser_cookie_token(request)
@@ -408,6 +442,8 @@ def create_app(
                 return _remote_error(exc.status_code, str(exc.detail))
             except PWAVoiceError as exc:
                 return _remote_error(exc.status, exc.code)
+            except AttachmentError as exc:
+                return _remote_error(409, exc.code)
             except (UnicodeError, ValueError):
                 return _remote_error(400, "Malformed remote authentication headers")
         return await call_next(request)
@@ -416,6 +452,48 @@ def create_app(
     async def voice_availability(request: Request) -> dict[str, object]:
         _require_remote_host(_runtime(request), _remote_context(request))
         return voice.metadata()
+
+    @app.post("/api/v1/client/attachments/{identifier}", status_code=201)
+    async def stage_pwa_attachment(
+        request: Request, identifier: Annotated[str, Path(pattern=r"^[0-9a-f]{32}$")]
+    ) -> dict[str, object]:
+        context = _remote_context(request)
+        try:
+            upload = AttachmentUpload(
+                conversation_id="staged",
+                filename=unquote(_single_header(request, "x-jarvis-filename"), errors="strict"),
+                media_type=_single_header(request, "content-type"),
+            )
+            extensions = {
+                AttachmentType.TEXT: {"txt", "md"},
+                AttachmentType.PDF: {"pdf"},
+                AttachmentType.PNG: {"png"},
+                AttachmentType.JPEG: {"jpg", "jpeg"},
+            }
+            if upload.filename.rsplit(".", 1)[-1].lower() not in extensions[upload.media_type]:
+                raise ValueError("type_mismatch")
+            await _remote_identity(request).validate_context(
+                context, required_scope=RemoteScope.CLIENT_CHAT
+            )
+            _pwa_chat(request).uploads.finish(context, identifier, upload, await request.body())
+            request.state.upload_finished = True
+        except ValueError:
+            raise HTTPException(422, "Unsupported attachment metadata") from None
+        except AttachmentError as exc:
+            raise HTTPException(409, exc.code) from None
+        except RemoteAuthenticationError:
+            raise HTTPException(401, "Session expired") from None
+        return {"id": identifier, "status": "staged", "expires_in": 600}
+
+    @app.delete("/api/v1/client/attachments/{identifier}")
+    async def discard_pwa_attachment(
+        request: Request, identifier: Annotated[str, Path(pattern=r"^[0-9a-f]{32}$")]
+    ) -> dict[str, bool]:
+        try:
+            _pwa_chat(request).uploads.discard(_remote_context(request), identifier)
+        except AttachmentError as exc:
+            raise HTTPException(409, exc.code) from None
+        return {"discarded": True}
 
     @app.post(VOICE_PATH)
     async def voice_transcription(request: Request) -> dict[str, object]:
@@ -675,6 +753,12 @@ def create_app(
                     "voice": voice.metadata()
                     if RemoteScope.CLIENT_CHAT in context.scopes
                     else {"available": False},
+                    "attachments": {
+                        "available": runtime.attachments is not None
+                        and runtime.attachments.enabled
+                        and RemoteScope.CLIENT_CHAT in context.scopes,
+                        "max_bytes": MAX_STAGE_BYTES,
+                    },
                     "device": {
                         "id": device.id,
                         "display_name": device.display_name,
@@ -700,6 +784,7 @@ def create_app(
     async def list_pwa_tasks(
         request: Request,
         limit: Annotated[int, Query(ge=1, le=100)] = 50,
+        offset: Annotated[int, Query(ge=0, le=100_000)] = 0,
     ) -> list[dict[str, object]]:
         context = _remote_context(request)
         runtime = _runtime(request)
@@ -709,6 +794,7 @@ def create_app(
         records = await runtime.task_store.list_tasks(
             host_id=runtime.memory_host_id,
             limit=limit,
+            offset=offset,
         )
         return [
             cast(
@@ -721,11 +807,50 @@ def create_app(
                         "pause_requested": record.pause_requested,
                         "cancel_requested": record.cancel_requested,
                         "updated_at": record.updated_at,
+                        "completed_nodes": sum(
+                            node.status.value == "completed" for node in record.nodes
+                        ),
+                        "total_nodes": len(record.nodes),
                     }
                 ),
             )
             for record in records
         ]
+
+    @app.get("/api/v1/client/tasks/{task_id}")
+    async def pwa_task_details(
+        request: Request, task_id: Annotated[str, Path(min_length=1, max_length=200)]
+    ) -> dict[str, object]:
+        context = _remote_context(request)
+        runtime = _runtime(request)
+        _require_remote_host(runtime, context)
+        if runtime.task_store is None or runtime.memory_host_id is None:
+            raise HTTPException(503, "Task planning unavailable")
+        record = await runtime.task_store.get_task(host_id=runtime.memory_host_id, task_id=task_id)
+        if record is None:
+            raise HTTPException(404, "Task not found")
+        # Never expose arguments, output, grants, provenance or model-invented control links.
+        return {
+            "id": record.graph.id,
+            "objective": record.graph.objective,
+            "status": record.status.value,
+            "version": record.version,
+            "updated_at": record.updated_at.isoformat(),
+            "cancel_requested": record.cancel_requested,
+            "cancellation": {
+                "supported": False,
+                "reason": "Use trusted-host task cancel; remote enrollment has read-only task authority.",
+            },
+            "nodes": [
+                {
+                    "id": node.node_id,
+                    "status": node.status.value,
+                    "attempts": node.attempts,
+                    "failure_class": node.failure_class.value if node.failure_class else None,
+                }
+                for node in record.nodes
+            ],
+        }
 
     @app.get("/api/v1/client/garmin")
     async def get_pwa_garmin(
@@ -907,6 +1032,7 @@ def create_app(
                 request_id=payload.request_id,
                 subscription_id=payload.subscription_id,
                 request=_assistant_request(payload),
+                upload_ids=payload.upload_ids,
             )
         except PWATransportError as exc:
             raise _pwa_transport_http_error(exc) from None
@@ -955,6 +1081,18 @@ def create_app(
         context = _remote_context(request)
         _require_remote_host(_runtime(request), context)
         return await _pwa_chat(request).store.conversations(context)
+
+    @app.post("/api/v1/client/conversations/search")
+    async def search_pwa_conversations(payload: PWASearchInput, request: Request) -> dict[str, Any]:
+        context = _remote_context(request)
+        _require_remote_host(_runtime(request), context)
+        return (
+            await _pwa_chat(request).store.search(
+                context=context, query=payload.query.strip(), before=payload.before
+            )
+            if payload.query.strip()
+            else {"results": [], "has_more": False, "next_before": None}
+        )
 
     @app.get("/api/v1/client/conversations/{conversation_id}/messages")
     async def pwa_conversation_messages(
@@ -1678,6 +1816,12 @@ def _pwa_chat_http_error(error: PWAChatError) -> HTTPException:
 
 
 def _remote_scope_for_request(method: str, path: str) -> tuple[bool, RemoteScope | None]:
+    if path.startswith("/api/v1/client/attachments/") or (
+        path == "/api/v1/client/conversations/search" and method == "POST"
+    ):
+        return False, RemoteScope.CLIENT_CHAT
+    if path.startswith("/api/v1/client/tasks/"):
+        return False, RemoteScope.CLIENT_TASKS_READ
     if (method, path) in {
         ("POST", "/api/v1/enrollments/complete"),
         ("POST", "/api/v1/sessions"),
@@ -1852,6 +1996,7 @@ def _validate_preflight(request: Request) -> None:
             "x-jarvis-key-version",
             "x-jarvis-nonce",
             "x-jarvis-signature",
+            "x-jarvis-filename",
         }
         supplied = {
             item.strip().lower() for item in requested_headers[0].split(",") if item.strip()
@@ -1867,7 +2012,7 @@ def _apply_cors_headers(response: Response, origin: str, *, preflight: bool = Fa
     if preflight:
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE"
         response.headers["Access-Control-Allow-Headers"] = (
-            "Content-Type, X-Jarvis-CSRF, X-Jarvis-Audience, X-Jarvis-Date, "
+            "Content-Type, X-Jarvis-Filename, X-Jarvis-CSRF, X-Jarvis-Audience, X-Jarvis-Date, "
             "X-Jarvis-Device, X-Jarvis-Key-Version, X-Jarvis-Nonce, X-Jarvis-Signature"
         )
         response.headers["Access-Control-Max-Age"] = "600"
@@ -1901,7 +2046,7 @@ def _apply_pwa_security_headers(response: Response, *, path: str) -> None:
     response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
     response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
     response.headers["Content-Security-Policy"] = (
-        "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; "
+        "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; "
         "connect-src 'self'; manifest-src 'self'; worker-src 'self'; "
         "frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
     )

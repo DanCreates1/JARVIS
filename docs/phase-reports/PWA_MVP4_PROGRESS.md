@@ -2,7 +2,7 @@
 
 - Status: `in-progress`; repository implementation verified; remaining manual phone checks **skipped by owner; unverified** (2026-10-16). Automated/release gates remain.
 - Audit baseline: `ed4ee18`, shell v6; work started at `1f07d4c` after concurrent M3C evidence commit.
-- Completed subphase: [F13 push-to-talk](PWA_F13_COMPLETION.md), F13A–F13D repository/automated scope, shell v10. Production voice stays off. No next phase queued. Phone-check track stays stopped by owner.
+- Latest bundle: [F14 assistant workflows](PWA_F14_COMPLETION.md), shell v11. Attachments/search/task views automatically verified; remote task cancellation blocked by absent control authority. Production controls stay default off. No next phase queued. Phone-check track stays stopped by owner.
 - Scope: owner authorized F11 implementation on 2026-10-14 while M3C/M4A physical gates remain open.
   Existing native candidates were reviewed and advanced through compatible SDK 57 patches; audit hold remains.
 - M3C physical-phone acceptance remains separate. MVP 4 is not complete.
@@ -34,6 +34,15 @@ row. Use the existing matrix; M3C acceptance stays separate.
 - [ ] Physical F11 soak and measured phone performance thresholds.
 
 ## Evidence
+
+### 2026-10-19 — F14 from `96f3294`
+
+Bounded authenticated staged attachments commit only on Send; owned search/draft management and
+read-only task details/progress/recovery are implemented. [F14 completion](PWA_F14_COMPLETION.md)
+records current automated release evidence and the remote cancellation authority blocker. Active
+PWA estimate **96%** reflects verified workflow milestones, not skipped acceptance. Remaining manual
+phone checks are **skipped by owner; unverified**. Aggregate MVP 4 remains incomplete.
+
 
 ### 2026-10-17 — F13 implementation from `b6fd3fd`
 

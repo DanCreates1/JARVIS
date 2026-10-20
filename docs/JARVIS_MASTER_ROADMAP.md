@@ -1,7 +1,7 @@
 # JARVIS Master Roadmap
 
 Status: active, development-first PWA path; manual phone checks skipped by owner
-Updated: 2026-10-17
+Updated: 2026-10-19
 Repository: `DanCreates1/JARVIS`, branch `main`
 
 ## Current owner execution policy — 2026-10-16
@@ -14,10 +14,13 @@ historical evidence remains, no pass or physical/MVP completion inferred. This p
 older phone execution directions below. Automated code/security gates and all authority/privacy,
 $0, publication and native dependency holds remain. See root [AGENTS.md](../AGENTS.md).
 
-Completed development: [F13 — PWA push-to-talk](phase-reports/PWA_F13_COMPLETION.md), shell v10;
-F13A–F13D implemented and verified within repository/automated scope. Production voice stays off.
-No next phase queued. Active PWA estimate: **94%**, based on existing MVP milestones. Optional
-voice adds verified capability; skipped phone checks add no physical/MVP acceptance credit.
+Current development: [F14 — PWA assistant workflows](phase-reports/PWA_F14_COMPLETION.md), shell v11.
+Attachments, owned conversation search and task details/recovery are implemented and automatically
+verified. Remote task cancellation stays disabled: existing task scope is read-only; new control
+authority is excluded. Production attachment/voice/task controls stay default off. No next phase
+queued. Active PWA estimate: **96%**, based on verified connection/chat/Garmin/navigation/voice
+and F14 workflow milestones; remote task control and aggregate physical acceptance remain open.
+Skipped phone checks add no implementation or acceptance credit.
 
 ## Product target
 
@@ -215,7 +218,7 @@ closure:
 
 ## Deferred backlog
 
-Not required for mobile MVP: voice; photos/files; push notifications; widgets; proactive features;
+Not required for basic mobile MVP: spoken/background voice; push notifications; widgets; proactive features;
 phone sensors/context; health analytics; wearable writes; direct watch communication; Meta glasses;
 smart-home work; custom voice; fine-tuning; larger local models; PostgreSQL/Redis/microservices;
 multi-GPU serving; the former broad M3–M9 and H1–H8 mobile/health plans. Reconsider only after the
@@ -226,6 +229,16 @@ The [F13 plan](PWA_F13_PUSH_TO_TALK.md) reuses local speech and Core controls, r
 draft and retains explicit Send. F13A–F13D now implemented; basic MVP exit criteria remain.
 
 ## Current development boundary
+
+**F14 — PWA assistant workflows**, from `96f3294`, advances shell to **v11**. Selection uploads
+photo/PDF/text into bounded session-owned Core memory; explicit Send alone commits existing local
+processing/private routing. Core-owned message search is paginated and draft/request-safe. Task
+list/details show step progress, failures and reconnect recovery; cancellation stays disabled
+because `client.tasks.read` cannot grant mutation authority. No remote task-control boundary or
+new enrollment is authorized. See [workflow contract](PWA_F14_WORKFLOWS.md) and
+[F14 evidence](phase-reports/PWA_F14_COMPLETION.md). Current estimate **96%** on verified workflow
+milestones; no physical/MVP completion. The F12/F13 figures below remain dated evidence.
+
 
 Prior **F12 — Chat / Garmin / Settings navigation** evidence remains dated and complete.
 Shell v9 presents all three surfaces with persistent accessible links, focus/back/forward behavior

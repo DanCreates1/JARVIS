@@ -1,14 +1,17 @@
 # JARVIS Phase Overview
 
-Updated: 2026-10-17
+Updated: 2026-10-19
 
 Owner override: **skip all further manual/physical phone checks**; outstanding rows are skipped
 and unverified, not development blockers or passes. No phone-check requests until explicit owner
 resumption. Automated code/security gates and authority/privacy/$0 controls remain enforced.
-Completed development: [F13 — PWA push-to-talk](phase-reports/PWA_F13_COMPLETION.md), shell v10;
-F13A–F13D implemented and verified within repository/automated scope. Production voice stays off.
-No next phase queued. Active PWA estimate: **94%**, based on existing MVP milestones. Optional
-voice adds verified capability; skipped phone checks add no physical/MVP acceptance credit.
+Current development: [F14 — PWA assistant workflows](phase-reports/PWA_F14_COMPLETION.md), shell v11.
+Attachments, owned conversation search and task details/recovery are implemented and automatically
+verified. Remote task cancellation stays disabled: existing task scope is read-only; new control
+authority is excluded. Production attachment/voice/task controls stay default off. No next phase
+queued. Active PWA estimate: **96%**, based on verified connection/chat/Garmin/navigation/voice
+and F14 workflow milestones; remote task control and aggregate physical acceptance remain open.
+Skipped phone checks add no implementation or acceptance credit.
 
 ## Active product path
 
@@ -37,7 +40,7 @@ record.
 | Track | Status | Next gate |
 | --- | --- | --- |
 | Phone PWA | Historical chat acceptance; M3A/M3B complete; remaining manual M3C phone checks skipped by owner, unverified | Continue development; health-access authority remains separate, no new enrollment granted |
-| PWA MVP 4 | F13 shell v10 local push-to-talk implemented; automated gates pass. Dated F11/F12 evidence preserved. Remaining phone checks skipped by owner, unverified; physical/MVP acceptance incomplete | No next phase queued; [F13 evidence](phase-reports/PWA_F13_COMPLETION.md); native audit hold remains |
+| PWA MVP 4 | F14 shell v11 attachments/search/task views verified; remote cancellation blocked by read-only scope. Dated F11–F13 evidence preserved. Phone checks skipped by owner, unverified; physical/MVP acceptance incomplete | No next phase queued; [F14 evidence](phase-reports/PWA_F14_COMPLETION.md); native audit hold remains |
 | Native MVP | Expo Go checks passed; independent native build unverified and deferred under $0/no-Mac constraint | No active native gate |
 | Mobile MVP 2 | Deferred | No active native gate |
 | Mobile MVP 3 | Deferred | No active native gate |
@@ -56,7 +59,7 @@ record.
 
 - Use the PWA Garmin acceptance list for current phone work; native mobile milestones are deferred.
 - Current MVP 3 evidence and M3A/M3B/M3C gates: [PWA MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
-- Authorized MVP 4 implementation and remaining gates: [PWA MVP 4 progress](phase-reports/PWA_MVP4_PROGRESS.md). Current source is shell v10; historical v6–v9 evidence remains dated. Manual phone checks stay skipped.
+- Authorized MVP 4 implementation and remaining gates: [PWA MVP 4 progress](phase-reports/PWA_MVP4_PROGRESS.md). Current source is shell v11; historical v6–v10 evidence remains dated. Manual phone checks stay skipped.
 - F11 physical acceptance initiated at `4fa75e3`: [phone ledger and frozen performance targets](PWA_F11_PHYSICAL_ACCEPTANCE.md). Host readiness and fresh 63 lifecycle/24 desktop checks pass; no new phone observation or phase closure.
 - Preserve Core as sole authority, memory, routing, permission, and audit system.
 - Keep production Core loopback-bound behind approved private-network HTTPS.
@@ -70,7 +73,7 @@ record.
 
 ## Deferred backlog
 
-Foreground PWA voice input now has a proposed [F13 plan](PWA_F13_PUSH_TO_TALK.md); no implementation yet.
-Spoken replies/background voice, photos/files, push notifications, widgets, proactive features, phone sensors/context,
+Foreground voice is implemented under [F13](PWA_F13_PUSH_TO_TALK.md); attachments/search/task views ship in [F14](PWA_F14_WORKFLOWS.md), with remote cancellation blocked by absent control authority.
+Spoken replies/background voice, push notifications, widgets, proactive features, phone sensors/context,
 health analytics, wearable writes, direct watch communication, and broad former M3–M9/H1–H8 work.
 These do not block the basic app.

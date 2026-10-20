@@ -9,6 +9,24 @@ const vm = require("node:vm");
 const script = readFileSync(path.join(__dirname, "../../src/jarvis/pwa/app.js"), "utf8");
 const EMPTY = "Connect JARVIS to see Garmin data.";
 
+// F14 fixtures exercise the actual app script, including transports that ignore abort.
+function attachmentHarness() {
+  const h=harness(), uploads=[], revoked=[];let sequence=0;
+  h.context.crypto.randomUUID=()=>String(++sequence).padStart(32,"0");
+  h.context.URL={createObjectURL:()=>`blob:synthetic-${sequence}`,revokeObjectURL:url=>revoked.push(url)};
+  h.context.XMLHttpRequest=class {
+    constructor(){this.upload={};this.headers={};uploads.push(this);}
+    open(method,url){this.method=method;this.url=url;}
+    setRequestHeader(key,value){this.headers[key]=value;}
+    send(file){this.file=file;}
+    abort(){this.aborted=true;this.onabort?.();}
+    respond(status=201){this.status=status;this.response={id:this.url.split("/").pop(),status:"staged"};this.onload();}
+  };
+  const file=(name="notes.txt",size=30)=>({name,size,slice:()=>({text:async()=>"<script>untrusted text</script>"})});
+  h.activate();h.run("state.attachmentsAllowed=true;updateControls()");
+  return {...h,uploads,revoked,file};
+}
+
 function deferred() {
   let resolve, reject;
   const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
@@ -139,13 +157,154 @@ function harness(records = new Map(), hash = "") {
   return { run, ready, activate, get, requests, summary, respond, windowEvents, context, clock, setIdentity, waitForRequests, runTimer, storage, records, holdMarkerCommit, fakeEnrollmentCrypto, history, historyEntries, location };
 }
 
+test("F14 bounded uploads show progress and safe text/photo/PDF previews without Send",async()=>{
+  const h=attachmentHarness();await h.ready;
+  h.context.files=[h.file(),h.file("photo.png"),h.file("paper.pdf")];
+  await h.run("selectAttachments(files)");await Promise.resolve();
+  assert.equal(h.uploads.length,3);assert.equal(h.requests.length,0);
+  const upload=h.uploads[0];assert.equal(upload.headers["X-Jarvis-CSRF"],"synthetic-session");assert.equal(upload.withCredentials,true);
+  h.context.document.activeElement=h.get("#attachments").children[0].children[2];
+  upload.upload.onprogress({lengthComputable:true,loaded:10,total:30});assert.equal(h.run("state.attachments[0].progress"),33);
+  assert.equal(h.get("#attachments").children[0].children[2].focused,true,"Progress must retain keyboard cancellation focus");
+  assert.equal(h.get("#send").disabled,true);
+  h.uploads.forEach(item=>item.respond());assert.equal(h.run("state.attachments.every(item=>item.phase==='ready')"),true);
+  assert.equal(h.get("#send").disabled,false);assert.equal(h.get("#record-message").disabled,true);
+  assert.ok(h.run("state.attachments[0].preview").includes("<script>"));
+  assert.equal(h.get("#attachments").children.length,3);
+  assert.equal(h.storage.size,0);assert.equal(h.records.size,0);
+});
+
+test("F14 invalid sizes/types and four-file bound reject before upload",async()=>{
+  const h=attachmentHarness();h.context.files=[h.file("a.exe"),h.file("empty.txt",0),h.file("large.pdf",1048577)];
+  await h.run("selectAttachments(files)");assert.equal(h.uploads.length,0);
+  h.context.files=Array.from({length:5},(_,i)=>h.file(`file${i}.txt`));await h.run("selectAttachments(files)");assert.equal(h.uploads.length,4);
+  assert.match(h.get("#attachment-state").textContent,/Four-file/);
+});
+
+for(const exit of ["remove","navigation","offline","hide","pagehide","session","logout"]){
+  test(`F14 ${exit} aborts upload, revokes previews and rejects late completion`,async()=>{
+    const h=attachmentHarness();h.context.files=[h.file("photo.png")];await h.run("selectAttachments(files)");
+    const xhr=h.uploads[0];
+    if(exit==="remove")h.run("removeAttachment(state.attachments[0]);updateControls()");
+    if(exit==="navigation")h.run("selectView('settings')");
+    if(exit==="offline"){h.context.navigator.onLine=false;h.windowEvents.offline();}
+    if(exit==="hide"){h.context.document.hidden=true;h.windowEvents.visibilitychange();}
+    if(exit==="pagehide")h.windowEvents.pagehide();
+    if(exit==="session")h.run("invalidateSession()");
+    if(exit==="logout")await h.run("logout()");
+    xhr.respond();assert.equal(h.run("state.attachments.length"),0);assert.ok(xhr.aborted);assert.equal(h.revoked.length,1);
+    assert.equal(h.get("#attachments").children.length,0);assert.ok(!h.requests.some(item=>item.url.endsWith("/client/chat")));
+  });
+}
+
+for(const failure of ["timeout","network",403,409,413,422,429,503]){
+  test(`F14 upload failure ${failure} keeps draft and requires reselection`,async()=>{
+    const h=attachmentHarness();h.context.files=[h.file()];await h.run("selectAttachments(files)");
+    h.get("#message").value="keep draft";
+    if(failure==="timeout")h.uploads[0].ontimeout();else if(failure==="network")h.uploads[0].onerror();else h.uploads[0].respond(failure);
+    assert.equal(h.run("state.attachments[0].phase"),"failed");assert.ok(h.run("state.attachments[0].error"));
+    assert.equal(h.get("#message").value,"keep draft");assert.equal(h.get("#send").disabled,true);
+  });
+}
+
+test("F14 upload expiry disables Send; explicit Send alone hands immutable IDs to Core",async()=>{
+  const h=attachmentHarness();h.context.files=[h.file()];await h.run("selectAttachments(files)");h.uploads[0].respond();
+  h.runTimer(delay=>delay===600000);assert.equal(h.get("#send").disabled,true);
+  h.run("removeAttachment(state.attachments[0])");await h.waitForRequests(1);h.respond(h.requests[0],{});
+  await h.run("selectAttachments(files)");h.uploads[1].respond();h.get("#message").value="read notes";h.run("state.subscription='subscription:synthetic'");
+  const send=h.run("sendMessage({preventDefault(){}})");await h.waitForRequests(2);
+  const body=JSON.parse(h.requests[1].options.body);assert.equal(body.upload_ids.length,1);assert.equal(h.run("state.attachments.length"),0);
+  h.respond(h.requests[1],{request_id:body.request_id,conversation_id:"conversation:one",status:"running"},202);await send;
+  assert.equal(h.requests.filter(item=>item.options.method==="DELETE").length,1,"Send must not race discard against accepted upload");
+});
+
+test("F14 search is body-only, paginates, renders text and leaves pending ownership intact",async()=>{
+  const h=harness();await h.ready;h.activate();h.run("state.pendingRequest={request_id:'request:owned'};state.subscription='subscription:owned'");
+  h.get("#history-query").value="private <query>";const first=h.run("searchHistory()");await h.waitForRequests(1);
+  assert.equal(h.requests[0].url,"/api/v1/client/conversations/search");assert.equal(JSON.parse(h.requests[0].options.body).query,"private <query>");
+  h.respond(h.requests[0],{results:[{conversation_id:"c",sequence:3,role:"user",excerpt:"<img onerror=attack>"}],has_more:true,next_before:12});await first;
+  assert.equal(h.get("#search-results").children[0].children[1].textContent,"<img onerror=attack>");
+  assert.equal(h.get("#search-results").children[0].children[0].disabled,true);
+  const more=h.run("searchHistory({more:true})");await h.waitForRequests(2);assert.equal(JSON.parse(h.requests[1].options.body).before,12);
+  h.respond(h.requests[1],{results:[],has_more:false,next_before:null});await more;
+  assert.equal(h.run("state.pendingRequest.request_id"),"request:owned");assert.equal(h.records.size,0);assert.equal(h.storage.size,0);
+});
+
+for(const exit of ["query","navigation","offline","session","logout"]){
+  test(`F14 stale search result rejected after ${exit}`,async()=>{
+    const h=harness();await h.ready;h.activate();h.get("#history-query").value="term";const search=h.run("searchHistory()");await h.waitForRequests(1);
+    if(exit==="query")h.run("clearSearch()");if(exit==="navigation")h.run("selectView('garmin')");
+    if(exit==="offline"){h.context.navigator.onLine=false;h.windowEvents.offline();}
+    if(exit==="session")h.run("invalidateSession()");if(exit==="logout")await h.run("logout()");
+    h.respond(h.requests[0],{results:[{conversation_id:"c",sequence:1,excerpt:"stale private text"}],has_more:false});await search;
+    assert.equal(h.get("#search-results").children.length,0);assert.equal(h.get("#search-state").textContent,"");
+  });
+}
+
+test("F14 search empty/error and newer query preserve recovery",async()=>{
+  const h=harness();await h.ready;h.activate();await h.run("searchHistory()");assert.match(h.get("#search-state").textContent,/Enter text/);
+  h.get("#history-query").value="old";const old=h.run("searchHistory()");await h.waitForRequests(1);
+  h.get("#history-query").value="new";const latest=h.run("searchHistory()");await h.waitForRequests(2);
+  h.respond(h.requests[1],{results:[],has_more:false});await latest;assert.match(h.get("#search-state").textContent,/No matching/);
+  h.respond(h.requests[0],{results:[{excerpt:"old"}],has_more:false});await old;assert.equal(h.get("#search-results").children.length,0);
+  const failed=h.run("searchHistory()");await h.waitForRequests(3);h.respond(h.requests[2],{},503);await failed;assert.match(h.get("#search-state").textContent,/Search failed/);
+});
+
+test("F14 matching history navigation preserves separate drafts and targets matching page",async()=>{
+  const h=harness();await h.ready;h.activate();h.run("state.conversation='first'");h.get("#message").value="draft first";
+  const choose=h.run("chooseConversation('second',8)");await h.waitForRequests(1);h.respond(h.requests[0],{conversations:[]});await h.waitForRequests(2);
+  assert.ok(h.requests[1].url.endsWith("?limit=50&before=9"));h.respond(h.requests[1],{conversation_id:"second",messages:[],requests:[],has_more:false});await choose;
+  assert.equal(h.get("#message").value,"");h.get("#message").value="draft second";
+  const back=h.run("chooseConversation('first')");await h.waitForRequests(3);h.respond(h.requests[2],{conversations:[]});await h.waitForRequests(4);h.respond(h.requests[3],{conversation_id:"first",messages:[],requests:[],has_more:false});await back;
+  assert.equal(h.get("#message").value,"draft first");h.run("invalidateSession()");assert.equal(h.run("state.threadDrafts.size"),0);assert.equal(h.get("#message").value,"");
+});
+
+test("F14 task progress/failure is Core-owned; cancellation remains disabled",async()=>{
+  const h=harness();await h.ready;h.activate();const detail=h.run("loadTask('task:one',{focus:true})");await h.waitForRequests(1);
+  h.respond(h.requests[0],{id:"task:one",objective:"<untrusted objective>",status:"failed",nodes:[{id:"first",status:"completed",attempts:1},{id:"second",status:"failed",attempts:2,failure_class:"denied"}]});await detail;
+  assert.equal(h.get("#task-progress").value,1);assert.equal(h.get("#task-progress").max,2);assert.equal(h.get("#cancel-task").disabled,true);
+  assert.match(h.get("#task-detail-state").textContent,/failed/);assert.match(h.get("#task-nodes").children[1].textContent,/denied/);assert.equal(h.get("#task-detail-title").textContent,"<untrusted objective>");
+  h.windowEvents.offline();assert.match(h.get("#task-detail-state").textContent,/stale/);
+});
+
+test("F14 task reads reject older selection and logout; reconnect schedules refresh",async()=>{
+  const h=harness();await h.ready;h.activate();const old=h.run("loadTask('old')");await h.waitForRequests(1);const latest=h.run("loadTask('new')");await h.waitForRequests(2);
+  h.respond(h.requests[0],{id:"old",objective:"obsolete",nodes:[]});await old;
+  h.respond(h.requests[1],{id:"new",objective:"current",status:"completed",nodes:[]});await latest;assert.equal(h.get("#task-detail-title").textContent,"current");
+  const late=h.run("loadTask('late')");await h.waitForRequests(3);await h.run("logout()");h.respond(h.requests[2],{id:"late",objective:"private",nodes:[]});await late;assert.equal(h.get("#task-detail").hidden,true);
+});
+
+test("F14 task list paginates, marks offline stale and schedules foreground recovery",async()=>{
+  const h=harness();await h.ready;h.activate();const first=h.run("refreshTasks()");await h.waitForRequests(1);
+  h.respond(h.requests[0],Array.from({length:50},(_,i)=>({id:`task:${i}`,status:"running",completed_nodes:1,total_nodes:3})));await first;assert.equal(h.get("#more-tasks").hidden,false);
+  const more=h.run("refreshTasks({more:true})");await h.waitForRequests(2);assert.ok(h.requests[1].url.endsWith("&offset=50"));h.respond(h.requests[1],[]);await more;
+  assert.equal(h.get("#tasks").children.length,50);assert.equal(h.get("#more-tasks").hidden,true);
+  h.run("scheduleTaskRefresh(0)");h.runTimer(delay=>delay===0);await h.waitForRequests(3);h.respond(h.requests[2],[]);
+});
+
+test("F14 processing failure retains text draft with actionable attachment guidance",async()=>{
+  const h=attachmentHarness();h.context.files=[h.file()];await h.run("selectAttachments(files)");h.uploads[0].respond();
+  h.get("#message").value="read notes";h.run("state.subscription='subscription:synthetic'");
+  const send=h.run("sendMessage({preventDefault(){}})");await h.waitForRequests(1);
+  const payload=JSON.parse(h.requests[0].options.body);
+  h.respond(h.requests[0],{request_id:payload.request_id,conversation_id:"owned",status:"failed",error:{code:"attachment_processing_failed"}});await send;
+  assert.equal(h.get("#message").value,"read notes");assert.match(h.get("#chat-status").textContent,/Attachment processing failed/);
+});
+
+test("F14 successful reconnect poll schedules current task recovery without another stream owner",async()=>{
+  const h=harness();await h.ready;h.activate();h.run("state.healthAllowed=false;state.subscription='subscription:owned';startStreamOwnership()");await h.waitForRequests(1);
+  h.requests[0].pending.resolve({ok:true,status:200,text:async()=>": keepalive\n\n"});await h.waitForRequests(2);
+  h.runTimer(delay=>delay===0);await h.waitForRequests(3);assert.equal(h.requests[2].url,"/api/v1/client/tasks?limit=50");
+  h.respond(h.requests[2],[]);h.run("stopStream()");h.requests[1].pending.resolve({ok:true,status:200,text:async()=>": keepalive\n\n"});
+});
+
 function voiceHarness() {
   const h = harness(), permission = deferred(), tracks = [{ stopped: 0, stop() { this.stopped++; } }];
   const stream = { getTracks: () => tracks }, resources = { requests: 0, closed: 0, disconnected: 0, ports: 0, nodes: [] };
   h.context.navigator.mediaDevices = { getUserMedia(options) { resources.requests++; assert.equal(options.video, false); return permission.promise; } };
   h.context.window.AudioContext = class {
     constructor() { this.sampleRate = 48000; this.state = "running"; resources.context = this; }
-    audioWorklet = { addModule: async url => { assert.equal(url, "/app/pcm-worklet.js?v=10"); } };
+    audioWorklet = { addModule: async url => { assert.equal(url, "/app/pcm-worklet.js?v=11"); } };
     createMediaStreamSource() { return { connect: node => { assert.equal(node.options.numberOfOutputs, 1); }, disconnect: () => resources.disconnected++ }; }
     async resume() {}
     async close() { resources.closed++; this.state = "closed"; }

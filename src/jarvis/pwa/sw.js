@@ -1,5 +1,5 @@
-const CACHE="jarvis-shell-v10";
-const SHELL=["/app/","/app/app.css","/app/app.js?v=10","/app/pcm-worklet.js?v=10","/app/manifest.webmanifest","/app/icon.svg"];
+const CACHE="jarvis-shell-v11";
+const SHELL=["/app/","/app/app.css","/app/app.js?v=11","/app/pcm-worklet.js?v=11","/app/manifest.webmanifest","/app/icon.svg"];
 // Never restore an enabled microphone policy from a cached document.
 function offlineDocument(response){if(!response)return response;const headers=new Headers(response.headers);headers.set("Permissions-Policy","camera=(), microphone=(), geolocation=()");return new Response(response.body,{status:response.status,headers});}
 self.addEventListener("install",event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())));

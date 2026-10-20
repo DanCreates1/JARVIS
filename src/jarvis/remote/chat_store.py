@@ -320,7 +320,8 @@ class SQLitePWAChatStore:
             async with connection.execute(
                 "SELECT c.id,c.updated_at FROM conversations c JOIN pwa_conversation_owners o "
                 "ON o.conversation_id=c.id WHERE o.host_id=? AND o.device_id=? "
-                "AND c.attachment_private=0 AND c.email_private=0 "
+                "AND (c.attachment_private=0 OR c.attachment_device_id=o.device_id) "
+                "AND c.email_private=0 "
                 "ORDER BY c.updated_at DESC,c.id DESC LIMIT 20",
                 (context.host_id, context.device_id),
             ) as cursor:
@@ -328,13 +329,52 @@ class SQLitePWAChatStore:
             async with connection.execute(
                 "SELECT r.result_json FROM pwa_chat_requests r JOIN conversations c "
                 "ON c.id=r.conversation_id WHERE host_id=? AND device_id=? "
-                "AND status='running' AND c.attachment_private=0 AND c.email_private=0 LIMIT 1",
+                "AND status='running' "
+                "AND (c.attachment_private=0 OR c.attachment_device_id=r.device_id) "
+                "AND c.email_private=0 LIMIT 1",
                 (context.host_id, context.device_id),
             ) as cursor:
                 active = await cursor.fetchone()
         return {
             "conversations": [dict(row) for row in rows],
             "active_request": json.loads(active["result_json"]) if active else None,
+        }
+
+    async def search(
+        self,
+        *,
+        context: RemoteIdentityContext,
+        query: str,
+        before: int | None = None,
+        limit: int = 20,
+    ) -> dict[str, Any]:
+        # Literal substring search. No wildcard, FTS expression, URL or alternate history store.
+        async with (
+            self._lock,
+            self._db().execute(
+                "SELECT m.rowid AS position,m.conversation_id,m.sequence,m.role, "
+                "substr(json_extract(m.payload_json,'$.content'), "
+                "max(1,instr(lower(json_extract(m.payload_json,'$.content')),lower(?))-80),320) "
+                "AS excerpt "
+                "FROM messages m JOIN conversations c ON c.id=m.conversation_id "
+                "JOIN pwa_conversation_owners o ON o.conversation_id=c.id "
+                "WHERE o.host_id=? AND o.device_id=? AND c.email_private=0 "
+                "AND (c.attachment_private=0 OR c.attachment_device_id=o.device_id) "
+                "AND EXISTS (SELECT 1 FROM pwa_chat_requests r WHERE r.host_id=o.host_id "
+                "AND r.device_id=o.device_id AND r.conversation_id=m.conversation_id "
+                "AND r.request_id=json_extract(m.payload_json,'$.client_request_id')) "
+                "AND (m.role='user' OR (m.role='assistant' AND "
+                "json_array_length(json_extract(m.payload_json,'$.tool_calls'))=0)) "
+                "AND instr(lower(json_extract(m.payload_json,'$.content')),lower(?))>0 "
+                "AND (? IS NULL OR m.rowid<?) ORDER BY m.rowid DESC LIMIT ?",
+                (query, context.host_id, context.device_id, query, before, before, limit + 1),
+            ) as cursor,
+        ):
+            rows = list(await cursor.fetchall())
+        return {
+            "results": [dict(row) for row in rows[:limit]],
+            "has_more": len(rows) > limit,
+            "next_before": rows[limit - 1]["position"] if len(rows) > limit else None,
         }
 
     async def messages(
@@ -423,7 +463,8 @@ class SQLitePWAChatStore:
             "SELECT 1 FROM pwa_conversation_owners o JOIN conversations c "
             "ON c.id=o.conversation_id "
             "WHERE o.conversation_id=? AND o.host_id=? AND o.device_id=? "
-            "AND c.attachment_private=0 AND c.email_private=0",
+            "AND (c.attachment_private=0 OR c.attachment_device_id=o.device_id) "
+            "AND c.email_private=0",
             (conversation_id, context.host_id, context.device_id),
         ) as cursor:
             if await cursor.fetchone() is None:

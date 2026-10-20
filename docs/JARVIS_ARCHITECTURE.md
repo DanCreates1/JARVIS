@@ -577,14 +577,14 @@ dedicated IndexedDB store and exports only its public half for Phase 8A enrollme
 page memory; cursors/subscription IDs are tab-scoped and contain no payload.
 
 The product surface uses separate `client.chat`, `client.tasks.read`, and `client.status.read`
-scopes plus `events.read`. Task responses expose status metadata only. F11 chat requests use
+scopes plus `events.read`. Task responses expose bounded read projections (F14 details below). F11 chat requests use
 durable host/device-owned request IDs for response-loss retry across renewed sessions/restart and
 publish private deltas only to an
 in-memory subscription bound to exact `host_id + device_id + session_id`. Each subscription has
 monotonic cursors, fixed event/count/TTL ceilings, and is cleared on logout. Restart discards these
 volatile buffers; the client refreshes durable conversation/task state and resubscribes. A cursor
 gap or stale cursor is explicit, never filled by guessed data. There is no offline task/action
-queue, remote approval/execution route, push service, or voice upload.
+queue, remote approval/execution route or push service. F13 adds default-off local voice upload.
 
 M3C client recovery uses a session generation for asynchronous bootstrap, subscriptions, status,
 tasks, chat and event responses. Logout erases local views/identity independently of Core reachability.
@@ -616,6 +616,19 @@ denied. IndexedDB commits only an opaque device/request marker before POST, with
 draft persistence. No automatic generation retry or offline queue is introduced. See
 [F11 contract](PWA_F11_CHAT.md). Garmin keeps fetched-at context
 in page memory and marks it stale at five minutes without polling solely for freshness.
+
+F14 shell v11 adds session/host/device-owned memory upload staging under existing `client.chat`:
+four 1 MiB files/session, 32 process slots, bounded tombstones/TTL, authenticated admission before
+collection, explicit Send before persistence/extraction, and no automatic retries. Existing private
+attachment routing, quotas and isolated processors remain canonical. Migration 018 records source
+device provenance; trusted-local uploads revoke PWA disclosure, and local/email-private histories
+remain denied. Search uses body-only literal queries against exact Core-attributed owned messages,
+20 bounded excerpts/page, without a separate index or browser persistence. Matching-history
+navigation preserves separate memory-only drafts and pending request ownership. Task details add
+objective/step progress/failure, bounded pagination and foreground/reconnect recovery under
+`client.tasks.read`; arguments/output/grants stay private. Remote cancellation stays disabled:
+there is no existing control scope or approved remote adapter. No model output or read scope grants
+mutation authority. See [F14 workflow contract](PWA_F14_WORKFLOWS.md).
 
 Phase 11C reuses that authenticated PWA surface as the only proactivity adapter. Additive migration
 013 stores one owner row per ready candidate, expiring device/feature bindings, persistent local

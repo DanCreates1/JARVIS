@@ -24,6 +24,17 @@ Loading, offline, reconnecting, expired-session, revoked, rate-limited, and erro
 of each surface contract. Navigation stays shallow and animation is optional, never required for
 understanding state.
 
+## Current PWA extension — F14
+
+The active PWA uses shell v11 and the [F14 workflow contract](PWA_F14_WORKFLOWS.md). Native
+workspace remains deferred/held. Session-owned bounded upload staging commits only on Send to
+existing private Core attachments; device-origin provenance prevents local-only history disclosure.
+Search uses authenticated body-only queries against attributed Core messages, bounded excerpts and
+pagination. Conversation drafts remain memory-only. Task read projections add objective/step
+progress/failure and guarded reconnect recovery; no output, arguments or approval grants leave Core.
+Remote task cancellation stays disabled because existing identity has no task-control scope or
+authorized mutation adapter. No new enrollment/scopes or native dependency changes are made.
+
 ## Workspace
 
 `mobile/` is an independent npm workspace using Expo SDK 57, React Native 0.86, TypeScript, Expo

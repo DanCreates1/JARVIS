@@ -20,12 +20,19 @@ const apiRequests = [];
 const server = http.createServer((request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");
   if (url.pathname.startsWith("/api/")) apiRequests.push({ method: request.method, path: url.pathname });
+  const uploadId=url.pathname.match(/^\/api\/v1\/client\/attachments\/([0-9a-f]{32})$/)?.[1];
+  if(uploadId&&request.headers['x-jarvis-csrf']==='synthetic'){
+    let size=0;request.on('data',chunk=>{size+=chunk.length;});request.on('end',()=>{
+      response.writeHead(request.method==='POST'?201:200,{'Content-Type':'application/json','Cache-Control':'no-store'});
+      response.end(JSON.stringify(request.method==='POST'?{id:uploadId,status:'staged',bytes:size}:{discarded:true}));
+    });return;
+  }
   const file = url.pathname === "/app/" ? "index.html" : url.pathname.slice(5);
   if (request.method !== "GET" || !url.pathname.startsWith("/app/") || !allowed.has(file)) {
     response.writeHead(404); response.end(); return;
   }
   let content = fs.readFileSync(path.join(assets, file));
-  if (file === "app.js") content = Buffer.from(content.toString("utf8").replace('catch{if(state.voice===op)discardVoice("Microphone unavailable', 'catch(error){globalThis.voiceTestError=String(error);if(state.voice===op)discardVoice("Microphone unavailable') + "\nglobalThis.pwaTest={row,processEvent,logout,setConnected,renderGarmin,state,selectView,navigation,updateControls};\n");
+  if (file === "app.js") content = Buffer.from(content.toString("utf8").replace('catch{if(state.voice===op)discardVoice("Microphone unavailable', 'catch(error){globalThis.voiceTestError=String(error);if(state.voice===op)discardVoice("Microphone unavailable') + "\nglobalThis.pwaTest={row,processEvent,logout,setConnected,renderGarmin,state,selectView,navigation,updateControls,selectAttachments,clearAttachments,searchHistory,clearSearch,loadTask};\n");
   response.writeHead(200, { "Content-Type": types[path.extname(file)], "Cache-Control": "no-store" });
   response.end(content);
 });
@@ -138,7 +145,7 @@ async function main() {
   await evaluate("document.querySelector('#log').focus();document.querySelector('#log').scrollTop=0");
   await key("PageDown", 34); await pause(350);
   output.keyboardScroll = await evaluate("document.querySelector('#log').scrollTop"); assert.ok(output.keyboardScroll > 0);
-  await key("Tab", 9, true); output.shiftTab = await evaluate("document.activeElement.id"); assert.equal(output.shiftTab, "refresh-history");
+  await key("Tab", 9, true); output.shiftTab = await evaluate("document.activeElement.id"); assert.equal(output.shiftTab, "search-clear");
   output.history = await evaluate(`(()=>{const log=document.querySelector('#log');log.scrollTop=120;const before=log.scrollTop;pwaTest.row('jarvis','Incoming synthetic delta','synthetic-stream');const after=log.scrollTop;const visible=!document.querySelector('#jump-latest').hidden;document.querySelector('#jump-latest').click();return {before,after,visible,atEnd:Math.abs(log.scrollHeight-log.clientHeight-log.scrollTop)<=1,focus:document.activeElement.id};})()`);
   assert.equal(output.history.before, output.history.after); assert.ok(output.history.visible && output.history.atEnd); assert.equal(output.history.focus, "log");
   output.selection = await evaluate(`(()=>{const log=document.querySelector('#log'),range=document.createRange();range.selectNodeContents(log.firstChild);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);const before=log.scrollTop;pwaTest.row('jarvis','Selected history delta','synthetic-stream');const result={before,after:log.scrollTop,selection:selection.toString(),jump:!document.querySelector('#jump-latest').hidden};selection.removeAllRanges();return result;})()`);
@@ -171,6 +178,41 @@ async function main() {
   await call("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
   output.reducedMotion = await evaluate("getComputedStyle(document.querySelector('.panel')).animationName"); assert.equal(output.reducedMotion, "none");
   await select("chat");
+  // Real File/Blob/XHR/preview lifecycle against this isolated synthetic HTTP fixture.
+  await evaluate(`(async()=>{
+    pwaTest.state.csrf='synthetic';pwaTest.state.historyReady=true;pwaTest.state.attachmentsAllowed=true;pwaTest.state.chatActive.clear();pwaTest.state.pendingRequest=null;pwaTest.state.sending=false;pwaTest.state.historyBusy=false;pwaTest.state.chatAction=null;pwaTest.setConnected(true);
+    const canvas=document.createElement('canvas');canvas.width=2;canvas.height=2;canvas.getContext('2d').fillRect(0,0,2,2);
+    const photo=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+    await pwaTest.selectAttachments([new File(['<script>synthetic text</script>'],'fixture.txt'),new File([photo],'fixture.png'),new File(['synthetic PDF selection'],'fixture.pdf')]);
+  })()`);
+  for(let turn=0;turn<100;turn++){if(await evaluate("pwaTest.state.attachments.length===3&&pwaTest.state.attachments.every(item=>item.phase==='ready')"))break;await pause(20);}
+  assert.equal(await evaluate("pwaTest.state.attachments.every(item=>item.phase==='ready')"),true);
+  assert.equal(await evaluate("document.querySelector('#attachments img').naturalWidth"),2);
+  assert.equal(await evaluate("document.querySelector('#attachments pre').textContent"),'<script>synthetic text</script>');
+  assert.equal(await evaluate("document.querySelectorAll('#attachments script').length"),0);
+  await evaluate(`(()=>{const original=window.fetch;window.workflowFetch=original;window.fetch=async(url,options)=>{
+    if(String(url).endsWith('/client/conversations/search'))return new Response(JSON.stringify({results:[{conversation_id:'synthetic',sequence:1,role:'user',excerpt:'<script>synthetic search</script>'}],has_more:false,next_before:null}));
+    if(String(url).endsWith('/client/tasks/synthetic'))return new Response(JSON.stringify({id:'synthetic',objective:'Synthetic task',status:'failed',nodes:[{id:'first',status:'completed',attempts:1},{id:'second',status:'failed',attempts:2,failure_class:'denied'}]}));
+    return original(url,options);};document.querySelector('#history-query').value='synthetic';})()`);
+  await evaluate("pwaTest.searchHistory();pwaTest.loadTask('synthetic')");
+  for(let turn=0;turn<100;turn++){if(await evaluate("!pwaTest.state.search&&!pwaTest.state.taskRead"))break;await pause(20);}
+  assert.equal(await evaluate("document.querySelector('#search-results p').textContent"),'<script>synthetic search</script>');
+  assert.equal(await evaluate("document.querySelector('#task-progress').value"),1);
+  assert.equal(await evaluate("document.querySelector('#cancel-task').disabled"),true);
+  output.workflows={geometry:[]};
+  for(const width of [320,375,390,430,844,1280])for(const font of [16,32]){
+    await call('Emulation.setDeviceMetricsOverride',{width,height:844,deviceScaleFactor:1,mobile:false});await call('Page.setFontSizes',{fontSizes:{standard:font,fixed:font}});
+    const geometry=await evaluate("({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,controls:[...document.querySelectorAll('#attachments button,#search-results button,#cancel-task')].map(e=>({width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height}))})");
+    assert.ok(geometry.scrollWidth<=width+1);for(const control of geometry.controls)assert.ok(control.width>=44&&control.height>=44);output.workflows.geometry.push({font,...geometry});
+  }
+  const workflowsAx=await call('Accessibility.getFullAXTree');
+  for(const name of ['Remove fixture.txt','Remove fixture.png','Remove fixture.pdf','Cancel task'])assert.ok(workflowsAx.nodes.some(n=>n.role?.value==='button'&&n.name?.value===name));
+  assert.ok(workflowsAx.nodes.some(n=>n.role?.value==='progressbar'&&n.name?.value==='Completed task steps'));
+  await evaluate("document.querySelector('#attachments button').focus()");await key('Enter',13);
+  assert.equal(await evaluate("pwaTest.state.attachments.length"),2);
+  await select('settings');assert.equal(await evaluate("pwaTest.state.attachments.length"),0);
+  await evaluate("window.fetch=workflowFetch;pwaTest.clearSearch({erase:true});pwaTest.state.taskSelected=null;document.querySelector('#task-detail').hidden=true");
+  await select('chat');
   // Actual browser AudioWorklet, synthetic oscillator MediaStream, fake transcription response.
   // No real microphone permission, Core request or private speech.
   await evaluate(`(()=>{
@@ -210,7 +252,8 @@ async function main() {
   await evaluate("scrollTo(0,0)");
   const screenshot = await call("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
   fs.writeFileSync(path.join(outputDir, "enlarged-320.png"), Buffer.from(screenshot.data, "base64"));
-  output.navigation.apiRequests = apiRequests; assert.equal(apiRequests.length, 0);
+  output.navigation.apiRequests = apiRequests; assert.equal(apiRequests.filter(item=>!item.path.startsWith('/api/v1/client/attachments/')).length,0);
+  assert.equal(apiRequests.filter(item=>item.method==='POST').length,3);assert.equal(apiRequests.filter(item=>item.method==='DELETE').length,3);
   fs.writeFileSync(path.join(outputDir, "desktop.json"), JSON.stringify(output, null, 2));
   console.log(JSON.stringify({ pass: true, cases: output.cases.length, contrast: output.contrast, keyboard: true, history: true, namedLog: true, output: "runtime/mvp4-fixes/desktop.json" }));
 }

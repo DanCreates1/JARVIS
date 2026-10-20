@@ -169,16 +169,19 @@ class SQLiteTaskStore:
         host_id: str,
         status: TaskStatus | None = None,
         limit: int = 100,
+        offset: int = 0,
     ) -> Sequence[TaskRecord]:
         if not 1 <= limit <= 500:
             raise ValueError("task limit must be between 1 and 500")
+        if not 0 <= offset <= 100_000:
+            raise ValueError("task offset out of bounds")
         sql = "SELECT record_json FROM planning_tasks WHERE host_id = ?"
         parameters: list[object] = [host_id]
         if status is not None:
             sql += " AND status = ?"
             parameters.append(status.value)
-        sql += " ORDER BY updated_at DESC, id DESC LIMIT ?"
-        parameters.append(limit)
+        sql += " ORDER BY updated_at DESC, id DESC LIMIT ? OFFSET ?"
+        parameters.extend((limit, offset))
         async with self._operation_lock:
             connection = await self._get_connection()
             async with connection.execute(sql, parameters) as cursor:

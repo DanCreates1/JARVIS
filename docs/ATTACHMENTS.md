@@ -26,7 +26,11 @@ reads only the selected regular file. Display filenames never become storage pat
 Local browser: choose file, Upload, select checkbox, send message. Status/deletion appear beside
 each record; failed records remain inspectable. Upload/message submission serialize conversation
 creation. Reload clears browser selection; durable records remain accessible through CLI.
-Authenticated phone PWA has no attachment UI/upload scope.
+F14 adds authenticated [PWA attachment staging](PWA_F14_WORKFLOWS.md) through existing `client.chat`:
+four PNG/JPEG/PDF/TXT/MD files, 1 MiB each, progress/cancel, safe previews and removal. Staging is
+bounded Core memory, not private SQLite, until explicit Send; lifecycle exits discard selection.
+Same-origin/CSRF or signed-session authentication, existing host gate, isolated processing and
+private routing remain required. Production enablement is unchanged.
 
 ## Bounds and processing
 
@@ -80,7 +84,7 @@ deletion, with cloud-role overrides denied, automatic research skipped and autom
 candidate capture suppressed. Client metadata cannot clear it. Start a new conversation for
 public web research. Phase C public-only acquisition and Phase D discovery/action owners remain.
 
-Upload/list/inspect/delete/attachment chat require local peer and Host, same or absent Origin,
+Legacy `/api/` upload/list/inspect/delete/attachment chat require local peer and Host, same or absent Origin,
 no forwarding headers, cookies or Authorization. No raw download or new `/api/v1` scope exists.
 Raw upload: `POST /api/attachments?filename=NAME&conversation_id=ID`, allowlisted Content-Type,
 bounded body. Metadata routes: `/api/conversations/{conversation_id}/attachments`. This boundary

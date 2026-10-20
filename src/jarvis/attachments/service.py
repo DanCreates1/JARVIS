@@ -120,7 +120,9 @@ class AttachmentService:
             ),
         )
 
-    async def upload(self, upload: AttachmentUpload, body: bytes) -> Attachment:
+    async def upload(
+        self, upload: AttachmentUpload, body: bytes, *, pwa_device_id: str | None = None
+    ) -> Attachment:
         if not self.enabled:
             raise AttachmentError("attachments_disabled")
         upload = AttachmentUpload.model_validate(upload)
@@ -144,9 +146,17 @@ class AttachmentService:
                 await db.execute("BEGIN IMMEDIATE")
                 await self._cleanup(db)
                 async with db.execute(
-                    "SELECT 1 FROM conversations WHERE id=?", (upload.conversation_id,)
+                    "SELECT attachment_private,attachment_device_id FROM conversations WHERE id=?",
+                    (upload.conversation_id,),
                 ) as cursor:
-                    if await cursor.fetchone() is None:
+                    conversation = await cursor.fetchone()
+                    if conversation is None:
+                        raise AttachmentError("conversation_not_found")
+                    if (
+                        pwa_device_id is not None
+                        and conversation[0]
+                        and conversation[1] != pwa_device_id
+                    ):
                         raise AttachmentError("conversation_not_found")
                 async with db.execute(
                     "SELECT id FROM attachments WHERE host_id=? AND conversation_id=? "
@@ -155,6 +165,11 @@ class AttachmentService:
                 ) as cursor:
                     duplicate = await cursor.fetchone()
                 if duplicate is not None:
+                    if pwa_device_id is None:
+                        await db.execute(
+                            "UPDATE conversations SET attachment_device_id=NULL WHERE id=?",
+                            (upload.conversation_id,),
+                        )
                     await db.commit()
                     return await self._get(db, upload.conversation_id, str(duplicate[0]))
                 async with db.execute(
@@ -186,8 +201,9 @@ class AttachmentService:
                 )
                 # Sticky host-owned flag: later follow-ups cannot disclose source-derived terms.
                 await db.execute(
-                    "UPDATE conversations SET attachment_private=1 WHERE id=?",
-                    (upload.conversation_id,),
+                    "UPDATE conversations SET attachment_private=1,attachment_device_id=? "
+                    "WHERE id=?",
+                    (pwa_device_id, upload.conversation_id),
                 )
                 await db.commit()
             except BaseException:

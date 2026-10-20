@@ -10,8 +10,10 @@ from contextlib import aclosing, suppress
 from dataclasses import dataclass
 from typing import Any, cast
 
+from jarvis.attachments import AttachmentError, AttachmentService
 from jarvis.core import AssistantRequest, AssistantService, RuntimeStreamFrame
 from jarvis.memory import SQLiteConversationStore
+from jarvis.remote.attachments import PWAUploadStaging, StagedAttachment, commit_uploads
 from jarvis.remote.chat_store import PWAChatError, SQLitePWAChatStore, chat_result
 from jarvis.remote.models import RemoteIdentityContext, RemoteScope
 from jarvis.remote.pwa import PWAEventHub, PWAEventTopic, PWATransportError
@@ -41,12 +43,15 @@ class PWAChatCoordinator:
         conversations: SQLiteConversationStore,
         hub: PWAEventHub,
         identity: RemoteIdentityService | None,
+        attachments: AttachmentService | None = None,
     ) -> None:
         self.store = SQLitePWAChatStore(conversations.database_path)
         self._service = service
         self._conversations = conversations
         self._hub = hub
         self._identity = identity
+        self.attachments = attachments
+        self.uploads = PWAUploadStaging()
         self._active: dict[tuple[str, str, str], _ActiveTurn] = {}
         self._lock = asyncio.Lock()
 
@@ -61,6 +66,7 @@ class PWAChatCoordinator:
         request_id: str,
         subscription_id: str,
         request: AssistantRequest,
+        upload_ids: tuple[str, ...] = (),
     ) -> dict[str, Any]:
         # Validate transport ownership even on replay before attaching its current stream.
         await self._hub.validate_subscription(
@@ -73,6 +79,7 @@ class PWAChatCoordinator:
                     "conversation_id": request.conversation_id,
                     "model_role": request.requested_model_role,
                     "reasoning_level": request.reasoning_level,
+                    **({"upload_ids": upload_ids} if upload_ids else {}),
                 },
                 sort_keys=True,
                 separators=(",", ":"),
@@ -105,6 +112,14 @@ class PWAChatCoordinator:
                 return result
             conversation_id = str(result["conversation_id"])
             active = _ActiveTurn(context, request_id, conversation_id, subscription_id)
+            try:
+                staged = self.uploads.take(context, upload_ids)
+            except AttachmentError:
+                result = chat_result(
+                    request_id, conversation_id, "failed", error="upload_unavailable"
+                )
+                await self.store.complete(context=context, request_id=request_id, result=result)
+                return result
             self._active[key] = active
             active.task = asyncio.create_task(
                 self._run(
@@ -120,6 +135,7 @@ class PWAChatCoordinator:
                         }
                     ),
                     key,
+                    staged,
                 )
             )
             active.task.add_done_callback(_consume_task_outcome)
@@ -187,6 +203,7 @@ class PWAChatCoordinator:
         return await self.store.get(context=context, request_id=request_id)
 
     async def clear_session(self, session_id: str) -> None:
+        self.uploads.clear_session(session_id)
         async with self._lock:
             tasks = [
                 item.task
@@ -211,6 +228,7 @@ class PWAChatCoordinator:
                     await self._settle_unstarted(item)
 
     async def close(self) -> None:
+        self.uploads.close()
         async with self._lock:
             tasks = [item.task for item in self._active.values() if item.task is not None]
             for item in self._active.values():
@@ -274,7 +292,11 @@ class PWAChatCoordinator:
                     return
 
     async def _run(
-        self, active: _ActiveTurn, request: AssistantRequest, key: tuple[str, str, str]
+        self,
+        active: _ActiveTurn,
+        request: AssistantRequest,
+        key: tuple[str, str, str],
+        staged: tuple[StagedAttachment, ...] = (),
     ) -> None:
         active.started = True
         watcher: asyncio.Task[None] | None = None
@@ -287,9 +309,18 @@ class PWAChatCoordinator:
             await self._identity.validate_context(
                 active.context, required_scope=RemoteScope.CLIENT_CHAT
             )
+            # Watch identity while existing bounded local parsers run, before model work.
+            watcher = asyncio.create_task(self._watch_authority(active))
+            attachment_ids = await commit_uploads(
+                self.attachments, active.context, active.conversation_id, staged
+            )
+            staged = ()
+            request = request.model_copy(update={"attachment_ids": attachment_ids})
+            await self._identity.validate_context(
+                active.context, required_scope=RemoteScope.CLIENT_CHAT
+            )
             await self._audit(active, "started")
             await self._publish(active, "chat.started", {"conversation_id": active.conversation_id})
-            watcher = asyncio.create_task(self._watch_authority(active))
             terminal = None
             emitted_delta = False
             async with (
@@ -353,6 +384,13 @@ class PWAChatCoordinator:
         except TimeoutError:
             result = chat_result(
                 active.request_id, active.conversation_id, "failed", error="request_timeout"
+            )
+        except AttachmentError:
+            result = chat_result(
+                active.request_id,
+                active.conversation_id,
+                "failed",
+                error="attachment_processing_failed",
             )
         except Exception:
             pass

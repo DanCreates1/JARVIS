@@ -256,11 +256,15 @@ Remote voice, persistent push, remote effects, and multi-replica deployment rema
 
 ## Native mobile foundation
 
-The current $0 phone path uses Home Screen PWA shell v10 with persistent **Chat / Garmin / Settings**
+The current $0 phone path uses Home Screen PWA shell v11 with persistent **Chat / Garmin / Settings**
 navigation. Chat includes conversation and tasks; Settings holds enrollment, connection and logout.
 Navigation preserves in-flight work and makes no API requests. See [F12 navigation](docs/PWA_F12_NAVIGATION.md)
 and [PWA Garmin setup](docs/PWA_GARMIN.md). Optional [F13 local push-to-talk](docs/PWA_F13_PUSH_TO_TALK.md)
 fills an editable draft; existing explicit Send remains required. Production voice stays default off.
+[F14 assistant workflows](docs/PWA_F14_WORKFLOWS.md) add bounded photo/PDF/text uploads with previews,
+Core-owned history search, separate memory-only conversation drafts, and task details/progress/recovery.
+Attachments commit only on Send and retain existing local/private routing. Remote task cancellation
+stays disabled because existing task scope is read-only. Production controls remain default off.
 Manual phone checks are skipped by owner; unverified.
 Native build acceptance remains deferred under
 the no-Mac, no-paid-membership constraint.
