@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
@@ -11,6 +13,7 @@ from uuid import uuid4
 
 import aiosqlite
 
+from jarvis.attachments.models import AttachmentError
 from jarvis.memory.sqlite_store import SQLiteConversationStore
 from jarvis.remote.models import RemoteIdentityContext
 
@@ -122,6 +125,19 @@ class SQLitePWAChatStore:
             raise RuntimeError("Phone chat store unavailable")
         return self._connection
 
+    @asynccontextmanager
+    async def _owned_read(
+        self, context: RemoteIdentityContext, conversation_id: str
+    ) -> AsyncIterator[aiosqlite.Connection]:
+        async with self._lock:
+            connection = self._db()
+            await connection.execute("BEGIN")
+            try:
+                await self._require_owner(connection, context, conversation_id)
+                yield connection
+            finally:
+                await connection.rollback()
+
     async def recover_interrupted(self) -> None:
         """A process restart cannot prove provider outcome; never replay reserved work."""
         async with self._lock:
@@ -188,7 +204,8 @@ class SQLitePWAChatStore:
                         (conversation_id, '{"interface":"browser"}', timestamp, timestamp),
                     )
                     await connection.execute(
-                        "INSERT INTO pwa_conversation_owners VALUES (?,?,?,?)",
+                        "INSERT INTO pwa_conversation_owners "
+                        "(conversation_id,host_id,device_id,created_at) VALUES (?,?,?,?)",
                         (conversation_id, context.host_id, context.device_id, timestamp),
                     )
                 else:
@@ -314,30 +331,222 @@ class SQLitePWAChatStore:
             raise PWAChatError("request_not_found")
         return cast(dict[str, Any], json.loads(row["result_json"]))
 
-    async def conversations(self, context: RemoteIdentityContext) -> dict[str, Any]:
+    async def conversations(
+        self,
+        context: RemoteIdentityContext,
+        *,
+        archived: bool = False,
+        offset: int = 0,
+        revision: int | None = None,
+    ) -> dict[str, Any]:
         async with self._lock:
             connection = self._db()
+            # A read transaction keeps list and pagination revision in one SQLite snapshot.
+            await connection.execute("BEGIN")
+            try:
+                return await self._library(connection, context, archived, offset, revision)
+            finally:
+                await connection.rollback()
+
+    async def _library(
+        self,
+        connection: aiosqlite.Connection,
+        context: RemoteIdentityContext,
+        archived: bool,
+        offset: int,
+        revision: int | None,
+    ) -> dict[str, Any]:
+        async with connection.execute(
+            "SELECT revision FROM pwa_library_versions WHERE host_id=? AND device_id=?",
+            (context.host_id, context.device_id),
+        ) as cursor:
+            version = await cursor.fetchone()
+        current_revision = int(version[0]) if version else 0
+        if revision is not None and revision != current_revision:
+            raise PWAChatError("library_changed")
+        async with connection.execute(
+            "SELECT c.id,c.updated_at,o.title,o.pinned,o.archived,o.revision, "
+            "(SELECT substr(json_extract(m.payload_json,'$.content'),1,160) FROM messages m "
+            "WHERE m.conversation_id=c.id AND m.role='user' AND EXISTS "
+            "(SELECT 1 FROM pwa_chat_requests r WHERE r.conversation_id=c.id "
+            "AND r.host_id=o.host_id AND r.device_id=o.device_id AND "
+            "r.request_id=json_extract(m.payload_json,'$.client_request_id')) "
+            "ORDER BY m.sequence LIMIT 1) AS default_title, "
+            "(SELECT substr(json_extract(m.payload_json,'$.content'),1,240) FROM messages m "
+            "WHERE m.conversation_id=c.id AND (m.role='user' OR (m.role='assistant' "
+            "AND json_array_length(json_extract(m.payload_json,'$.tool_calls'))=0)) "
+            "AND EXISTS (SELECT 1 FROM pwa_chat_requests r WHERE r.conversation_id=c.id "
+            "AND r.host_id=o.host_id AND r.device_id=o.device_id AND "
+            "r.request_id=json_extract(m.payload_json,'$.client_request_id')) "
+            "ORDER BY m.sequence DESC LIMIT 1) AS excerpt "
+            "FROM conversations c JOIN pwa_conversation_owners o "
+            "ON o.conversation_id=c.id WHERE o.host_id=? AND o.device_id=? "
+            "AND (c.attachment_private=0 OR c.attachment_device_id=o.device_id) "
+            "AND c.email_private=0 AND o.archived=? "
+            "ORDER BY o.pinned DESC,c.updated_at DESC,c.id DESC LIMIT 21 OFFSET ?",
+            (context.host_id, context.device_id, archived, offset),
+        ) as cursor:
+            rows = list(await cursor.fetchall())
+        async with connection.execute(
+            "SELECT r.result_json FROM pwa_chat_requests r JOIN conversations c "
+            "ON c.id=r.conversation_id WHERE host_id=? AND device_id=? "
+            "AND status='running' "
+            "AND (c.attachment_private=0 OR c.attachment_device_id=r.device_id) "
+            "AND c.email_private=0 LIMIT 1",
+            (context.host_id, context.device_id),
+        ) as cursor:
+            active = await cursor.fetchone()
+        return {
+            "conversations": [
+                {
+                    **dict(row),
+                    "title": _label(row["title"] or row["default_title"] or "New conversation", 80),
+                    "default_title": None,
+                    "excerpt": _label(row["excerpt"] or "No messages yet.", 240),
+                }
+                for row in rows[:20]
+            ],
+            "revision": current_revision,
+            "has_more": len(rows) > 20,
+            "next_offset": offset + 20 if len(rows) > 20 else None,
+            "active_request": json.loads(active["result_json"]) if active else None,
+        }
+
+    async def update_metadata(
+        self,
+        *,
+        context: RemoteIdentityContext,
+        conversation_id: str,
+        revision: int,
+        title: str | None,
+        pinned: bool,
+        archived: bool,
+    ) -> dict[str, Any]:
+        async with self._lock:
+            connection = self._db()
+            await connection.execute("BEGIN IMMEDIATE")
+            try:
+                await self._require_owner(connection, context, conversation_id)
+                async with connection.execute(
+                    "UPDATE pwa_conversation_owners SET title=?,pinned=?,archived=?,"
+                    "revision=revision+1 WHERE conversation_id=? AND revision=?",
+                    (
+                        _label(title, 80) if title and title.strip() else None,
+                        pinned,
+                        archived,
+                        conversation_id,
+                        revision,
+                    ),
+                ) as cursor:
+                    if cursor.rowcount != 1:
+                        raise PWAChatError("metadata_conflict")
+                await connection.commit()
+            except BaseException:
+                await connection.rollback()
+                raise
+        return {"id": conversation_id, "revision": revision + 1}
+
+    async def bind_attachments(
+        self,
+        *,
+        context: RemoteIdentityContext,
+        conversation_id: str,
+        request_id: str,
+        identifiers: tuple[str, ...],
+    ) -> None:
+        if not 1 <= len(identifiers) <= 4 or len(set(identifiers)) != len(identifiers):
+            raise AttachmentError("attachment_unavailable")
+        async with self._lock:
+            connection = self._db()
+            await connection.execute("BEGIN IMMEDIATE")
+            try:
+                await self._require_owner(connection, context, conversation_id)
+                for identifier in identifiers:
+                    async with connection.execute(
+                        "SELECT 1 FROM attachments WHERE id=? AND host_id=? "
+                        "AND conversation_id=? AND status='ready' AND expires_at>?",
+                        (identifier, context.host_id, conversation_id, _now()),
+                    ) as cursor:
+                        if await cursor.fetchone() is None:
+                            raise AttachmentError("attachment_unavailable")
+                    await connection.execute(
+                        "INSERT OR IGNORE INTO pwa_attachment_requests VALUES(?,?,?)",
+                        (conversation_id, request_id, identifier),
+                    )
+                await connection.commit()
+            except BaseException:
+                await connection.rollback()
+                raise
+
+    async def attachment_metadata(
+        self,
+        *,
+        context: RemoteIdentityContext,
+        conversation_id: str,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        # Metadata only. No cleanup, body/image/chunk projection or parser invocation.
+        async with self._owned_read(context, conversation_id) as connection:
             async with connection.execute(
-                "SELECT c.id,c.updated_at FROM conversations c JOIN pwa_conversation_owners o "
-                "ON o.conversation_id=c.id WHERE o.host_id=? AND o.device_id=? "
-                "AND (c.attachment_private=0 OR c.attachment_device_id=o.device_id) "
-                "AND c.email_private=0 "
-                "ORDER BY c.updated_at DESC,c.id DESC LIMIT 20",
-                (context.host_id, context.device_id),
+                "WITH ids AS (SELECT id FROM attachments WHERE host_id=? AND conversation_id=? "
+                "UNION SELECT attachment_id FROM pwa_attachment_requests WHERE conversation_id=?) "
+                "SELECT ids.id,a.filename,a.media_type,a.byte_size,a.status,a.error_code,"
+                "a.created_at,a.expires_at FROM ids LEFT JOIN attachments a ON a.id=ids.id "
+                "AND a.host_id=? AND a.conversation_id=? ORDER BY ids.id LIMIT 21 OFFSET ?",
+                (
+                    context.host_id,
+                    conversation_id,
+                    conversation_id,
+                    context.host_id,
+                    conversation_id,
+                    offset,
+                ),
             ) as cursor:
                 rows = list(await cursor.fetchall())
-            async with connection.execute(
-                "SELECT r.result_json FROM pwa_chat_requests r JOIN conversations c "
-                "ON c.id=r.conversation_id WHERE host_id=? AND device_id=? "
-                "AND status='running' "
-                "AND (c.attachment_private=0 OR c.attachment_device_id=r.device_id) "
-                "AND c.email_private=0 LIMIT 1",
-                (context.host_id, context.device_id),
-            ) as cursor:
-                active = await cursor.fetchone()
+            records = []
+            now = _now()
+            for row in rows[:20]:
+                item = dict(row)
+                item["status"] = (
+                    "unavailable"
+                    if row["status"] is None
+                    else (
+                        "expired"
+                        if row["expires_at"] <= now
+                        else "failed"
+                        if row["status"] == "processing"
+                        and (
+                            datetime.now(UTC) - datetime.fromisoformat(row["created_at"])
+                        ).total_seconds()
+                        > 60
+                        else row["status"]
+                    )
+                )
+                if row["status"] == "processing" and item["status"] == "failed":
+                    item["error_code"] = "processing_interrupted"
+                # Only fixed public failure categories leave Core; never parser text.
+                if item["error_code"] not in {
+                    None,
+                    "processing_interrupted",
+                    "processing_cancelled",
+                    "processing_timeout",
+                    "storage_quota",
+                }:
+                    item["error_code"] = "processing_rejected"
+                async with connection.execute(
+                    "SELECT l.request_id FROM pwa_attachment_requests l JOIN pwa_chat_requests r "
+                    "ON r.request_id=l.request_id AND r.conversation_id=l.conversation_id "
+                    "WHERE l.conversation_id=? AND l.attachment_id=? AND r.host_id=? "
+                    "AND r.device_id=? ORDER BY r.created_at DESC LIMIT 4",
+                    (conversation_id, row["id"], context.host_id, context.device_id),
+                ) as cursor:
+                    item["request_ids"] = [r[0] for r in await cursor.fetchall()]
+                records.append(item)
         return {
-            "conversations": [dict(row) for row in rows],
-            "active_request": json.loads(active["result_json"]) if active else None,
+            "conversation_id": conversation_id,
+            "attachments": records,
+            "has_more": len(rows) > 20,
+            "next_offset": offset + 20 if len(rows) > 20 else None,
         }
 
     async def search(
@@ -385,9 +594,7 @@ class SQLitePWAChatStore:
         before: int | None,
         limit: int,
     ) -> dict[str, Any]:
-        async with self._lock:
-            connection = self._db()
-            await self._require_owner(connection, context, conversation_id)
+        async with self._owned_read(context, conversation_id) as connection:
             async with connection.execute(
                 "SELECT m.id,m.sequence,m.role,m.payload_json, "
                 "json_extract(m.payload_json,'$.client_request_id') AS request_id "
@@ -422,7 +629,7 @@ class SQLitePWAChatStore:
             "next_before": None,
             "requests": requests,
         }
-        remaining = MAX_CHAT_RESPONSE_BYTES - len(_dump(result).encode("utf-8")) - 1024
+        remaining = MAX_CHAT_RESPONSE_BYTES - len(_dump(result).encode("utf-8")) - 32_768
         selected: list[dict[str, Any]] = []
         for row in rows[:limit]:
             message = {
@@ -477,3 +684,7 @@ def _dump(value: object) -> str:
 
 def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="microseconds")
+
+
+def _label(value: str, limit: int) -> str:
+    return " ".join("".join(c for c in value if c.isprintable() or c.isspace()).split())[:limit]

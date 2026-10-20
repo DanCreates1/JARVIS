@@ -9,7 +9,7 @@
   <link rel="manifest" href="/app/manifest.webmanifest">
   <link rel="icon" href="/app/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app/app.css">
-  <script src="/app/app.js?v=11" type="module"></script>
+  <script src="/app/app.js?v=12" type="module"></script>
 </head>
 <body>
   <header>
@@ -33,8 +33,18 @@
         <h2 id="chat-title" tabindex="-1">Conversation</h2>
         <button id="notify" type="button" class="quiet" disabled>Enable notifications</button>
       </div>
-      <label for="conversation-list">Saved conversations</label>
-      <select id="conversation-list" disabled><option value="">New conversation</option></select>
+      <select id="conversation-list" hidden aria-label="Current conversation" disabled><option value="">New conversation</option></select>
+      <section aria-labelledby="library-title">
+        <h3 id="library-title" tabindex="-1">Conversation library</h3>
+        <label for="library-archived"><input id="library-archived" type="checkbox"> Browse archived history</label>
+        <button id="library-refresh" type="button" class="secondary" disabled>Refresh library</button>
+        <p id="library-state" role="status" aria-live="polite">Connect to browse saved conversations.</p>
+        <ul id="library" aria-label="Saved conversations"></ul>
+        <div class="actions">
+          <button id="library-previous" type="button" class="secondary" hidden>Previous conversations</button>
+          <button id="library-next" type="button" class="secondary" hidden>Next conversations</button>
+        </div>
+      </section>
       <div class="actions">
         <button id="new-conversation" type="button" class="secondary" disabled>New conversation</button>
         <button id="refresh-history" type="button" class="secondary" disabled>Refresh history</button>
@@ -54,13 +64,24 @@
       <p id="chat-status" class="hint" role="status" aria-live="polite" aria-atomic="true"></p>
       <form id="chat">
         <label class="sr-only" for="message">Message</label>
-        <textarea id="message" rows="2" maxlength="100000" placeholder="Ask JARVIS" disabled></textarea>
+        <textarea id="message" rows="2" maxlength="100000" placeholder="Ask JARVIS" aria-describedby="composer-hint" disabled></textarea>
         <button id="send" type="submit" disabled>Send</button>
       </form>
+      <p id="composer-hint" class="hint">Enter adds a line. Send button or Ctrl/⌘+Enter submits deliberately. Drafts stay in this session only.</p>
       <label for="attachment-file">Attach photo, PDF or text file</label>
       <input id="attachment-file" type="file" accept="image/png,image/jpeg,application/pdf,text/plain,.txt,.md" multiple disabled aria-describedby="attachment-state">
       <p id="attachment-state" class="hint" role="status" aria-live="polite">Up to four files, 1 MiB each. PNG/JPEG, PDF, TXT/MD. Review, then Send. Files are processed privately on Core.</p>
       <ul id="attachments" aria-label="Selected attachments"></ul>
+      <section aria-labelledby="conversation-attachments-title">
+        <h3 id="conversation-attachments-title">Conversation attachments</h3>
+        <button id="refresh-attachments" type="button" class="secondary" disabled>Refresh attachment status</button>
+        <p id="conversation-attachments-state" class="hint" role="status" aria-live="polite">Open a saved conversation to inspect attachments.</p>
+        <ul id="conversation-attachments" aria-label="Core attachment metadata"></ul>
+        <div class="actions">
+          <button id="attachments-previous" type="button" class="secondary" hidden>Previous attachments</button>
+          <button id="attachments-next" type="button" class="secondary" hidden>Next attachments</button>
+        </div>
+      </section>
       <div class="actions" aria-label="Voice message">
         <button id="record-message" type="button" class="secondary" disabled aria-describedby="voice-status">Record message</button>
         <button id="stop-recording" type="button" class="secondary" hidden>Stop recording</button>
@@ -80,13 +101,29 @@
         <button id="refresh-tasks" type="button" class="quiet" disabled>Refresh tasks</button>
       </div>
       <p id="tasks-state" class="hint" role="status"></p>
+      <label for="task-filter">Task status filter</label>
+      <select id="task-filter">
+        <option value="">All statuses</option><option value="waiting_approval">Waiting approval</option>
+        <option value="running">Running</option><option value="verifying">Verifying steps</option><option value="partial">Partial</option>
+        <option value="completed">Completed</option><option value="failed">Failed</option>
+        <option value="cancelled">Cancelled</option><option value="needs_reconciliation">Needs reconciliation</option>
+        <option value="proposed">Proposed</option><option value="ready">Ready</option><option value="paused">Paused</option>
+      </select>
+      <label for="task-sort">Sort tasks</label>
+      <select id="task-sort"><option value="newest">Recently updated first</option><option value="oldest">Oldest updated first</option></select>
       <ul id="tasks"><li>No authenticated status.</li></ul>
-      <button id="more-tasks" type="button" class="secondary" hidden disabled>More tasks</button>
+      <button id="previous-tasks" type="button" class="secondary" hidden disabled>Previous tasks</button>
+      <button id="more-tasks" type="button" class="secondary" hidden disabled>Next tasks</button>
       <div id="task-detail" hidden>
         <h3 id="task-detail-title" tabindex="-1">Task details</h3>
         <p id="task-detail-state" class="hint" role="status" aria-live="polite"></p>
         <progress id="task-progress" max="1" value="0" aria-label="Completed task steps"></progress>
         <ul id="task-nodes" aria-label="Task steps"></ul>
+        <h4 id="task-timeline-title" tabindex="-1">Core event timeline</h4>
+        <p id="task-timeline-state" class="hint" role="status" aria-live="polite"></p>
+        <ol id="task-events" aria-label="Task event timeline"></ol>
+        <button id="task-events-older" type="button" class="secondary" hidden>Older task events</button>
+        <button id="task-events-latest" type="button" class="secondary" hidden>Latest task events</button>
         <button id="cancel-task" type="button" class="secondary" disabled aria-describedby="task-cancel-reason">Cancel task</button>
         <p id="task-cancel-reason" class="hint">Task access is read-only. Use existing trusted-host cancellation controls.</p>
       </div>

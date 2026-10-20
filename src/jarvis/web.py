@@ -208,12 +208,41 @@ class PWAChatInput(BaseModel):
     upload_ids: tuple[Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], ...] = Field(
         default=(), max_length=4
     )
+    attachment_ids: tuple[Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], ...] = Field(
+        default=(), max_length=4
+    )
+
+    @model_validator(mode="after")
+    def bounded_attachments(self) -> Self:
+        if (
+            len(self.upload_ids) + len(self.attachment_ids) > 4
+            or len(set(self.upload_ids)) != len(self.upload_ids)
+            or len(set(self.attachment_ids)) != len(self.attachment_ids)
+            or (self.attachment_ids and not self.conversation_id)
+        ):
+            raise ValueError("At most four unique attachments in their existing conversation")
+        return self
 
 
 class PWASearchInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     query: str = Field(min_length=1, max_length=200)
     before: int | None = Field(default=None, ge=1)
+
+
+class PWALibraryInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    archived: bool = False
+    offset: int = Field(default=0, ge=0, le=100_000)
+    revision: int | None = Field(default=None, ge=0, le=9_223_372_036_854_775_807)
+
+
+class PWAMetadataInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    revision: int = Field(ge=0, le=9_223_372_036_854_775_807)
+    title: str | None = Field(default=None, max_length=80)
+    pinned: bool
+    archived: bool
 
 
 class ProactivityOwnershipInput(BaseModel):
@@ -783,19 +812,31 @@ def create_app(
     @app.get("/api/v1/client/tasks")
     async def list_pwa_tasks(
         request: Request,
+        response: Response,
         limit: Annotated[int, Query(ge=1, le=100)] = 50,
         offset: Annotated[int, Query(ge=0, le=100_000)] = 0,
+        status: TaskStatus | Literal["verifying"] | None = None,
+        sort: Literal["newest", "oldest"] = "newest",
+        revision: Annotated[int | None, Query(ge=0)] = None,
     ) -> list[dict[str, object]]:
         context = _remote_context(request)
         runtime = _runtime(request)
         _require_remote_host(runtime, context)
         if runtime.task_store is None or runtime.memory_host_id is None:
             return []
-        records = await runtime.task_store.list_tasks(
-            host_id=runtime.memory_host_id,
-            limit=limit,
-            offset=offset,
-        )
+        try:
+            records, current_revision = await runtime.task_store.workspace_page(
+                host_id=runtime.memory_host_id,
+                status=status if isinstance(status, TaskStatus) else None,
+                limit=limit,
+                offset=offset,
+                newest_first=sort == "newest",
+                expected_revision=revision,
+                verifying_only=status == "verifying",
+            )
+        except TaskStateError:
+            raise HTTPException(409, "Task list changed. Refresh tasks.") from None
+        response.headers["X-Jarvis-Task-Revision"] = str(current_revision)
         return [
             cast(
                 dict[str, object],
@@ -811,11 +852,68 @@ def create_app(
                             node.status.value == "completed" for node in record.nodes
                         ),
                         "total_nodes": len(record.nodes),
+                        "verifying_nodes": sum(
+                            node.status.value == "verifying" for node in record.nodes
+                        ),
                     }
                 ),
             )
             for record in records
         ]
+
+    @app.get("/api/v1/client/tasks/{task_id}/events")
+    async def pwa_task_events(
+        request: Request,
+        task_id: Annotated[str, Path(min_length=1, max_length=200)],
+        before: Annotated[int | None, Query(ge=1)] = None,
+        limit: Annotated[int, Query(ge=1, le=50)] = 50,
+    ) -> dict[str, Any]:
+        context = _remote_context(request)
+        runtime = _runtime(request)
+        _require_remote_host(runtime, context)
+        if runtime.task_store is None or runtime.memory_host_id is None:
+            raise HTTPException(503, "Task planning unavailable")
+        try:
+            events = await runtime.task_store.list_events(
+                host_id=runtime.memory_host_id,
+                task_id=task_id,
+                limit=limit + 1,
+                before=before,
+                newest_first=True,
+            )
+        except TaskNotFoundError:
+            raise HTTPException(404, "Task not found") from None
+        # Explicit projection: event payloads, outputs, grants and arbitrary reason strings
+        # never cross this boundary. Fixed explanations retain useful Core failure classes.
+        reasons = {
+            "dependency_failed": "A prerequisite step failed.",
+            "exact_grant_required": "Waiting for exact trusted-host approval.",
+            "task_cancelled": "Core confirmed cancellation.",
+            "timeout": "Core deadline exceeded.",
+            "capacity": "Core capacity reached.",
+            "uncertain": "Outcome uncertain; trusted-host reconciliation required.",
+            "denied": "Core policy denied this step.",
+        }
+        selected = events[:limit]
+        return {
+            "task_id": task_id,
+            "events": [
+                {
+                    "sequence": event.sequence,
+                    "event_type": event.event_type.value,
+                    "task_status": event.task_status.value,
+                    "node_status": event.node_status.value if event.node_status else None,
+                    "node_id": event.node_id,
+                    "created_at": event.created_at.isoformat(),
+                    "explanation": reasons.get(
+                        event.reason_code or "", "Core recorded a state transition."
+                    ),
+                }
+                for event in reversed(selected)
+            ],
+            "has_more": len(events) > limit,
+            "next_before": selected[-1].sequence if len(events) > limit else None,
+        }
 
     @app.get("/api/v1/client/tasks/{task_id}")
     async def pwa_task_details(
@@ -847,9 +945,20 @@ def create_app(
                     "status": node.status.value,
                     "attempts": node.attempts,
                     "failure_class": node.failure_class.value if node.failure_class else None,
+                    "explanation": {
+                        "denied": "Core policy denied this step.",
+                        "timeout": "Core deadline exceeded.",
+                        "capacity": "Core capacity reached.",
+                        "uncertain": "Outcome uncertain; trusted-host reconciliation required.",
+                        "transient": "Temporary failure; Core decides any permitted retry.",
+                        "terminal": "Step failed permanently.",
+                        "cancelled": "Core confirmed step cancellation.",
+                        "invalid_result": "Step result failed Core validation.",
+                    }.get(node.failure_class.value if node.failure_class else ""),
                 }
                 for node in record.nodes
             ],
+            "timeline": await pwa_task_events(request, task_id, before=None, limit=50),
         }
 
     @app.get("/api/v1/client/garmin")
@@ -1094,6 +1203,51 @@ def create_app(
             else {"results": [], "has_more": False, "next_before": None}
         )
 
+    @app.post("/api/v1/client/conversations/library")
+    async def pwa_library(payload: PWALibraryInput, request: Request) -> dict[str, Any]:
+        context = _remote_context(request)
+        _require_remote_host(_runtime(request), context)
+        try:
+            return await _pwa_chat(request).store.conversations(context, **payload.model_dump())
+        except PWAChatError as exc:
+            raise _pwa_chat_http_error(exc) from None
+
+    @app.post("/api/v1/client/conversations/{conversation_id}/metadata")
+    async def pwa_metadata(
+        payload: PWAMetadataInput,
+        request: Request,
+        conversation_id: Annotated[str, Path(min_length=1, max_length=200)],
+    ) -> dict[str, Any]:
+        context = _remote_context(request)
+        _require_remote_host(_runtime(request), context)
+        try:
+            return await _pwa_chat(request).store.update_metadata(
+                context=context, conversation_id=conversation_id, **payload.model_dump()
+            )
+        except PWAChatError as exc:
+            raise _pwa_chat_http_error(exc) from None
+
+    @app.get("/api/v1/client/conversations/{conversation_id}/attachments")
+    async def pwa_attachment_metadata(
+        request: Request,
+        conversation_id: Annotated[str, Path(min_length=1, max_length=200)],
+        offset: Annotated[int, Query(ge=0, le=100_000)] = 0,
+    ) -> dict[str, Any]:
+        context = _remote_context(request)
+        _require_remote_host(_runtime(request), context)
+        try:
+            result = await _pwa_chat(request).store.attachment_metadata(
+                context=context, conversation_id=conversation_id, offset=offset
+            )
+        except PWAChatError as exc:
+            raise _pwa_chat_http_error(exc) from None
+        service = _runtime(request).attachments
+        result["available"] = service is not None and service.enabled
+        result["vision_available"] = (
+            service is not None and service.enabled and service.vision is not None
+        )
+        return result
+
     @app.get("/api/v1/client/conversations/{conversation_id}/messages")
     async def pwa_conversation_messages(
         request: Request,
@@ -1104,9 +1258,18 @@ def create_app(
         context = _remote_context(request)
         _require_remote_host(_runtime(request), context)
         try:
-            return await _pwa_chat(request).store.messages(
+            page = await _pwa_chat(request).store.messages(
                 context=context, conversation_id=conversation_id, before=before, limit=limit
             )
+            page["attachment_page"] = await _pwa_chat(request).store.attachment_metadata(
+                context=context, conversation_id=conversation_id
+            )
+            service = _runtime(request).attachments
+            page["attachment_page"]["available"] = service is not None and service.enabled
+            page["attachment_page"]["vision_available"] = (
+                service is not None and service.vision is not None
+            )
+            return page
         except PWAChatError as exc:
             raise _pwa_chat_http_error(exc) from None
 
@@ -1804,6 +1967,10 @@ def _pwa_chat(request: Request) -> PWAChatCoordinator:
 
 
 def _pwa_chat_http_error(error: PWAChatError) -> HTTPException:
+    if error.code in {"metadata_conflict", "library_changed"}:
+        return HTTPException(
+            status_code=409, detail="Conversation library changed. Refresh library."
+        )
     if error.code == "request_conflict":
         return HTTPException(status_code=409, detail="Chat request payload changed")
     if error.code == "request_running":
@@ -1817,7 +1984,7 @@ def _pwa_chat_http_error(error: PWAChatError) -> HTTPException:
 
 def _remote_scope_for_request(method: str, path: str) -> tuple[bool, RemoteScope | None]:
     if path.startswith("/api/v1/client/attachments/") or (
-        path == "/api/v1/client/conversations/search" and method == "POST"
+        path.startswith("/api/v1/client/conversations/") and method == "POST"
     ):
         return False, RemoteScope.CLIENT_CHAT
     if path.startswith("/api/v1/client/tasks/"):
@@ -2157,7 +2324,7 @@ def _assistant_request(payload: ChatInput | PWAChatInput) -> AssistantRequest:
         metadata={"interface": "browser"},
         requested_model_role=payload.model_role,
         reasoning_level=payload.reasoning_level,
-        attachment_ids=payload.attachment_ids if isinstance(payload, ChatInput) else (),
+        attachment_ids=payload.attachment_ids,
     )
 
 

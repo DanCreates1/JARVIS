@@ -116,6 +116,7 @@ async def commit_uploads(
     context: RemoteIdentityContext,
     conversation_id: str,
     staged: tuple[StagedAttachment, ...],
+    request_id: str | None = None,
 ) -> tuple[str, ...]:
     if not staged:
         return ()
@@ -127,8 +128,9 @@ async def commit_uploads(
             item.upload.model_copy(update={"conversation_id": conversation_id}),
             item.body,
             pwa_device_id=context.device_id,
+            pwa_request_id=request_id,
         )
         if record.status is not AttachmentStatus.READY:
-            raise AttachmentError("attachment_not_ready")
+            raise AttachmentError(record.error_code or "attachment_not_ready")
         identifiers.append(record.id)
     return tuple(identifiers)

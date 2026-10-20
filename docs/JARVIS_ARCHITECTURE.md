@@ -630,6 +630,22 @@ objective/step progress/failure, bounded pagination and foreground/reconnect rec
 there is no existing control scope or approved remote adapter. No model output or read scope grants
 mutation authority. See [F14 workflow contract](PWA_F14_WORKFLOWS.md).
 
+F15 shell **v12** adds the [daily workspace](PWA_F15_WORKSPACE.md). Migration 019 extends exact
+device-owned conversation metadata with optimistic title/pin/archive writes and snapshot-guarded
+library pages. Titles/excerpts come only from attributed visible messages, locally, with no provider
+call. Attachment metadata and content-free request provenance enable deliberate ready-file reuse
+within that same authorized conversation; existing private routing, quotas, integrity and receipt
+idempotency remain canonical. No raw-file or reprocessing adapter is added.
+
+Replies use a bounded text-node-only Markdown subset, readable citation labels and explicit copy
+controls. Streaming preserves selection/focus/reading position; parsing, DOM/history/search windows
+and in-session drafts have documented bounds. IME composition and multiline editing cannot Send
+accidentally. Session replacement/logout erase all private workspace state. Task lists add filters,
+sort/revision-guarded pagination and sanitized persisted event timelines; arbitrary reason strings,
+arguments/results/grants remain hidden. No trustworthy persisted conversation relationship exists
+for tasks, so none is inferred. Task control remains disabled under read-only scope. Shell/API cache
+exclusion, default-off production controls, $0 and native dependency hold remain unchanged.
+
 Phase 11C reuses that authenticated PWA surface as the only proactivity adapter. Additive migration
 013 stores one owner row per ready candidate, expiring device/feature bindings, persistent local
 adapter control, and content-free append-only transitions. Local ownership is unleased. Device

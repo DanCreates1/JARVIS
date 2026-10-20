@@ -2,7 +2,7 @@
 
 - Status: `in-progress`; repository implementation verified; remaining manual phone checks **skipped by owner; unverified** (2026-10-16). Automated/release gates remain.
 - Audit baseline: `ed4ee18`, shell v6; work started at `1f07d4c` after concurrent M3C evidence commit.
-- Latest bundle: [F14 assistant workflows](PWA_F14_COMPLETION.md), shell v11. Attachments/search/task views automatically verified; remote task cancellation blocked by absent control authority. Production controls stay default off. No next phase queued. Phone-check track stays stopped by owner.
+- Latest bundle: [F15 daily-use workspace](PWA_F15_COMPLETION.md), shell v12. Library/metadata/archive, safe Markdown/copy, attachment lifecycle/reuse, sanitized task timelines/filter/sort and composer/recovery automatically verified. Remote task cancellation stays disabled; no trustworthy task/conversation relation exists. Production controls stay default off. No next phase queued. Phone-check track stays stopped by owner. Active PWA feature estimate 98%; physical/MVP acceptance remains incomplete.
 - Scope: owner authorized F11 implementation on 2026-10-14 while M3C/M4A physical gates remain open.
   Existing native candidates were reviewed and advanced through compatible SDK 57 patches; audit hold remains.
 - M3C physical-phone acceptance remains separate. MVP 4 is not complete.

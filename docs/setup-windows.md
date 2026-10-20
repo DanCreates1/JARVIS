@@ -661,10 +661,28 @@ fail closed but cannot technically inspect provider billing settings.
 
 ## Configuration
 
+Current PWA shell **v12**: [F15 daily-use workspace](PWA_F15_WORKSPACE.md). Open the existing
+private `/app/` origin and use **Connect existing device**; F15 needs no new key, enrollment or
+scope. Core applies additive migration 019 on normal startup. No production restart/deployment
+was performed during development; adopt through the existing authorized host update procedure.
+Do not downgrade or recreate the database. Old histories/attachments remain intact.
+
+Use Conversation library for rename, pin and archive; enable Browse archived history to restore
+archived cards. Conflicts require Refresh library and review. Conversation attachments shows Core
+processing/expiry/failure state; Reuse selects ready files from that conversation, then explicit
+Send processes the request privately. Refresh attachment status after interrupted processing;
+reselect original file only deliberately. Local image interpretation still requires an already
+installed/configured local model. No model download or cloud OCR is added.
+
+Task status filters/sort/timelines remain read-only; cancellation requires existing trusted-host
+controls. Enter adds a line; Ctrl/⌘+Enter or Send submits after IME composition. Copy response/code
+report clipboard failure with device-copy guidance. No draft/history/query/title/task content is
+stored in browser persistence or offline queues. Manual phone checks are skipped by owner; unverified.
+
 Phase G attachments are default-off. Set `JARVIS_ATTACHMENTS_ENABLED=true` explicitly, then use
 local `jarvis attachments upload`, `list`, `inspect`, `delete`, and
 `jarvis chat -c CONVERSATION_ID --attachment ATTACHMENT_ID -m 'Explain relevant evidence'`.
-Loopback browser has upload/selection/status/delete; phone PWA uploads remain deferred.
+Loopback browser has upload/selection/status/delete; PWA has F14 upload staging and F15 metadata/reuse.
 Pillow is now a locked base dependency for image normalization. Optional
 `JARVIS_ATTACHMENT_VISION_MODEL` must name an already installed local vision model; literal
 loopback Ollama/capability checks precede pixel disclosure, and no model is downloaded.

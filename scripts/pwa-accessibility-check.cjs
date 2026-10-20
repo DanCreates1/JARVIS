@@ -32,7 +32,7 @@ const server = http.createServer((request, response) => {
     response.writeHead(404); response.end(); return;
   }
   let content = fs.readFileSync(path.join(assets, file));
-  if (file === "app.js") content = Buffer.from(content.toString("utf8").replace('catch{if(state.voice===op)discardVoice("Microphone unavailable', 'catch(error){globalThis.voiceTestError=String(error);if(state.voice===op)discardVoice("Microphone unavailable') + "\nglobalThis.pwaTest={row,processEvent,logout,setConnected,renderGarmin,state,selectView,navigation,updateControls,selectAttachments,clearAttachments,searchHistory,clearSearch,loadTask};\n");
+  if (file === "app.js") content = Buffer.from(content.toString("utf8").replace('catch{if(state.voice===op)discardVoice("Microphone unavailable', 'catch(error){globalThis.voiceTestError=String(error);if(state.voice===op)discardVoice("Microphone unavailable') + "\nglobalThis.pwaTest={row,processEvent,logout,setConnected,renderGarmin,state,selectView,navigation,updateControls,selectAttachments,clearAttachments,searchHistory,clearSearch,loadTask,loadLibrary,chooseConversation,renderReply,formatReply,loadAttachmentMetadata,renderAttachmentMetadata,refreshTasks,loadTaskTimeline,renderTaskTimeline};\n");
   response.writeHead(200, { "Content-Type": types[path.extname(file)], "Cache-Control": "no-store" });
   response.end(content);
 });
@@ -137,11 +137,11 @@ async function main() {
   await call("Page.setFontSizes", { fontSizes: { standard: 16, fixed: 16 } });
   await call("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: false });
   await select("chat");
-  await evaluate("document.querySelectorAll('button,textarea,select').forEach(e=>e.disabled=false);for(let i=0;i<80;i++)pwaTest.row('jarvis','Synthetic history '+i);document.querySelector('#nav-chat').focus()");
+  await evaluate("document.querySelectorAll('button,textarea,select,input').forEach(e=>e.disabled=false);for(let i=0;i<80;i++)pwaTest.row('jarvis','Synthetic history '+i);document.querySelector('#nav-chat').focus()");
   output.tabOrder = ["nav-chat"];
-  for (let turn = 0; turn < 16; turn++) { await key("Tab", 9); output.tabOrder.push(await evaluate("document.activeElement.id||document.activeElement.tagName")); }
+  for (let turn = 0; turn < 24; turn++) { await key("Tab", 9); output.tabOrder.push(await evaluate("document.activeElement.id||document.activeElement.tagName")); }
   assert.ok(output.tabOrder.includes("log"));
-  for(const id of ["conversation-list","new-conversation","refresh-history","cancel-chat"])assert.ok(output.tabOrder.includes(id),`Keyboard cannot reach ${id}`);
+  for(const id of ["library-archived","library-refresh","new-conversation","refresh-history","cancel-chat"])assert.ok(output.tabOrder.includes(id),`Keyboard cannot reach ${id}`);
   await evaluate("document.querySelector('#log').focus();document.querySelector('#log').scrollTop=0");
   await key("PageDown", 34); await pause(350);
   output.keyboardScroll = await evaluate("document.querySelector('#log').scrollTop"); assert.ok(output.keyboardScroll > 0);
@@ -244,6 +244,95 @@ async function main() {
   assert.equal(output.voice.uploads,1,JSON.stringify(output.voice));assert.ok(output.voice.bytes>=3840&&output.voice.bytes<=960000);assert.ok(output.voice.stopped);assert.equal(output.voice.draft,'Synthetic editable browser draft');assert.equal(output.voice.readOnly,false);assert.equal(output.voice.focus,'message');
   await evaluate("voiceEvidence.generator.close();document.querySelector('#message').value='';pwaTest.updateControls();document.querySelector('#record-message').focus()");await key(" ",32);await pause(150);await key("Escape",27);
   assert.equal(await evaluate("pwaTest.state.voice"),null);assert.equal(await evaluate("voiceEvidence.uploads"),1);await evaluate("voiceEvidence.generator.close()");
+  // F15 populated workspace and complete explicit interactions in actual Chromium.
+  await evaluate(`(()=>{
+    window.workspaceFetch=window.fetch;window.workspaceRequests=[];window.workspaceCopies=[];
+    window.workspaceMarkdown='# Synthetic heading\\nParagraph **bold** and *emphasis*. [source:fixture](<https://example.com/evidence>)\\n- One\\n- Two\\n> Quote\\n| A | B |\\n| --- | --- |\\n| cell | value |\\n'+'\x60\x60\x60js\\nconst safe = 1;\\n\x60\x60\x60'+'\\n<script>window.hostileExecuted=true</script> ![remote](https://example.com/image) [bad](javascript:alert) [attachment:abc#chunk:1]';
+    window.workspaceRows=Array.from({length:20},(_,i)=>({id:'workspace-'+i,title:'Synthetic conversation '+i+' <img onerror=alert>',excerpt:'Bounded synthetic excerpt '+i,updated_at:'2026-10-19T12:00:00Z',revision:0,pinned:i===0,archived:false}));
+    window.workspaceTimeline={task_id:'workspace-task',events:[{sequence:50,event_type:'node_verifying',task_status:'running',node_status:'verifying',node_id:'first',created_at:'2026-10-19T12:00:00Z',explanation:'Core recorded a state transition.'}],has_more:true,next_before:50};
+    window.workspaceAttachments={conversation_id:'workspace-0',available:true,vision_available:false,attachments:[{id:'a'.repeat(32),filename:'synthetic.txt',status:'ready',byte_size:42,expires_at:'2099-10-19T12:00:00Z',request_ids:['workspace-history']},{id:'b'.repeat(32),filename:'synthetic.png',status:'failed',error_code:'processing_interrupted',byte_size:24,request_ids:[]}],has_more:false};
+    Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>workspaceCopies.push(text)}});
+    window.fetch=async(url,options={})=>{
+      const path=String(url),body=options.body?JSON.parse(options.body):null;workspaceRequests.push({path,method:options.method||'GET',body});let result;
+      if(path.includes('/conversations/library'))result={conversations:body.offset?[{...workspaceRows[0],id:'workspace-last',title:'Last page'}]:workspaceRows.filter(r=>r.archived===body.archived),revision:1,has_more:!body.offset&&!body.archived,next_offset:20};
+      else if(path.endsWith('/metadata')){const row=workspaceRows.find(r=>path.includes('/'+r.id+'/'));Object.assign(row,body,{revision:row.revision+1});result={id:row.id,revision:row.revision};}
+      else if(path.includes('/conversations/search'))result={results:[{conversation_id:'workspace-0',sequence:1,role:'user',excerpt:'Synthetic matching message'}],has_more:false};
+      else if(path.includes('/messages')){const cid=path.split('/conversations/')[1].split('/')[0];result={conversation_id:cid,messages:[{id:'history-u',sequence:1,role:'user',request_id:'workspace-history',content:'Synthetic question'},{id:'history-a',sequence:2,role:'assistant',request_id:'workspace-history',content:workspaceMarkdown}],requests:[],has_more:false,attachment_page:{...workspaceAttachments,conversation_id:cid}};}
+      else if(path.includes('/conversations/')&&path.includes('/attachments'))result=workspaceAttachments;
+      else if(path.includes('/client/conversations'))result={conversations:workspaceRows.filter(r=>!r.archived),revision:1,has_more:false};
+      else if(path.includes('/client/tasks/workspace-task/events'))result=path.includes('before=')?{...workspaceTimeline,events:[{sequence:1,event_type:'task_created',task_status:'proposed'}],has_more:false}:workspaceTimeline;
+      else if(path.includes('/client/tasks/workspace-task'))result={id:'workspace-task',objective:'Synthetic task <button>Approve</button>',status:'running',nodes:[{id:'first',status:'verifying',attempts:2}],timeline:workspaceTimeline};
+      else if(path.includes('/client/tasks?'))result=[{id:'workspace-task',status:'running',completed_nodes:0,total_nodes:1,verifying_nodes:1}];
+      else if(path.endsWith('/client/chat'))result={request_id:body.request_id,conversation_id:body.conversation_id,status:'completed',reply:workspaceMarkdown};
+      else throw new Error('Unexpected workspace request '+path);
+      return new Response(JSON.stringify(result),{headers:{'Content-Type':'application/json','X-Jarvis-Task-Revision':'1'}});
+    };
+    pwaTest.state.csrf='synthetic';pwaTest.state.subscription='subscription:workspace';pwaTest.state.historyReady=true;pwaTest.state.historyBusy=false;pwaTest.state.pendingRequest=null;pwaTest.state.chatActive.clear();pwaTest.setConnected(true);
+  })()`);
+  await evaluate("pwaTest.loadLibrary()");
+  assert.equal(await evaluate("document.querySelectorAll('#library > li').length"),20);
+  assert.equal(await evaluate("document.querySelectorAll('#library img,#library script').length"),0);
+  await evaluate("document.querySelector('#library-next').click()");
+  for(let turn=0;turn<50&&await evaluate("Boolean(pwaTest.state.libraryRead)");turn++)await pause(10);
+  assert.equal(await evaluate("document.querySelectorAll('#library > li').length"),1);
+  await evaluate("pwaTest.loadLibrary()");await evaluate("pwaTest.chooseConversation('workspace-0')");
+  assert.equal(await evaluate("document.querySelectorAll('#log table,#log blockquote,#log strong,#log em').length"),4);
+  assert.equal(await evaluate("document.querySelectorAll('#log script,#log img,#log iframe').length"),0);
+  assert.equal(await evaluate("Boolean(window.hostileExecuted)"),false);
+  assert.equal(await evaluate("[...document.querySelectorAll('#log a')].some(a=>a.protocol==='javascript:')"),false);
+  await evaluate("[...document.querySelectorAll('#log button')].find(b=>b.textContent==='Copy code').click()");await pause(20);
+  assert.equal(await evaluate("workspaceCopies[0]"),'const safe = 1;');
+  await evaluate("[...document.querySelectorAll('#log button')].find(b=>b.textContent==='Copy response').click()");await pause(20);
+  assert.equal(await evaluate("workspaceCopies[1]"),await evaluate("workspaceMarkdown"));
+  output.workspace={geometry:[]};
+  for(const width of [320,375,390,430,844,1280])for(const font of [16,32]){
+    await call('Emulation.setDeviceMetricsOverride',{width,height:844,deviceScaleFactor:1,mobile:false});await call('Page.setFontSizes',{fontSizes:{standard:font,fixed:font}});
+    const geometry=await evaluate("({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,controls:[...document.querySelectorAll('#library button,#log button,#conversation-attachments button')].filter(e=>!e.hidden).map(e=>({width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height}))})");
+    assert.ok(geometry.scrollWidth<=width+1,JSON.stringify({font,...geometry}));for(const control of geometry.controls)assert.ok(control.width>=44&&control.height>=44);output.workspace.geometry.push({font,...geometry});
+  }
+  await evaluate("pwaTest.refreshTasks();pwaTest.loadTask('workspace-task',{focus:true})");
+  for(let turn=0;turn<50&&await evaluate("Boolean(pwaTest.state.tasksBusy||pwaTest.state.taskRead)");turn++)await pause(10);
+  assert.match(await evaluate("document.querySelector('#task-events').textContent"),/verifying/);
+  await evaluate("pwaTest.loadTaskTimeline({before:50,focus:true})");assert.equal(await evaluate("document.activeElement.id"),'task-timeline-title');
+  assert.match(await evaluate("document.querySelector('#task-events').textContent"),/task created/);
+  await evaluate("pwaTest.loadTaskTimeline()");
+  const workspaceAx=await call('Accessibility.getFullAXTree');
+  for(const name of ['Copy response','Copy code','Reuse synthetic.txt','Refresh library','Older task events'])assert.ok(workspaceAx.nodes.some(n=>n.role?.value==='button'&&n.name?.value===name),name);
+  assert.ok(workspaceAx.nodes.some(n=>n.role?.value==='textbox'&&n.name?.value==='Conversation title'));
+  await evaluate("document.querySelector('#library input[type=text]').value='Renamed synthetic';document.querySelector('#library form').requestSubmit()");
+  for(let turn=0;turn<50&&await evaluate("Boolean(pwaTest.state.libraryMutation)");turn++)await pause(10);
+  assert.equal(await evaluate("workspaceRows[0].title"),'Renamed synthetic');
+  await evaluate("[...document.querySelectorAll('#library > li:first-child > button')].find(b=>b.textContent==='Unpin').click()");
+  for(let turn=0;turn<50&&await evaluate("Boolean(pwaTest.state.libraryMutation)");turn++)await pause(10);
+  assert.equal(await evaluate("workspaceRows[0].pinned"),false);
+  await evaluate("[...document.querySelectorAll('#library > li:first-child > button')].find(b=>b.textContent==='Archive').click()");
+  for(let turn=0;turn<50&&await evaluate("Boolean(pwaTest.state.libraryMutation)");turn++)await pause(10);
+  await evaluate("document.querySelector('#library-archived').checked=true;document.querySelector('#library-archived').dispatchEvent(new Event('change'))");
+  for(let turn=0;turn<50&&await evaluate("Boolean(pwaTest.state.libraryRead)");turn++)await pause(10);
+  assert.equal(await evaluate("document.querySelectorAll('#library > li').length"),1);
+  await evaluate("[...document.querySelectorAll('#library > li:first-child > button')].find(b=>b.textContent==='Unarchive').click()");
+  for(let turn=0;turn<50&&await evaluate("Boolean(pwaTest.state.libraryMutation)");turn++)await pause(10);
+  assert.equal(await evaluate("workspaceRows[0].archived"),false);
+  await evaluate("pwaTest.loadAttachmentMetadata()");
+  await evaluate("document.querySelector('#conversation-attachments button').click();document.querySelector('#message').value='Deliberate synthetic reuse';document.querySelector('#message').dispatchEvent(new CompositionEvent('compositionstart'));document.querySelector('#chat').dispatchEvent(new Event('submit',{cancelable:true}))");
+  assert.equal(await evaluate("workspaceRequests.filter(r=>r.path.endsWith('/client/chat')).length"),0);
+  await evaluate("document.querySelector('#message').dispatchEvent(new CompositionEvent('compositionend'));document.querySelector('#send').click()");
+  for(let turn=0;turn<100&&await evaluate("Boolean(pwaTest.state.pendingRequest||pwaTest.state.sending)");turn++)await pause(10);
+  assert.equal(await evaluate("workspaceRequests.filter(r=>r.path.endsWith('/client/chat')).length"),1);
+  assert.deepEqual(await evaluate("workspaceRequests.find(r=>r.path.endsWith('/client/chat')).body.attachment_ids"),['a'.repeat(32)]);
+  output.workspace.terminalSelection=await evaluate("(()=>{const row=pwaTest.row('jarvis','JARVIS: Selected text','terminal-selection'),range=document.createRange();range.setStart(row.firstChild,8);range.setEnd(row.firstChild,16);getSelection().removeAllRanges();getSelection().addRange(range);const focus=document.activeElement;pwaTest.row('jarvis','JARVIS: # Canonical replacement','terminal-selection',true);const result={text:getSelection().toString(),deferred:row.pendingFormat,focusKept:focus===document.activeElement};getSelection().removeAllRanges();return result;})()");
+  assert.equal(output.workspace.terminalSelection.text,'Selected');assert.ok(output.workspace.terminalSelection.deferred&&output.workspace.terminalSelection.focusKept);
+  await pause(30);assert.equal(await evaluate("document.querySelector('[data-request=terminal-selection]').formatted"),true);
+  await call('Performance.enable');await call('HeapProfiler.collectGarbage');
+  const heapBefore=(await call('Performance.getMetrics')).metrics.find(m=>m.name==='JSHeapUsedSize').value;
+  output.workspace.bounds=await evaluate("(()=>{const start=performance.now();for(let i=0;i<300;i++)pwaTest.row('jarvis','Synthetic bounded reply '+i,'bounded-'+i,true);return {rows:document.querySelector('#log').children.length,chars:[...document.querySelector('#log').children].reduce((n,r)=>n+(r.replyText||'').length,0),nodes:document.querySelectorAll('#log *').length,durationMs:performance.now()-start};})()");
+  assert.ok(output.workspace.bounds.rows<=200&&output.workspace.bounds.chars<=512000&&output.workspace.bounds.nodes<=10000);
+  output.workspace.largeBounds=await evaluate("(()=>{const start=performance.now();for(let i=0;i<20;i++)pwaTest.row('jarvis','JARVIS: '+'x'.repeat(100000),'large-'+i,true);return {rows:document.querySelector('#log').children.length,chars:[...document.querySelector('#log').children].reduce((n,r)=>n+(r.replyText||'').length,0),nodes:document.querySelectorAll('#log *').length,durationMs:performance.now()-start};})()");
+  await call('HeapProfiler.collectGarbage');output.workspace.largeBounds.heapGrowthBytes=(await call('Performance.getMetrics')).metrics.find(m=>m.name==='JSHeapUsedSize').value-heapBefore;
+  assert.ok(output.workspace.largeBounds.chars<=512000&&output.workspace.largeBounds.nodes<=10000&&output.workspace.largeBounds.heapGrowthBytes<16*1024*1024);
+  output.workspace.privacy=await evaluate("({urlsSafe:workspaceRequests.every(r=>!r.path.includes('Deliberate')&&!r.path.includes('Renamed')),storageSafe:!JSON.stringify({...sessionStorage,...localStorage}).includes('synthetic reuse'),noControl:workspaceRequests.every(r=>!/(cancel|approve|execute|run)$/.test(r.path)),location:location.hash})");
+  assert.ok(output.workspace.privacy.urlsSafe&&output.workspace.privacy.storageSafe&&output.workspace.privacy.noControl);
+  await evaluate("window.fetch=workspaceFetch");
   await select("garmin");
   await evaluate("pwaTest.state.csrf=null;pwaTest.state.hasIdentity=true;pwaTest.setConnected(false);pwaTest.logout()");
   output.logoutFocus = await evaluate("document.activeElement.id"); assert.equal(output.logoutFocus, "ticket");

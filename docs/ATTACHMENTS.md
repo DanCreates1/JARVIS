@@ -99,6 +99,13 @@ rollback; never downgrade schema or discard user state.
 
 ## Verification
 
+F15 adds [conversation lifecycle metadata and deliberate reuse](PWA_F15_WORKSPACE.md) under the
+existing exact device-owned `client.chat` boundary. Core persists content-free request/source links
+before parser work; metadata reads expose no body/chunks, perform no cleanup/reprocessing and show
+expiry/interruption/unavailable states. Ready reuse stays in the same conversation and immutable
+request fingerprint, with existing private routing/integrity/quotas. No raw-file download endpoint.
+F14's four-file, 1 MiB/file staging limit remains. Real histories/files were not mutated for testing.
+
 ```powershell
 rtk uv run python scripts/phase-g-attachments-benchmark.py --enforce
 rtk uv run python scripts/phase-g-attachments-benchmark.py --enforce --vision-model ALREADY_INSTALLED_MODEL

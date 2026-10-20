@@ -14,12 +14,13 @@ historical evidence remains, no pass or physical/MVP completion inferred. This p
 older phone execution directions below. Automated code/security gates and all authority/privacy,
 $0, publication and native dependency holds remain. See root [AGENTS.md](../AGENTS.md).
 
-Current development: [F14 — PWA assistant workflows](phase-reports/PWA_F14_COMPLETION.md), shell v11.
-Attachments, owned conversation search and task details/recovery are implemented and automatically
-verified. Remote task cancellation stays disabled: existing task scope is read-only; new control
-authority is excluded. Production attachment/voice/task controls stay default off. No next phase
-queued. Active PWA estimate: **96%**, based on verified connection/chat/Garmin/navigation/voice
-and F14 workflow milestones; remote task control and aggregate physical acceptance remain open.
+Current development: [F15 — daily-use workspace](phase-reports/PWA_F15_COMPLETION.md), shell v12.
+Library/metadata/archive, safe Markdown/copy, attachment lifecycle/reuse, task timelines/filter/sort
+and composer/recovery are implemented and automatically verified. Remote task cancellation stays
+disabled under read-only scope; no trustworthy task/conversation relationship is inferred.
+Production attachment/voice/task controls stay default off. No next phase queued. Active PWA
+estimate: **98%**, based on verified F11–F15 feature milestones; remote control authority, native
+dependency hold and aggregate physical acceptance remain separate/open.
 Skipped phone checks add no implementation or acceptance credit.
 
 ## Product target
@@ -230,7 +231,17 @@ draft and retains explicit Send. F13A–F13D now implemented; basic MVP exit cri
 
 ## Current development boundary
 
-**F14 — PWA assistant workflows**, from `96f3294`, advances shell to **v11**. Selection uploads
+**F15 — PWA daily-use workspace and reliability**, from `29fe496`, advances shell to **v12**.
+All six authorized milestones are delivered: Core-owned paginated library and optimistic metadata,
+safe bounded Markdown/citation/copy, attachment status/provenance/deliberate reuse, sanitized task
+timelines/filter/sort/pagination, composer/navigation/recovery, integrated automated release gates.
+No new authority, dependency, credentials, deployment, provider call for titles or real-history
+mutation. [F15 contract](PWA_F15_WORKSPACE.md), [completion evidence](phase-reports/PWA_F15_COMPLETION.md).
+The feature estimate is **98%**; phone checks remain **skipped by owner; unverified**, with no
+physical/MVP completion inferred. Remote cancellation stays disabled; task/conversation correlation
+has no trustworthy persisted relationship. No next phase queued.
+
+Prior **F14 — PWA assistant workflows**, from `96f3294`, advanced shell to **v11**. Selection uploads
 photo/PDF/text into bounded session-owned Core memory; explicit Send alone commits existing local
 processing/private routing. Core-owned message search is paginated and draft/request-safe. Task
 list/details show step progress, failures and reconnect recovery; cancellation stays disabled

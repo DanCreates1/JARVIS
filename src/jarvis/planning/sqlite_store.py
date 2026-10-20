@@ -171,6 +171,22 @@ class SQLiteTaskStore:
         limit: int = 100,
         offset: int = 0,
     ) -> Sequence[TaskRecord]:
+        records, _ = await self.workspace_page(
+            host_id=host_id, status=status, limit=limit, offset=offset
+        )
+        return records
+
+    async def workspace_page(
+        self,
+        *,
+        host_id: str,
+        status: TaskStatus | None = None,
+        limit: int = 50,
+        offset: int = 0,
+        newest_first: bool = True,
+        expected_revision: int | None = None,
+        verifying_only: bool = False,
+    ) -> tuple[Sequence[TaskRecord], int]:
         if not 1 <= limit <= 500:
             raise ValueError("task limit must be between 1 and 500")
         if not 0 <= offset <= 100_000:
@@ -180,13 +196,31 @@ class SQLiteTaskStore:
         if status is not None:
             sql += " AND status = ?"
             parameters.append(status.value)
-        sql += " ORDER BY updated_at DESC, id DESC LIMIT ? OFFSET ?"
+        if verifying_only:
+            sql += " AND EXISTS (SELECT 1 FROM json_each(record_json,'$.nodes') n "
+            sql += "WHERE json_extract(n.value,'$.status')='verifying')"
+        sql += (
+            " ORDER BY updated_at DESC, id DESC"
+            if newest_first
+            else " ORDER BY updated_at ASC, id ASC"
+        ) + " LIMIT ? OFFSET ?"
         parameters.extend((limit, offset))
         async with self._operation_lock:
             connection = await self._get_connection()
-            async with connection.execute(sql, parameters) as cursor:
-                rows = await cursor.fetchall()
-        return tuple(_record(row["record_json"]) for row in rows)
+            await connection.execute("BEGIN")
+            try:
+                async with connection.execute(
+                    "SELECT revision FROM pwa_task_versions WHERE host_id=?", (host_id,)
+                ) as cursor:
+                    version = await cursor.fetchone()
+                revision = int(version[0]) if version else 0
+                if expected_revision is not None and expected_revision != revision:
+                    raise TaskStateError("Task list changed. Refresh tasks.")
+                async with connection.execute(sql, parameters) as cursor:
+                    rows = await cursor.fetchall()
+            finally:
+                await connection.rollback()
+        return tuple(_record(row["record_json"]) for row in rows), revision
 
     async def save(
         self,
@@ -340,7 +374,13 @@ class SQLiteTaskStore:
         return updated
 
     async def list_events(
-        self, *, host_id: str, task_id: str, limit: int = 500
+        self,
+        *,
+        host_id: str,
+        task_id: str,
+        limit: int = 500,
+        before: int | None = None,
+        newest_first: bool = False,
     ) -> Sequence[TaskEvent]:
         if not 1 <= limit <= 2_000:
             raise ValueError("event limit must be between 1 and 2000")
@@ -351,10 +391,12 @@ class SQLiteTaskStore:
             async with connection.execute(
                 """
                 SELECT * FROM planning_events
-                WHERE host_id = ? AND task_id = ?
-                ORDER BY sequence ASC LIMIT ?
-                """,
-                (host_id, task_id, limit),
+                WHERE host_id = ? AND task_id = ? AND (? IS NULL OR sequence < ?)
+                ORDER BY sequence
+                """
+                + (" DESC" if newest_first else " ASC")
+                + " LIMIT ?",
+                (host_id, task_id, before, before, limit),
             ) as cursor:
                 rows = await cursor.fetchall()
         return tuple(

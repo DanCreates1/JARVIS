@@ -80,6 +80,9 @@ class PWAChatCoordinator:
                     "model_role": request.requested_model_role,
                     "reasoning_level": request.reasoning_level,
                     **({"upload_ids": upload_ids} if upload_ids else {}),
+                    **(
+                        {"attachment_ids": request.attachment_ids} if request.attachment_ids else {}
+                    ),
                 },
                 sort_keys=True,
                 separators=(",", ":"),
@@ -312,9 +315,19 @@ class PWAChatCoordinator:
             # Watch identity while existing bounded local parsers run, before model work.
             watcher = asyncio.create_task(self._watch_authority(active))
             attachment_ids = await commit_uploads(
-                self.attachments, active.context, active.conversation_id, staged
+                self.attachments, active.context, active.conversation_id, staged, active.request_id
             )
             staged = ()
+            attachment_ids = request.attachment_ids + attachment_ids
+            if attachment_ids:
+                if self.attachments is None or not self.attachments.enabled:
+                    raise AttachmentError("attachments_disabled")
+                await self.store.bind_attachments(
+                    context=active.context,
+                    conversation_id=active.conversation_id,
+                    request_id=active.request_id,
+                    identifiers=attachment_ids,
+                )
             request = request.model_copy(update={"attachment_ids": attachment_ids})
             await self._identity.validate_context(
                 active.context, required_scope=RemoteScope.CLIENT_CHAT
@@ -385,12 +398,21 @@ class PWAChatCoordinator:
             result = chat_result(
                 active.request_id, active.conversation_id, "failed", error="request_timeout"
             )
-        except AttachmentError:
+        except AttachmentError as exc:
             result = chat_result(
                 active.request_id,
                 active.conversation_id,
                 "failed",
-                error="attachment_processing_failed",
+                error=exc.code
+                if exc.code
+                in {
+                    "storage_quota",
+                    "attachment_unavailable",
+                    "processing_interrupted",
+                    "processing_timeout",
+                    "attachments_disabled",
+                }
+                else "attachment_processing_failed",
             )
         except Exception:
             pass

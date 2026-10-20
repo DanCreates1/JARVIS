@@ -139,6 +139,25 @@ async def test_explicit_send_extracts_locally_preserves_privacy_and_exact_replay
             with pytest.raises(PWAChatError, match="request_conflict"):
                 await h.chat.submit(**{**args, "upload_ids": ("other",)})
             cid = result["conversation_id"]
+            saved = await attachments.list(cid)
+            assert len(saved) == 1
+            local.outcomes.append(ProviderResponse(content="reused private answer"))
+            reuse = dict(
+                context=context,
+                request_id="request:reuse",
+                subscription_id=h.subscription_id,
+                request=AssistantRequest(
+                    user_input="reuse source",
+                    conversation_id=cid,
+                    requested_model_role=ModelRole.FAST,
+                    attachment_ids=(saved[0].id,),
+                ),
+            )
+            await h.chat.submit(**reuse)
+            reused = await _terminal(h, request_id="request:reuse")
+            assert reused["status"] == "completed" and not cloud.requests
+            assert "secret-oracle" in str(local.message_requests[-1])
+            assert await h.chat.submit(**reuse) == reused
             assert len(await attachments.list(cid)) == 1
             assert (await h.chat.store.conversations(context))["conversations"][0]["id"] == cid
             assert (await h.chat.store.search(context=context, query="private answer"))["results"]
@@ -192,7 +211,7 @@ async def test_disabled_attachment_service_fails_before_provider(tmp_path):
         )
         result = await _terminal(h, request_id="request:file")
         assert result["status"] == "failed"
-        assert result["error"]["code"] == "attachment_processing_failed"
+        assert result["error"]["code"] == "attachments_disabled"
         assert h.provider.calls == 0
 
 
@@ -256,7 +275,7 @@ async def test_cancel_during_existing_parser_stops_work_before_model(tmp_path):
         try:
             h.chat.uploads.reserve(_context(), "file")
             h.chat.uploads.finish(_context(), "file", metadata(), b"fixture")
-            await h.chat.submit(
+            accepted = await h.chat.submit(
                 context=_context(),
                 request_id="request:parser",
                 subscription_id=h.subscription_id,
@@ -264,11 +283,21 @@ async def test_cancel_during_existing_parser_stops_work_before_model(tmp_path):
                 upload_ids=("file",),
             )
             await asyncio.wait_for(parser.started.wait(), 3)
+            metadata_page = await h.chat.store.attachment_metadata(
+                context=_context(), conversation_id=accepted["conversation_id"]
+            )
+            assert metadata_page["attachments"][0]["status"] == "processing"
+            assert metadata_page["attachments"][0]["request_ids"] == ["request:parser"]
             result = await h.chat.cancel(context=_context(), request_id="request:parser")
             assert (
                 result["status"] == "cancelled"
                 and parser.cancelled.is_set()
                 and h.provider.calls == 0
             )
+            cancelled_page = await h.chat.store.attachment_metadata(
+                context=_context(), conversation_id=accepted["conversation_id"]
+            )
+            assert cancelled_page["attachments"][0]["status"] == "failed"
+            assert cancelled_page["attachments"][0]["error_code"] == "processing_cancelled"
         finally:
             await attachments.close()

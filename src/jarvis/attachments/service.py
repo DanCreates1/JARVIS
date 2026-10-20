@@ -121,7 +121,12 @@ class AttachmentService:
         )
 
     async def upload(
-        self, upload: AttachmentUpload, body: bytes, *, pwa_device_id: str | None = None
+        self,
+        upload: AttachmentUpload,
+        body: bytes,
+        *,
+        pwa_device_id: str | None = None,
+        pwa_request_id: str | None = None,
     ) -> Attachment:
         if not self.enabled:
             raise AttachmentError("attachments_disabled")
@@ -170,6 +175,9 @@ class AttachmentService:
                             "UPDATE conversations SET attachment_device_id=NULL WHERE id=?",
                             (upload.conversation_id,),
                         )
+                    await self._pwa_link(
+                        db, upload.conversation_id, str(duplicate[0]), pwa_device_id, pwa_request_id
+                    )
                     await db.commit()
                     return await self._get(db, upload.conversation_id, str(duplicate[0]))
                 async with db.execute(
@@ -204,6 +212,9 @@ class AttachmentService:
                     "UPDATE conversations SET attachment_private=1,attachment_device_id=? "
                     "WHERE id=?",
                     (pwa_device_id, upload.conversation_id),
+                )
+                await self._pwa_link(
+                    db, upload.conversation_id, identifier, pwa_device_id, pwa_request_id
                 )
                 await db.commit()
             except BaseException:
@@ -241,6 +252,28 @@ class AttachmentService:
             )
             await self._finish(upload.conversation_id, identifier, error=code)
         return await self.get(upload.conversation_id, identifier)
+
+    async def _pwa_link(
+        self,
+        db: aiosqlite.Connection,
+        conversation_id: str,
+        attachment_id: str,
+        device_id: str | None,
+        request_id: str | None,
+    ) -> None:
+        if device_id is None or request_id is None:
+            return
+        async with db.execute(
+            "SELECT 1 FROM pwa_chat_requests WHERE host_id=? AND device_id=? "
+            "AND conversation_id=? AND request_id=?",
+            (self.host_id, device_id, conversation_id, request_id),
+        ) as cursor:
+            if await cursor.fetchone() is None:
+                raise AttachmentError("conversation_not_found")
+        await db.execute(
+            "INSERT OR IGNORE INTO pwa_attachment_requests VALUES(?,?,?)",
+            (conversation_id, request_id, attachment_id),
+        )
 
     async def _finish(
         self,

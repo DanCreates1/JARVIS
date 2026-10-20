@@ -12,6 +12,12 @@ separate default-off suggestion-only trigger policy with no background daemon or
 Current release status and external gates are tracked in
 `docs/PHASE_OVERVIEW.md`; implementation presence alone is not a completion claim.
 
+Current PWA shell **v12** includes [F15 daily-use workspace](PWA_F15_WORKSPACE.md): exact device-owned
+conversation library/metadata, bounded safe Markdown/copy, attachment status/provenance/reuse and
+read-only task event timelines with filtered/sorted pagination. Additive migration 019 preserves
+ownership, optimistic concurrency and private history boundaries. Core stays authoritative;
+session-only client state and existing $0/default-off controls remain. Native packages stay held.
+
 ## Goals
 
 - Run reproducibly on Windows with Python 3.11 and a committed `uv.lock`.

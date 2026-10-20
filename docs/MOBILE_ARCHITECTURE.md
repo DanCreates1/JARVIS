@@ -1,7 +1,7 @@
 # JARVIS Native Mobile Architecture
 
-Status: MVP 1 active; M1A/M1B and local M2A/M2B complete; M2C live acceptance pending
-Updated: 2026-09-28
+Status: PWA F15 automatically verified; native work deferred/held; physical acceptance unverified
+Updated: 2026-10-19
 
 ## Boundary
 
@@ -24,9 +24,9 @@ Loading, offline, reconnecting, expired-session, revoked, rate-limited, and erro
 of each surface contract. Navigation stays shallow and animation is optional, never required for
 understanding state.
 
-## Current PWA extension — F14
+## Current PWA extension — F15
 
-The active PWA uses shell v11 and the [F14 workflow contract](PWA_F14_WORKFLOWS.md). Native
+The active PWA uses shell v12 and the [F15 workspace contract](PWA_F15_WORKSPACE.md). Native
 workspace remains deferred/held. Session-owned bounded upload staging commits only on Send to
 existing private Core attachments; device-origin provenance prevents local-only history disclosure.
 Search uses authenticated body-only queries against attributed Core messages, bounded excerpts and
@@ -34,6 +34,14 @@ pagination. Conversation drafts remain memory-only. Task read projections add ob
 progress/failure and guarded reconnect recovery; no output, arguments or approval grants leave Core.
 Remote task cancellation stays disabled because existing identity has no task-control scope or
 authorized mutation adapter. No new enrollment/scopes or native dependency changes are made.
+
+F15 completes paginated device-owned conversation cards, local titles/excerpts, rename/pin/archive,
+safe bounded Markdown/citation/copy rendering, attachment metadata/request provenance and deliberate
+same-conversation reuse. Task monitoring adds sanitized persisted event timelines, status filters,
+sorting and revision-guarded pagination. Selection/focus/scroll and IME-safe deliberate Send are
+covered by real-script and actual Chromium checks. No model text creates ownership or control.
+Task conversation correlation is absent because no trustworthy persisted relationship exists.
+Manual phone checks remain **skipped by owner; unverified**; aggregate acceptance stays open.
 
 ## Workspace
 

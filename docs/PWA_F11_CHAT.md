@@ -9,6 +9,10 @@ and task controls live in Chat; enrollment/connect/logout live in Settings. Shar
 conversation, pending request and stream ownership survive view changes. See [F12](PWA_F12_NAVIGATION.md).
 Remaining physical checks are **skipped by owner; unverified**; v8 evidence below remains historical.
 
+F15 supersedes the recent selector with a paginated device-owned library, metadata/archive controls,
+safe structured replies and complete attachment/task read workflows in shell **v12**. F11 durable
+request/ownership/recovery invariants remain. See [current workspace contract](PWA_F15_WORKSPACE.md).
+
 ## Phone behavior
 
 Connect existing device restores its owned conversation from Core before enabling Send, followed

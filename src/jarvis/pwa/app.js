@@ -9,6 +9,12 @@ const ui=Object.fromEntries(Object.entries({connection:"connection",setup:"setup
 
 Object.assign(state,{voice:null,voiceReady:false,voiceMax:30000,composerRevision:0});
 Object.assign(state,{attachments:[],attachmentsAllowed:false,search:null,searchBefore:null,searchQuery:"",taskRead:null,taskSelected:null,taskOffset:0,taskChecked:0,taskTimer:null,threadDrafts:new Map()});
+Object.assign(state,{libraryRead:null,libraryPage:null,libraryOffset:0,libraryArchived:false,libraryMutation:null});
+Object.assign(state,{attachmentRead:null,attachmentPage:null,attachmentOffset:0,reuseSelected:new Set(),reuseDrafts:new Map(),attachmentTimer:null,attachmentPending:false});
+Object.assign(state,{taskRevision:null,taskPageOffset:0,taskListAbort:null,timelineRead:null,timelineBefore:null,timelinePage:null});
+Object.assign(ui,Object.fromEntries(Object.entries({taskFilter:"task-filter",taskSort:"task-sort",previousTasks:"previous-tasks",taskEvents:"task-events",timelineState:"task-timeline-state",eventsOlder:"task-events-older",eventsLatest:"task-events-latest",timelineTitle:"task-timeline-title"}).map(([key,id])=>[key,document.querySelector(`#${id}`)])));
+Object.assign(ui,Object.fromEntries(Object.entries({conversationAttachments:"conversation-attachments",conversationAttachmentsState:"conversation-attachments-state",refreshAttachments:"refresh-attachments",attachmentsPrevious:"attachments-previous",attachmentsNext:"attachments-next"}).map(([key,id])=>[key,document.querySelector(`#${id}`)])));
+Object.assign(ui,Object.fromEntries(Object.entries({library:"library",libraryState:"library-state",libraryArchived:"library-archived",libraryRefresh:"library-refresh",libraryPrevious:"library-previous",libraryNext:"library-next",libraryTitle:"library-title"}).map(([key,id])=>[key,document.querySelector(`#${id}`)])));
 Object.assign(ui,Object.fromEntries(Object.entries({attachmentFile:"attachment-file",attachmentState:"attachment-state",attachments:"attachments",searchForm:"search-history",searchQuery:"history-query",searchSubmit:"search-submit",searchClear:"search-clear",searchState:"search-state",searchResults:"search-results",searchMore:"search-more",moreTasks:"more-tasks",taskDetail:"task-detail",taskDetailTitle:"task-detail-title",taskDetailState:"task-detail-state",taskProgress:"task-progress",taskNodes:"task-nodes",cancelTask:"cancel-task"}).map(([key,id])=>[key,document.querySelector(`#${id}`)])));
 Object.assign(ui,Object.fromEntries(Object.entries({record:"record-message",stopVoice:"stop-recording",discardVoice:"discard-recording",voiceStatus:"voice-status"}).map(([key,id])=>[key,document.querySelector(`#${id}`)])));
 // Navigation owns presentation only. Session, requests and private data stay in their existing owners.
@@ -21,7 +27,7 @@ function selectView(name,{replace=false,focus=true}={}){
   if(navigation.view==="chat"){
     navigation.chatScroll=ui.log.scrollTop;navigation.chatFollow=nearLatest()&&!historySelected();
   }
-  if(name!=="chat"){discardVoice();clearAttachments();clearSearch();cancelTaskRead();}
+  if(name!=="chat"){discardVoice();clearAttachments();clearSearch();cancelTaskRead();cancelTaskList();cancelLibrary();cancelAttachmentRead();}
   navigation.view=name;
   for(const [key,view] of Object.entries(views)){
     view.panel.hidden=key!==name;
@@ -110,7 +116,7 @@ async function timedFetch(url,options={},timeout=10000){
   try{
     const response=await Promise.race([fetch(url,{...options,signal:controller.signal}),deadline]);
     const consume=async method=>{try{return await Promise.race([response[method](),deadline]);}finally{cleanup();}};
-    return {ok:response.ok,status:response.status,json:()=>consume("json"),text:()=>consume("text"),discard:cleanup};
+    return {ok:response.ok,status:response.status,headers:response.headers,json:()=>consume("json"),text:()=>consume("text"),discard:cleanup};
   }catch(error){cleanup();throw error;}
 }
 function stopStream(){
@@ -167,7 +173,7 @@ function setConnected(value,label=value?"Connected":"Offline shell"){
   const connectionText=navigator.onLine?label:"Network offline";
   if(ui.connection.textContent!==connectionText)ui.connection.textContent=connectionText;
   ui.connection.className=`status ${state.online?"online":navigator.onLine?"warn":""}`;
-  if(!state.online){discardVoice();clearAttachments();clearSearch();cancelTaskRead();cancelGarmin();if(state.healthAllowed){state.healthMessage=navigator.onLine?"Connection unavailable. Shown Garmin data may be stale.":"Offline. Shown Garmin data may be stale.";renderGarminStatus();}}
+  if(!state.online){cancelLibrary();cancelAttachmentRead();discardVoice();clearAttachments();clearSearch();cancelTaskRead();cancelTaskList();cancelGarmin();if(state.healthAllowed){state.healthMessage=navigator.onLine?"Connection unavailable. Shown Garmin data may be stale.":"Offline. Shown Garmin data may be stale.";renderGarminStatus();}}
   else if(/^(Offline\.|Connection unavailable\.)/.test(state.healthMessage)){state.healthMessage="";renderGarminStatus();}
   updateControls();
 }
@@ -175,21 +181,108 @@ function announce(message){ui.notice.textContent=message;}
 function nearLatest(){return navigation.view!=="chat"?navigation.chatFollow:ui.log.scrollHeight-ui.log.clientHeight-ui.log.scrollTop<=48;}
 function historySelected(){const selection=document.getSelection?.();return Boolean(selection&&!selection.isCollapsed&&ui.log.contains(selection.anchorNode));}
 function updateJump(){if(navigation.view==="chat")ui.jumpLatest.hidden=nearLatest()&&!historySelected();}
-function row(kind,text,requestId){
+function row(kind,text,requestId,structured=false){
+  text=String(text);if(text.length>100008)text=text.slice(0,99928)+"\n[Reply display limit reached. Refresh history for Core excerpt.]";
   const follow=nearLatest()&&!historySelected();
   let target=requestId?ui.log.querySelector(`[data-request="${CSS.escape(requestId)}"]`):null;
   if(!target){target=document.createElement("div");target.className=`entry ${kind}`;if(requestId)target.dataset.request=requestId;ui.log.append(target);}
   target.className=`entry ${kind}`;
-  const previous=target.textContent,textNode=target.firstChild;
+  const previous=target.replyText??target.textContent,textNode=target.firstChild;
+  target.replyText=text;
   // Append deltas to the existing text node so selected reply text survives streaming.
   if(text!==previous){
     if(textNode?.nodeType===3&&target.childNodes.length===1&&text.startsWith(previous))textNode.appendData(text.slice(previous.length));
-    else target.textContent=text;
+    else if(kind==="jarvis"&&(historySelected()||target.contains(document.activeElement))){target.pendingFormat=true;}
+    else{target.textContent=text;target.formatted=false;}
   }
   if(follow&&navigation.view==="chat")ui.log.scrollTop=ui.log.scrollHeight;
   ui.jumpLatest.hidden=follow&&nearLatest();
+  if(structured&&kind==="jarvis")formatReply(target);
+  trimHistory(target);
   return target;
 }
+function trimHistory(keep,{older=false}={}){
+  const rows=[...ui.log.children],position=ui.log.scrollTop,height=ui.log.scrollHeight,selection=document.getSelection?.();
+  let count=rows.length,chars=rows.reduce((sum,node)=>sum+(node.replyText??node.textContent).length,0);
+  for(const node of older?rows.reverse():rows){
+    if(count<=200&&chars<=512000)break;
+    if(node===keep||node.contains(document.activeElement)||selection&&!selection.isCollapsed&&node.contains(selection.anchorNode))continue;
+    count--;chars-=(node.replyText??node.textContent).length;node.remove?.();
+  }
+  if(navigation.view==="chat"&&!nearLatest())ui.log.scrollTop=Math.max(0,position+ui.log.scrollHeight-height);
+}
+// A deliberately bounded Markdown subset. Every untrusted value enters text nodes only.
+// No HTML parser, remote images, embeds, syntax engines or source-authority inference.
+function renderReply(text){
+  const root=document.createElement("div");root.className="reply-body";
+  let nodes=0,links=0,codes=0;
+  const make=(tag,value)=>{if(++nodes>1200)throw new Error("render limit");const node=document.createElement(tag);if(value!==undefined)node.textContent=value;return node;};
+  const citation=label=>label.replace(/^source:/,"Source · ").replace(/^attachment:/,"Attachment · ").replace(/#chunk:/," · chunk ").replace(/#image$/," · image");
+  function inline(parent,value,depth=0){
+    if(depth>=4){parent.append(make("span",value));return;}
+    const tokens=/!?\[([^\]\n]{1,200})\]\((<?[^\s)]{1,2048}>?)\)|\[((?:source|attachment):[^\]\n]{1,200})\]|(`)([^`\n]{1,2000})`|(\*\*|__)([^\n]{1,2000}?)\6|(\*|_)([^\n]{1,1000}?)\8/g;
+    let start=0;
+    for(const match of value.matchAll(tokens)){
+      if(match.index>start)parent.append(make("span",value.slice(start,match.index)));
+      let node;
+      if(match[1]){
+        let url;try{url=new URL(match[2].replace(/^<|>$/g,""));}catch{}
+        const safe=!match[0].startsWith("!")&&url&&["https:","http:"].includes(url.protocol)&&!url.username&&!url.password&&++links<=40;
+        if(safe){node=make("a",citation(match[1]));node.href=url.href;node.target="_blank";node.rel="noopener noreferrer";node.referrerPolicy="no-referrer";}
+        else node=make("span",match[0]);
+      }else if(match[3]){node=make("span",citation(match[3]));node.className="citation";}
+      else if(match[4])node=make("code",match[5]);
+      else{node=make(match[6]?"strong":"em");inline(node,match[7]||match[9],depth+1);}
+      parent.append(node);start=match.index+match[0].length;
+    }
+    if(start<value.length)parent.append(make("span",value.slice(start)));
+  }
+  const lines=text.slice(0,32000).replaceAll("\r\n","\n").split("\n");
+  try{
+    for(let i=0;i<lines.length;i++){
+      const line=lines[i];if(!line.trim())continue;
+      const fence=line.match(/^\s{0,3}(`{3,}|~{3,})([^`~]*)$/);
+      if(fence){
+        let end=i+1;while(end<lines.length&&!lines[end].trim().startsWith(fence[1]))end++;
+        if(end===lines.length||++codes>12){root.append(make("pre",lines.slice(i).join("\n")));break;}
+        const value=lines.slice(i+1,end).join("\n"),wrap=make("div"),pre=make("pre"),code=make("code",value);pre.append(code);wrap.append(pre);
+        if(value.length<=16000)wrap.append(copyControl("Copy code",()=>value));root.append(wrap);i=end;continue;
+      }
+      if(i+1<lines.length&&line.includes("|")&&/^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(lines[i+1])){
+        const scroll=make("div"),table=make("table"),head=make("thead"),body=make("tbody");scroll.className="table-scroll";scroll.tabIndex=0;scroll.setAttribute("aria-label","Reply table");
+        const cells=value=>value.replace(/^\s*\||\|\s*$/g,"").split("|").slice(0,12);
+        const add=(value,parent,tag)=>{const tr=make("tr");for(const cell of cells(value)){const td=make(tag);if(tag==="th")td.setAttribute("scope","col");inline(td,cell.trim());tr.append(td);}parent.append(tr);};
+        add(line,head,"th");i+=2;let count=0;
+        while(i<lines.length&&lines[i].includes("|")&&count++<50){add(lines[i],body,"td");i++;}i--;table.append(head,body);scroll.append(table);root.append(scroll);continue;
+      }
+      const heading=line.match(/^(#{1,6})\s+(.+)$/),list=line.match(/^\s{0,12}([-+*]|\d{1,6}[.)])\s+(.+)$/),quote=line.match(/^>\s?(.*)$/);
+      if(list){const ordered=/\d/.test(list[1]),ul=make(ordered?"ol":"ul");let match=list;
+        do{const li=make("li");inline(li,match[2]);ul.append(li);const next=lines[i+1]?.match(/^\s{0,12}([-+*]|\d{1,6}[.)])\s+(.+)$/);if(!next||/\d/.test(next[1])!==ordered)break;match=next;i++;}while(true);root.append(ul);continue;}
+      const node=make(heading?`h${Math.min(6,heading[1].length+2)}`:quote?"blockquote":"p");inline(node,heading?heading[2]:quote?quote[1]:line);root.append(node);
+    }
+    if(text.length>32000)root.append(make("pre",text.slice(32000)));
+  }catch{root.replaceChildren();root.textContent=text;}
+  return root;
+}
+function copyControl(label,value){
+  const button=document.createElement("button");button.type="button";button.className="secondary";button.textContent=label;
+  button.addEventListener("click",async()=>{
+    const generation=state.sessionGeneration,csrf=state.csrf;
+    try{if(!navigator.clipboard?.writeText)throw new Error("clipboard unavailable");await navigator.clipboard.writeText(value());if(currentSession(generation,csrf))announce(`${label}: copied.`);}
+    catch{if(currentSession(generation,csrf))announce(`${label} failed. Select text and copy using your device controls.`);}
+  });return button;
+}
+function formatReply(target){
+  if(target.formatted||!target.replyText)return;
+  if(historySelected()||target.contains(document.activeElement)){target.pendingFormat=true;return;}
+  const follow=nearLatest(),position=ui.log.scrollTop,text=target.replyText.replace(/^JARVIS: /,"");
+  const body=ui.log.querySelectorAll?.(".reply-body *").length>6000?document.createElement("pre"):renderReply(text);
+  if(body.tagName==="PRE")body.textContent=text;
+  target.replaceChildren(body,copyControl("Copy response",()=>text));target.formatted=true;target.pendingFormat=false;
+  ui.log.scrollTop=follow?ui.log.scrollHeight:position;
+}
+document.addEventListener("selectionchange",()=>{if(!historySelected())for(const target of ui.log.children)if(target.pendingFormat)formatReply(target);});
+ui.log.addEventListener("focusout",()=>{Promise.resolve().then(()=>{for(const target of ui.log.children)if(target.pendingFormat)formatReply(target);});});
 ui.log.addEventListener("scroll",updateJump);
 ui.jumpLatest.addEventListener("click",()=>{ui.log.scrollTop=ui.log.scrollHeight;ui.jumpLatest.hidden=true;ui.log.focus({preventScroll:true});});
 function completeReply(id,message,completed=false){
@@ -198,9 +291,10 @@ function completeReply(id,message,completed=false){
   state.chatAnnounced.set(id,completed);
   if(completed&&state.chatDrafts.has(id)&&ui.message.value.trim()===state.chatDrafts.get(id))ui.message.value="";
   state.chatDrafts.delete(id);
+  if(completed){const target=ui.log.querySelector(`[data-request="${CSS.escape(id)}"]`);if(target)formatReply(target);}
   if(state.pendingRequest?.request_id===id){state.pendingRequest=null;writeChatMarker(null).catch(()=>{});}
   updateControls();
-  ui.chatStatus.textContent=message;
+  ui.chatStatus.textContent=message.slice(0,320);
   if(completed)notifyGeneric();
 }
 
@@ -222,7 +316,7 @@ function applyChatResult(result,{silent=false}={}){
   const id=result.request_id;if(!id)return;
   if(!silent&&state.chatAnnounced.has(id))return;
   if(result.conversation_id&&state.conversation&&result.conversation_id!==state.conversation)return;
-  if(result.conversation_id){state.conversation=result.conversation_id;selectCurrentConversation();}
+  if(result.conversation_id){state.conversation=result.conversation_id;selectCurrentConversation();if(state.attachmentPending)scheduleAttachmentRefresh();}
   if(result.status==="running"){
     if(state.chatAnnounced.has(id))return;
     const pending=state.pendingRequest?.request_id===id?state.pendingRequest:{request_id:id};state.pendingRequest=pending;pending.uncertain=Boolean(pending.cancelIntent);
@@ -234,10 +328,11 @@ function applyChatResult(result,{silent=false}={}){
   }
   if(!["completed","cancelled","failed","interrupted"].includes(result.status))throw new Error("Invalid Core chat status");
   const completed=result.status==="completed";
+  if(result.status==="failed"&&!ui.message.value){const draft=state.chatDrafts.get(id)||(state.pendingRequest?.request_id===id?state.pendingRequest.payload?.message:null);if(draft){ui.message.value=draft;state.composerRevision++;}}
   if(silent&&completed&&result.reply===undefined&&state.pendingRequest?.request_id===id&&!ui.log.querySelector(`[data-request="${CSS.escape(id)}"]`))return;
-  const message=completed?"Reply complete.":result.status==="cancelled"?"Request cancelled.":result.status==="interrupted"?"Reply interrupted. Original request will not run again. Review history before sending a new message.":result.error?.code==="upload_unavailable"?"Attachment upload expired or unavailable. Select files again, then Send a new message.":result.error?.code==="attachment_processing_failed"?"Attachment processing failed. Check file format and host attachment readiness; draft kept.":"Request failed safely.";
+  const message=completed?"Reply complete.":result.status==="cancelled"?"Request cancelled.":result.status==="interrupted"?"Reply interrupted. Original request will not run again. Review history before sending a new message.":result.error?.code==="upload_unavailable"?"Attachment upload expired or unavailable. Select files again, then Send a new message.":result.error?.code==="attachment_processing_failed"?"Attachment processing failed. Check file format and host attachment readiness; draft kept.":attachmentRecovery(result.error?.code)||"Request failed safely.";
   if(!silent&&!state.chatAnnounced.has(id))row(completed?"jarvis":"meta",completed?`JARVIS: ${result.reply||"Completed"}${result.reply_truncated?"\n[Reply excerpt. Review Core history.]":""}`:message,id);
-  if(silent){if(completed&&typeof result.reply==="string")row("jarvis",`JARVIS: ${result.reply}${result.reply_truncated?"\n[Reply excerpt. Review Core history.]":""}`,id);state.chatActive.delete(id);state.chatAnnounced.set(id,completed);if(completed&&state.chatDrafts.has(id)&&ui.message.value.trim()===state.chatDrafts.get(id))ui.message.value="";state.chatDrafts.delete(id);if(state.pendingRequest?.request_id===id){state.pendingRequest=null;writeChatMarker(null).catch(()=>{});}updateControls();}
+  if(silent){if(completed&&typeof result.reply==="string")row("jarvis",`JARVIS: ${result.reply}${result.reply_truncated?"\n[Reply excerpt. Review Core history.]":""}`,id,true);state.chatActive.delete(id);state.chatAnnounced.set(id,completed);if(completed&&state.chatDrafts.has(id)&&ui.message.value.trim()===state.chatDrafts.get(id))ui.message.value="";state.chatDrafts.delete(id);if(state.pendingRequest?.request_id===id){state.pendingRequest=null;writeChatMarker(null).catch(()=>{});}updateControls();}
   else completeReply(id,completed?`${message} ${result.reply||""}`:message,completed);
 }
 async function checkPendingRequest({silent=false}={}){
@@ -254,6 +349,7 @@ async function checkPendingRequest({silent=false}={}){
   }
 }
 function selectCurrentConversation(){
+  for(const item of ui.library.children)if(item.controls?.[0])item.controls[0].setAttribute("aria-current",String(item.controls[0].dataset.conversation===state.conversation));
   if(!state.conversation)return;
   if(![...ui.conversations.children].some(option=>option.value===state.conversation)){const option=document.createElement("option");option.value=state.conversation;option.textContent="Current conversation";ui.conversations.append(option);}
   ui.conversations.value=state.conversation;
@@ -266,8 +362,9 @@ async function refreshHistory({conversation,older=false,matchSequence=null}={}){
   try{
     if(!older){
       const listing=await (await api("/client/conversations?limit=20")).json();if(!current())return;
+      if(!state.libraryArchived&&!state.libraryOffset&&!state.libraryRead&&!state.libraryMutation)renderLibrary(listing);
       ui.conversations.replaceChildren();const empty=document.createElement("option");empty.value="";empty.textContent="New conversation";ui.conversations.append(empty);
-      for(const saved of listing.conversations){const option=document.createElement("option");option.value=saved.id;option.textContent=`Conversation · ${saved.updated_at?new Date(saved.updated_at).toLocaleString():saved.id}`;ui.conversations.append(option);}
+      for(const saved of listing.conversations){const option=document.createElement("option");option.value=saved.id;option.textContent=saved.title||"Conversation";ui.conversations.append(option);}
       if(conversation===undefined)conversation=state.conversation||listing.active_request?.conversation_id||listing.conversations[0]?.id||null;
       if(listing.active_request&&!state.pendingRequest)state.pendingRequest={request_id:listing.active_request.request_id};
     }
@@ -279,10 +376,12 @@ async function refreshHistory({conversation,older=false,matchSequence=null}={}){
     if(!current()||page.conversation_id!==selected)return;
     const oldRows=older?[...ui.log.children]:[],position=ui.log.scrollTop,height=ui.log.scrollHeight;
     state.conversation=selected;ui.conversations.value=selected;ui.log.replaceChildren();
-    for(const message of page.messages)row(message.role==="user"?"user":"jarvis",`${message.role==="user"?"You":"JARVIS"}: ${message.content}${message.truncated?"\n[Message excerpt]":""}`,message.request_id?`${message.request_id}${message.role==="user"?":user":""}`:`message:${message.id}`);
+    for(const message of page.messages)row(message.role==="user"?"user":"jarvis",`${message.role==="user"?"You":"JARVIS"}: ${message.content}${message.truncated?"\n[Message excerpt]":""}`,message.request_id?`${message.request_id}${message.role==="user"?":user":""}`:`message:${message.id}`,message.role!=="user");
     for(const target of oldRows)ui.log.append(target);
+    if(page.attachment_page){state.attachmentOffset=0;renderAttachmentMetadata(page.attachment_page);}
     if(older)ui.log.scrollTop=position+ui.log.scrollHeight-height;
     state.historyBefore=page.next_before;ui.olderHistory.hidden=!page.has_more;
+    trimHistory(older?ui.log.firstChild:ui.log.lastChild,{older});
     if(!older){
       state.chatActive.clear();state.chatAnnounced.clear();
       for(const request of page.requests||[])if(request.status!=="running")applyChatResult(request,{silent:true});
@@ -290,7 +389,7 @@ async function refreshHistory({conversation,older=false,matchSequence=null}={}){
       if(running){applyChatResult(running,{silent:true});if(partial)row("jarvis",partial,running.request_id);}
       await checkPendingRequest({silent:true});if(!current())return;
     }
-    state.historyReady=true;ui.chat.setAttribute("aria-busy",String(state.chatActive.size>0));
+    state.historyReady=true;selectCurrentConversation();ui.chat.setAttribute("aria-busy",String(state.chatActive.size>0));
     if(!state.pendingRequest)ui.chatStatus.textContent=matchSequence?"Matching message is last in this history page. Refresh history for latest messages.":older?"Earlier messages loaded.":"Conversation restored from Core.";
   }catch(error){if(current()){state.historyReady=false;ui.chatStatus.textContent="History unavailable. Refresh history after connection recovers; sending stays disabled.";}throw error;}
   finally{if(state.historyBusy===operation)state.historyBusy=false;updateControls();}
@@ -300,8 +399,11 @@ async function chooseConversation(conversation,matchSequence=null){
   if(!state.online||state.pendingRequest||state.sending||state.chatActive.size||state.chatAction)return;
   const generation=state.sessionGeneration,csrf=state.csrf;
   state.threadDrafts.set(state.conversation,ui.message.value);
-  if(state.threadDrafts.size>20)state.threadDrafts.delete(state.threadDrafts.keys().next().value);
-  clearAttachments();clearChat();state.conversation=conversation||null;
+  if(!ui.message.value)state.threadDrafts.delete(state.conversation);
+  if(state.threadDrafts.size>20){state.threadDrafts.delete(state.conversation);ui.chatStatus.textContent="20 unsent conversation drafts already open. Send or clear a draft before opening another conversation. Current text kept.";selectCurrentConversation();return;}
+  state.reuseDrafts.set(state.conversation,new Set(state.reuseSelected));
+  if(state.reuseDrafts.size>20)state.reuseDrafts.delete(state.reuseDrafts.keys().next().value);
+  clearAttachments();clearAttachmentMetadata();clearChat();state.conversation=conversation||null;state.reuseSelected=new Set(state.reuseDrafts.get(state.conversation)||[]);
   ui.message.value=state.threadDrafts.get(state.conversation)||"";state.composerRevision++;
   await refreshHistory({conversation:state.conversation,matchSequence});
   if(currentSession(generation,csrf)){selectCurrentConversation();updateControls();}
@@ -364,26 +466,31 @@ async function connect(){
   if(current())startStreamOwnership();
 }
 async function refreshStatus(){const generation=state.sessionGeneration,csrf=state.csrf,status=await (await api("/client/status")).json();if(!currentSession(generation,csrf))return;state.attachmentsAllowed=status.attachments?.available===true;state.voiceReady=status.voice?.available===true;state.voiceMax=Math.min(30000,Math.max(120,status.voice?.max_duration_ms||30000));updateVoiceControls();ui.device.replaceChildren();const entries=[["Name",status.device.display_name],["State",status.device.state],["Key version",status.device.key_version],["Session",status.session.id]];for(const [name,value] of entries){const wrap=document.createElement("div"),dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=name;dd.textContent=String(value);wrap.append(dt,dd);ui.device.append(wrap);}}
-async function refreshTasks({more=false}={}){
+async function refreshTasks({more=false,offset:requestedOffset=null}={}){
   if(state.tasksBusy||!state.csrf)return;
   const generation=state.sessionGeneration,csrf=state.csrf,operation={};state.tasksBusy=operation;
-  const offset=more?state.taskOffset:0;ui.tasksState.textContent="Checking tasks…";updateControls();
+  const offset=requestedOffset??(more?state.taskOffset:state.taskPageOffset),abort=new AbortController();state.taskListAbort=abort;ui.tasksState.textContent="Checking tasks…";updateControls();
   try{
-    const tasks=await (await api(`/client/tasks?limit=50${offset?`&offset=${offset}`:""}`)).json();
+    const response=await api(`/client/tasks?limit=50${offset?`&offset=${offset}`:""}${ui.taskFilter.value?`&status=${encodeURIComponent(ui.taskFilter.value)}`:""}&sort=${ui.taskSort.value||"newest"}${(more||requestedOffset!==null)&&state.taskRevision!==null?`&revision=${state.taskRevision}`:""}`,{signal:abort.signal}),tasks=await response.json();
     if(!currentSession(generation,csrf)||state.tasksBusy!==operation||!navigator.onLine||(!state.online&&!state.connecting))return;
-    if(!more)ui.tasks.replaceChildren();
+    const focused=document.activeElement,restore=focused?.dataset?.task;ui.tasks.replaceChildren();
     if(!tasks.length&&!offset){const item=document.createElement("li");item.textContent="No tasks.";ui.tasks.append(item);}
     for(const task of tasks){
       const item=document.createElement("li"),button=document.createElement("button");button.type="button";button.className="secondary";
       button.textContent=`${task.id} · ${task.status}${Number.isInteger(task.total_nodes)?` · ${task.completed_nodes}/${task.total_nodes} steps complete`:""}`;
+      if(task.verifying_nodes)button.textContent+=` · ${task.verifying_nodes} verifying`;
+      button.dataset.task=task.id;button.setAttribute("aria-current",String(state.taskSelected===task.id));
       button.addEventListener("click",()=>guarded(()=>loadTask(task.id,{focus:true})));item.append(button);ui.tasks.append(item);
+      if(restore===task.id)button.focus({preventScroll:true});
     }
+    if(restore&&document.activeElement===focused)ui.refreshTasks.focus({preventScroll:true});
+    state.taskRevision=response.headers?.get?.("X-Jarvis-Task-Revision")??null;state.taskPageOffset=offset;ui.previousTasks.hidden=offset===0;
     state.taskOffset=offset+tasks.length;ui.moreTasks.hidden=tasks.length<50||state.taskOffset>100000;
-    state.taskChecked=Date.now();ui.tasksState.textContent="Tasks checked. Select task for details.";
+    state.taskChecked=Date.now();ui.tasksState.textContent=tasks.length?`Tasks ${offset+1}–${offset+tasks.length} checked. Select task for details.`:"No tasks match this filter. Refresh tasks to return to first page.";
     if(state.taskSelected)await loadTask(state.taskSelected);
     scheduleTaskRefresh();
-  }catch(error){if(currentSession(generation,csrf))ui.tasksState.textContent="Task check failed. Displayed state may be stale. Refresh tasks after connection recovers.";throw error;}
-  finally{if(state.tasksBusy===operation)state.tasksBusy=false;updateControls();}
+  }catch(error){if(!currentSession(generation,csrf)||state.tasksBusy!==operation||error.name==="AbortError")return;ui.tasksState.textContent=error.status===409?"Task list changed. Refresh tasks to restart pagination; selected task stays selected.":"Task check failed. Displayed state may be stale. Refresh tasks after connection recovers.";throw error;}
+  finally{if(state.tasksBusy===operation){state.tasksBusy=false;state.taskListAbort=null;}updateControls();}
 }
 function processEvent(event){
   if(!Number.isInteger(event.cursor)||event.cursor<1)throw new Error("Invalid event cursor");
@@ -399,7 +506,7 @@ function processEvent(event){
     if(event.event_type==="chat.started"){if(event.payload.conversation_id){state.conversation=event.payload.conversation_id;selectCurrentConversation();}state.pendingRequest=state.pendingRequest?.request_id===id?state.pendingRequest:{request_id:id};state.chatActive.add(id);ui.chat.setAttribute("aria-busy","true");row("jarvis","JARVIS: ",id);ui.chatStatus.textContent="JARVIS is replying.";updateControls();}
     if(event.event_type==="chat.delta"||event.event_type==="chat.frame"&&event.payload.type==="assistant_delta"){
       const existing=ui.log.querySelector(`[data-request="${CSS.escape(id)}"]`);
-      const prior=existing?.className==="entry jarvis"?existing.textContent:"JARVIS: ";
+      const prior=existing?.className==="entry jarvis"?(existing.replyText??existing.textContent):"JARVIS: ";
       row("jarvis",(prior==="JARVIS: Reply in progress…"?"JARVIS: ":prior)+(event.payload.content_delta||""),id);
     }
     if(event.event_type==="chat.completed"){
@@ -436,6 +543,7 @@ async function streamLoop(owner){
       if(!state.historyReady){await refreshHistory();if(!current())break;}
       if(state.pendingRequest&&(!state.pendingRequest.lastChecked||Date.now()-state.pendingRequest.lastChecked>=2000)){await checkPendingRequest();if(!current())break;}
       setConnected(true);
+      if(state.attachmentPending&&!state.attachmentTimer)scheduleAttachmentRefresh();
       if(owner?.tasksPending){owner.tasksPending=false;scheduleTaskRefresh(0);}
       const readyText="Live connection ready. Enrolled key retained; use Connect existing device for session renewal.";
       if(ui.accessStatus.textContent!==readyText)ui.accessStatus.textContent=readyText;
@@ -467,10 +575,12 @@ function startStreamOwnership(){
   return owner.promise;
 }
 async function sendMessage(event){
-  if(state.voice||state.attachments.some(item=>item.phase!=="ready")){event.preventDefault();return;}
+  if(state.composing||state.voice||state.attachments.some(item=>item.phase!=="ready")||state.reuseSelected.size&&!state.attachmentPage){event.preventDefault();return;}
   event.preventDefault();if(!state.online||!state.subscription||state.sending||state.pendingRequest||state.chatActive.size||!state.historyReady||state.historyBusy)return;
   const message=ui.message.value.trim();if(!message)return;
-  const pending={request_id:randomId("request"),payload:{message,conversation_id:state.conversation,...(state.attachments.length?{upload_ids:state.attachments.map(item=>item.id)}:{})},uncertain:false,posted:false};state.pendingRequest=pending;
+  const pending={request_id:randomId("request"),payload:{message,conversation_id:state.conversation,...(state.attachments.length?{upload_ids:state.attachments.map(item=>item.id)}:{}),...(state.reuseSelected.size?{attachment_ids:[...state.reuseSelected]}:{})},uncertain:false,posted:false};state.pendingRequest=pending;
+  state.attachmentPending=Boolean(state.attachments.length||state.reuseSelected.size);state.reuseSelected.clear();state.reuseDrafts.delete(state.conversation);
+  state.threadDrafts.delete(state.conversation);
   clearAttachments({discard:false});
   row("user",`You: ${message}`,`${pending.request_id}:user`);state.chatDrafts.set(pending.request_id,message);
   await submitPending(pending);
@@ -588,7 +698,7 @@ async function recordMessage(){
     op.stream=stream;stream.getTracks().forEach(track=>{track.onended=track.onmute=()=>discardVoice("Microphone interrupted. Recording discarded.");});
     op.context=new window.AudioContext({sampleRate:16000});
     if(op.context.sampleRate<16000||op.context.sampleRate>96000)throw new Error("Unsupported sample rate");
-    await op.context.audioWorklet.addModule("/app/pcm-worklet.js?v=11");if(!voiceCurrent(op))return;
+    await op.context.audioWorklet.addModule("/app/pcm-worklet.js?v=12");if(!voiceCurrent(op))return;
     op.node=new window.AudioWorkletNode(op.context,"jarvis-pcm",{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[1],processorOptions:{maxSamples:state.voiceMax*16}});
     // Worklet writes only zeros to this output; connection keeps browser render graph pulling.
     op.node.connect(op.context.destination);
@@ -633,26 +743,134 @@ ui.record.addEventListener("click",recordMessage);
 ui.stopVoice.addEventListener("click",()=>stopRecording());
 ui.discardVoice.addEventListener("click",()=>{discardVoice();ui.record.focus();});
 ui.message.addEventListener("input",()=>{state.composerRevision++;if(state.voice)discardVoice();updateVoiceControls();});
+ui.message.addEventListener("compositionstart",()=>{state.composing=true;ui.send.disabled=true;});
+ui.message.addEventListener("compositionend",()=>{state.composing=false;updateControls();});
+ui.message.addEventListener("keydown",event=>{
+  if(event.key!=="Enter"||(!event.ctrlKey&&!event.metaKey))return;
+  event.preventDefault();if(state.composing||event.isComposing||event.keyCode===229||event.repeat)return;
+  if(!ui.send.disabled)ui.chat.requestSubmit();
+});
 document.addEventListener("keydown",event=>{if(event.key==="Escape"&&state.voice){event.preventDefault();discardVoice();ui.record.focus();}});
 window.addEventListener("pagehide",()=>discardVoice());
 document.addEventListener("visibilitychange",()=>{if(document.hidden)discardVoice();});
 function updateWorkflowControls(){
   const blocked=Boolean(state.sending||state.pendingRequest||state.chatActive.size||state.historyBusy||state.chatAction);
-  ui.attachmentFile.disabled=!state.online||!state.historyReady||!state.attachmentsAllowed||blocked||Boolean(state.voice)||state.attachments.length>=4;
-  if(state.attachments.some(item=>item.phase!=="ready"))ui.send.disabled=true;
+  ui.attachmentFile.disabled=!state.online||!state.historyReady||!state.attachmentsAllowed||blocked||Boolean(state.voice)||state.attachments.length+state.reuseSelected.size>=4;
+  if(state.composing||state.attachments.some(item=>item.phase!=="ready"))ui.send.disabled=true;
   ui.searchQuery.disabled=!state.online;ui.searchSubmit.disabled=!state.online;
   ui.searchMore.disabled=!state.online||Boolean(state.search);
   for(const item of ui.searchResults.children)for(const button of item.children)if(button.tagName==="BUTTON"||button.type==="button")button.disabled=!state.online||blocked;
   ui.moreTasks.disabled=!state.online||Boolean(state.tasksBusy);
   for(const item of ui.tasks.children)for(const button of item.children||[])button.disabled=!state.online;
   ui.cancelTask.disabled=true;
+  ui.previousTasks.disabled=!state.online||Boolean(state.tasksBusy);
+  ui.taskFilter.disabled=ui.taskSort.disabled=!state.online;
+  ui.eventsOlder.disabled=ui.eventsLatest.disabled=!state.online||Boolean(state.timelineRead);
+  const libraryBlocked=!state.online||blocked||Boolean(state.libraryRead||state.libraryMutation);
+  for(const control of [ui.libraryRefresh,ui.libraryArchived,ui.libraryPrevious,ui.libraryNext])control.disabled=libraryBlocked;
+  for(const row of ui.library.children)for(const control of row.controls||[])control.disabled=libraryBlocked;
+  ui.library.setAttribute("aria-busy",String(Boolean(state.libraryRead||state.libraryMutation)));
+  ui.conversationAttachments.setAttribute("aria-busy",String(Boolean(state.attachmentRead)));
+  ui.taskEvents.setAttribute("aria-busy",String(Boolean(state.timelineRead)));
+  const attachmentBlocked=!state.online||!state.conversation||Boolean(state.attachmentRead);
+  for(const control of [ui.refreshAttachments,ui.attachmentsPrevious,ui.attachmentsNext])control.disabled=attachmentBlocked;
+  for(const row of ui.conversationAttachments.children)if(row.reuse)row.reuse.disabled=attachmentBlocked||blocked||Boolean(state.voice)||!row.ready||(!state.reuseSelected.has(row.attachmentId)&&state.reuseSelected.size+state.attachments.length>=4);
+  if(state.reuseSelected.size&&!state.attachmentPage)ui.send.disabled=true;
 }
+function renderLibrary(page){
+  state.libraryPage=page;ui.library.replaceChildren();
+  for(const saved of page.conversations.slice(0,20)){
+    const item=document.createElement("li"),open=document.createElement("button"),excerpt=document.createElement("p"),stamp=document.createElement("p"),form=document.createElement("form"),label=document.createElement("label"),title=document.createElement("input"),rename=document.createElement("button"),pin=document.createElement("button"),archive=document.createElement("button");
+    open.type="button";open.className="secondary";open.textContent=`${saved.pinned?"Pinned · ":""}${saved.title||"Conversation"}`;
+    open.dataset.conversation=saved.id;
+    open.setAttribute("aria-current",saved.id===state.conversation?"true":"false");
+    open.addEventListener("click",()=>guarded(()=>chooseConversation(saved.id)));
+    excerpt.textContent=saved.excerpt||"No messages yet.";stamp.textContent=`Updated ${Number.isFinite(Date.parse(saved.updated_at))?new Date(saved.updated_at).toLocaleString():"time unavailable"}`;
+    title.type="text";title.maxLength=80;title.value=saved.title||"";title.autocomplete="off";title.id=`rename-${saved.id}`;label.setAttribute("for",title.id);label.textContent="Conversation title";
+    rename.type="submit";rename.textContent="Save title";pin.type=archive.type="button";pin.textContent=saved.pinned?"Unpin":"Pin";archive.textContent=saved.archived?"Unarchive":"Archive";
+    for(const button of [rename,pin,archive])button.className="secondary";
+    form.addEventListener("submit",event=>{event.preventDefault();guarded(()=>changeConversationMetadata(saved,{title:title.value}));});
+    pin.addEventListener("click",()=>guarded(()=>changeConversationMetadata(saved,{pinned:!saved.pinned})));
+    archive.addEventListener("click",()=>guarded(()=>changeConversationMetadata(saved,{archived:!saved.archived})));
+    form.append(label,title,rename);item.append(open,excerpt,stamp,form,pin,archive);item.controls=[open,title,rename,pin,archive];ui.library.append(item);
+  }
+  ui.libraryPrevious.hidden=state.libraryOffset===0;ui.libraryNext.hidden=!page.has_more;
+  ui.libraryState.textContent=page.conversations.length?`${state.libraryArchived?"Archived":"Active"} conversations ${state.libraryOffset+1}–${state.libraryOffset+page.conversations.length}. Select to open.`:`No ${state.libraryArchived?"archived":"active"} conversations.`;
+  updateControls();
+}
+function cancelLibrary(){state.libraryRead?.abort.abort();state.libraryRead=null;if(state.libraryPage)ui.libraryState.textContent="Shown library may be stale. Refresh library before editing.";}
+function attachmentRecovery(code){
+  return ({storage_quota:"Core attachment capacity reached. Wait for retention expiry or ask trusted host to review storage. Draft kept.",attachment_unavailable:"Selected attachment expired or unavailable. Refresh attachment status, review selection, then Send a new request. Draft kept.",processing_interrupted:"Core processing interrupted. No automatic retry. Select original file again after reviewing status. Draft kept.",processing_timeout:"Parser timed out. Choose a smaller supported file and Send a new request. Draft kept.",attachments_disabled:"Attachments unavailable on Core. Ask trusted host to check existing configuration. Draft kept.",processing_rejected:"Parser rejected file. Choose a readable TXT/MD, text PDF or supported PNG/JPEG. No automatic reprocessing.",processing_cancelled:"Processing cancelled. Select original file again only when ready to Send."})[code]||"";
+}
+function cancelAttachmentRead(){state.attachmentRead?.abort.abort();state.attachmentRead=null;clearTimeout(state.attachmentTimer);state.attachmentTimer=null;if(state.attachmentPage)ui.conversationAttachmentsState.textContent="Displayed attachment status may be stale. Refresh after reconnecting.";}
+function clearAttachmentMetadata(){cancelAttachmentRead();state.attachmentPage=null;state.attachmentOffset=0;state.reuseSelected.clear();ui.conversationAttachments.replaceChildren();ui.conversationAttachmentsState.textContent="Open a saved conversation to inspect attachments.";ui.attachmentsNext.hidden=ui.attachmentsPrevious.hidden=true;}
+function renderAttachmentMetadata(page){
+  if(page.conversation_id!==state.conversation)return;
+  state.attachmentPage=page;ui.conversationAttachments.replaceChildren();let processing=false;
+  for(const attachment of page.attachments.slice(0,20)){
+    const item=document.createElement("li"),label=document.createElement("p"),source=document.createElement("p"),reuse=document.createElement("button");
+    const expired=attachment.expires_at&&Date.parse(attachment.expires_at)<=Date.now(),status=expired?"expired":attachment.status;
+    if(status!=="ready"||page.available===false)state.reuseSelected.delete(attachment.id);
+    label.textContent=`${attachment.filename||"Unavailable attachment"} · ${attachment.byte_size||0} bytes · ${status}${page.available===false?" · unavailable on Core":""}${attachment.expires_at?` · expires ${new Date(attachment.expires_at).toLocaleString()}`:""}`;
+    source.textContent=`Source ${attachment.id}${attachment.request_ids?.length?` · used by ${attachment.request_ids.length} recent request(s)`:" · earlier conversation attachment"}. ${attachmentRecovery(attachment.error_code)}${status==="expired"||status==="unavailable"?" Select original file again; Send remains deliberate.":""}${attachment.media_type?.startsWith("image/")&&!page.vision_available?" Local vision unavailable; image cannot be interpreted. Use text or ask trusted host to check an already installed model.":""}`;
+    reuse.type="button";reuse.className="secondary";reuse.textContent=state.reuseSelected.has(attachment.id)?`Remove reuse ${attachment.filename}`:`Reuse ${attachment.filename||"attachment"}`;reuse.setAttribute("aria-pressed",String(state.reuseSelected.has(attachment.id)));
+    reuse.addEventListener("click",()=>{if(state.reuseSelected.has(attachment.id))state.reuseSelected.delete(attachment.id);else if(state.attachments.length+state.reuseSelected.size<4)state.reuseSelected.add(attachment.id);reuse.textContent=state.reuseSelected.has(attachment.id)?`Remove reuse ${attachment.filename}`:`Reuse ${attachment.filename}`;reuse.setAttribute("aria-pressed",String(state.reuseSelected.has(attachment.id)));updateControls();});
+    item.reuse=reuse;item.attachmentId=attachment.id;item.ready=status==="ready"&&page.available!==false;processing ||= status==="processing";item.append(label,source,reuse);ui.conversationAttachments.append(item);
+    for(const id of attachment.request_ids||[]){const message=ui.log.querySelector(`[data-request="${CSS.escape(id+":user")}"]`);if(message){if(!message.attachmentLabel){message.attachmentLabel=document.createElement("p");message.append(message.attachmentLabel);}message.attachmentLabel.textContent="Attachment source metadata available below composer.";}}
+  }
+  ui.attachmentsPrevious.hidden=state.attachmentOffset===0;ui.attachmentsNext.hidden=!page.has_more;
+  ui.conversationAttachmentsState.textContent=page.attachments.length?`Core attachment status checked. ${state.reuseSelected.size} selected for reuse; review, then Send.`:"No persisted attachments in this conversation.";
+  if(processing)scheduleAttachmentRefresh();else state.attachmentPending=false;
+  updateControls();
+}
+function scheduleAttachmentRefresh(){
+  clearTimeout(state.attachmentTimer);state.attachmentTimer=null;
+  if(state.csrf&&state.online&&state.conversation&&navigation.view==="chat"&&!document.hidden)state.attachmentTimer=setTimeout(()=>loadAttachmentMetadata(),2000);
+}
+async function loadAttachmentMetadata({offset=state.attachmentOffset}={}){
+  if(!state.online||!state.conversation)return;cancelAttachmentRead();
+  const op={generation:state.sessionGeneration,csrf:state.csrf,conversation:state.conversation,abort:new AbortController()};state.attachmentRead=op;ui.conversationAttachmentsState.textContent="Checking Core attachment status…";updateControls();
+  const current=()=>state.attachmentRead===op&&currentSession(op.generation,op.csrf)&&state.conversation===op.conversation&&state.online;
+  try{
+    const page=await(await api(`/client/conversations/${encodeURIComponent(op.conversation)}/attachments?offset=${offset}`,{signal:op.abort.signal})).json();
+    if(current()&&page.conversation_id===op.conversation){state.attachmentOffset=offset;renderAttachmentMetadata(page);}
+  }catch(error){if(current()&&error.name!=="AbortError")ui.conversationAttachmentsState.textContent="Attachment status unavailable. Refresh after reconnecting. No upload or processing resumes automatically.";}
+  finally{if(state.attachmentRead===op)state.attachmentRead=null;updateControls();}
+}
+ui.refreshAttachments.addEventListener("click",()=>loadAttachmentMetadata({offset:0}));
+ui.attachmentsPrevious.addEventListener("click",()=>loadAttachmentMetadata({offset:Math.max(0,state.attachmentOffset-20)}));
+ui.attachmentsNext.addEventListener("click",()=>loadAttachmentMetadata({offset:state.attachmentPage?.next_offset||0}));
+async function loadLibrary({offset=0,focus=false}={}){
+  if(!state.online)return;cancelLibrary();
+  const op={generation:state.sessionGeneration,csrf:state.csrf,abort:new AbortController(),focus:document.activeElement},archived=ui.libraryArchived.checked===true;
+  state.libraryRead=op;ui.libraryState.textContent="Loading conversation library…";updateControls();
+  const current=()=>state.libraryRead===op&&currentSession(op.generation,op.csrf)&&state.online;
+  try{
+    const page=await(await api("/client/conversations/library",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({archived,offset,revision:offset?state.libraryPage?.revision:null}),signal:op.abort.signal})).json();
+    if(!current())return;state.libraryOffset=offset;state.libraryArchived=archived;renderLibrary(page);
+    if(focus&&navigation.view==="chat"&&(document.activeElement===op.focus||document.activeElement===document.body))ui.libraryTitle.focus();
+  }catch(error){if(current()&&error.name!=="AbortError"){ui.libraryState.textContent=error.status===409?"Library changed on Core. Refresh library to restart pagination.":"Library unavailable. Refresh library after reconnecting.";ui.libraryNext.hidden=true;}}
+  finally{if(state.libraryRead===op)state.libraryRead=null;updateControls();}
+}
+async function changeConversationMetadata(saved,change){
+  if(!state.online||state.libraryMutation||state.pendingRequest)return;
+  const op={generation:state.sessionGeneration,csrf:state.csrf,focus:document.activeElement};state.libraryMutation=op;updateControls();
+  try{
+    (await api(`/client/conversations/${encodeURIComponent(saved.id)}/metadata`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({revision:saved.revision,title:saved.title||null,pinned:Boolean(saved.pinned),archived:Boolean(saved.archived),...change})})).discard();
+    if(currentSession(op.generation,op.csrf)&&state.online&&navigation.view==="chat"){await loadLibrary({focus:document.activeElement===op.focus||document.activeElement===document.body});if(currentSession(op.generation,op.csrf)&&state.libraryMutation===op)ui.libraryState.textContent+=" Change saved on Core.";}
+  }catch(error){if(currentSession(op.generation,op.csrf))ui.libraryState.textContent=error.status===409?"Concurrent change. Your edit was not applied. Refresh library, review latest metadata, then edit again.":"Change outcome unavailable. Refresh library before retrying; no automatic retry.";}
+  finally{if(state.libraryMutation===op)state.libraryMutation=null;updateControls();}
+}
+ui.libraryRefresh.addEventListener("click",()=>loadLibrary());
+ui.libraryArchived.addEventListener("change",()=>loadLibrary({focus:true}));
+ui.libraryPrevious.addEventListener("click",()=>loadLibrary({offset:Math.max(0,state.libraryOffset-20),focus:true}));
+ui.libraryNext.addEventListener("click",()=>loadLibrary({offset:state.libraryPage?.next_offset||0,focus:true}));
 function renderAttachments(){
   const focused=document.activeElement?.dataset?.attachment;
   ui.attachments.replaceChildren();
   for(const item of state.attachments){
     const row=document.createElement("li"),label=document.createElement("p"),progress=document.createElement("progress"),remove=document.createElement("button");
-    label.textContent=`${item.name} · ${item.size} bytes · ${item.phase==="ready"?"Ready. Review, then Send.":item.phase==="failed"?`${item.error||"Upload failed or expired."} Remove and select again.`:"Uploading…"}`;
+    label.textContent=`${item.name} · ${item.size} bytes · ${item.phase==="ready"?"Staged in temporary Core memory. Review, then Send to process.":item.phase==="failed"?`${item.error||"Upload failed or expired."} Remove and select again.`:"Uploading…"}`;
     progress.max=100;progress.value=item.progress;progress.setAttribute("aria-label",`Upload ${item.name}`);
     remove.type="button";remove.className="secondary";remove.textContent=item.phase==="uploading"?`Cancel upload ${item.name}`:`Remove ${item.name}`;
     remove.dataset.attachment=item.id;
@@ -676,7 +894,7 @@ async function selectAttachments(files){
   updateControls();if(ui.attachmentFile.disabled)return;
   const generation=state.sessionGeneration,csrf=state.csrf,conversation=state.conversation;
   for(const file of files){
-    if(state.attachments.length>=4){ui.attachmentState.textContent="Four-file limit. Remove a file before selecting another.";break;}
+    if(state.attachments.length+state.reuseSelected.size>=4){ui.attachmentState.textContent="Four-file limit. Remove a file before selecting another.";break;}
     const extension=file.name.split(".").pop().toLowerCase(),type={txt:"text/plain",md:"text/plain",pdf:"application/pdf",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg"}[extension];
     if(!type||file.size<=0||file.size>1048576||file.name.length>120){ui.attachmentState.textContent="Unsupported or oversized file. Choose PNG/JPEG, PDF or TXT/MD, 1 byte–1 MiB each.";continue;}
     const item={id:crypto.randomUUID().replaceAll("-",""),name:file.name,size:file.size,type,phase:"uploading",progress:0,xhr:null};
@@ -724,23 +942,56 @@ async function searchHistory({more=false}={}){
     const page=await(await api("/client/conversations/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({query,before}),signal:op.abort.signal})).json();
     if(!current())return;
     for(const match of page.results){
+      if(ui.searchResults.children.length>=100){ui.searchState.textContent="100 matching messages shown. Refine search to browse more.";break;}
       const item=document.createElement("li"),button=document.createElement("button"),excerpt=document.createElement("p");button.type="button";button.className="secondary";
       button.textContent=`Open ${match.role==="user"?"your message":"JARVIS reply"} · message ${match.sequence}`;excerpt.textContent=match.excerpt;
       button.addEventListener("click",()=>guarded(()=>chooseConversation(match.conversation_id,match.sequence)));item.append(button,excerpt);ui.searchResults.append(item);
     }
-    state.searchBefore=page.next_before;ui.searchMore.hidden=!page.has_more;
+    state.searchBefore=page.next_before;ui.searchMore.hidden=!page.has_more||ui.searchResults.children.length>=100;
     ui.searchState.textContent=ui.searchResults.children.length?`${ui.searchResults.children.length} matching messages shown.`:"No matching messages.";
   }catch(error){if(current()&&error.name!=="AbortError")ui.searchState.textContent="Search failed. Search again after connection recovers.";}
   finally{if(state.search===op)state.search=null;updateControls();}
 }
 function cancelTaskRead(){
+  state.timelineRead?.abort.abort();state.timelineRead=null;
   state.taskRead?.abort.abort();state.taskRead=null;clearTimeout(state.taskTimer);state.taskTimer=null;
   if(state.taskSelected)ui.taskDetailState.textContent="Displayed task may be stale. Refresh tasks to recover current Core state.";
   if(state.taskChecked||state.tasksBusy)ui.tasksState.textContent="Displayed tasks may be stale. Refresh tasks after connection recovers.";
+  if(state.taskSelected)ui.timelineState.textContent="Timeline may be stale. Refresh tasks to recover Core events.";
 }
+function renderTaskTimeline(page){
+  if(page.task_id!==state.taskSelected)return;
+  state.timelinePage=page;ui.taskEvents.replaceChildren();
+  for(const event of page.events.slice(0,50)){
+    const item=document.createElement("li");item.textContent=`${event.created_at?new Date(event.created_at).toLocaleString():"Time unavailable"} · ${String(event.event_type).replaceAll("_"," ")} · ${String(event.task_status).replaceAll("_"," ")}${event.node_id?` · step ${event.node_id}`:""}${event.node_status?` · ${String(event.node_status).replaceAll("_"," ")}`:""} · ${event.explanation||"Core state transition."}`;ui.taskEvents.append(item);
+  }
+  ui.eventsOlder.hidden=!page.has_more;ui.eventsLatest.hidden=state.timelineBefore===null;
+  ui.timelineState.textContent=page.events.length?`${state.timelineBefore?"Earlier":"Latest"} ${page.events.length} Core events. Timeline is read-only.`:"No Core events available.";
+}
+async function loadTaskTimeline({before=null,focus=false}={}){
+  if(!state.online||!state.taskSelected)return;
+  state.timelineRead?.abort.abort();
+  const op={generation:state.sessionGeneration,csrf:state.csrf,id:state.taskSelected,abort:new AbortController()};state.timelineRead=op;ui.timelineState.textContent="Loading Core events…";updateControls();
+  const current=()=>state.timelineRead===op&&currentSession(op.generation,op.csrf)&&state.taskSelected===op.id&&state.online;
+  try{
+    const page=await(await api(`/client/tasks/${encodeURIComponent(op.id)}/events?limit=50${before?`&before=${before}`:""}`,{signal:op.abort.signal})).json();
+    if(current()&&page.task_id===op.id){state.timelineBefore=before;renderTaskTimeline(page);if(focus)ui.timelineTitle.focus();}
+  }catch(error){if(current()&&error.name!=="AbortError")ui.timelineState.textContent="Core timeline unavailable. Refresh tasks after reconnecting; displayed events may be stale.";}
+  finally{if(state.timelineRead===op)state.timelineRead=null;updateControls();}
+}
+ui.eventsOlder.addEventListener("click",()=>loadTaskTimeline({before:state.timelinePage?.next_before,focus:true}));
+ui.eventsLatest.addEventListener("click",()=>loadTaskTimeline({focus:true}));
+function resetTaskList(){
+  state.taskListAbort?.abort();state.taskListAbort=null;state.tasksBusy=false;state.taskRevision=null;state.taskPageOffset=0;
+  return refreshTasks();
+}
+function cancelTaskList(){state.taskListAbort?.abort();state.taskListAbort=null;state.tasksBusy=false;}
+ui.taskFilter.addEventListener("change",()=>guarded(resetTaskList));ui.taskSort.addEventListener("change",()=>guarded(resetTaskList));
+ui.previousTasks.addEventListener("click",()=>guarded(()=>refreshTasks({offset:Math.max(0,state.taskPageOffset-50)})));
 async function loadTask(id,{focus=false}={}){
   if(!state.online||!state.csrf)return;
-  cancelTaskRead();state.taskSelected=id;
+  cancelTaskRead();if(state.taskSelected!==id){state.timelineBefore=null;state.timelinePage=null;ui.taskEvents.replaceChildren();}state.taskSelected=id;
+  for(const item of ui.tasks.children){const button=item.children?.[0];if(button?.dataset.task)button.setAttribute("aria-current",String(button.dataset.task===id));}
   const op={generation:state.sessionGeneration,csrf:state.csrf,abort:new AbortController()};state.taskRead=op;
   const current=()=>state.taskRead===op&&currentSession(op.generation,op.csrf)&&state.online;
   ui.taskDetail.hidden=false;ui.taskDetailState.textContent="Loading task details…";ui.taskNodes.replaceChildren();ui.taskProgress.value=0;
@@ -750,7 +1001,9 @@ async function loadTask(id,{focus=false}={}){
     const completed=task.nodes.filter(node=>node.status==="completed").length;
     ui.taskProgress.max=task.nodes.length||1;ui.taskProgress.value=completed;
     ui.taskDetailState.textContent=`${task.status} · ${completed}/${task.nodes.length} steps complete · checked ${new Date().toLocaleTimeString()}${task.cancel_requested?" · cancellation requested; await Core state":""}`;
-    for(const node of task.nodes){const item=document.createElement("li");item.textContent=`${node.id} · ${node.status} · ${node.attempts} attempts${node.failure_class?` · ${node.failure_class}`:""}`;ui.taskNodes.append(item);}
+    for(const node of task.nodes){const item=document.createElement("li");item.textContent=`${node.id} · ${node.status} · ${node.attempts} attempts${node.failure_class?` · ${node.failure_class}`:""}${node.explanation?` · ${node.explanation}`:""}`;ui.taskNodes.append(item);}
+    if(task.timeline){if(state.timelineBefore)await loadTaskTimeline({before:state.timelineBefore});else renderTaskTimeline(task.timeline);}
+    if(!current())return;
     if(focus)ui.taskDetailTitle.focus();scheduleTaskRefresh();
   }catch(error){if(current()){ui.taskDetailTitle.textContent="Task details";ui.taskDetailState.textContent=error.status===404?"Task no longer available. Refresh tasks.":"Task details unavailable. Refresh tasks after connection recovers.";}}
   finally{if(state.taskRead===op)state.taskRead=null;updateControls();}
@@ -760,6 +1013,10 @@ function scheduleTaskRefresh(delay=30000){
   if(state.online&&navigation.view==="chat"&&!document.hidden)state.taskTimer=setTimeout(()=>refreshTasks().catch(()=>{}),delay);
 }
 function clearWorkflows(){
+  state.composing=false;
+  state.taskListAbort?.abort();state.taskListAbort=null;state.tasksBusy=false;state.taskPageOffset=0;state.taskRevision=null;state.timelineBefore=null;state.timelinePage=null;ui.taskEvents.replaceChildren();ui.timelineState.textContent="";ui.eventsOlder.hidden=ui.eventsLatest.hidden=ui.previousTasks.hidden=true;ui.taskFilter.value="";ui.taskSort.value="newest";
+  clearAttachmentMetadata();state.reuseDrafts.clear();state.reuseSelected.clear();state.attachmentPending=false;
+  cancelLibrary();state.libraryMutation=null;state.libraryPage=null;state.libraryOffset=0;state.libraryArchived=false;ui.libraryArchived.checked=false;ui.library.replaceChildren();ui.libraryState.textContent="Connect to browse saved conversations.";ui.libraryNext.hidden=ui.libraryPrevious.hidden=true;
   clearAttachments();clearSearch({erase:true});cancelTaskRead();state.taskSelected=null;state.taskOffset=0;state.taskChecked=0;
   state.threadDrafts.clear();ui.message.value="";state.composerRevision++;state.attachmentsAllowed=false;
   ui.taskDetail.hidden=true;ui.taskDetailTitle.textContent="Task details";ui.taskDetailState.textContent="";ui.taskNodes.replaceChildren();ui.taskProgress.value=0;ui.moreTasks.hidden=true;
@@ -774,7 +1031,7 @@ window.addEventListener("pagehide",()=>{clearAttachments();clearSearch();cancelT
 document.addEventListener("visibilitychange",()=>{if(document.hidden){clearAttachments();clearSearch();cancelTaskRead();}});
 async function guarded(action){try{await action();}catch(error){announce(typeof error.message==="string"?error.message:"Operation failed safely");}}
 
-ui.enroll.addEventListener("click",()=>guarded(enroll));ui.connect.addEventListener("click",()=>guarded(connect));ui.chat.addEventListener("submit",sendMessage);ui.notify.addEventListener("click",()=>guarded(enableNotifications));ui.logout.addEventListener("click",()=>guarded(logout));ui.refreshTasks.addEventListener("click",()=>guarded(refreshTasks));
+ui.enroll.addEventListener("click",()=>guarded(enroll));ui.connect.addEventListener("click",()=>guarded(connect));ui.chat.addEventListener("submit",sendMessage);ui.notify.addEventListener("click",()=>guarded(enableNotifications));ui.logout.addEventListener("click",()=>guarded(logout));ui.refreshTasks.addEventListener("click",()=>guarded(resetTaskList));
 ui.cancelChat.addEventListener("click",()=>guarded(cancelChat));ui.retryChat.addEventListener("click",()=>guarded(retryChat));ui.refreshHistory.addEventListener("click",()=>guarded(()=>refreshHistory()));ui.olderHistory.addEventListener("click",()=>guarded(()=>refreshHistory({older:true})));ui.newConversation.addEventListener("click",()=>guarded(()=>chooseConversation(null)));ui.conversations.addEventListener("change",()=>guarded(()=>chooseConversation(ui.conversations.value)));
 window.addEventListener("offline",()=>{state.streamAbort?.abort();setConnected(false,"Network offline");ui.accessStatus.textContent="Network offline. Chat disabled; recovery will check the live connection.";state.streamWake?.();});
 window.addEventListener("online",()=>{
@@ -784,6 +1041,6 @@ window.addEventListener("online",()=>{
 });
 window.addEventListener("pageshow",()=>{renderGarminStatus();if(state.csrf&&state.subscription&&!state.connecting){if(state.streamOwner)state.streamOwner.tasksPending=true;state.streamAbort?.abort();setConnected(false,"Checking live connection");startStreamOwnership();}});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderGarminStatus();if(state.csrf&&state.subscription&&!state.connecting){if(state.streamOwner)state.streamOwner.tasksPending=true;state.streamAbort?.abort();setConnected(false,"Checking live connection");startStreamOwnership();}}});
-if("serviceWorker" in navigator)navigator.serviceWorker.register("/app/sw.js?v=11",{scope:"/app/"}).catch(()=>announce("Offline shell unavailable"));
+if("serviceWorker" in navigator)navigator.serviceWorker.register("/app/sw.js?v=12",{scope:"/app/"}).catch(()=>announce("Offline shell unavailable"));
 const initialGeneration=state.sessionGeneration;
 loadIdentity().then(identity=>{if(state.sessionGeneration!==initialGeneration)return;state.hasIdentity=Boolean(identity);updateControls();if(identity){ui.accessStatus.textContent="Enrolled key found. Connect existing device to start a fresh session.";announce(ui.accessStatus.textContent);}}).catch(()=>{if(state.sessionGeneration===initialGeneration)announce("Device storage unavailable");});
