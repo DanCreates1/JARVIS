@@ -6,6 +6,14 @@ if not exist "uv.lock" (
     exit /b 1
 )
 echo JARVIS local checkout: %CD%
-echo Chat: uv run jarvis chat
-echo Doctor: uv run jarvis doctor
-echo Garmin report: uv run python scripts/garmin_report.py
+setlocal
+set "JARVIS_RUNTIME_PROFILE=prototype-text"
+set "JARVIS_OLLAMA_MODEL=qwen3:0.6b"
+echo Text prototype: local Ollama qwen3:0.6b; Chat and Settings.
+echo Existing Core must be stopped by its owner before starting another writer.
+if "%~1"=="" (
+    rtk proxy uv run --locked python -m jarvis serve
+) else (
+    rtk proxy uv run --locked python -m jarvis %*
+)
+exit /b %errorlevel%

@@ -428,6 +428,27 @@ class AssistantService:
         if (
             freshness_decision is not None
             and freshness_decision.requires_live_evidence
+            and self.automatic_research is None
+        ):
+            events.add(
+                RuntimeEventType.RESEARCH_UNAVAILABLE,
+                conversation_id=conversation.id,
+                detail="Live research disabled; no current external evidence is available.",
+            )
+            research_projection = ContextProjection(
+                content=(
+                    "LIVE RESEARCH UNAVAILABLE: disabled on this host. "
+                    "No current external evidence is available. Say current evidence is "
+                    "unavailable; do not give an asserted current fact, invent citations, "
+                    "or claim verification."
+                ),
+                sensitivity=SensitivityClass.PUBLIC,
+                source_ids=("automatic-research-disabled",),
+                source="volatile-automatic-research",
+            )
+        if (
+            freshness_decision is not None
+            and freshness_decision.requires_live_evidence
             and self.automatic_research is not None
             and not request.attachment_ids
             and not private_source

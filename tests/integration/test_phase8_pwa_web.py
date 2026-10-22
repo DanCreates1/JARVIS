@@ -6,6 +6,7 @@ from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fastapi.testclient import TestClient
@@ -314,8 +315,16 @@ def _bootstrap(
     return str(response.json()["csrf_token"])
 
 
-def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(tmp_path: Path) -> None:
-    settings = Settings(data_dir=tmp_path, trusted_browser_origins=(ORIGIN,), _env_file=None)
+@pytest.mark.parametrize("profile", ["standard", "prototype-text"])
+def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(
+    tmp_path: Path, profile: str
+) -> None:
+    settings = Settings(
+        data_dir=tmp_path,
+        trusted_browser_origins=(ORIGIN,),
+        runtime_profile=profile,  # type: ignore[arg-type]
+        _env_file=None,
+    )
     key = Ed25519PrivateKey.generate()
     created: dict[str, object] = {}
     app = create_app(
@@ -326,6 +335,9 @@ def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(tmp_path: Pat
     with TestClient(app, base_url="https://testserver") as client:
         shell = client.get("/app/")
         assert shell.status_code == 200
+        assert f'data-profile="{profile}"' in shell.text
+        assert client.get("/api/v1/client/status").status_code == 401
+        assert client.post("/api/v1/client/chat", json={"message": "test"}).status_code == 401
         assert "serviceWorker" not in shell.text
         assert "unsafe-inline" not in shell.headers["content-security-policy"]
         assert shell.headers["cache-control"] == "no-cache"
@@ -337,9 +349,9 @@ def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(tmp_path: Pat
         assert "indexedDB" in script.text and '"JARVIS_LOGOUT"' in script.text
         assert 'headers["X-Jarvis-Browser-Origin"]=window.location.origin' in script.text
         assert "SHELL.includes(shellKey)" in worker.text and "cache.put" in worker.text
-        assert 'const CACHE="jarvis-shell-v12"' in worker.text
+        assert 'const CACHE="jarvis-shell-v13"' in worker.text
         assert "self.skipWaiting()" in worker.text
-        assert "/app/app.js?v=12" in shell.text and "/app/sw.js?v=12" in script.text
+        assert "/app/app.js?v=13" in shell.text and "/app/sw.js?v=13" in script.text
         assert "ui.logout.disabled=!state.hasIdentity" in script.text
         assert manifest.json()["start_url"] == "/app/"
         asset_bytes = sum(
@@ -373,6 +385,12 @@ def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(tmp_path: Pat
         ios_headers = {"X-Jarvis-Browser-Origin": ORIGIN}
         status = client.get("/api/v1/client/status", headers=ios_headers)
         assert status.status_code == 200
+        assert status.json()["assistant"] == {
+            "profile": profile,
+            "provider": "ollama",
+            "model": "qwen3:0.6b",
+            "cloud_policy": "local_only" if profile == "prototype-text" else "privacy_aware",
+        }
         assert status.json()["device"]["id"] == created["device_id"]
         assert status.json()["protocol_version"] == "1"
         assert "enrollment.v2.authority-bound" in status.json()["capabilities"]

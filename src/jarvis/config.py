@@ -41,6 +41,7 @@ class Settings(BaseSettings):
 
     data_dir: Path = Field(default_factory=default_data_dir)
     database_filename: str = "jarvis.db"
+    runtime_profile: Literal["standard", "prototype-text"] = "standard"
     ollama_base_url: AnyHttpUrl = AnyHttpUrl("http://127.0.0.1:11434")
     ollama_model: str = "qwen3:0.6b"
     ollama_context_tokens: int = Field(default=4_096, ge=512, le=262_144)
@@ -334,6 +335,33 @@ class Settings(BaseSettings):
         if any(re.fullmatch(r"[a-z][a-z0-9_.-]{0,99}", item) is None for item in normalized):
             raise ValueError("invalid proactivity feature name")
         return tuple(sorted(normalized))
+
+    @model_validator(mode="after")
+    def apply_runtime_profile(self) -> Settings:
+        """Keep the opt-in text slice local even with older feature flags in dotenv."""
+        if self.runtime_profile == "prototype-text":
+            self.cloud_policy = "local_only"
+            self.local_model = self.ollama_model
+            self.allow_remote_ollama = False
+            self.web_host = "127.0.0.1"
+            for name in (
+                "research_enabled",
+                "automatic_research_enabled",
+                "attachments_enabled",
+                "email_enabled",
+                "coding_context_enabled",
+                "current_context_enabled",
+                "computer_access_enabled",
+                "task_execution_enabled",
+                "proactivity_enabled",
+                "proactivity_runner_enabled",
+                "proactivity_task_handoff_enabled",
+                "proactivity_pwa_adapter_enabled",
+                "vision_capture_enabled",
+                "pwa_voice_enabled",
+            ):
+                setattr(self, name, False)
+        return self
 
     @model_validator(mode="after")
     def require_explicit_remote_opt_in(self) -> Settings:

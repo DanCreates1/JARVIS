@@ -1,10 +1,11 @@
 # JARVIS Prototype Plan
 
-Canonical delivery plan. Audited **2026-10-22**, Windows checkout, `main` at `fb5ef47`.
+Canonical delivery plan. Updated **2026-10-22**, Windows checkout; PROTO-1.1 base `4a2494f`.
 **Decision: one Windows Core, existing PWA, local Ollama, existing SQLite.**
-PROTO-0 audit/design and **PROTO-1.1 dependency/security baseline are complete**.
-PROTO-1.2 and PROTO-2 are **not started**. Next section: **PROTO-1.2 — one launch/profile and first
-runnable text demonstration**. Stop here until that section is requested.
+PROTO-0 audit/design, **PROTO-1.1 dependency/security baseline and PROTO-1.2 are complete**.
+First runnable local text slice: [launch/recovery](PROTOTYPE_TEXT_RUNBOOK.md) and
+[PROTO-1.2 evidence](PROTO_1_2_EVIDENCE.md). **PROTO-2 not started**. Next section:
+**PROTO-2.1 — integrated desktop PWA/Core/local-model acceptance**. Stop until requested.
 Root/sidecar audits pass after the bounded dependency updates; native manifests remain held.
 See [PROTO-1.1 evidence](PROTO_1_1_EVIDENCE.md) and historical [scope triage](PROTOTYPE_SCOPE_TRIAGE.md).
 
@@ -181,8 +182,8 @@ Changing-platform checks used in this decision, reviewed 2026-10-22:
 ## Acceptance and completion estimate
 
 Freeze these criteria before implementation. Full credit requires the stated evidence; narrower
-evidence is labeled. Seven groups currently pass their **automated** criterion. One is partial;
-two remain open. No live local-model or integrated-browser acceptance is inferred from fakes.
+evidence is labeled. Eight groups currently pass their **automated** criterion;
+two remain open. No full local-model corpus or integrated-browser acceptance is inferred from smoke.
 
 | ID | Required observable acceptance | Audit evidence / status | Credit |
 | --- | --- | --- | --- |
@@ -193,20 +194,21 @@ two remain open. No live local-model or integrated-browser acceptance is inferre
 | AC-05 | Owned history/search/library/rename/pin/archive survive store reopen; foreign/local-private history is denied; drafts are not persisted client-side | Current F11/F14/F15 store/API and real-script tests pass | 1/1 |
 | AC-06 | Cancel and immutable-ID retry settle without duplicate generation/message/effect; payload substitution is rejected | Current coordinator, web and delayed-response lifecycle tests pass | 1/1 |
 | AC-07 | Automated restart/offline/expiry/logout tests recover safely, discard stale responses and exclude API/private data from caches | Current lifecycle/store/auth/security tests pass; no physical-device claim | 1/1 |
-| AC-08 | Prototype opens on Chat with clear Settings/recovery; dormant features do not look required; keyboard, names, focus, text reflow and bounded rendering pass desktop automation | Existing 72-case desktop harness and workspace checks pass; lean profile/capability presentation and explicit unavailable-research behavior need integrated proof | 0.5/1 |
-| AC-09 | Real configured local model meets the fixed usefulness/responsiveness corpus below on this Windows host | Installed model and historical timings exist; no current inference/quality run in this planning session | 0/1 |
-| AC-10 | Real PWA → auth → Core → SQLite → Ollama demonstration above is repeatable from documented startup and after disposable restart | Separate layer tests and historical phone evidence exist; no current complete real-model/browser rehearsal or prototype runbook | 0/1 |
+| AC-08 | Prototype opens on Chat with clear Settings/recovery; dormant features do not look required; keyboard, names, focus, text reflow and bounded rendering pass desktop automation | PROTO-1.2 text profile, Chat/Settings presentation, explicit unavailable-evidence state, existing 72-case desktop harness plus 9 profile checks and authenticated contract regression pass; [evidence](PROTO_1_2_EVIDENCE.md) | 1/1 |
+| AC-09 | Real configured local model meets the fixed usefulness/responsiveness corpus below on this Windows host | Ten-case corpus frozen; genuine C1/F1 and CLI technical smoke pass with installed qwen3:0.6b, with observed format/content misses; full rubric and warm/cold timing acceptance remain PROTO-2.1 | 0/1 |
+| AC-10 | Real PWA → auth → Core → SQLite → Ollama demonstration above is repeatable from documented startup and after disposable restart | Runbook, local real-model/Core/SQLite smoke and separate authenticated contract tests pass; integrated browser/model/restart proof remains PROTO-2.1 | 0/1 |
 
-**Estimated prototype readiness: 75% = 7.5 / 10 equally weighted acceptance groups.** This is a
-planning estimate with explicit half-credit for partial AC-08, not 75% of coding time or a claim
-that prototype acceptance passed. Binary fully evidenced count is 7/10. Planning itself earns no
+**Estimated prototype readiness: 80% = 8 / 10 equally weighted acceptance groups.** This is an
+acceptance-ledger estimate, not 80% of coding time or a claim
+that prototype acceptance passed. Binary fully evidenced count is 8/10. Planning itself earns no
 product credit. Legacy 80–98% mobile feature estimates use different denominators and are not
 carried forward. App progress for this new scope uses this ledger only; full MVP/physical status
 remains incomplete. Update credit only with dated evidence for the corresponding group.
 
 ### Fixed prototype usefulness and timing corpus
 
-In PROTO-1.2, record ten public/synthetic prompts and expected facts before the first model run:
+PROTO-1.2 froze [ten public/synthetic prompts and expected facts](PROTOTYPE_CORPUS.md) before
+the first model run. The unchanged required mix is:
 two short explanations, two rewrites, two three-item checklist transformations, two contextual
 follow-ups, one instruction-in-content attack, one unsupported current-fact request. At least
 8/10 must meet all case facts/format requirements without invented actions or sources; the attack
@@ -263,7 +265,7 @@ needed for substantial results, never another roadmap.
   confidence pending dependency compatibility and model quality.
 - **Blockers/owner actions:** mandatory audit failures hold publication; no approval question needed.
 
-### PROTO-1 — make the narrow text slice runnable (PROTO-1.1 complete; PROTO-1.2 not started)
+### PROTO-1 — make the narrow text slice runnable (complete)
 
 #### PROTO-1.1 — restore a passing dependency/security baseline (complete, 2026-10-22)
 
@@ -297,7 +299,14 @@ and candidate versions describe the baseline, not outstanding findings.
 - **Owner actions:** none normally. New spending, security changes or destructive operations still
   need consequential approval; they are not proposed by this section.
 
-#### PROTO-1.2 — one launch/profile and first runnable text demonstration
+#### PROTO-1.2 — one launch/profile and first runnable text demonstration (complete, 2026-10-22)
+
+**Result:** opt-in `prototype-text` profile and existing module launcher; lean Chat/Settings,
+specific recovery and disabled optional effects. Frozen corpus; genuine local clock/C1/F1 and
+CLI smoke pass using synthetic stores. Existing PWA/auth/receipt/workspace regressions and desktop
+automation pass. [Evidence](PROTO_1_2_EVIDENCE.md) records exact gates and limitations. No real
+identity enrollment, route change, owner-database access or PROTO-2.1 execution. The bullets below
+retain the requested scope; integrated AC-09/10 proof remains open.
 
 - **Outcome/value:** owner can launch and use the narrow text assistant without choosing among
   native, Garmin, research and agent tracks. **First runnable demo exits here.**
@@ -376,10 +385,10 @@ and candidate versions describe the baseline, not outstanding findings.
 ### Critical path and gates
 
 **PROTO-0.1 → PROTO-0.2 → PROTO-1.1 → PROTO-1.2 → PROTO-2.1 → PROTO-2.2.**
-Audit/design and PROTO-1.1 finished. Remaining original effort ranges total **7–16 focused
+Audit/design and PROTO-1 finished. Remaining original effort ranges total **5–12 focused
 engineering hours** through PROTO-2.2; wall-clock duration depends on local model quality and
-integrated proof. First runnable narrow demo: **2–4 h** for PROTO-1.2. Existing code can already
-run local chat; the prototype profile and integrated acceptance remain incomplete.
+integrated proof. First runnable narrow demo is evidenced by PROTO-1.2. Full corpus and
+integrated acceptance remain incomplete.
 Do not wait for NVIDIA, native M2C, M3C, IB email, server or phone gates.
 
 Use root [quality commands](../AGENTS.md#repository-quality-commands), RTK prefixes, locked
@@ -409,4 +418,4 @@ documents are already dirty, stage only this task's hunks; do not silently publi
    server/distributed topology and alternate deployments only after explicit reprioritization and
    their own security/authority/quality gates.
 
-No backlog item is authorized to start by this handoff. **Next action: request PROTO-1.2.**
+No backlog item is authorized to start by this handoff. **Next action: request PROTO-2.1.**

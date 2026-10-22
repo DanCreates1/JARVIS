@@ -9,9 +9,9 @@
   <link rel="manifest" href="/app/manifest.webmanifest">
   <link rel="icon" href="/app/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app/app.css">
-  <script src="/app/app.js?v=12" type="module"></script>
+  <script src="/app/app.js?v=13" type="module"></script>
 </head>
-<body>
+<body data-profile="standard">
   <header>
     <div>
       <p class="eyebrow">PRIVATE CLIENT</p>
@@ -31,7 +31,7 @@
     <section class="panel conversation" aria-labelledby="chat-title">
       <div class="section-head">
         <h2 id="chat-title" tabindex="-1">Conversation</h2>
-        <button id="notify" type="button" class="quiet" disabled>Enable notifications</button>
+        <button id="notify" type="button" class="quiet" data-optional disabled>Enable notifications</button>
       </div>
       <select id="conversation-list" hidden aria-label="Current conversation" disabled><option value="">New conversation</option></select>
       <section aria-labelledby="library-title">
@@ -68,6 +68,7 @@
         <button id="send" type="submit" disabled>Send</button>
       </form>
       <p id="composer-hint" class="hint">Enter adds a line. Send button or Ctrl/⌘+Enter submits deliberately. Drafts stay in this session only.</p>
+      <div data-optional>
       <label for="attachment-file">Attach photo, PDF or text file</label>
       <input id="attachment-file" type="file" accept="image/png,image/jpeg,application/pdf,text/plain,.txt,.md" multiple disabled aria-describedby="attachment-state">
       <p id="attachment-state" class="hint" role="status" aria-live="polite">Up to four files, 1 MiB each. PNG/JPEG, PDF, TXT/MD. Review, then Send. Files are processed privately on Core.</p>
@@ -88,11 +89,13 @@
         <button id="discard-recording" type="button" class="secondary" hidden>Discard recording</button>
       </div>
       <p id="voice-status" class="hint" role="status" aria-live="polite" aria-atomic="true">Local voice unavailable. Type a message.</p>
+      </div>
       <div class="actions">
         <button id="cancel-chat" type="button" class="secondary" disabled>Cancel reply</button>
         <button id="retry-chat" type="button" class="secondary" hidden disabled>Retry request</button>
       </div>
-      <p class="hint">Use Settings to enroll or connect your device. Offline messages are never queued. Voice requires host enablement; review transcript, then Send.</p>
+      <p class="hint">Use Settings to connect your existing device. Offline messages are never queued.</p>
+      <p class="hint prototype-only">Text prototype: local answers, saved conversations and host clock. Live web evidence is unavailable; current external facts cannot be verified here.</p>
     </section>
 
     <section id="task-panel" class="panel" aria-labelledby="tasks-title">
@@ -151,6 +154,7 @@
     <h2 id="settings-title" class="view-title" tabindex="-1">Settings</h2>
     <section id="setup" class="panel" aria-labelledby="setup-title">
       <h3 id="setup-title">Device access</h3>
+      <p class="prototype-only">Connect existing device, then wait for Live connection ready before sending. New enrollment needs an approved ticket from the trusted host.</p>
       <p>Paste one unexpired enrollment ticket created on trusted host. Private key stays non-exportable in this browser.</p>
       <label for="ticket">Enrollment ticket JSON</label>
       <textarea id="ticket" rows="5" spellcheck="false" autocomplete="off" aria-describedby="ticket-error access-status"></textarea>
@@ -166,6 +170,12 @@
       <h3 id="device-title">Device</h3>
       <dl id="device-status"><div><dt>State</dt><dd>Offline</dd></div></dl>
       <button id="logout" type="button" class="danger" disabled>Logout and erase this device</button>
+    </section>
+    <section class="panel prototype-only" aria-labelledby="recovery-title">
+      <h3 id="recovery-title">Text prototype recovery</h3>
+      <p>Core unreachable: start the documented text profile on your laptop. Network offline: restore the private connection, then Connect existing device. Messages are never queued.</p>
+      <p>Local model unavailable: on the laptop, check Ollama is running and <code>ollama list</code> contains the configured model. Start the installed Ollama app, then retry a new turn after checking the prior request status. Do not download a model or change providers automatically.</p>
+      <p>Access denied or expired: Connect existing device. If rejected, use approved trusted-host recovery; changing the URL or enabling Send cannot grant access.</p>
     </section>
     </div>
   </main>

@@ -566,8 +566,11 @@ def create_app(
 
     @app.get("/app", include_in_schema=False)
     @app.get("/app/", include_in_schema=False)
-    async def pwa_index() -> FileResponse:
-        return FileResponse(_PWA_ROOT / "index.html", media_type="text/html")
+    async def pwa_index() -> HTMLResponse:
+        content = (_PWA_ROOT / "index.html").read_text(encoding="utf-8")
+        if configured.runtime_profile == "prototype-text":
+            content = content.replace('data-profile="standard"', 'data-profile="prototype-text"')
+        return HTMLResponse(content)
 
     @app.get("/app/app.css", include_in_schema=False)
     async def pwa_css() -> FileResponse:
@@ -779,6 +782,12 @@ def create_app(
                 {
                     **client_contract_metadata(),
                     "online": True,
+                    "assistant": {
+                        "profile": configured.runtime_profile,
+                        "provider": configured.local_provider,
+                        "model": configured.local_model or configured.ollama_model,
+                        "cloud_policy": configured.cloud_policy,
+                    },
                     "voice": voice.metadata()
                     if RemoteScope.CLIENT_CHAT in context.scopes
                     else {"available": False},

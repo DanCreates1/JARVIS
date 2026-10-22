@@ -173,10 +173,14 @@ async def test_freshness_route_is_emitted_and_injected_before_provider_generatio
     request_messages = provider.requests[0].messages
     assert [message.role for message in request_messages] == [
         MessageRole.SYSTEM,
+        MessageRole.SYSTEM,
         MessageRole.USER,
     ]
     assert request_messages[0].context_source == "local-freshness-router"
     assert "Route: web_required" in request_messages[0].content
+    assert "LIVE RESEARCH UNAVAILABLE" in request_messages[1].content
+    assert "do not give an asserted current fact" in request_messages[1].content
+    assert RuntimeEventType.RESEARCH_UNAVAILABLE in [event.type for event in result.events]
     assert [message.role for message in store.messages[result.conversation_id]] == [
         MessageRole.USER,
         MessageRole.ASSISTANT,

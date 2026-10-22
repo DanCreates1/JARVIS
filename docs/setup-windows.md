@@ -1,5 +1,9 @@
 # Windows setup
 
+For the active narrow text slice, use the [text prototype runbook](PROTOTYPE_TEXT_RUNBOOK.md)
+after locked setup. One launch: `rtk proxy .\scripts\open-local.cmd`; Chat/Settings and local
+Ollama only. Historical optional-feature setup below is not required for this profile.
+
 ## Supported baseline
 
 - Windows 10 or Windows 11
