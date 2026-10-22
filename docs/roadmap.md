@@ -1,5 +1,9 @@
 # Roadmap
 
+> Superseded planning summary, retained for historical references. Active architecture, scope,
+> acceptance and next action live only in [PROTOTYPE_PLAN.md](PROTOTYPE_PLAN.md), 2026-10-22.
+> Do not use the older phase statuses or next-phase directions below as a prototype queue.
+
 Status: concise view of `JARVIS_MASTER_ROADMAP.md`
 Updated: 2026-09-08
 

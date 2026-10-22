@@ -1,5 +1,10 @@
 # JARVIS Native Mobile Milestones
 
+> Current delivery follows [PROTOTYPE_PLAN.md](PROTOTYPE_PLAN.md), 2026-10-22. These native/mobile
+> milestones remain historical scope; they do not impose Garmin, native signing or physical-phone
+> prerequisites on the working text prototype. Outstanding phone checks are **skipped by owner;
+> unverified**. Preserve historical evidence and the native dependency publication hold.
+
 Status: superseded by the $0 phone PWA path in [PWA_GARMIN.md](PWA_GARMIN.md); native M2C
 acceptance remains deferred, not passed. The milestones below remain historical planning context.
 Updated: 2026-09-30

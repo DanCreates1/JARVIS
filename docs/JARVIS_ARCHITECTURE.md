@@ -1,5 +1,11 @@
 # JARVIS Architecture
 
+> Active delivery architecture (2026-10-22): [Prototype Plan](PROTOTYPE_PLAN.md).
+> One Windows Core, existing PWA, local Ollama and SQLite; no rewrite or service split.
+> This document preserves broader target design and dated phase contracts. Conceptual modules,
+> continuous-voice advice and later deployment diagrams below are not prototype requirements.
+> Security/authority invariants remain; exact active ownership and exclusions live in that plan.
+
 Status: target architecture; implementation remains incremental  
 Planning date: 2026-09-08
 Last reconciled with Phase 1-8A implementation: 2026-09-10

@@ -1,5 +1,11 @@
 # JARVIS Technology Decisions
 
+> Prototype selection, 2026-10-22: [PROTOTYPE_PLAN.md](PROTOTYPE_PLAN.md) governs active choices.
+> Reuse Python/Core, PWA, SQLite and one local Ollama model. Cloud portfolios, native clients,
+> voice/vision and topology alternatives below remain historical decisions or dormant candidates.
+> PROTO-1.1 root/sidecar dependency remediation passed; [evidence](PROTO_1_1_EVIDENCE.md).
+> Held native dependencies remain outside that pass.
+
 Status: recommended defaults for staged implementation  
 Planning date: 2026-08-20
 Last updated: 2026-09-10

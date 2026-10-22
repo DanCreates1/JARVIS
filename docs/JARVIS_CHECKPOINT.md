@@ -1,5 +1,9 @@
 # JARVIS Checkpoint
 
+> Historical A–M checkpoint. As of 2026-10-22, active delivery and next action live only in
+> [PROTOTYPE_PLAN.md](PROTOTYPE_PLAN.md). The IB email handoff below is deferred backlog,
+> not current work. Preserve dated evidence; do not infer current verification from old counts.
+
 Updated: 2026-10-05
 Objective: incremental proactive/context-aware expansion requested in `docs/AGENTIC_ASSISTANT_EXPANSION.md`
 

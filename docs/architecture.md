@@ -1,5 +1,11 @@
 # Architecture
 
+> Prototype delivery scope and ownership are canonical in [PROTOTYPE_PLAN.md](PROTOTYPE_PLAN.md)
+> as of 2026-10-22: existing Windows Core/PWA, local-only text profile and SQLite.
+> This document remains an implementation reference. Phase-local “future” and “no PWA upload”
+> statements below are dated boundaries, superseded by later Phase 7/F14/F15 implementations.
+> No optional feature, cloud provider, native client or distributed topology is a prototype gate.
+
 ## Status
 
 This document describes the implemented modular Python application through completed Phase 11:

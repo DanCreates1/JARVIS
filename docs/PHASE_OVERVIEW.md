@@ -1,5 +1,20 @@
 # JARVIS Phase Overview
 
+## Active prototype sequence — 2026-10-22
+
+[PROTOTYPE_PLAN.md](PROTOTYPE_PLAN.md) is the sole delivery plan: Windows Core + existing PWA,
+local text assistant, durable conversation/recovery. [Scope triage](PROTOTYPE_SCOPE_TRIAGE.md)
+records current code/tests, failures, holds and preserved work. PROTO-0 and **PROTO-1.1 complete**;
+[dependency/security evidence](PROTO_1_1_EVIDENCE.md). Next: **PROTO-1.2**, not started; PROTO-2 not started.
+Current estimate: **75% = 7.5/10 prototype acceptance groups**; no live integrated prototype,
+physical acceptance or full mobile MVP completion claimed. Root/sidecar audits pass; native hold remains.
+Manual phone checks remain **skipped by owner; unverified**. No native or Garmin prerequisite.
+
+## Historical portfolio status — superseded delivery ordering
+
+The dated F15/mobile/Phase 0–11 status below preserves evidence. Older execution rules, next gates
+and percentages describe those tracks only; use the prototype plan for current sequencing.
+
 Updated: 2026-10-19
 
 Owner override: **skip all further manual/physical phone checks**; outstanding rows are skipped

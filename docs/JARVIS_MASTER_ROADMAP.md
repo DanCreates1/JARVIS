@@ -1,5 +1,22 @@
 # JARVIS Master Roadmap
 
+## Canonical prototype direction — 2026-10-22
+
+Use [PROTOTYPE_PLAN.md](PROTOTYPE_PLAN.md) for all active prototype architecture, scope, numbered
+sections, acceptance and next action. This master document now retains the broader product vision
+and historical phase evidence; its older execution sequences and mobile percentages are superseded
+for prototype delivery. [Scope triage](PROTOTYPE_SCOPE_TRIAGE.md) records cuts and current evidence.
+
+Chosen path: **one Windows Core + existing PWA + local Ollama + SQLite**. First demonstration is
+secure text chat, useful local responses, owned saved conversations, cancellation/retry and recovery.
+Garmin, native mobile, voice, autonomy and deployment variants follow only if reprioritized.
+PROTO-0 and **PROTO-1.1 complete**; [dependency/security evidence](PROTO_1_1_EVIDENCE.md).
+Next **PROTO-1.2**, not started. Prototype estimate **75% (7.5/10 acceptance groups)**; root/sidecar
+audits pass, native hold remains. No physical/MVP completion inferred. Manual phone checks remain
+**skipped by owner; unverified**.
+
+## Historical roadmap — previous scope and evidence
+
 Status: active, development-first PWA path; manual phone checks skipped by owner
 Updated: 2026-10-19
 Repository: `DanCreates1/JARVIS`, branch `main`

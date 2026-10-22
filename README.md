@@ -1,5 +1,23 @@
 # JARVIS
 
+## Active delivery target — working prototype
+
+[Prototype Plan](docs/PROTOTYPE_PLAN.md) is the canonical architecture, scope, acceptance and
+execution sequence as of **2026-10-22**. Choose existing **Windows Core + PWA + local Ollama +
+SQLite**. First prove secure text chat, useful local answers, saved conversations and safe recovery.
+Garmin, native mobile, voice and advanced autonomy are outside the first demonstration.
+[Scope triage and current audit](docs/PROTOTYPE_SCOPE_TRIAGE.md) distinguish verified code from
+unverified live behavior. **PROTO-1.1 complete**; [dependency/security evidence](docs/PROTO_1_1_EVIDENCE.md).
+Next: **PROTO-1.2 — one launch/profile and first runnable text demonstration**, not started.
+Prototype readiness estimate **75% (7.5/10 acceptance groups)**. Root/sidecar audits pass; native
+manifests remain held. No physical/MVP completion claim. Manual phone checks: **skipped by owner;
+unverified**.
+
+The capability catalog and dated phase evidence below remain reference material; their older
+next-phase directions, shell versions and percentages do not supersede the prototype plan.
+
+## Existing capability catalog
+
 JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–8, Phases 9A–9C, and Phase 11 implement a
 local deterministic privacy gate, configurable NVIDIA/Groq/Gemini/Ollama roles,
 zero-cost fallback routing, durable SQLite state, audited read-only tools, CLI,

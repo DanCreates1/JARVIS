@@ -1,5 +1,11 @@
 # JARVIS Native Mobile Architecture
 
+> Active prototype client is the **PWA**, not a fallback. Native work remains held/deferred.
+> [PROTOTYPE_PLAN.md](PROTOTYPE_PLAN.md), 2026-10-22, owns current architecture and delivery.
+> The native design, three-surface MVP and older acceptance directions below are historical
+> context. Garmin/native builds are not first-demonstration dependencies; phone checks remain
+> **skipped by owner; unverified**. Native dependency publication hold remains enforced.
+
 Status: PWA F15 automatically verified; native work deferred/held; physical acceptance unverified
 Updated: 2026-10-19
 

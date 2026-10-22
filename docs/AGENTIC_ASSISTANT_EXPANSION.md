@@ -1,5 +1,10 @@
 # Agentic Assistant Expansion
 
+> Historical expansion/backlog as of 2026-10-22. [PROTOTYPE_PLAN.md](PROTOTYPE_PLAN.md) supersedes
+> this document's active sequencing and IB handoff. The audit gap table below predates later
+> implementations; use [current scope triage](PROTOTYPE_SCOPE_TRIAGE.md) for verified state.
+> No email, calendar, worker or briefing phase is queued by the prototype plan.
+
 Status: active incremental plan
 Updated: 2026-10-05
 

@@ -1,5 +1,11 @@
 # JARVIS Codex Phase Playbook
 
+> Prototype sequencing, 2026-10-22: [PROTOTYPE_PLAN.md](PROTOTYPE_PLAN.md) is canonical for PROTO.
+> This playbook continues to govern explicitly invoked numerical Phase 0–11 work and supplies
+> retained quality/security controls. Its legacy prerequisite chains and stale status rows do
+> not require unrelated phase closure before a prototype section. PROTO does not rename phases,
+> waive failed latency/security gates or resume owner-skipped phone checks.
+
 Updated: 2026-10-08 (Codex confirmation policy; historical phase evidence retained)
 Owner command: `Initiate Phase X and finish it.`  
 Phase range: 0–11
