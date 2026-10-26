@@ -16,12 +16,23 @@ These repository instructions apply to every Codex task in JARVIS.
   limit, consequential-action confirmations and held native dependency publication hold remain.
   Skipping phone checks grants no enrollment, scope, credential, health-data or deployment authority.
 
+## Current phase namespace — 2026-10-26
+
+- Owner selected laptop-first Windows Core and PWA-first clients. Record architecture in
+  `docs/JARVIS_ARCHITECTURE.md`; active sequence/status lives only in `docs/JARVIS_MASTER_ROADMAP.md`.
+- Use flat numbered phases. Avoid lettered/decimal subphases; keep session milestones/checklists
+  inside the current phase report. A subphase needs an actual independent boundary and recorded reason.
+- Unqualified `Phase N` means the current master-roadmap ID. Qualify old numbers as `Legacy Phase N`;
+  PROTO, A–M, mobile and F-series names are historical aliases, not competing active roadmaps.
+- Current reports live under `docs/phase-reports/current/`; preserve old reports and filenames.
+  Renumbering grants no new acceptance, authority, feature activation or native publication permission.
+
 ## Cross-chat handoff
 
 - After completing a task or subphase, end the final reply with a standalone, copy-pasteable
   **Next chat:** prompt. Make it the last text in the reply.
-- Name the exact next phase/subphase (for example, `Initiate phase 4` or `Initiate mobile subphase
-  M2C`) and include only essential repository state, prerequisite, and blocker context so a new
+- Name the exact next current numbered phase (for example, `Initiate Phase 7`) and include
+  only essential repository state, prerequisite, and blocker context so a new
   chat can resume without this conversation. Do not include credentials, tickets, or private data.
 - A handoff prompt is not permission to start the next subphase in the current chat. Respect each
   subphase's scope. Apply the confirmation policy below; do not renew routine permissions at
@@ -54,19 +65,21 @@ These repository instructions apply to every Codex task in JARVIS.
 ## Phase command trigger
 
 When the user says `initiate phase X`, `start phase X`, `continue phase X`, `finish phase X`,
-or an obvious equivalent where `X` is 0–11:
+or an obvious equivalent, use the defined current integer ID in the master roadmap:
 
-1. Read `docs/CODEX_PHASE_PLAYBOOK.md` completely before planning or changing files.
-2. Read the target phase section plus every target-phase reference listed by the playbook.
+1. Read `docs/PHASE_EXECUTION.md` and `docs/JARVIS_MASTER_ROADMAP.md` completely before planning
+   or changing files. Read the current architecture decision before implementation.
+2. Read the target phase section plus every target-phase reference listed by the master roadmap.
 3. Inspect current code, tests, Git state, installed tools, and prior phase reports. Never assume the
    roadmap status is still accurate.
-4. Follow the playbook's universal execution protocol and target phase gates.
-5. Create or resume `docs/phase-reports/PHASE_X_PROGRESS.md` from the supplied template.
+4. Follow the active execution protocol and target phase gates. Explicit historical aliases use
+   the master crosswalk and original technical contracts, without reinterpreting old evidence.
+5. Create or resume `docs/phase-reports/current/PHASE_X_PROGRESS.md` using its current template.
 6. Work milestone-by-milestone until the phase exit criteria pass or a genuine external blocker
    requires user action.
 7. Do not declare the phase complete because code exists. Run the required acceptance, security,
    quality, hardware, and documentation checks and preserve evidence.
-8. When complete, rename/update the report to `PHASE_X_COMPLETION.md`, update
+8. When complete, rename/update the current report to `PHASE_X_COMPLETION.md`, update
    `docs/PHASE_OVERVIEW.md`, `docs/JARVIS_MASTER_ROADMAP.md`, and relevant architecture/setup
    documentation.
 

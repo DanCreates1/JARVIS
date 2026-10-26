@@ -1,26 +1,25 @@
 # JARVIS
 
-## Active delivery target — working prototype
+## Current delivery — one numbered roadmap
 
-[Prototype Plan](docs/PROTOTYPE_PLAN.md) is the canonical architecture, scope, acceptance and
-execution sequence as of **2026-10-22**. Choose existing **Windows Core + PWA + local Ollama +
-SQLite**. First prove secure text chat, useful local answers, saved conversations and safe recovery.
-Garmin, native mobile, voice and advanced autonomy are outside the first demonstration.
-[Scope triage and current audit](docs/PROTOTYPE_SCOPE_TRIAGE.md) distinguish verified code from
-unverified live behavior. **PROTO-1.1 complete**; [dependency/security evidence](docs/PROTO_1_1_EVIDENCE.md).
-**PROTO-1.2 complete**; [text launch/recovery](docs/PROTOTYPE_TEXT_RUNBOOK.md) and
-[local smoke evidence](docs/PROTO_1_2_EVIDENCE.md). **PROTO-2.1 complete**;
-[integrated evidence](docs/PROTO_2_1_EVIDENCE.md). **PROTO-2.2 complete**;
-[acceptance receipt and recovery rehearsal](docs/PROTO_2_2_EVIDENCE.md).
-**Working prototype complete: 100% (10/10 acceptance groups)**. Full mobile MVP, physical acceptance
-and production readiness remain unestablished. No phase queued; held native/provider work stays held.
-Installed `qwen3:1.7b` repeats 8/10 on the frozen corpus; polite tone and one checklist format
-remain limited. Root/sidecar audits pass; native
-manifests remain held. No physical/MVP completion claim. Manual phone checks: **skipped by owner;
-unverified**.
+[Master Roadmap](docs/JARVIS_MASTER_ROADMAP.md) owns all active phase IDs, scope, dependencies,
+status and next work. Owner-selected [core architecture](docs/JARVIS_ARCHITECTURE.md#current-core-decision--2026-10-26):
+**one modular Python Core on the Windows laptop, PWA first, SQLite/FTS5, replaceable adapters**.
+Laptop must remain on/reachable. Private/uncertain content stays local; optional public cloud is
+privacy-gated at **$0**. Native/server work remains deferred; held native/provider edits stay held.
 
-The capability catalog and dated phase evidence below remain reference material; their older
-next-phase directions, shell versions and percentages do not supersede the prototype plan.
+Historical PROTO work maps to completed **Phases 1–5**. **Phase 6 complete**: architecture and
+planning consolidated. Next implementation: **Phase 7 — Text quality and daily-use polish**, not started here.
+Use [Phase Execution](docs/PHASE_EXECUTION.md), [overview](docs/PHASE_OVERVIEW.md) and current
+reports under `docs/phase-reports/current/`. Avoid subphases; old numerical/lettered/mobile/F-series
+IDs are explicit legacy aliases. The [old prototype plan](docs/PROTOTYPE_PLAN.md) and
+[acceptance receipt](docs/PROTO_2_2_EVIDENCE.md) retain their original evidence.
+
+Prototype acceptance remains **100% (10/10 groups)**; installed `qwen3:1.7b` scores **8/10**.
+Polite rewrite tone and one checklist format remain Phase 7 work. This is not full mobile MVP,
+physical acceptance or production readiness. Manual phone checks: **skipped by owner; unverified**.
+The capability catalog and dated records below are historical implementation references;
+their phase numbers and next actions do not override the current master roadmap.
 
 ## Existing capability catalog
 

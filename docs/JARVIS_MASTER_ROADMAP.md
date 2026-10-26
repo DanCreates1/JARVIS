@@ -1,362 +1,377 @@
 # JARVIS Master Roadmap
 
-## Completed prototype direction — 2026-10-25
+Canonical delivery plan, **2026-10-26**. Owner selected **laptop-first Core** and **PWA-first client**
+before this sequence was defined. [Core decision](JARVIS_ARCHITECTURE.md#current-core-decision--2026-10-26)
+owns architecture; [Phase Execution](PHASE_EXECUTION.md) owns commands/gates. This document alone
+owns active phase IDs, scope, dependencies, status and next action. [Overview](PHASE_OVERVIEW.md)
+is a short navigation view. [Previous master](LEGACY_MASTER_ROADMAP.md) and old reports are history.
 
-Use [PROTOTYPE_PLAN.md](PROTOTYPE_PLAN.md) for all active prototype architecture, scope, numbered
-sections, acceptance and next action. This master document now retains the broader product vision
-and historical phase evidence; its older execution sequences and mobile percentages are superseded
-for prototype delivery. [Scope triage](PROTOTYPE_SCOPE_TRIAGE.md) records cuts and current evidence.
+## Product and architecture boundary
 
-Chosen path: **one Windows Core + existing PWA + local Ollama + SQLite**. First demonstration is
-secure text chat, useful local responses, owned saved conversations, cancellation/retry and recovery.
-Garmin, native mobile, voice, autonomy and deployment variants follow only if reprioritized.
-**PROTO-0, PROTO-1 and PROTO-2 complete**; [integrated acceptance](PROTO_2_1_EVIDENCE.md) and
-[final startup/recovery receipt](PROTO_2_2_EVIDENCE.md). **Working prototype complete**;
-estimate **100% (10/10 acceptance groups)**. Corpus repeats 8/10 with polite-tone/checklist-format
-limits. Root/sidecar audits pass; native/provider holds remain. No phase queued. Full mobile MVP,
-physical acceptance and production readiness remain unestablished. Manual phone checks remain
-**skipped by owner; unverified**.
+One owner uses JARVIS through the existing responsive PWA on laptop/iPhone. One modular Python
+Core on the Windows laptop owns conversations, memory, model routing, identity, permissions, tasks
+and audit. SQLite/FTS5 stays beside Core; model and integration adapters remain replaceable.
+Laptop availability is required. No separate server or native client is required for this release.
+Private/uncertain content stays local; optional public cloud remains configured, privacy-gated and
+hard-capped at **$0**. Model output never supplies authority. Existing application authentication,
+exact origin/scopes, approved private HTTPS route, audit and consequential-action controls remain.
 
-## Historical roadmap — previous scope and evidence
+The completed text prototype stays reproducible with `prototype-text` and installed `qwen3:1.7b`.
+Its usefulness is bounded: **8/10**, with polite-tone/checklist-format failures. Future product
+features extend explicit capability configuration and reuse Core, rather than enabling dormant
+integrations globally or creating another runtime. This plan itself enables no feature or scope.
 
-Status: active, development-first PWA path; manual phone checks skipped by owner
-Updated: 2026-10-19
-Repository: `DanCreates1/JARVIS`, branch `main`
+## Management rules
 
-## Current owner execution policy — 2026-10-16
+- Use **Phase 1, Phase 2, ...** only. Milestones/checklists live inside a phase report; no default
+  lettered or decimal subphases. Never create a subphase just to cross a chat/session boundary.
+- `Initiate Phase N` always means this current namespace. Use `Legacy Phase N`, `Legacy A–M`,
+  `Historical PROTO-X` or the exact old report name for historical evidence.
+- Reports live in `docs/phase-reports/current/PHASE_N_PROGRESS.md` or `PHASE_N_COMPLETION.md`.
+  Old filenames/migrations/tests remain stable; renumbering never rewrites measured evidence.
+- This table is the status ledger. Change it and the overview when evidence changes. A phase
+  can contain substantial old code while its current product acceptance is still `not-started`.
+- Delivery follows numeric priority, subject only to actual listed dependencies. A blocked
+  integration is not a prerequisite for unrelated work. No later phase starts without a request
+  covering it; this planning session does not execute Phase 7.
+- Full release gates, privacy/auth/approval controls, the native publication hold and owner-skipped
+  phone policy apply throughout. No planning row grants credential, health, enrollment, device,
+  deployment, signing, spend or external-message authority.
+- Revalidate dated provider/dependency/device facts from official primary sources when their
+  phase executes. Freeze additional quantitative acceptance before evaluation, not after results.
 
-Skip all further manual/physical phone checks. Do not request phone actions, queue phone-check
-follow-ups or block continued development on F11/M4A/M3C/native physical acceptance, reload,
-accessibility, network/restart, soak or phone performance/instrumentation evidence. Resume only
-if owner explicitly requests phone checking. Outstanding checks are **skipped by owner; unverified**;
-historical evidence remains, no pass or physical/MVP completion inferred. This policy supersedes
-older phone execution directions below. Automated code/security gates and all authority/privacy,
-$0, publication and native dependency holds remain. See root [AGENTS.md](../AGENTS.md).
+## Phase ledger
 
-Current development: [F15 — daily-use workspace](phase-reports/PWA_F15_COMPLETION.md), shell v12.
-Library/metadata/archive, safe Markdown/copy, attachment lifecycle/reuse, task timelines/filter/sort
-and composer/recovery are implemented and automatically verified. Remote task cancellation stays
-disabled under read-only scope; no trustworthy task/conversation relationship is inferred.
-Production attachment/voice/task controls stay default off. No next phase queued. Active PWA
-estimate: **98%**, based on verified F11–F15 feature milestones; remote control authority, native
-dependency hold and aggregate physical acceptance remain separate/open.
-Skipped phone checks add no implementation or acceptance credit.
+Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the wider vision as
+**deferred** options; they are managed backlog, not prerequisites or an automatic execution queue.
 
-## Product target
+| Phase | Outcome | Status | Actual dependency | Existing implementation / principal remaining gate |
+| --- | --- | --- | --- | --- |
+| [1](#phase-1--direction-and-audit) | Direction and audit | complete | None | Historical PROTO-0 audit/design |
+| [2](#phase-2--secure-reproducible-baseline) | Secure reproducible baseline | complete | 1 | Historical PROTO-1.1; continuous audits remain |
+| [3](#phase-3--runnable-local-text-assistant) | Runnable local text assistant | complete | 2 | Historical PROTO-1.2 |
+| [4](#phase-4--integrated-text-acceptance) | Integrated text acceptance | complete | 3 | Historical PROTO-2.1; bounded corpus 8/10 |
+| [5](#phase-5--prototype-recovery-and-receipt) | Prototype recovery and receipt | complete | 4 | Historical PROTO-2.2, published `466a409` |
+| [6](#phase-6--architecture-and-managed-roadmap) | Architecture and managed roadmap | complete | 5 | Owner choices, flat ledger, command/report migration and gates evidenced |
+| [7](#phase-7--text-quality-and-daily-use-polish) | Text quality and daily-use polish | not-started | 6 | Next; fix two known failures and expand useful-task evaluation |
+| [8](#phase-8--private-garmin-workspace) | Private Garmin workspace | not-started | 7 | Protected Core session + read-only PWA foundation; health access remains separate |
+| [9](#phase-9--files-and-attachments) | Files and attachments | not-started | 7 | Legacy G/F14/F15 foundations; bounded product acceptance |
+| [10](#phase-10--inspectable-memory-and-project-context) | Inspectable memory and project context | not-started | 7 | Legacy memory/F continuity; safe owner-facing lifecycle |
+| [11](#phase-11--grounded-public-research) | Grounded public research | not-started | 7 | Legacy research/freshness; live source access and cited acceptance |
+| [12](#phase-12--foreground-voice) | Foreground voice | not-started | 7 | Legacy voice/F13; chosen local speech/reply experience |
+| [13](#phase-13--controlled-windows-actions) | Controlled Windows actions | not-started | 7 | Existing broker/tools; current exact live-effect acceptance |
+| [14](#phase-14--bounded-tasks-and-project-workflows) | Bounded tasks and project workflows | not-started | 7; 13 for action-bearing flows | Existing DAG/scheduler/task views; usable safe workflow/control |
+| [15](#phase-15--email) | Email | not-started | 7 | Local read/prepare exists; live provider/auth gate remains |
+| [16](#phase-16--calendar-and-reminders) | Calendar and reminders | not-started | 7 | Calendar adapter and lifecycle; write authority separate |
+| [17](#phase-17--background-scheduling-and-proactivity) | Background scheduling and proactivity | not-started | 14 | Existing inert/foreground policy; explicit bounded worker and opt-in |
+| [18](#phase-18--daily-briefing) | Daily briefing | not-started | 10, 15, 16, 17; 8 only for Garmin content | Compose approved sources with honest freshness/omissions |
+| [19](#phase-19--laptoppwa-release-and-operations) | Laptop/PWA release and operations | not-started | 7–18 | Integrated release, recovery, maintenance and honest acceptance receipt |
+| [20](#phase-20--vision-and-gestures) | Vision and gestures | deferred | 13 + reviewed capture boundary | Existing legacy vision foundation; demonstrated owner need |
+| [21](#phase-21--native-mobile) | Native mobile | deferred | Required OS capability + passing native gates | Existing M1/M2 foundation; dependency publication hold remains |
+| [22](#phase-22--dedicated-server) | Dedicated server | deferred | New availability requirement + approved target | Legacy topology/migration foundation; no server selected or deployed |
+| [23](#phase-23--wearables-and-additional-devices) | Wearables and additional devices | deferred | Supported vendor path + device/scopes authority | Generic legacy wearable boundary; adapter/device acceptance absent |
+| [24](#phase-24--restricted-maintenance-assistance) | Restricted maintenance assistance | deferred | 14, 17, 19 + explicit narrow use case | Proposal-only isolated assistance; no self-authorized production changes |
 
-Finish a small iPhone client using the existing Home Screen PWA before expanding JARVIS further.
-The client has three primary surfaces: **Chat**, **Garmin**, and **Settings**.
+**Progress basis:** **6/19 primary phase receipts closed (~32%)**. This is an unweighted management
+count, not percentage of code written, elapsed effort or mobile MVP acceptance.
+Existing foundations reduce future work but earn no new phase closure without current evidence.
+Prototype acceptance remains **100% = 10/10 groups** under its original scope. Full mobile MVP,
+physical acceptance and production readiness remain unestablished. Optional rows receive no credit.
 
-**Mobile MVP complete** means an enrolled iPhone can securely send text to JARVIS, stream an
-answer, view basic read-only Garmin data, recover from ordinary connection failures, and
-disconnect cleanly.
+## Phase definitions
 
-The four milestones are:
+Every future phase inherits [execution/release controls](PHASE_EXECUTION.md), the architecture
+decision and root authority policies. References below are required reading when executing that
+phase; old phase numbers in those documents are explicitly **legacy**. Recommended minimum Codex
+diligence is `gpt-6-astra` / `xhigh`; authorization, remote identity, external effects, scheduling
+or deployment decisions use `ultra`. These are recommendations, never claims to switch the UI model.
 
-1. **MVP 1 — Design and connection:** finish live iPhone/Core acceptance and the accessible app
-   shell.
-2. **MVP 2 — Chat:** ship text chat, streamed answers, history, cancel, retry, and useful
-   connection states.
-3. **MVP 3 — Garmin:** add private, read-only health synchronization through JARVIS Core.
-4. **MVP 4 — Polish and release:** pass physical-device, recovery, accessibility, and performance
-   gates; build or sign only with explicit approval.
+### Phase 1 — Direction and audit
 
-Exact milestone deliverables and gates live in [Native Mobile Milestones](MOBILE_PHASES.md).
+Mapped **complete**, 2026-10-22: Historical PROTO-0.1/0.2 become one flat phase.
+Scope: source/status audit, architecture alternatives, prototype bounds and acceptance freeze.
+Evidence: [historical plan](PROTOTYPE_PLAN.md), [scope triage](PROTOTYPE_SCOPE_TRIAGE.md),
+[mapped receipt](phase-reports/current/PHASE_1_COMPLETION.md). No retroactive new measurement.
 
-## Product and security invariants
+### Phase 2 — Secure reproducible baseline
 
-- JARVIS Core remains the sole authority, memory store, model router, permission boundary, and
-  audit system. Mobile is a presentation and device-I/O client.
-- Production remote access uses private-network HTTPS plus application authentication. Core stays
-  loopback-bound behind the approved gateway. No public unauthenticated listener.
-- Device keys are per-device, origin-bound, revocable, and stored in platform secure storage.
-  Bearer sessions are short-lived and process-memory-only.
-- Mobile receives no model-provider, Garmin, notification-provider, or server credential. It never
-  contains model-selection or authorization logic.
-- Model output, web content, Garmin responses, and client input are untrusted data. They cannot
-  grant permissions or authorize effects.
-- Sensitive or uncertain content routes locally. Cloud use remains configuration-driven,
-  privacy-gated, and hard-capped at `$0` unless a later explicit decision changes that policy.
-- Tools are typed, least-privilege, audited, bounded, and deny-by-default. No arbitrary model-to-
-  shell path exists.
-- Secrets, runtime databases, logs, recordings, screenshots, health data, model weights, and
-  generated builds never enter Git.
-- SQLite remains the default durable store. No service split or new database without measured need.
+Mapped **complete**, 2026-10-22: Historical PROTO-1.1. Reproducible locks, minimal reviewed security
+repairs, quality/audits and isolated safe publication. Continuous future audits remain mandatory;
+historical pass is not perpetual dependency safety. [Original evidence](PROTO_1_1_EVIDENCE.md),
+[mapped receipt](phase-reports/current/PHASE_2_COMPLETION.md).
 
-Architecture details remain in [JARVIS Architecture](JARVIS_ARCHITECTURE.md),
-[Mobile Architecture](MOBILE_ARCHITECTURE.md), and [Security Model](SECURITY_MODEL.md).
+### Phase 3 — Runnable local text assistant
 
-## Current repository state
+Mapped **complete**, 2026-10-22: Historical PROTO-1.2. One launcher/profile, lean PWA Chat/Settings,
+local clock/text/context smoke, frozen corpus and safe recovery; no optional-integration activation.
+[Runbook](PROTOTYPE_TEXT_RUNBOOK.md), [original evidence](PROTO_1_2_EVIDENCE.md),
+[mapped receipt](phase-reports/current/PHASE_3_COMPLETION.md).
 
-Historical implementation is preserved. This roadmap summarizes status; phase reports retain the
-detailed evidence and must not be rewritten to fit the new product order.
+### Phase 4 — Integrated text acceptance
 
-| Track | Current truthful status | Evidence |
-| --- | --- | --- |
-| Phase 0 — repository baseline | Complete; continuous secret/reproducibility audit remains | [Rebuild plan](PHASE_0_REBUILD_PLAN.md) |
-| Phase 1 — privacy-aware text core | Implemented, formally `blocked-external` on NVIDIA latency and local-cold revalidation | [Progress report](phase-reports/PHASE_1_PROGRESS.md) |
-| Phase 2 — voice | Complete; continuous wake/clap remains disabled by default | [Completion report](phase-reports/PHASE_2_COMPLETION.md) |
-| Phase 3 — controlled computer access | Implemented; authorized live closeout remains pending | [Completion report](phase-reports/PHASE_3_COMPLETION.md) |
-| Phases 4–8 — memory, research, tasks, vision, secure PWA | Complete | [Phase reports](phase-reports/) |
-| Agentic expansion A–I — context through email | G published; E/H/K baselines complete; IA local email read/prepare complete, aggregate I `blocked-external` pending IB provider/credential/private-read authority; Phase C Wikimedia `authentication_required` unchanged | [Phase I progress](phase-reports/PHASE_I_PROGRESS.md) |
-| Phase 9 — server migration | Repository implementation complete; live deployment blocked on an authorized server | [Progress report](phase-reports/PHASE_9_PROGRESS.md) |
-| Phase 10 — generic wearables | 10A boundary complete; former vendor work was deferred | [Progress report](phase-reports/PHASE_10_PROGRESS.md) |
-| Phase 11 — advanced/proactive foundation | Complete, default-off, with no autonomous effect authority | [Completion report](phase-reports/PHASE_11_COMPLETION.md) |
-| Native mobile M1 | Expo foundation, quality gate, and physical Expo Go smoke complete | [M1 report](phase-reports/MOBILE_M1_PROGRESS.md) |
-| Native mobile M2 | Authentication, pairing, session lifecycle, and recoverable key rotation implemented; live enrollment/status/network/revoke/lost-phone checks, Expo Go rotation, and post-expiry recovery passed; native acceptance pending | [M2 report](phase-reports/MOBILE_M2_PROGRESS.md) |
+Mapped **complete**, 2026-10-25: Historical PROTO-2.1. Real PWA/auth/Core/SQLite/Ollama acceptance,
+retry/cancel/restart/privacy and fixed usefulness/timing targets. Corpus is 8/10, including mandatory
+A1/U1; R1/C1 failures remain visible. No legacy NVIDIA latency closure.
+[Original evidence](PROTO_2_1_EVIDENCE.md), [mapped receipt](phase-reports/current/PHASE_4_COMPLETION.md).
 
-Existing Core already provides versioned remote identity/session contracts, scoped authenticated
-client APIs, SSE event transport, conversation persistence, model routing, memory, and audit. The
-native app currently provides pairing, signed status, logout, credential erase, and key rotation;
-it does not yet provide production chat or Garmin screens.
+### Phase 5 — Prototype recovery and receipt
 
-## Active execution path
+Mapped **complete**, 2026-10-25: Historical PROTO-2.2. Exact startup, disposable restart, all ten
+prototype acceptance groups, safe publication and independent CI. Published `466a409`; physical/
+mobile MVP/production acceptance not established. [Original receipt](PROTO_2_2_EVIDENCE.md),
+[mapped receipt](phase-reports/current/PHASE_5_COMPLETION.md).
 
-The active $0 phone goal is the existing Home Screen PWA with JARVIS chat and a read-only Garmin
-panel. See [PWA Garmin](PWA_GARMIN.md). Native M2C build acceptance remains open and deferred:
-the owner has no Mac or paid Apple Developer membership. The native MVP sections below are retained
-as historical plans, not prerequisites for the PWA goal.
+### Phase 6 — Architecture and managed roadmap
 
-The owner's standalone Garmin connector is organized locally and its saved-session batch report
-passed a live read on 2026-10-05. See [connector and report evidence](GARMIN_CONNECTOR.md).
-That standalone report did not establish a protected Core session or physical-iPhone Garmin
-acceptance. M3A verifies saved-session compatibility, offline import, subprocess isolation,
-rotation/error recovery and logout-safe PWA rendering. M3B passed on 2026-10-08: protected offline
-import and one flags-only live Core check succeeded, with fresh validated data and all six category
-availability flags true. Core now owns the protected session. Requested saved-session reads/renewal
-need no repeated permission. M3C health-scoped phone enrollment and physical-device acceptance
-remain; see [PWA MVP 3 progress](phase-reports/PWA_MVP3_PROGRESS.md).
+Scope: record owner-selected laptop/PWA architecture before planning; consolidate all known tracks
+into this flat ledger; update commands, report namespace, crosswalk and entry links. Preserve old
+reports, thresholds, held changes and historical roadmap. Exit: consistent links/IDs/statuses,
+documented authorities, applicable gates and reviewed publication. No application feature starts.
+Status: **complete**, 2026-10-26. [Completion evidence](phase-reports/current/PHASE_6_COMPLETION.md).
 
-M3C continuation adds shell `v6` recovery repairs: immediate local logout erase, bounded remote
-cleanup before replacement enrollment, and guards against obsolete bootstrap/status/task/chat/
-event responses. Synthetic lifecycle evidence passes; physical-iPhone rows remain unexecuted.
-No health-scoped ticket or test revocation was performed while the grouped owner decision is pending.
-Both unrelated native package candidates remain preserved and excluded under their audit hold.
+### Phase 7 — Text quality and daily-use polish
 
-### MVP 1 — Design and connection
+Outcome: dependable simple text tasks and a clear product capability contract. Reuse accepted
+runtime/PWA, routing fixes, streaming/history/search/library, token reduction and immutable receipts.
+Fix R1 polite tone and C1 checklist format through generic behavior; do not rewrite expected answers
+or repair outputs after scoring. Freeze 40 additional public/synthetic cases before tuning; require
+at least 36/40 plus every designated safety case, and **10/10 original cases** with A1/U1 mandatory.
+Retain original prototype timing targets, expose unavailable evidence/model errors and show existing
+recovery controls clearly. Freeze safety-case membership and scoring in the progress report first.
+Exit: repeated real acceptance of selected configuration, preserved privacy/$0/auth/recovery and
+complete gates. Keep `prototype-text` baseline reproducible; explicit capability decisions precede
+later feature activation. No automatic larger-model download, provider replacement or integration.
+Read: [corpus](PROTOTYPE_CORPUS.md), [Phase 4 source evidence](PROTO_2_1_EVIDENCE.md),
+[Phase 5 source receipt](PROTO_2_2_EVIDENCE.md), [text runbook](PROTOTYPE_TEXT_RUNBOOK.md).
 
-Close existing M2C live acceptance, then replace the foundation screen with a simple accessible
-three-surface shell. Show explicit loading, connected, offline, reconnecting, expired-session, and
-error states. Avoid animation and navigation depth that do not support the MVP.
+### Phase 8 — Private Garmin workspace
 
-Owner action is required for fresh enrollment tickets, physical-iPhone actions, and any native
-development build or signing decision. See [M2C acceptance](MOBILE_M2C_ACCEPTANCE.md).
+Outcome: useful read-only health/activity view through Core. Reuse protected saved session, isolated
+Python bridge and existing normalized PWA view; no reimport/new login as routine startup. Verify
+adapter compatibility/current audit, last-sync/freshness/unavailable states, bounded reads, normal
+renewal, disconnect and privacy-safe diagnostics. Keep health out of cloud/model prompts and browser
+persistence. Exit: synthetic full matrix and bounded live Core evidence under existing saved-session
+authority; production health scope/enrollment remains separately controlled. No writes, new scopes
+or physical-phone request. Read [Garmin contract](PWA_GARMIN.md), [connector](GARMIN_CONNECTOR.md),
+[prior progress](phase-reports/PWA_MVP3_PROGRESS.md). Phone rows stay skipped/unverified.
 
-### MVP 2 — Chat
+### Phase 9 — Files and attachments
 
-Use the authenticated `/api/v1` boundary to send text and consume Core-owned streaming events.
-Add history, cancel, retry, reconnect, and clear failures. Core alone owns conversation state,
-routing, memory, policy, and audit. Do not copy provider SDKs, keys, or model logic into mobile.
+Outcome: reliable supplied-content workflows. Reuse G processing and F14/F15 upload, provenance,
+preview, search and same-conversation reuse. Test text/PDF/image capability behavior with bounded
+synthetic files, parser isolation, quota/expiry/delete, cancel/restart and stale-response rejection.
+Exit: actual PWA/Core workflow with explicit capability flags, grounded source references and zero
+private disclosure or automatic memory promotion. Image understanding requires a qualified installed
+local adapter; an unsupported capability must say unavailable. No arbitrary filesystem access or
+cloud upload. Read [attachments](ATTACHMENTS.md), [F14](PWA_F14_WORKFLOWS.md), [F15](PWA_F15_WORKSPACE.md).
 
-### MVP 3 — Garmin
+### Phase 10 — Inspectable memory and project context
 
-Integrate [`python-garminconnect`](https://github.com/cyberjunky/python-garminconnect) behind a
-provider-neutral Python adapter in Core. Initial data is read-only: daily steps, heart rate/resting
-heart rate, sleep, stress/Body Battery when present, and recent activities. Mobile gets validated,
-minimal view models plus manual refresh and last-sync time.
+Outcome: owner can inspect, approve, correct and forget useful context. Reuse legacy memory states,
+FTS5, provenance, conflict/deletion and private coding continuity. Add only needed PWA projections
+through explicit current authority; no client-created trust. Exit: source-explained retrieval,
+candidate quarantine, cross-owner denial, correction/retention and transitive deletion after restart;
+bounded context budgets and a frozen retrieval set. No automatic trust, unmeasured vector service
+or unreviewed repository execution. Read [memory evidence](phase-reports/PHASE_4_COMPLETION.md),
+[continuity](TOKEN_CONTINUITY.md), [memory ownership](architecture.md#memory-boundary).
 
-Current upstream facts verified 2026-09-28:
+### Phase 11 — Grounded public research
 
-- upstream master reports version `0.3.16`, Python `>=3.12`, MIT licensing, active 2026 releases,
-  credential/MFA login, locally cached refresh tokens, and more than 150 read/write methods;
-- the client is explicitly unofficial and uses Garmin web services, so private endpoint or login
-  changes can break it without notice;
-- JARVIS currently supports Python `>=3.11,<3.13`; dependency isolation or a reviewed minimum-
-  Python change is therefore an implementation gate;
-- versions `<=0.3.4` had a high-severity token-file permission advisory, and later 0.3.10–0.3.11
-  releases added further token-path, symlink, atomic-write, authentication, URL, logging, and
-  request hardening. MVP must use a reviewed current version and a Core-owned protected
-  local-secret facility, not expose or directly trust the library's default token file. Current
-  initial inspection found the Windows Credential Manager/DPAPI policy. The current isolated
-  bridge implements chunked Windows Credential Locker storage, with synthetic import/rollback
-  checks. Real protected session and bounded Core acceptance passed on 2026-10-08.
+Outcome: useful current answers with verified sources or explicit unavailable evidence. Reuse
+freshness classification, search/fetch/parser/citation workflow and existing general-search port.
+Resolve actual live source availability; retain Wikimedia's historical `authentication_required`
+blocker until the same endpoint is evidenced working. Exit: real public-source retrieval plus frozen
+citation/entailment/freshness/conflict and SSRF/injection/failure tests. Store research only through
+existing exact approval. Optional cloud requires current terms/free-capacity verification and the
+same full-context privacy gate; no login/paywall bypass or private query disclosure.
+Read [research evidence](phase-reports/PHASE_5_COMPLETION.md), [legacy C evidence](phase-reports/PHASE_C_COMPLETION.md),
+[freshness evidence](phase-reports/PHASE_B_COMPLETION.md), [legacy latency debt](#retained-gates-and-authority-register).
 
-Garmin data is private health data. Credentials, MFA values, tokens, raw responses, locations, and
-health data never enter logs, Git, mobile storage, audit payloads, or model-provider requests.
-Requested saved-session reads follow the root Codex confirmation policy without additional
-permission prompts. New credential login/MFA needs confirmation if not already approved and
-interactive entry in a trusted local terminal.
+### Phase 12 — Foreground voice
 
-### MVP 4 — Polish and release
+Outcome: deliberate push-to-talk with cancellation, text fallback and clearly controlled replies.
+Reuse local STT/VAD/TTS and F13 canonical PCM/capture lifecycle; freeze selected foreground workflow
+and quality/latency budgets before measurement. Exit: synthetic audio/transport/cancel/offline/
+device-loss tests, appropriate authorized Windows evidence and safe typed fallbacks. Raw audio is
+ephemeral; model/cloud speech is not enabled implicitly. No always-listening, wake/clap release,
+background phone capture or manual phone checks. Read [F13](PWA_F13_PUSH_TO_TALK.md),
+[voice evidence](phase-reports/PHASE_2_COMPLETION.md), [hands-free boundaries](HANDS_FREE_CONTROL.md).
 
-Authorized accessibility fixes started 2026-10-09. M4A shell `v7` separates network availability
-from authenticated stream readiness, preserves chat reading position, announces completed replies,
-reflows enlarged text and improves contrast/targets. Synthetic lifecycle and desktop checks pass;
-physical VoiceOver/Safari, full zoom, chat cancel/retry/history and performance acceptance remain.
-See [MVP 4 progress](phase-reports/PWA_MVP4_PROGRESS.md). M3C phone Garmin acceptance remains
-separate; native package candidates stay unchanged under their dependency-audit hold.
+### Phase 13 — Controlled Windows actions
 
-2026-10-10 M4A continuation at `5384121`: owner reports phone available later. Physical
-accessibility remains `blocked-external`; [M4A acceptance](PWA_M4A_ACCESSIBILITY_ACCEPTANCE.md)
-records separate Safari/Home Screen rows and a separate actual desktop 400% browser-zoom gate.
-Preparation does not close either physical acceptance or MVP 4. No application assets changed.
+Outcome: a small useful set of typed Windows actions with trustworthy previews and receipts.
+Reuse permission Levels 0–4, expiring exact grants, broker, allowlists, postconditions and rollback.
+Exit: current replay/injection/race/cancel/restart matrix and exact separately-authorized live effects;
+no blind replay or model-generated shell. Approval surfaces must satisfy existing trusted-local
+requirements; remote action control is not inherited from chat. Destructive effects, printing,
+shutdown and security changes remain consequential boundaries. Read [security](SECURITY_MODEL.md),
+[legacy action evidence](phase-reports/PHASE_3_COMPLETION.md), [hands-free](HANDS_FREE_CONTROL.md).
 
-2026-10-12 M4A resumption at `2cb1f96`, shell `v7`: owner confirmed phone available now.
-Physical acceptance is `in-progress`; metadata, loaded phone version and separate Safari/Home
-Screen observations remain pending. No phone row is accepted from availability or desktop evidence.
-Existing loopback Core resumed without route changes. Separate actual desktop 400% browser zoom
-passes on the bounded synthetic Edge shell; phone speech/text/zoom checks remain open.
+### Phase 14 — Bounded tasks and project workflows
 
-2026-10-13 M4A continuation: bounded Safari A1 names/headings/order/unavailable-state observation
-passed; phone script/worker verification and Home Screen acceptance remain open. Owner stopped
-remaining phone checks during larger-text preparation; no further phone questions queued.
-Unexecuted checks remain unverified, A10 blocked without keyboard. This deferral does not complete
-M4A or MVP 4. Later chat cancel/retry/Core-backed history and performance work remain planned;
-none started in this M4A session. Native package edits and MVP 3 report remain preserved.
+Outcome: plan, inspect and run bounded useful tasks, monitor status and safely pause/cancel/resume.
+Reuse existing immutable DAG validator, durable scheduler/checkpoints, CLI and F14/F15 task views.
+Read-only workflows can use existing verified broker contracts without waiting for action-product
+closure; action-bearing acceptance depends on Phase 13. Exit: frozen representative task set,
+explicit budgets, failure/restart reconciliation and zero duplicated/unauthorized effects. Remote
+task cancellation needs a real scoped mutation adapter; read scope and guessed conversation
+relationships never grant control. No recursive swarm or second scheduler.
+Read [task evidence](phase-reports/PHASE_6_COMPLETION.md), [F14](PWA_F14_WORKFLOWS.md), [F15](PWA_F15_WORKSPACE.md).
 
-Owner subsequently resumed phone checks on 2026-10-13, requesting compact batches. Safari largest
-accessibility-text growth and rotation/empty-ticket keyboard layout passed; 200% website zoom
-component passed. Subsequent Home Screen names/readiness/streaming/selection/Jump focus, largest
-text, rotation/Message keyboard, pinch/iOS magnification and safe touch/Reduce Motion passed.
-Safari highest offered website zoom, pinch/iOS magnification and safe shell touch/Reduce Motion
-also worked; maximum website percentage remains unreported. Usual settings restoration was part
-of the final batch reported all worked. Full phone assets, Safari authenticated checks, error/
-failure cases and external-keyboard acceptance remain open. No blanket physical pass or
-M4A/MVP 4 closure; M3C remains separate.
+### Phase 15 — Email
 
-Continue repository development and automated chat/Garmin recovery, accessibility/layout and
-performance checks. Manual phone execution is skipped by the current owner policy above.
-Development build and signing require explicit owner approval. App Store work is separate and optional.
+Outcome: approved-provider read/thread summaries and preparation of drafts with provenance.
+Reuse local IA export/read/prepare and provider-neutral contracts; select provider and review current
+official auth/API/terms before implementing live adapter. Freeze allowed read data, retention and
+revocation behavior. Exit: synthetic hostile MIME/provider lifecycle and bounded authorized live
+read/prepare proof; unsent drafts remain visibly unsent. Credentials/new login/scopes/private reads
+need applicable existing or new authority. External draft/write/send is a separate exact approved
+operation, not a model side effect or prerequisite to read-only acceptance. No unattended polling.
+Read [email](EMAIL.md), [legacy I progress](phase-reports/PHASE_I_PROGRESS.md).
 
-## Release gates
+### Phase 16 — Calendar and reminders
 
-Every milestone must pass its focused tests plus relevant repository gates. Before mobile MVP
-closure:
+Outcome: inspect events, detect conflicts, prepare changes and manage owner-authored reminders.
+Add a provider-neutral adapter reusing identity/secret/permission boundaries; select provider and
+current official contracts first. Exit: timezone/DST/recurrence/conflict/cancel/restart tests,
+explicit freshness and authorized read evidence. Any external event/reminder creation, deletion,
+invitation or update requires exact applicable approval and provider scope; suggestions do not
+write. No third-party messages or background worker activation by planning.
+Read [historical expansion J](AGENTIC_ASSISTANT_EXPANSION.md), [security](SECURITY_MODEL.md).
 
-- enrollment, signed sessions, revocation, rotation, logout, reconnect, and lost-phone behavior
-  fail closed;
-- chat streaming, cancellation, retry, history, Core restart and network transitions pass automated
-  regression checks; remaining physical-iPhone evidence is skipped/unverified and does not block
-  development or establish physical acceptance;
-- Garmin adapter tests use mocks by default; schemas reject malformed or oversized data; timeouts,
-  bounded retries, local rate limits, disconnect, token deletion, and sanitized audit pass;
-- accessibility labels, Dynamic Type, contrast, focus/order, reduced-motion behavior, and common
-  screen sizes pass;
-- `uv` lock/sync, format, lint, type, tests, dependency audit, Gitleaks, mobile verification, and
-  `git diff --check` pass or any unrelated pre-existing failure is isolated and reported;
-- no secret, token, private health data, generated build, or unrelated work enters the commit.
+### Phase 17 — Background scheduling and proactivity
 
-## Deferred backlog
+Outcome: explicit opt-in bounded background evaluation and useful, controllable suggestions.
+Reuse foreground trigger/inbox policy, durable task scheduler and one-owner leases. Define process
+lifecycle, per-feature enablement, polling/event budgets, quiet hours, DST, expiry, privacy and stop
+controls before daemon work. Exit: simulation and bounded real soak, duplicate/restart/lease-loss/
+revocation/disable tests, zero unauthorized effects and no private notification preview. An inert
+candidate cannot authorize a task, cloud call or external notification. Activation and outbound
+notification destinations require their own applicable authority. No second scheduler.
+Read [proactivity evidence](phase-reports/PHASE_11_COMPLETION.md), [architecture](JARVIS_ARCHITECTURE.md).
 
-Not required for basic mobile MVP: spoken/background voice; push notifications; widgets; proactive features;
-phone sensors/context; health analytics; wearable writes; direct watch communication; Meta glasses;
-smart-home work; custom voice; fine-tuning; larger local models; PostgreSQL/Redis/microservices;
-multi-GPU serving; the former broad M3–M9 and H1–H8 mobile/health plans. Reconsider only after the
-four MVP milestones pass and the owner explicitly reprioritizes them.
+### Phase 18 — Daily briefing
 
-2026-10-17 owner direction authorizes optional foreground PWA voice input as **F13**.
-The [F13 plan](PWA_F13_PUSH_TO_TALK.md) reuses local speech and Core controls, returns an editable
-draft and retains explicit Send. F13A–F13D now implemented; basic MVP exit criteria remain.
+Outcome: one concise source-attributed briefing using only configured approved memory/projects,
+email, calendar/reminders/tasks and optional Garmin/weather/news. Reuse Phase 17 scheduling and
+existing evidence/summary ports. Exit: fixed fixtures for stale/missing/conflicting/private sources,
+useful bounded real configured-source demonstration, explicit omissions and no invented facts/actions.
+Garmin content additionally depends on Phase 8 and health authority. Briefing generation grants
+no send/write/storage permissions; destination and timing remain explicit. No silent connector
+activation when a source is missing. Read [historical expansion M](AGENTIC_ASSISTANT_EXPANSION.md),
+the chosen source phase reports and [security](SECURITY_MODEL.md).
 
-## Current development boundary
+### Phase 19 — Laptop/PWA release and operations
 
-**F15 — PWA daily-use workspace and reliability**, from `29fe496`, advances shell to **v12**.
-All six authorized milestones are delivered: Core-owned paginated library and optimistic metadata,
-safe bounded Markdown/citation/copy, attachment status/provenance/deliberate reuse, sanitized task
-timelines/filter/sort/pagination, composer/navigation/recovery, integrated automated release gates.
-No new authority, dependency, credentials, deployment, provider call for titles or real-history
-mutation. [F15 contract](PWA_F15_WORKSPACE.md), [completion evidence](phase-reports/PWA_F15_COMPLETION.md).
-The feature estimate is **98%**; phone checks remain **skipped by owner; unverified**, with no
-physical/MVP completion inferred. Remote cancellation stays disabled; task/conversation correlation
-has no trustworthy persisted relationship. No next phase queued.
+Outcome: supported laptop/PWA daily-use release with a truthful acceptance receipt. Reuse existing
+startup, diagnostics, migration/backup/restore, auth, lifecycle and release scripts. Exit: full
+integrated enabled-feature matrix, locked clean-source/Windows CI and current audits, safe synthetic
+backup/restore/crash/reconnect/erase, frozen accessibility/performance/soak targets, troubleshooting,
+rollback and maintenance policy. Reconfirm laptop-off limitations and optional source availability.
+Physical phone checks stay skipped/unverified; no full physical/mobile MVP claim from automated
+evidence. Signing/public deployment/native distribution are excluded. No owner-store overwrite.
+Read [prototype recovery receipt](PROTO_2_2_EVIDENCE.md), [backup contracts](PHASE_9B_MIGRATION.md),
+[Windows setup](setup-windows.md), [PWA release evidence](phase-reports/PWA_MVP4_PROGRESS.md).
 
-Prior **F14 — PWA assistant workflows**, from `96f3294`, advanced shell to **v11**. Selection uploads
-photo/PDF/text into bounded session-owned Core memory; explicit Send alone commits existing local
-processing/private routing. Core-owned message search is paginated and draft/request-safe. Task
-list/details show step progress, failures and reconnect recovery; cancellation stays disabled
-because `client.tasks.read` cannot grant mutation authority. No remote task-control boundary or
-new enrollment is authorized. See [workflow contract](PWA_F14_WORKFLOWS.md) and
-[F14 evidence](phase-reports/PWA_F14_COMPLETION.md). Current estimate **96%** on verified workflow
-milestones; no physical/MVP completion. The F12/F13 figures below remain dated evidence.
+### Phase 20 — Vision and gestures
 
+**Deferred.** Trigger: demonstrated on-demand camera/screen or gesture use case. Reuse local
+capture, temporal detector, indicators and kill controls; Phase 13 alone executes typed intents.
+Exit if selected: reviewed models/licenses, actual capability/resource/false-trigger targets,
+authorized target-device evidence, visible capture and zero authority escalation. No hidden capture,
+biometric identity, arbitrary commands or gesture approval of sensitive work.
+Read [legacy vision evidence](phase-reports/PHASE_7_COMPLETION.md), [hands-free](HANDS_FREE_CONTROL.md).
 
-Prior **F12 — Chat / Garmin / Settings navigation** evidence remains dated and complete.
-Shell v9 presents all three surfaces with persistent accessible links, focus/back/forward behavior
-and existing Core contracts. Session/stream/request/conversation/draft ownership survives selection;
-view selection performs no API action. **73** lifecycle tests, **72** desktop layout cases plus six
-short-viewport focus cases, full **1,464 passed / 3 optional skips** at **85.67%** coverage, audits,
-secret scan and synthetic transport gates pass. See [F12 completion](phase-reports/PWA_F12_COMPLETION.md).
-No new enrollment/access, native audit workaround or deployment. Manual phone checks remain
-**skipped by owner; unverified**; no physical/MVP completion claimed.
+### Phase 21 — Native mobile
 
-**F13 — PWA push-to-talk** is complete within repository/automated scope from `b6fd3fd`, shell v10.
-Bounded foreground capture → authenticated local transcription → reviewable draft → explicit Send.
-Core identity/origin/CSRF/scope, voice kill, privacy routing and approvals remain authoritative.
-Locked voice adapters/model are ready; real local STT passes on synthetic SAPI audio. Production
-capability remains default off. No enrollment/scope, credential, deployment or native package change.
-See [completion evidence](phase-reports/PWA_F13_COMPLETION.md). Estimate stays **94%** on existing
-MVP milestones; optional input adds no physical acceptance credit. Native publication hold remains.
-All manual phone checks **skipped by owner; unverified**. No next phase queued.
+**Deferred.** Trigger: required OS capability unmet by the PWA, plus passing native audit and a
+reviewed build/signing path. Reuse M1/M2 identity contracts and existing Core APIs; provider secrets
+stay in Core. Exit if selected: native dependency/functional/security/recovery/build gates with
+honest target evidence. No native package publication while hold remains; new enrollment/signing
+needs authority. Owner-skipped phone tests remain unverified unless explicitly restored.
+Read [native architecture](MOBILE_ARCHITECTURE.md), [legacy milestones](MOBILE_PHASES.md).
 
-The dated F11 notes below are historical evidence, not instructions to resume skipped phone checks.
+### Phase 22 — Dedicated server
 
-2026-10-16 continuation at `473347e`: owner reports Home Screen **Connected; fixed the problem**
-and general **yes all good** to bundled status/Send/new-control checks. Exact original-request
-outcome and individual controls remain unitemized; no physical retry gate accepted. Current
-private host/v8 assets remain verified. Core metadata finds 4 active chat-only browser enrollments
-and 10 completed host receipts; aggregate counts cannot identify the original request or prove
-phone continuity. Owner reports both idle reopenings and three-history-control VoiceOver batch
-pass, with same saved conversation and no duplicate answer; no unresolved indicator reported.
-Final VoiceOver reconnect/readiness-ordering/focus batch subsequently owner-reported passing;
-conditional-control presence/absence remains unitemized. Explicit online reload/full phone
-assets and exact original terminal status unverified separately. F11-P0 remains partial; P1
-observed batches pass with conditional-availability limitation. Held mobile edits preserved,
-M3C separate.
+**Deferred under laptop-first decision.** Trigger: owner requires laptop-off availability and
+selects an authorized zero-cost/approved-cost target. Reuse existing topology, fenced ownership,
+encrypted migration and rollback contracts. One shared-state owner; Windows effects/capture stay
+on Windows device node. Exit if selected: real local/server parity, outage/partition/restore/
+rollback/security proof, documented resources and approved deployment. No standby second writer,
+automatic cutover, database-on-network-share or implicit paid service.
+Read [topology](PHASE_9A_TOPOLOGY.md), [migration](PHASE_9B_MIGRATION.md), [deployment](PHASE_9C_DEPLOYMENT.md).
 
-2026-10-16 continuation at `5a5bed2`: owner reports **Enrollment completed** after the supplied
-chat-only ticket command. Current read-only host checks pass online Tailscale, exact existing
-private route, one loopback Core listener, matching v8 assets and unauthenticated **401** responses.
-Core metadata now shows **3 active unexpired browser enrollments**, all exact seven chat scopes,
-no health scope; repaired schema intact, zero running host receipts. Current phone connection,
-Send/Retry/draft state, exact enrolled surface and original-request identity continuity remain
-unconfirmed. No new Send/Retry requested before these observations; no history transfer inferred.
-F11-P0/P1 remain open; held mobile edits unchanged and M3C separate.
+### Phase 23 — Wearables and additional devices
 
-2026-10-16 continuation at `5ef5c36`: owner reports **Connect existing device → Connection
-failed**. Host checks find Tailscale **NoState**, offline, empty Serve configuration and stopped
-Core. Starting the existing Tailscale app restores its saved profile and exact prior private route;
-reviewed local Core launcher restores one loopback listener. No login, enrollment, profile switch
-or route edits. All four private/loopback v8 assets match source; repaired schema and both chat-only
-browser enrollments remain present. Original-request Retry, Send state, exact phone surface,
-two reopenings and VoiceOver remain pending. Held mobile edits and M3C stay separate.
+**Deferred.** Trigger: selected supported device/workflow, current vendor API/license/access review
+and required device/privacy authority. Reuse generic wearable capability/identity contracts and
+phone bridge only when supported. Exit if selected: real required interaction, revoke/offline/
+battery/indicator/removal tests, no private cloud disclosure. No vendor marketing assumption or
+unapproved health write. Health analytics, watch writes, glasses, phone sensors/widgets/push and
+additional OS/device integrations stay in this managed option until scoped.
+Read [requirements](PHASE_10A_PRODUCT_REQUIREMENTS.md), [feasibility](PHASE_10A_FEASIBILITY.md),
+[legacy wearable progress](phase-reports/PHASE_10_PROGRESS.md).
 
-2026-10-15: initiated [F11 physical acceptance](PWA_F11_PHYSICAL_ACCEPTANCE.md) at `4fa75e3`,
-shell **v8**, with compact owner batches and phone performance budgets frozen before samples.
-Fresh 63 lifecycle/24 desktop cases and existing private-route readiness pass. Full physical rows
-remain pending. M3C grouped decision, remaining M4A cases and phone
-performance stay open. Held native dependency files remain unchanged and excluded from publication.
-The full local gate found an immediate-cancellation settlement race; fixed with a delayed-storage
-regression, cancellation-safe audit rollback and 34 focused storage/Core/API/transport passes.
-Final local release gate passes **1,459 tests / 3 optional skips**, **85.65% coverage**, with
-format/lint/types, root/sidecar audits and secret scans clear. On the owner's phone-ready return,
-Core was already stopped; patched Core was started on the verified existing private route.
-Initial trusted read-only Core metadata confirmed one active browser with exactly the prior seven
-scopes and no health scope; corrected the circular pre-Connect wording check for fresh startup.
-Continuation at `22d50db` records owner-reported **Connected**, **Send enabled** and one public
-request/reply. Fresh aggregate metadata finds two active browsers, both chat-only, no health scope
-and risk ceiling at most 1. No ticket/identity details retained or enrollment mutation performed
-in this continuation. Phone metadata/current runtime, retained-key continuity and full F11 rows
-remain pending; M3C stays separate. Source publication `a0b60fb` CI passed.
-Continuation at `55be543` records iPhone 15 Pro/iOS 27.0.1, Wi-Fi, portrait, normal text/zoom,
-VoiceOver off and no external keyboard; exact surface remains unresolved. Owner reports Send
-blocked by an unconfirmed outcome, with Core finding no accepted request. Live schema lacks
-sequence columns and deletion safeguard from early applied migration 017; synthetic reproduction
-confirms insertion failure. Transactional startup repair and named insert columns pass 26 focused
-Core/API checks. Full release and actual phone recovery evidence are tracked in MVP 4 progress;
-P0/P1 reopen/VoiceOver acceptance stays open. Held native files and M3C remain separate.
+### Phase 24 — Restricted maintenance assistance
 
-2026-10-14: owner authorized F11 implementation despite pending physical M3C/M4A gates. Shell
-**v8** adds working Core cancellation, immutable-ID safe retry, device-owned durable history and
-reconnect/session isolation. See [F11 contract](PWA_F11_CHAT.md) and
-[verified execution](phase-reports/PWA_MVP4_PROGRESS.md). Physical v8 soak, new-control accessibility
-and measured phone performance remain open. Native SDK patch mismatches were repaired locally;
-38 tests, Doctor 21/21 and both exports pass, but production audit remains 60 findings with
-unpatched upstream advisories. Native candidates retain their publication hold. Estimated PWA
-completion **92%**, based on implemented/automated milestones, not physical acceptance percentage.
+**Deferred.** Trigger: specific low-risk maintenance category with explicit boundaries after safe
+tasks, scheduling and operations. Proposals/isolated candidate fixes may reuse existing bounded
+contracts; production acceptance requires independent trusted review and exact authority.
+Exit if selected: frozen malicious-input/budget/recovery/removal corpus with no self-expanded tools,
+permissions or destinations. No self-merge/deploy, credential/security change, software install,
+paid work or third-party contact authorized by the model. No self-modifying policy or hidden work.
+Read [legacy proactivity](phase-reports/PHASE_11_COMPLETION.md), [security](SECURITY_MODEL.md).
 
-**MVP 3 / M3C — health-scoped phone acceptance.** M3A/M3B are complete: protected import and
-fresh live Core Garmin evidence passed. Do not repeat source discovery/import. M3C needs a
-pending grouped health-scope enrollment/recovery decision and physical-phone evidence; reload current shell `v8` before new acceptance.
-Local recovery repairs and their synthetic evidence do not close the physical gate. Important new enrollment, login/MFA, credential changes,
-signing, paid services and deployment need confirmation only when not already explicitly approved.
-Native M2C remains deferred.
+## Historical alias map
+
+This crosswalk preserves evidence, not completion credit for broader product work. Historical
+report filenames and original test/migration/tool identifiers remain unchanged and must be qualified
+as legacy when a number collides. Old PROTO names remain searchable aliases only.
+
+| Historical identifier | Current phase ownership / interpretation |
+| --- | --- |
+| PROTO-0, PROTO-0.1, PROTO-0.2 | Phase 1, mapped complete |
+| PROTO-1.1 / PROTO-1.2 | Phases 2 / 3, mapped complete |
+| PROTO-2.1 / PROTO-2.2 | Phases 4 / 5, mapped complete |
+| Legacy Phase 0 | Phase 2 reproducibility and Phase 19 operations foundations |
+| Legacy Phase 1 | Phase 7 text/routing and Phase 11 public provider qualification; old latency debt remains |
+| Legacy Phase 2 / F13 | Phase 12 voice foundation |
+| Legacy Phase 3 | Phase 13 permission/actions foundation; live closeout remains open |
+| Legacy Phase 4 / expansion H | Phase 10 memory foundation |
+| Legacy Phase 5 / expansion B,C | Phase 11 freshness/research foundation |
+| Legacy Phase 6 | Phase 14 bounded-task foundation |
+| Legacy Phase 7 | Phase 20 vision/gesture foundation |
+| Legacy Phase 8 / F11,F12 | Phases 3–5 accepted text transport; Phase 19 ongoing auth/recovery |
+| Legacy Phase 9 / 9A–9C | Phase 22 deferred deployment; Phase 19 reuses safe backup contracts |
+| Legacy Phase 10 / former M3–M9,H1–H8 wearable work | Phase 23 deferred devices; actual Garmin Core/PWA is Phase 8 |
+| Legacy Phase 11 / expansion L | Phase 17 scheduling foundation; Phase 24 narrow maintenance option |
+| Expansion A / D / E / K | Shared context/discovery/routing/approval foundations; Phases 7,11,13,14; no duplicate implementation phase |
+| Expansion F / G | Phases 10 / 9 continuity and attachment foundations |
+| Expansion I, IA, IB | Phase 15 email; IA exists, live IB authority blocker remains |
+| Expansion J / M | Phases 16 / 18 calendar and briefing |
+| Mobile M1,M2,M2C / native MVP 1–4 | Phase 21 deferred client; previous build/identity/physical status retained |
+| PWA M3A,M3B,M3C / MVP 3 | Phase 8 health; protected-session proof retained; scopes and phone rows separate |
+| PWA M4A / MVP 4 | Phase 19 quality/release; manual phone checks skipped, unverified |
+| F14 / F15 | Phases 9,14 file/task foundations and Phases 7,19 workspace/reliability |
+
+## Retained gates and authority register
+
+| Item | Current treatment |
+| --- | --- |
+| Legacy NVIDIA/local-cold latency | Legacy Phase 1 remains `blocked-external`; original 20/20 and p50/p95 gates unchanged. Local fallback/prototype timings are not NVIDIA proof; Phase 11 owns any requested requalification. |
+| Text usefulness | Phase 7 owns known R1/C1 failures. Historical 8/10 remains a bounded pass under the old rubric; prospective stricter target does not rewrite it. |
+| Research live endpoint | Wikimedia `authentication_required` remains recorded. Phase 11 must verify actual chosen sources; no invented retrieval/citation. |
+| Windows effects | Existing broker implemented; Phase 13 needs exact applicable live authority. Chat/read/task-monitor scope grants no OS/control authority. |
+| Garmin | Existing protected session and normal renewal authority retained. Phase 8 grants no new login, enrollment, health scope, credential replacement or health disclosure. |
+| Email/calendar | Phase 15/16 provider choices/auth/private-read authority remain external inputs when needed. Writes/sends are independently exact-approved. |
+| Native dependencies | Held manifests stay unchanged and unpublished; only selected Phase 21 may revisit a passing reviewed candidate. |
+| Physical phone checks | **Skipped by owner; unverified** everywhere. Do not ask, queue reminders, count passes or block repository development on them. |
+| Server/native/wearable activation | Deferred rows grant no spend, deployment, signing, device enrollment or scope authority. |
+| License/external code | Historical root-license question remains separate; planning does not license this repository or authorize copying incompatible external code. |
+
+## Next action
+
+**Next: Initiate Phase 7 — Text quality and daily-use polish.** Phase 6 consolidation is complete.
+Read this roadmap and [Phase Execution](PHASE_EXECUTION.md). Preserve held native/provider changes,
+the accepted prototype baseline, existing failed legacy gates and skipped/unverified phone status.
+No feature phase starts in this consolidation session.

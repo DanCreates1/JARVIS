@@ -1,5 +1,11 @@
 # JARVIS Codex Phase Playbook
 
+> **Historical execution reference, superseded 2026-10-26.** Active `Phase N` commands use
+> [Phase Execution](PHASE_EXECUTION.md) and [Master Roadmap](JARVIS_MASTER_ROADMAP.md).
+> Every number/letter/subphase and next-action instruction below belongs to the **legacy** tracks.
+> Retain technical/security contracts and old failed gates; do not select an active phase from this
+> file's old numbering or PROTO sequencing. Root owner policies remain authoritative.
+
 > Prototype sequencing, 2026-10-22: [PROTOTYPE_PLAN.md](PROTOTYPE_PLAN.md) is canonical for PROTO.
 > This playbook continues to govern explicitly invoked numerical Phase 0–11 work and supplies
 > retained quality/security controls. Its legacy prerequisite chains and stale status rows do

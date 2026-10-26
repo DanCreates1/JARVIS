@@ -1,5 +1,66 @@
 # JARVIS Architecture
 
+## Current core decision — 2026-10-26
+
+**Owner-selected: laptop-first Core; PWA first, native only when needed.** This decision was
+settled before defining the [current numbered roadmap](JARVIS_MASTER_ROADMAP.md). It supersedes
+older target-topology, client-order and prototype-only planning advice below. The remaining
+sections retain technical contracts and historical design; their phase IDs are **legacy**.
+
+| Boundary | Decision and ownership |
+| --- | --- |
+| Product | One owner, Windows laptop Core, shared responsive PWA on laptop/iPhone; laptop must be on/reachable for Core-backed work. |
+| Runtime | Retain Python modular monolith and ports/adapters, one composition root and conversation runtime. FastAPI/JSON/SSE remains the interface adapter; do not rewrite the framework or create a second brain. |
+| State | Core owns conversations/receipts, approved memory, identities/sessions, task state, permission decisions and audit. SQLite/FTS5 and migrations remain on the Core host. PWA is not a replica or canonical writer. |
+| Models | Existing replaceable provider contracts. Private/uncertain candidate context stays local; public cloud is optional, configuration/terms/privacy gated and capped at $0. Prototype uses installed qwen3:1.7b at temperature 0; this is bounded 8/10 evidence, not a future all-task model qualification. |
+| Clients | PWA owns presentation/transient drafts and existing device identity handling; Core owns policy/routing. Preserve signed native and cookie/CSRF browser identity separation. No provider/health secret in clients. |
+| Network | Existing approved private HTTPS gateway and loopback Core; exact origin, application auth/scopes/replay/CSRF checks remain. Tailnet membership or proxy identity headers grant no application authority. |
+| Integrations | Garmin/email/calendar/research/files use existing typed ports. Credentials stay in protected host facilities. Use isolated workers for hostile parsing, dependency isolation or measured blocking/resource need; no premature service split. |
+| Actions | Models propose typed intents; deterministic policy, trusted approval and exact grants authorize the broker. Windows effects and camera/microphone remain on the Windows device under local controls. No arbitrary shell or new remote action scope. |
+| Scheduling | Reuse durable task/DAG scheduler, proactivity policy and one-owner leases. Background evaluation is opt-in, separately bounded and visibly stoppable; an inert suggestion is not execution authority. |
+| Failure | Preserve immutable retry/receipts, cancel/interruption states, owned history, explicit unavailable states, shell-only caches and logout erasure. No blind replay or provider swap after visible output. |
+| Operations | One active canonical Core owner, controlled SQLite writes, locked setup, content-minimized diagnostics, synthetic restore/crash rehearsal and safe rollback. No new system service, enrollment, route, deployment or owner-data restore follows from this decision. |
+
+```mermaid
+flowchart LR
+    Client[Desktop and phone PWA] -->|Private HTTPS and application identity| API[Core API and event adapter]
+    API --> Core[One bounded conversation runtime]
+    Core --> State[(Core-owned SQLite and FTS5)]
+    Core --> Router[Local privacy and model router]
+    Router --> Local[Local Ollama]
+    Router -->|Eligible public context only; zero-dollar gate| Cloud[Optional model adapter]
+    Core --> Adapters[Typed integration adapters]
+    Core --> Policy[Permission and trusted approval boundary]
+    Policy --> Broker[Bounded Windows action broker]
+    Scheduler[Opt-in bounded scheduler] --> Core
+```
+
+**Offline meaning:** no internet can still permit local inference when laptop/Core are available.
+Laptop off or unreachable means no Core-backed generation, sync, actions or briefing; PWA provides
+only safe shell/recovery state. Choosing PWA does not make the phone an offline model host.
+
+**Extension rules:** native is deferred until an actual required OS capability and a passing
+dependency/build path justify it. Dedicated-server work is deferred until laptop-off availability
+is required and an authorized target exists. Any future move preserves one canonical state owner;
+device effects remain device-owned. Existing topology/migration code is reusable foundation, not
+proof that live server cutover is accepted. No network-shared SQLite file or automatic second writer.
+Vector storage, microservices and multi-Core replication need measured need and a separate decision.
+
+**Why retain this base:** repository already demonstrates real PWA/auth/Core/SQLite/Ollama
+streaming, owned recovery and a reproducible local profile. SQLite supports local application
+storage and serialized writes through an application server; model streaming is already available
+through Ollama. These support reuse; they do not prove arbitrary scale or always-on availability.
+Official references checked 2026-10-26: [SQLite deployment fit](https://www.sqlite.org/whentouse.html),
+[FastAPI process/memory concerns](https://fastapi.tiangolo.com/deployment/concepts/),
+[Ollama streaming](https://docs.ollama.com/api/streaming),
+[private Tailscale Serve](https://tailscale.com/docs/features/tailscale-serve).
+
+Current execution: [Phase Execution](PHASE_EXECUTION.md). Original prototype scope/receipt remains
+[historical evidence](PROTO_2_2_EVIDENCE.md). Physical phone checks remain **skipped by owner;
+unverified**; native/provider changes remain held. Planning grants no consequential-action authority.
+
+## Historical target architecture and technical contracts
+
 > Active delivery architecture (2026-10-22): [Prototype Plan](PROTOTYPE_PLAN.md).
 > One Windows Core, existing PWA, local Ollama and SQLite; no rewrite or service split.
 > This document preserves broader target design and dated phase contracts. Conceptual modules,

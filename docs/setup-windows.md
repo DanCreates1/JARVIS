@@ -1,5 +1,9 @@
 # Windows setup
 
+Current architecture/order: [Master Roadmap](JARVIS_MASTER_ROADMAP.md) and
+[core decision](JARVIS_ARCHITECTURE.md#current-core-decision--2026-10-26), laptop-first/PWA-first.
+Unqualified phase commands use [Phase Execution](PHASE_EXECUTION.md); old names below are legacy.
+
 For the active narrow text slice, use the [text prototype runbook](PROTOTYPE_TEXT_RUNBOOK.md)
 after locked setup. One launch: `rtk proxy .\scripts\open-local.cmd`; Chat/Settings and local
 Ollama only. Historical optional-feature setup below is not required for this profile.

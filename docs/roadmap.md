@@ -1,5 +1,11 @@
 # Roadmap
 
+> **Current management, 2026-10-26:** [Master Roadmap](JARVIS_MASTER_ROADMAP.md) owns the
+> flat numbered phase sequence; [Phase Execution](PHASE_EXECUTION.md) owns commands.
+> [Current core decision](JARVIS_ARCHITECTURE.md#current-core-decision--2026-10-26): laptop-first, PWA-first.
+> Phase IDs, status snapshots and next actions below are **historical aliases**. This notice
+> supersedes older active/canonical sequencing statements; technical contracts/evidence remain.
+
 > Superseded planning summary, retained for historical references. Active architecture, scope,
 > acceptance and next action live only in [PROTOTYPE_PLAN.md](PROTOTYPE_PLAN.md), 2026-10-22.
 > Do not use the older phase statuses or next-phase directions below as a prototype queue.

@@ -1,5 +1,11 @@
 # JARVIS Prototype Plan
 
+> **Historical plan, completed; current phase naming superseded 2026-10-26.**
+> [Master Roadmap](JARVIS_MASTER_ROADMAP.md) owns the single active sequence. PROTO-0 becomes
+> Phase 1; PROTO-1.1/1.2 become Phases 2/3; PROTO-2.1/2.2 become Phases 4/5.
+> Original labels, dates, rubric and evidence below remain historical aliases; no new PROTO phase.
+> [Current core decision](JARVIS_ARCHITECTURE.md#current-core-decision--2026-10-26) is laptop-first/PWA-first.
+
 Canonical delivery plan. Updated **2026-10-25**, Windows checkout; PROTO-1.1 base `4a2494f`.
 **Decision: one Windows Core, existing PWA, local Ollama, existing SQLite.**
 PROTO-0 audit/design, **PROTO-1.1 dependency/security baseline and PROTO-1.2 are complete**.
@@ -13,12 +19,12 @@ Root/sidecar audits pass; native manifests remain held. **PROTO-2.2 complete**;
 full mobile MVP, physical acceptance and production readiness remain unestablished.
 See [PROTO-1.1 evidence](PROTO_1_1_EVIDENCE.md) and historical [scope triage](PROTOTYPE_SCOPE_TRIAGE.md).
 
-This document alone sets prototype scope, sequence, acceptance and next action. Phase 0–11,
+This document records the completed prototype's original scope, sequence and acceptance. Legacy Phase 0–11,
 lettered A–M, native mobile and F11–F15 documents retain historical evidence and technical
-contracts; their next-phase directions and broader MVP checklists do not sequence prototype work.
+contracts; current work is sequenced only by the master roadmap, not by the historical directions here.
 Root [AGENTS.md](../AGENTS.md), security controls, the $0 limit and dependency publication holds
 remain authoritative. The numerical [playbook](CODEX_PHASE_PLAYBOOK.md) still governs an explicitly
-requested legacy phase. PROTO sections do not rename or close any legacy phase.
+requested legacy contract. Current aliases rename completed delivery receipts without closing failed legacy gates.
 
 ## Product and assumptions
 
