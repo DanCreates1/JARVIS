@@ -163,6 +163,49 @@ async def test_router_direct_command_and_tool_result_do_not_call_any_model() -> 
 
 
 @pytest.mark.asyncio
+async def test_text_generation_without_tool_advertising_keeps_direct_clock() -> None:
+    local = FakeModelProvider(
+        ModelRole.LOCAL, cloud=False, outcomes=[ProviderResponse(content="A short rewrite.")]
+    )
+    router = ModelRouter({ModelRole.LOCAL: local}, advertise_tools=False)
+    tools = [CurrentTimeTool().definition]
+    response = await router.chat(
+        messages=[user_message("Rewrite this text clearly: sample sentence.")], tools=tools
+    )
+    assert response.content == "A short rewrite."
+    assert local.tool_requests == [()]
+    response = await router.chat(messages=[user_message("What is the time?")], tools=tools)
+    assert response.tool_calls[0].name == "get_current_time"
+    assert len(local.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_routing_complexity_ignores_host_guidance_but_privacy_scans_all_context() -> None:
+    local = FakeModelProvider(
+        ModelRole.LOCAL,
+        cloud=False,
+        outcomes=[ProviderResponse(content="Simple answer."), ProviderResponse(content="Local.")],
+    )
+    router = ModelRouter({ModelRole.LOCAL: local})
+    system = Message(
+        conversation_id="conversation",
+        role=MessageRole.SYSTEM,
+        content="Live research is disabled. Follow the host plan.",
+        disclosure_sensitivity=SensitivityClass.PUBLIC,
+        disclosure_source="static-system-prompt",
+    )
+    await router.chat(messages=[system, user_message("Explain a rainbow.")], tools=[])
+    assert local.requests == ["none"]
+    private = system.model_copy(update={"content": "API key: synthetic-private-value"})
+    response = await router.chat(
+        messages=[private, user_message("Research public architecture options.")], tools=[]
+    )
+    assert response.routing is not None
+    assert response.routing.sensitivity is SensitivityClass.PRIVATE
+    assert local.requests == ["none", "none"]
+
+
+@pytest.mark.asyncio
 async def test_router_injects_exact_active_model_only_when_requested() -> None:
     local = FakeModelProvider(
         ModelRole.LOCAL,

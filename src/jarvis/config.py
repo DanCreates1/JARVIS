@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     ollama_context_tokens: int = Field(default=4_096, ge=512, le=262_144)
     ollama_max_output_tokens: int = Field(default=512, ge=1, le=32_768)
     ollama_keep_alive: str = Field(default="5m", min_length=1, max_length=32)
+    ollama_temperature: float | None = Field(default=None, ge=0, le=2)
     local_provider: Literal["ollama"] = "ollama"
     local_model: str | None = None
     fast_provider: Literal["groq"] = "groq"
@@ -340,6 +341,7 @@ class Settings(BaseSettings):
     def apply_runtime_profile(self) -> Settings:
         """Keep the opt-in text slice local even with older feature flags in dotenv."""
         if self.runtime_profile == "prototype-text":
+            self.ollama_temperature = 0
             self.cloud_policy = "local_only"
             self.local_model = self.ollama_model
             self.allow_remote_ollama = False

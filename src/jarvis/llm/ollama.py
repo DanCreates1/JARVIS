@@ -80,6 +80,7 @@ class OllamaChatProvider:
         context_tokens: int = 4_096,
         max_output_tokens: int = 512,
         keep_alive: str = "5m",
+        temperature: float | None = None,
         role: ModelRole = ModelRole.LOCAL,
         client: httpx.AsyncClient | None = None,
     ) -> None:
@@ -98,6 +99,8 @@ class OllamaChatProvider:
             raise ValueError("max_output_tokens must be positive")
         if not keep_alive.strip():
             raise ValueError("keep_alive must not be empty")
+        if temperature is not None and not 0 <= temperature <= 2:
+            raise ValueError("temperature must be between 0 and 2")
 
         self._base_url = normalized_base_url
         self._timeout_seconds = timeout_seconds
@@ -116,6 +119,7 @@ class OllamaChatProvider:
         self._context_tokens = context_tokens
         self._max_output_tokens = max_output_tokens
         self._keep_alive = keep_alive.strip()
+        self._temperature = temperature
         self._owns_client = client is None
         self._client = client or httpx.AsyncClient(timeout=timeout_seconds)
         self._closed = False
@@ -169,6 +173,10 @@ class OllamaChatProvider:
         }
         if tools:
             payload["tools"] = [_tool_payload(tool) for tool in tools]
+        if self._temperature is not None:
+            options = payload["options"]
+            assert isinstance(options, dict)
+            options["temperature"] = self._temperature
 
         if self._closed:
             raise RuntimeError("OllamaChatProvider is closed")

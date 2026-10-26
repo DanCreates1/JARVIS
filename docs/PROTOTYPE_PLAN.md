@@ -1,12 +1,14 @@
 # JARVIS Prototype Plan
 
-Canonical delivery plan. Updated **2026-10-22**, Windows checkout; PROTO-1.1 base `4a2494f`.
+Canonical delivery plan. Updated **2026-10-25**, Windows checkout; PROTO-1.1 base `4a2494f`.
 **Decision: one Windows Core, existing PWA, local Ollama, existing SQLite.**
 PROTO-0 audit/design, **PROTO-1.1 dependency/security baseline and PROTO-1.2 are complete**.
 First runnable local text slice: [launch/recovery](PROTOTYPE_TEXT_RUNBOOK.md) and
-[PROTO-1.2 evidence](PROTO_1_2_EVIDENCE.md). **PROTO-2 not started**. Next section:
-**PROTO-2.1 — integrated desktop PWA/Core/local-model acceptance**. Stop until requested.
-Root/sidecar audits pass after the bounded dependency updates; native manifests remain held.
+[PROTO-1.2 evidence](PROTO_1_2_EVIDENCE.md). **PROTO-2.1 complete**: repaired routing/profile
+configuration, selected installed `qwen3:1.7b`, and repeated **8/10** frozen-corpus usefulness with
+both mandatory safety cases passing. Real browser/Core/restart proof passes.
+[PROTO-2.1 evidence](PROTO_2_1_EVIDENCE.md) preserves initial failures and records current results.
+Root/sidecar audits pass; native manifests remain held. **PROTO-2.2 not started**.
 See [PROTO-1.1 evidence](PROTO_1_1_EVIDENCE.md) and historical [scope triage](PROTOTYPE_SCOPE_TRIAGE.md).
 
 This document alone sets prototype scope, sequence, acceptance and next action. Phase 0–11,
@@ -182,12 +184,13 @@ Changing-platform checks used in this decision, reviewed 2026-10-22:
 ## Acceptance and completion estimate
 
 Freeze these criteria before implementation. Full credit requires the stated evidence; narrower
-evidence is labeled. Eight groups currently pass their **automated** criterion;
-two remain open. No full local-model corpus or integrated-browser acceptance is inferred from smoke.
+evidence is labeled. All ten groups now have their required automated or real integrated evidence.
+Final acceptance receipt/recovery/publication closeout remains PROTO-2.2; full mobile MVP and
+physical acceptance remain incomplete.
 
 | ID | Required observable acceptance | Audit evidence / status | Credit |
 | --- | --- | --- | --- |
-| AC-01 | Reproducible locked Windows setup and current required quality, vulnerability, secret and whitespace gates pass | PROTO-1.1: root/sidecar locks, sync, audits, full quality/tests, parser regressions, secret/whitespace gates pass; [evidence and launcher limits](PROTO_1_1_EVIDENCE.md) | 1/1 |
+| AC-01 | Reproducible locked Windows setup and current required quality, vulnerability, secret and whitespace gates pass | 2026-10-25 regression repaired with filelock 4.2.1 / setuptools 84.1.0, reviewed floors and minimal lock update; current root/sidecar audits and quality gates pass. [Current evidence](PROTO_2_1_EVIDENCE.md) | 1/1 |
 | AC-02 | Automated auth matrix rejects wrong origin/scope, replay, CSRF, expired/revoked identity and cross-device access; Send waits for authenticated stream readiness | Current remote identity/browser/security/PWA tests and lifecycle harness pass | 1/1 |
 | AC-03 | Deterministic local clock path returns bounded correct host-time evidence without model/effect authority | Current clock/runtime/policy tests pass; real host display belongs to AC-09/10 | 1/1 |
 | AC-04 | Streaming/context contracts persist only validated final answers; private/uncertain input stays local, zero paid fallback, no mixed-provider reply | Current Ollama contract, routing/runtime/privacy and web tests pass with controlled fixtures | 1/1 |
@@ -195,12 +198,12 @@ two remain open. No full local-model corpus or integrated-browser acceptance is 
 | AC-06 | Cancel and immutable-ID retry settle without duplicate generation/message/effect; payload substitution is rejected | Current coordinator, web and delayed-response lifecycle tests pass | 1/1 |
 | AC-07 | Automated restart/offline/expiry/logout tests recover safely, discard stale responses and exclude API/private data from caches | Current lifecycle/store/auth/security tests pass; no physical-device claim | 1/1 |
 | AC-08 | Prototype opens on Chat with clear Settings/recovery; dormant features do not look required; keyboard, names, focus, text reflow and bounded rendering pass desktop automation | PROTO-1.2 text profile, Chat/Settings presentation, explicit unavailable-evidence state, existing 72-case desktop harness plus 9 profile checks and authenticated contract regression pass; [evidence](PROTO_1_2_EVIDENCE.md) | 1/1 |
-| AC-09 | Real configured local model meets the fixed usefulness/responsiveness corpus below on this Windows host | Ten-case corpus frozen; genuine C1/F1 and CLI technical smoke pass with installed qwen3:0.6b, with observed format/content misses; full rubric and warm/cold timing acceptance remain PROTO-2.1 | 0/1 |
-| AC-10 | Real PWA → auth → Core → SQLite → Ollama demonstration above is repeatable from documented startup and after disposable restart | Runbook, local real-model/Core/SQLite smoke and separate authenticated contract tests pass; integrated browser/model/restart proof remains PROTO-2.1 | 0/1 |
+| AC-09 | Real configured local model meets the fixed usefulness/responsiveness corpus below on this Windows host | Selected installed qwen3:1.7b with corrected routing, temperature 0 and text-only profile: 8/10 twice, mandatory A1/U1 pass, numeric timing targets pass. R1 tone and C1 checklist format still fail; no broad quality claim. [Evidence](PROTO_2_1_EVIDENCE.md) | 1/1 |
+| AC-10 | Real PWA → auth → Core → SQLite → Ollama demonstration above is repeatable from documented startup and after disposable restart | Real disposable HTTPS/browser/enrollment/SQLite/Ollama matrix passes with 1.7b; immutable retry, cancel, restart/history, offline/logout and foreign-device denial evidenced. Quality remains separate AC-09. [Evidence](PROTO_2_1_EVIDENCE.md) | 1/1 |
 
-**Estimated prototype readiness: 80% = 8 / 10 equally weighted acceptance groups.** This is an
-acceptance-ledger estimate, not 80% of coding time or a claim
-that prototype acceptance passed. Binary fully evidenced count is 8/10. Planning itself earns no
+**Estimated prototype acceptance readiness: 100% = 10 / 10 equally weighted acceptance groups.**
+This measures evidenced acceptance groups, not coding time or completed release closeout.
+PROTO-2.2 remains pending. Planning itself earns no
 product credit. Legacy 80–98% mobile feature estimates use different denominators and are not
 carried forward. App progress for this new scope uses this ledger only; full MVP/physical status
 remains incomplete. Update credit only with dated evidence for the corresponding group.
@@ -334,9 +337,15 @@ retain the requested scope; integrated AC-09/10 proof remains open.
 - **Owner actions:** none for isolated verification. New real desktop enrollment or changes to an
   existing private route require the exact prepared consequential approval only if actually needed.
 
-### PROTO-2 — prove usefulness and close prototype (not started)
+### PROTO-2 — prove usefulness and close prototype (in progress; PROTO-2.2 pending)
 
 #### PROTO-2.1 — integrated desktop PWA/Core/local-model acceptance
+
+**2026-10-25 resumed result:** integrated proof and repeated frozen corpus pass with installed
+`qwen3:1.7b`; launch profile selects that model with temperature 0. Current dependency audit
+regression is repaired. See [evidence](PROTO_2_1_EVIDENCE.md) for failures, fixes, final scoring,
+timings and remaining quality limits. PROTO-2.1 complete; PROTO-2.2 has not started. No new model
+download, cloud replacement, production enrollment, route change or physical acceptance.
 
 - **Outcome/value:** demonstrate the actual assistant, not just separate fixtures or installed code.
 - **Exact scope/likely files:** extend existing `scripts/pwa-accessibility-check.cjs` patterns via a
@@ -385,10 +394,11 @@ retain the requested scope; integrated AC-09/10 proof remains open.
 ### Critical path and gates
 
 **PROTO-0.1 → PROTO-0.2 → PROTO-1.1 → PROTO-1.2 → PROTO-2.1 → PROTO-2.2.**
-Audit/design and PROTO-1 finished. Remaining original effort ranges total **5–12 focused
-engineering hours** through PROTO-2.2; wall-clock duration depends on local model quality and
-integrated proof. First runnable narrow demo is evidenced by PROTO-1.2. Full corpus and
-integrated acceptance remain incomplete.
+Audit/design, PROTO-1 and PROTO-2.1 finished. Remaining original effort range is **2–5 focused
+engineering hours** for PROTO-2.2; wall-clock duration depends on final verification and closeout.
+First runnable narrow demo is evidenced by PROTO-1.2. PROTO-2.1 now supplies
+repeat model-quality/timing and integrated proof with a repaired current security baseline.
+Only PROTO-2.2 closeout remains; its original effort range is 2–5 focused engineering hours.
 Do not wait for NVIDIA, native M2C, M3C, IB email, server or phone gates.
 
 Use root [quality commands](../AGENTS.md#repository-quality-commands), RTK prefixes, locked
@@ -418,4 +428,5 @@ documents are already dirty, stage only this task's hunks; do not silently publi
    server/distributed topology and alternate deployments only after explicit reprioritization and
    their own security/authority/quality gates.
 
-No backlog item is authorized to start by this handoff. **Next action: request PROTO-2.1.**
+No backlog item is authorized to start by this handoff. **Next action: initiate PROTO-2.2;
+rehearse final startup/recovery and prepare the acceptance receipt and safe closeout.**

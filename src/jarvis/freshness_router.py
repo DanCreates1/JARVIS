@@ -35,7 +35,7 @@ _PERSONAL_DATA = _pattern(
 _MULTI_SOURCE_EXPLICIT = _pattern(
     r"\b(?:multiple|several|independent|different)\s+sources?\b|"
     r"\b(?:cross[- ]check|corroborate|triangulate|fact[- ]check)\b|"
-    r"\b(?:source consensus|consensus view|market consensus|reviews?|review roundup)\b|"
+    r"\b(?:source consensus|consensus view|market consensus|reviews|review roundup)\b|"
     r"\b(?:research|investigate)\b.{0,40}\b(?:options?|market|sources?|evidence)\b|"
     r"^(?:please\s+)?(?:research|investigate)\b"
 )

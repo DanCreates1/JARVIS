@@ -37,7 +37,7 @@ def ollama_stream(*frames: dict[str, object]) -> httpx.Response:
 
 @respx.mock
 async def test_stream_chat_yields_genuine_text_deltas_then_terminal_usage() -> None:
-    respx.post(f"{BASE_URL}/api/chat").mock(
+    route = respx.post(f"{BASE_URL}/api/chat").mock(
         return_value=ollama_stream(
             {"message": {"role": "assistant", "content": "Hel"}, "done": False},
             {
@@ -49,7 +49,7 @@ async def test_stream_chat_yields_genuine_text_deltas_then_terminal_usage() -> N
             },
         )
     )
-    provider = OllamaChatProvider(model="test-model")
+    provider = OllamaChatProvider(model="test-model", temperature=0)
 
     frames = [
         frame
@@ -65,6 +65,7 @@ async def test_stream_chat_yields_genuine_text_deltas_then_terminal_usage() -> N
     assert frames[-1].response.usage is not None
     assert frames[-1].response.usage.output_tokens == 2
     assert frames[-1].response.usage.latency_ms == 12
+    assert json.loads(route.calls[0].request.content)["options"]["temperature"] == 0
     await provider.close()
 
 

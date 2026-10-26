@@ -34,6 +34,12 @@ from jarvis.freshness_router import DeterministicFreshnessRouter
         ("Recommend the best laptop for development.", FreshnessRoute.MULTI_SOURCE),
         ("Compare current insurance plans.", FreshnessRoute.MULTI_SOURCE),
         ("Show reviews for this hotel.", FreshnessRoute.MULTI_SOURCE),
+        ("Give a hotel review roundup.", FreshnessRoute.MULTI_SOURCE),
+        ("Review this supplied sentence for grammar: The cat sleep.", FreshnessRoute.STATIC),
+        (
+            "Turn these requirements into a checklist: draft a plan; review a budget; file notes.",
+            FreshnessRoute.STATIC,
+        ),
         ("Research quantum computing.", FreshnessRoute.MULTI_SOURCE),
     ),
 )

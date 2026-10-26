@@ -83,6 +83,7 @@ async def test_build_runtime_composes_and_closes_adapters(
         "context_tokens": 4_096,
         "max_output_tokens": 512,
         "keep_alive": "5m",
+        "temperature": None,
     }
     assert components.service.kwargs["tools"] == (clock,)
     assert components.tool_registry is not None

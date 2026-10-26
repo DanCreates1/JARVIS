@@ -168,6 +168,7 @@ class ModelRouter:
         max_cloud_cost_usd: float = 0,
         health: ProviderHealthTracker | None = None,
         latency_budgets: LatencyBudgets | None = None,
+        advertise_tools: bool = True,
     ) -> None:
         if max_cloud_cost_usd != 0:
             raise ValueError("Phase 1 requires max_cloud_cost_usd to equal 0")
@@ -178,6 +179,7 @@ class ModelRouter:
         self.max_cloud_cost_usd = max_cloud_cost_usd
         self.health = health or ProviderHealthTracker()
         self.latency_budgets = latency_budgets or LatencyBudgets()
+        self.advertise_tools = advertise_tools
 
     async def chat(
         self,
@@ -239,10 +241,9 @@ class ModelRouter:
             )
             return
 
-        disclosure_text = "\n".join(_message_disclosure_text(message) for message in messages)
         forced_sensitivity = _messages_sensitivity(messages, self.policy.gate)
         decision = self.policy.decide(
-            disclosure_text,
+            latest_user,
             requested_role=requested_role,
             requested_reasoning=reasoning_level,
             forced_sensitivity=forced_sensitivity,
@@ -275,7 +276,7 @@ class ModelRouter:
                     provider_stream = provider.stream_chat(
                         messages=provider_messages,
                         tools=_tools_for_provider(
-                            tools,
+                            tools if self.advertise_tools else (),
                             is_cloud=provider.profile.is_cloud,
                             query=latest_user,
                         ),

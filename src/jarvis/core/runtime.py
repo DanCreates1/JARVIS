@@ -527,17 +527,30 @@ class AssistantService:
                     tool_iterations=tool_iterations,
                 )
 
-            events.add(
-                RuntimeEventType.PROVIDER_REQUESTED,
-                conversation_id=conversation.id,
-                detail=f"Sent {len(context)} messages to the chat provider.",
+            live_evidence_unavailable = (
+                freshness_decision is not None
+                and freshness_decision.requires_live_evidence
+                and self.automatic_research is None
             )
+            if not live_evidence_unavailable:
+                events.add(
+                    RuntimeEventType.PROVIDER_REQUESTED,
+                    conversation_id=conversation.id,
+                    detail=f"Sent {len(context)} messages to the chat provider.",
+                )
             try:
                 response: ProviderResponse | None = None
                 latency_class = request.latency_class
                 if latency_class is None and request.metadata.get("interface") == "voice":
                     latency_class = LatencyClass.NORMAL_VOICE
-                if isinstance(self.provider, RoutedStreamingChatProvider):
+                if live_evidence_unavailable:
+                    # No model can verify current facts without a live evidence source.
+                    # Settle through the normal validated persistence/receipt path.
+                    response = ProviderResponse(
+                        content="Current evidence is unavailable; live research is disabled."
+                    )
+                    provider_stream = None
+                elif isinstance(self.provider, RoutedStreamingChatProvider):
                     provider_stream = self.provider.stream_chat_routed(
                         messages=context,
                         tools=self.tool_definitions,
@@ -584,7 +597,7 @@ class AssistantService:
                             response = ProviderResponse.model_validate(provider_frame.response)
                     if response is None:
                         raise _InvalidProviderStream("provider stream omitted terminal response")
-                elif isinstance(self.provider, RoutedChatProvider):
+                elif response is None and isinstance(self.provider, RoutedChatProvider):
                     response = ProviderResponse.model_validate(
                         await self.provider.chat_routed(
                             messages=context,
@@ -594,7 +607,7 @@ class AssistantService:
                             latency_class=latency_class,
                         )
                     )
-                else:
+                elif response is None:
                     response = ProviderResponse.model_validate(
                         await self.provider.chat(
                             messages=context,

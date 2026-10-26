@@ -150,10 +150,10 @@ async def test_current_context_is_injected_but_never_persisted() -> None:
 
 
 @pytest.mark.asyncio
-async def test_freshness_route_is_emitted_and_injected_before_provider_generation() -> None:
+async def test_disabled_research_settles_without_model_claims() -> None:
     router = DeterministicFreshnessRouter()
     service, provider, store, _tool, _policy = make_service(
-        [ProviderResponse(content="I need current cited evidence to answer that.")],
+        [ProviderResponse(content="The latest verified version is invented.")],
         freshness_router=router,
     )
 
@@ -167,19 +167,9 @@ async def test_freshness_route_is_emitted_and_injected_before_provider_generatio
         route=FreshnessRoute.WEB_REQUIRED,
         reason="The answer depends on volatile external information.",
     )
-    assert [event.type for event in result.events].index(RuntimeEventType.FRESHNESS_CLASSIFIED) < [
-        event.type for event in result.events
-    ].index(RuntimeEventType.PROVIDER_REQUESTED)
-    request_messages = provider.requests[0].messages
-    assert [message.role for message in request_messages] == [
-        MessageRole.SYSTEM,
-        MessageRole.SYSTEM,
-        MessageRole.USER,
-    ]
-    assert request_messages[0].context_source == "local-freshness-router"
-    assert "Route: web_required" in request_messages[0].content
-    assert "LIVE RESEARCH UNAVAILABLE" in request_messages[1].content
-    assert "do not give an asserted current fact" in request_messages[1].content
+    assert not provider.requests
+    assert RuntimeEventType.PROVIDER_REQUESTED not in [event.type for event in result.events]
+    assert result.reply == ("Current evidence is unavailable; live research is disabled.")
     assert RuntimeEventType.RESEARCH_UNAVAILABLE in [event.type for event in result.events]
     assert [message.role for message in store.messages[result.conversation_id]] == [
         MessageRole.USER,

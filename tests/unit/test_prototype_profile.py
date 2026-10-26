@@ -1,9 +1,12 @@
 """The text profile cannot inherit active optional integrations from dotenv."""
 
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
+from jarvis.bootstrap import build_runtime
 from jarvis.config import Settings
 from jarvis.web import create_app
 
@@ -32,9 +35,11 @@ def test_text_profile_overrides_existing_feature_flags(monkeypatch: pytest.Monke
         runtime_profile="prototype-text",
         local_model="old-model",
         ollama_model="qwen3:0.6b",
+        ollama_temperature=1.2,
     )
     assert settings.cloud_policy == "local_only"
     assert settings.local_model == "qwen3:0.6b"
+    assert settings.ollama_temperature == 0
     assert not settings.cloud_enabled
     assert all(getattr(settings, flag) is False for flag in flags)
     assert settings.web_host == "127.0.0.1"
@@ -66,3 +71,13 @@ def test_standard_profile_retains_historical_research() -> None:
     settings = Settings(_env_file=None, runtime_profile="standard", research_enabled=True)
     assert settings.research_enabled
     assert settings.cloud_policy == "privacy_aware"
+
+
+@pytest.mark.asyncio
+async def test_text_runtime_exposes_only_clock_and_never_model_file_tools(tmp_path: Path) -> None:
+    async with await build_runtime(
+        Settings(_env_file=None, data_dir=tmp_path, runtime_profile="prototype-text")
+    ) as runtime:
+        assert set(runtime.service.tools) == {"get_current_time"}
+        assert not runtime.provider.advertise_tools
+        assert runtime.research is None

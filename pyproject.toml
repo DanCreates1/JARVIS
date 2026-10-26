@@ -48,8 +48,11 @@ dev = [
   "pytest-cov>=6,<8",
   "respx>=0.22,<1",
   "ruff>=0.8,<1",
-  "setuptools>=83,<85",
+  "setuptools>=84.1,<85",
 ]
+
+[tool.uv]
+constraint-dependencies = ["filelock>=4.2.1"]
 
 [tool.hatch.build]
 include = [

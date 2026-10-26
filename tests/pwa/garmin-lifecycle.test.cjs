@@ -231,7 +231,12 @@ function harness(records = new Map(), hash = "") {
   const setIdentity = (value) => { records.set("device", value); };
   const holdMarkerCommit = () => { const control = {}; nextMarkerCommit = control; return control; };
   const waitForRequests = async (count) => {
-    for (let turn = 0; turn < 50 && requests.length < count; turn++) await Promise.resolve();
+    for (let turn = 0; turn < 50 && requests.length < count; turn++) {
+      await Promise.resolve();
+      // Existing transport scenarios advance the successful-poll pacing clock.
+      const pacing = timers.find(item => item.active && item.delay === 500);
+      if (pacing) { pacing.active = false; pacing.callback(); }
+    }
     assert.equal(requests.length, count);
   };
   const runTimer = (predicate) => {
@@ -758,6 +763,20 @@ test("late chat response body or error cannot restore conversation after logout"
     assert.equal(h.run("state.conversation"), null);
     h.respond(h.requests[1], { revoked: true });
   }
+});
+
+test("successful stream polls are paced and logout wakes pacing without a stale request", async () => {
+  const h = harness(); await h.ready; streamSession(h);
+  const stream = h.run("streamLoop()");
+  respondStream(h, h.requests[0]);
+  await flush();
+  assert.equal(h.requests.length, 1, "Fast token batches cannot start a tight polling loop");
+  h.runTimer(delay => delay === 500);
+  await h.waitForRequests(2);
+  respondStream(h, h.requests[1]); await flush();
+  await h.run("logout()"); await stream;
+  assert.equal(h.requests.length, 3, "Logout wakes pacing and only sends revocation");
+  h.respond(h.requests[2], { revoked: true });
 });
 
 test("late stream body cannot restore cursor, conversation or log after logout", async () => {
