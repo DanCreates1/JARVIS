@@ -1,6 +1,6 @@
 # Text prototype: one Windows Core
 
-PROTO-2.1 profile, **2026-10-25**. Primary client: authenticated `/app/`; local CLI and
+PROTO-2.2 profile/recovery rehearsal, **2026-10-25**. Primary client: authenticated `/app/`; local CLI and
 loopback `/` are operator fallbacks. Canonical scope: [Prototype Plan](PROTOTYPE_PLAN.md).
 Requires the locked setup in [Windows setup](setup-windows.md), existing Ollama, and the
 already-installed `qwen3:1.7b`. No new model download or account is required.
@@ -114,3 +114,18 @@ ignored `runtime/proto21/`; no owner database, production enrollment or route ch
 
 Manual phone checks remain **skipped by owner; unverified**. This is neither physical acceptance,
 full mobile MVP completion, nor production readiness.
+
+## Acceptance receipt and known limits
+
+[PROTO-2.2 receipt](PROTO_2_2_EVIDENCE.md) records exact launcher doctor/chat/foreground startup,
+disposable restart with saved messages, and repeated authenticated browser/Core/SQLite/Ollama
+recovery. Repeat `prototype-acceptance.py --live` only against its disposable fixtures; it must
+never copy owner state or reset a real store. Synthetic fixture enrollment is not production
+enrollment authority. Use existing backup/recovery contracts for real data; this rehearsal does
+not validate restoration of the owner's database.
+
+Selected installed `qwen3:1.7b`, Ollama 0.40.8 and temperature 0 repeat **8/10** on the unchanged
+ten-case corpus. Polite rewrite tone and one three-item checklist format still fail. Current-fact
+verification remains unavailable with research disabled. Readiness identifies configuration,
+not general model competence. No cloud fallback, automatic model download, integration activation,
+deployment or next phase follows from this receipt.

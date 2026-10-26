@@ -4,6 +4,11 @@ For the active narrow text slice, use the [text prototype runbook](PROTOTYPE_TEX
 after locked setup. One launch: `rtk proxy .\scripts\open-local.cmd`; Chat/Settings and local
 Ollama only. Historical optional-feature setup below is not required for this profile.
 
+Selected installed model: **qwen3:1.7b**, prototype temperature **0**. Final startup/recovery
+and exact tested versions: [PROTO-2.2 acceptance receipt](PROTO_2_2_EVIDENCE.md).
+Use the existing approved private HTTPS origin for authenticated `/app/`; no new route or
+enrollment is part of setup. Runtime data and credentials stay outside Git.
+
 ## Supported baseline
 
 - Windows 10 or Windows 11

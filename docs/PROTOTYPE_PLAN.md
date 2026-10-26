@@ -8,7 +8,9 @@ First runnable local text slice: [launch/recovery](PROTOTYPE_TEXT_RUNBOOK.md) an
 configuration, selected installed `qwen3:1.7b`, and repeated **8/10** frozen-corpus usefulness with
 both mandatory safety cases passing. Real browser/Core/restart proof passes.
 [PROTO-2.1 evidence](PROTO_2_1_EVIDENCE.md) preserves initial failures and records current results.
-Root/sidecar audits pass; native manifests remain held. **PROTO-2.2 not started**.
+Root/sidecar audits pass; native manifests remain held. **PROTO-2.2 complete**;
+[startup/recovery and acceptance receipt](PROTO_2_2_EVIDENCE.md). **Working prototype complete**;
+full mobile MVP, physical acceptance and production readiness remain unestablished.
 See [PROTO-1.1 evidence](PROTO_1_1_EVIDENCE.md) and historical [scope triage](PROTOTYPE_SCOPE_TRIAGE.md).
 
 This document alone sets prototype scope, sequence, acceptance and next action. Phase 0–11,
@@ -185,8 +187,9 @@ Changing-platform checks used in this decision, reviewed 2026-10-22:
 
 Freeze these criteria before implementation. Full credit requires the stated evidence; narrower
 evidence is labeled. All ten groups now have their required automated or real integrated evidence.
-Final acceptance receipt/recovery/publication closeout remains PROTO-2.2; full mobile MVP and
-physical acceptance remain incomplete.
+Final acceptance/startup/recovery closeout is recorded in [PROTO-2.2](PROTO_2_2_EVIDENCE.md);
+exact publication hash and fresh CI are verified after committing the receipt. Full mobile MVP
+and physical acceptance remain incomplete.
 
 | ID | Required observable acceptance | Audit evidence / status | Credit |
 | --- | --- | --- | --- |
@@ -202,8 +205,8 @@ physical acceptance remain incomplete.
 | AC-10 | Real PWA → auth → Core → SQLite → Ollama demonstration above is repeatable from documented startup and after disposable restart | Real disposable HTTPS/browser/enrollment/SQLite/Ollama matrix passes with 1.7b; immutable retry, cancel, restart/history, offline/logout and foreign-device denial evidenced. Quality remains separate AC-09. [Evidence](PROTO_2_1_EVIDENCE.md) | 1/1 |
 
 **Estimated prototype acceptance readiness: 100% = 10 / 10 equally weighted acceptance groups.**
-This measures evidenced acceptance groups, not coding time or completed release closeout.
-PROTO-2.2 remains pending. Planning itself earns no
+This measures evidenced acceptance groups, not coding time or full mobile MVP completion.
+PROTO-2.2 closes the bounded working prototype. Planning itself earns no
 product credit. Legacy 80–98% mobile feature estimates use different denominators and are not
 carried forward. App progress for this new scope uses this ledger only; full MVP/physical status
 remains incomplete. Update credit only with dated evidence for the corresponding group.
@@ -337,15 +340,15 @@ retain the requested scope; integrated AC-09/10 proof remains open.
 - **Owner actions:** none for isolated verification. New real desktop enrollment or changes to an
   existing private route require the exact prepared consequential approval only if actually needed.
 
-### PROTO-2 — prove usefulness and close prototype (in progress; PROTO-2.2 pending)
+### PROTO-2 — prove usefulness and close prototype (complete, 2026-10-25)
 
 #### PROTO-2.1 — integrated desktop PWA/Core/local-model acceptance
 
 **2026-10-25 resumed result:** integrated proof and repeated frozen corpus pass with installed
 `qwen3:1.7b`; launch profile selects that model with temperature 0. Current dependency audit
 regression is repaired. See [evidence](PROTO_2_1_EVIDENCE.md) for failures, fixes, final scoring,
-timings and remaining quality limits. PROTO-2.1 complete; PROTO-2.2 has not started. No new model
-download, cloud replacement, production enrollment, route change or physical acceptance.
+timings and remaining quality limits. PROTO-2.1 complete; subsequent PROTO-2.2 closeout is below.
+No new model download, cloud replacement, production enrollment, route change or physical acceptance.
 
 - **Outcome/value:** demonstrate the actual assistant, not just separate fixtures or installed code.
 - **Exact scope/likely files:** extend existing `scripts/pwa-accessibility-check.cjs` patterns via a
@@ -373,7 +376,14 @@ download, cloud replacement, production enrollment, route change or physical acc
 - **Owner actions:** none for synthetic fixtures. Reusing an existing authorized production desktop
   identity is optional; a new real identity requires approval, never a physical-phone prerequisite.
 
-#### PROTO-2.2 — acceptance receipt, recovery and safe publication
+#### PROTO-2.2 — acceptance receipt, recovery and safe publication (complete, 2026-10-25)
+
+**2026-10-25:** exact launcher doctor/chat/startup and disposable restart pass. Clean-source real
+PWA/Core/SQLite/Ollama recovery matrix passes; frozen usefulness repeats 8/10 with mandatory A1/U1.
+[Acceptance receipt](PROTO_2_2_EVIDENCE.md) records versions, measurements, limits and passing final
+gates in working and isolated publication trees. Only the **working prototype** closes here.
+Exact publication hash/remote agreement and fresh CI are checked after committing the receipt;
+baseline CI is not substituted. Native/provider holds remain; no deployment or next phase.
 
 - **Outcome/value:** owner/new chat can reproduce the working prototype and distinguish its limits.
 - **Exact scope/likely files:** this acceptance ledger, setup quick-start, relevant focused evidence
@@ -394,11 +404,10 @@ download, cloud replacement, production enrollment, route change or physical acc
 ### Critical path and gates
 
 **PROTO-0.1 → PROTO-0.2 → PROTO-1.1 → PROTO-1.2 → PROTO-2.1 → PROTO-2.2.**
-Audit/design, PROTO-1 and PROTO-2.1 finished. Remaining original effort range is **2–5 focused
-engineering hours** for PROTO-2.2; wall-clock duration depends on final verification and closeout.
-First runnable narrow demo is evidenced by PROTO-1.2. PROTO-2.1 now supplies
-repeat model-quality/timing and integrated proof with a repaired current security baseline.
-Only PROTO-2.2 closeout remains; its original effort range is 2–5 focused engineering hours.
+Audit/design, PROTO-1 and PROTO-2 complete. First runnable narrow demo is evidenced by PROTO-1.2;
+PROTO-2.1 supplies repeated model-quality/timing and integrated proof with a repaired security
+baseline. PROTO-2.2 supplies exact startup, disposable recovery, final gates and acceptance receipt.
+No remaining prototype implementation section or later phase is queued.
 Do not wait for NVIDIA, native M2C, M3C, IB email, server or phone gates.
 
 Use root [quality commands](../AGENTS.md#repository-quality-commands), RTK prefixes, locked
@@ -428,5 +437,4 @@ documents are already dirty, stage only this task's hunks; do not silently publi
    server/distributed topology and alternate deployments only after explicit reprioritization and
    their own security/authority/quality gates.
 
-No backlog item is authorized to start by this handoff. **Next action: initiate PROTO-2.2;
-rehearse final startup/recovery and prepare the acceptance receipt and safe closeout.**
+No backlog item is authorized to start by this handoff. **Next chat: No phase queued.**

@@ -10,9 +10,12 @@ Garmin, native mobile, voice and advanced autonomy are outside the first demonst
 unverified live behavior. **PROTO-1.1 complete**; [dependency/security evidence](docs/PROTO_1_1_EVIDENCE.md).
 **PROTO-1.2 complete**; [text launch/recovery](docs/PROTOTYPE_TEXT_RUNBOOK.md) and
 [local smoke evidence](docs/PROTO_1_2_EVIDENCE.md). **PROTO-2.1 complete**;
-[integrated evidence](docs/PROTO_2_1_EVIDENCE.md). Next: **PROTO-2.2**, not started.
-Prototype acceptance readiness **100% (10/10 evidenced groups)**; release closeout remains pending.
-Installed `qwen3:1.7b` scores 8/10 twice on the frozen corpus. Root/sidecar audits pass; native
+[integrated evidence](docs/PROTO_2_1_EVIDENCE.md). **PROTO-2.2 complete**;
+[acceptance receipt and recovery rehearsal](docs/PROTO_2_2_EVIDENCE.md).
+**Working prototype complete: 100% (10/10 acceptance groups)**. Full mobile MVP, physical acceptance
+and production readiness remain unestablished. No phase queued; held native/provider work stays held.
+Installed `qwen3:1.7b` repeats 8/10 on the frozen corpus; polite tone and one checklist format
+remain limited. Root/sidecar audits pass; native
 manifests remain held. No physical/MVP completion claim. Manual phone checks: **skipped by owner;
 unverified**.
 
