@@ -33,11 +33,11 @@ from jarvis.web import create_app
 ROOT = Path(__file__).resolve().parents[1]
 
 
-async def serve(directory: Path, port: int, model: str) -> None:
+async def serve(directory: Path, port: int, model: str, profile: str = "prototype-text") -> None:
     settings = Settings(
         _env_file=None,
         data_dir=directory / "core",
-        runtime_profile="prototype-text",
+        runtime_profile=profile,  # type: ignore[arg-type]
         ollama_base_url="http://127.0.0.1:11434",
         ollama_model=model,
         trusted_browser_origins=(f"https://127.0.0.1:{port}",),
@@ -115,6 +115,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--live", action="store_true")
     parser.add_argument("--model", default="qwen3:1.7b")
+    parser.add_argument(
+        "--profile", choices=("prototype-text", "daily-text"), default="prototype-text"
+    )
     parser.add_argument("--serve", type=Path)
     parser.add_argument("--port", type=int)
     args = parser.parse_args()
@@ -123,7 +126,7 @@ def main() -> None:
         if key.upper().startswith("JARVIS_") or key.upper() == "NVIDIA_API_KEY":
             del os.environ[key]
     if args.serve:
-        asyncio.run(serve(args.serve, args.port, args.model))
+        asyncio.run(serve(args.serve, args.port, args.model, args.profile))
         return
     if not args.live:
         parser.error("real local inference requires --live; no download or cloud fallback")
@@ -188,12 +191,17 @@ def main() -> None:
         }:
             cases.append({"id": cells[1], "prompt": cells[2], "rubric": cells[3]})
     assert len(cases) == 10
+    if args.profile == "daily-text":
+        frozen = json.loads((ROOT / "docs/PHASE_7_CORPUS.json").read_text(encoding="utf-8"))
+        assert len(frozen["cases"]) == 40
+        cases.extend(frozen["cases"])
     config = {
         "directory": str(directory),
         "python": sys.executable,
         "port": port,
         "spki": spki,
         "model": model,
+        "profile": args.profile,
         "ollama": version,
         "resident_before": resident,
         "cases": cases,

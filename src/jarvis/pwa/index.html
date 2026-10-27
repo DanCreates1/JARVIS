@@ -9,7 +9,7 @@
   <link rel="manifest" href="/app/manifest.webmanifest">
   <link rel="icon" href="/app/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app/app.css">
-  <script src="/app/app.js?v=14" type="module"></script>
+  <script src="/app/app.js?v=15" type="module"></script>
 </head>
 <body data-profile="standard">
   <header>
@@ -94,8 +94,8 @@
         <button id="cancel-chat" type="button" class="secondary" disabled>Cancel reply</button>
         <button id="retry-chat" type="button" class="secondary" hidden disabled>Retry request</button>
       </div>
-      <p class="hint">Use Settings to connect your existing device. Offline messages are never queued.</p>
-      <p class="hint prototype-only">Text prototype: local answers, saved conversations and host clock. Live web evidence is unavailable; current external facts cannot be verified here.</p>
+      <p class="hint">Use Settings to connect your existing device. Offline messages are never queued. Cancel reply stops the current request. Retry request checks the original receipt after a lost connection; review history before sending a new message.</p>
+      <p class="hint prototype-only">Text assistant: explanations, rewrites, summaries and checklists from supplied text; saved conversations and host clock. Live web evidence is unavailable. Files, health, email, calendar and computer actions are unavailable in this profile.</p>
     </section>
 
     <section id="task-panel" class="panel" aria-labelledby="tasks-title">
@@ -172,7 +172,7 @@
       <button id="logout" type="button" class="danger" disabled>Logout and erase this device</button>
     </section>
     <section class="panel prototype-only" aria-labelledby="recovery-title">
-      <h3 id="recovery-title">Text prototype recovery</h3>
+      <h3 id="recovery-title">Text assistant recovery</h3>
       <p>Core unreachable: start the documented text profile on your laptop. Network offline: restore the private connection, then Connect existing device. Messages are never queued.</p>
       <p>Local model unavailable: on the laptop, check Ollama is running and <code>ollama list</code> contains the configured model. Start the installed Ollama app, then retry a new turn after checking the prior request status. Do not download a model or change providers automatically.</p>
       <p>Access denied or expired: Connect existing device. If rejected, use approved trusted-host recovery; changing the URL or enabling Send cannot grant access.</p>

@@ -568,8 +568,10 @@ def create_app(
     @app.get("/app/", include_in_schema=False)
     async def pwa_index() -> HTMLResponse:
         content = (_PWA_ROOT / "index.html").read_text(encoding="utf-8")
-        if configured.runtime_profile == "prototype-text":
-            content = content.replace('data-profile="standard"', 'data-profile="prototype-text"')
+        if configured.runtime_profile in {"prototype-text", "daily-text"}:
+            content = content.replace(
+                'data-profile="standard"', f'data-profile="{configured.runtime_profile}"'
+            )
         return HTMLResponse(content)
 
     @app.get("/app/app.css", include_in_schema=False)

@@ -13,6 +13,11 @@ and exact tested versions: [PROTO-2.2 acceptance receipt](PROTO_2_2_EVIDENCE.md)
 Use the existing approved private HTTPS origin for authenticated `/app/`; no new route or
 enrollment is part of setup. Runtime data and credentials stay outside Git.
 
+Explicit daily text: [capability/startup contract](DAILY_TEXT.md),
+`rtk proxy .\scripts\open-daily.cmd`. Uses the same installed model with bounded non-thinking
+generation and per-request format guidance. `open-local.cmd` preserves the original prototype.
+Stop an existing Core normally before another writer; no store replacement or new route.
+
 ## Supported baseline
 
 - Windows 10 or Windows 11

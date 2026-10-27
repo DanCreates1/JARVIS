@@ -315,7 +315,7 @@ def _bootstrap(
     return str(response.json()["csrf_token"])
 
 
-@pytest.mark.parametrize("profile", ["standard", "prototype-text"])
+@pytest.mark.parametrize("profile", ["standard", "prototype-text", "daily-text"])
 def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(
     tmp_path: Path, profile: str
 ) -> None:
@@ -349,9 +349,9 @@ def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(
         assert "indexedDB" in script.text and '"JARVIS_LOGOUT"' in script.text
         assert 'headers["X-Jarvis-Browser-Origin"]=window.location.origin' in script.text
         assert "SHELL.includes(shellKey)" in worker.text and "cache.put" in worker.text
-        assert 'const CACHE="jarvis-shell-v14"' in worker.text
+        assert 'const CACHE="jarvis-shell-v15"' in worker.text
         assert "self.skipWaiting()" in worker.text
-        assert "/app/app.js?v=14" in shell.text and "/app/sw.js?v=14" in script.text
+        assert "/app/app.js?v=15" in shell.text and "/app/sw.js?v=15" in script.text
         assert "ui.logout.disabled=!state.hasIdentity" in script.text
         assert manifest.json()["start_url"] == "/app/"
         asset_bytes = sum(
@@ -389,7 +389,7 @@ def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(
             "profile": profile,
             "provider": "ollama",
             "model": "qwen3:0.6b",
-            "cloud_policy": "local_only" if profile == "prototype-text" else "privacy_aware",
+            "cloud_policy": "privacy_aware" if profile == "standard" else "local_only",
         }
         assert status.json()["device"]["id"] == created["device_id"]
         assert status.json()["protocol_version"] == "1"

@@ -76,6 +76,27 @@ def test_prompt_text_cannot_downgrade_evidence_or_privacy_route() -> None:
     )
 
 
+def test_closed_world_text_question_does_not_invent_live_research_need() -> None:
+    router = DeterministicFreshnessRouter()
+    assert (
+        router.classify(
+            "Answer using only this note: Seats cost 9 credits. What is the price?"
+        ).route
+        is FreshnessRoute.STATIC
+    )
+    assert (
+        router.classify("Answer using only this note: What is in my private email?").route
+        is FreshnessRoute.PERSONAL_DATA_REQUIRED
+    )
+    assert router.classify("What is the current ticket price?").route is FreshnessRoute.WEB_REQUIRED
+    decision = router.classify("Answer using only the quoted passage: The fare is absent.")
+    assert "Use only the supplied text" in router.project(decision).content
+    assert (
+        router.classify("Answer using only the current online weather forecast.").route
+        is FreshnessRoute.WEB_REQUIRED
+    )
+
+
 def test_normalization_is_unicode_and_whitespace_stable() -> None:
     router = DeterministicFreshnessRouter()
 

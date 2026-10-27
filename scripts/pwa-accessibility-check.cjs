@@ -17,7 +17,8 @@ const profile = fs.mkdtempSync(path.join(outputDir, "edge-profile-"));
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json" };
 const allowed = new Set(["index.html", "app.js", "app.css", "sw.js", "pcm-worklet.js", "manifest.webmanifest", "icon.svg"]);
 const apiRequests = [];
-const textPrototype = process.env.PWA_TEST_PROFILE === "prototype-text";
+const textProfile = process.env.PWA_TEST_PROFILE;
+const textPrototype = ["prototype-text", "daily-text"].includes(textProfile);
 const server = http.createServer((request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");
   if (url.pathname.startsWith("/api/")) apiRequests.push({ method: request.method, path: url.pathname });
@@ -33,7 +34,7 @@ const server = http.createServer((request, response) => {
     response.writeHead(404); response.end(); return;
   }
   let content = fs.readFileSync(path.join(assets, file));
-  if (file === "index.html" && textPrototype) content = Buffer.from(content.toString("utf8").replace('data-profile="standard"', 'data-profile="prototype-text"'));
+  if (file === "index.html" && textPrototype) content = Buffer.from(content.toString("utf8").replace('data-profile="standard"', `data-profile="${textProfile}"`));
   if (file === "app.js") content = Buffer.from(content.toString("utf8").replace('catch{if(state.voice===op)discardVoice("Microphone unavailable', 'catch(error){globalThis.voiceTestError=String(error);if(state.voice===op)discardVoice("Microphone unavailable') + "\nglobalThis.pwaTest={row,processEvent,logout,setConnected,renderGarmin,state,selectView,navigation,updateControls,selectAttachments,clearAttachments,searchHistory,clearSearch,loadTask,loadLibrary,chooseConversation,renderReply,formatReply,loadAttachmentMetadata,renderAttachmentMetadata,refreshTasks,loadTaskTimeline,renderTaskTimeline};\n");
   response.writeHead(200, { "Content-Type": types[path.extname(file)], "Cache-Control": "no-store" });
   response.end(content);
@@ -102,8 +103,8 @@ async function main() {
     assert.ok(ax.nodes.some(node => node.role?.value === "log" && node.name?.value === "Conversation"));
     assert.equal(apiRequests.length, 0, "navigation makes no health, task, capture, cloud or research request");
     output.cases = ["Chat/Settings only", "dormant controls hidden", "Garmin deep link normalized", "Settings focus and keyboard", "specific recovery", "Send retains readiness gate", "320/1280 reflow", "named conversation log", "zero optional navigation requests"];
-    fs.writeFileSync(path.join(outputDir, "prototype-text-desktop.json"), JSON.stringify(output, null, 2));
-    console.log(JSON.stringify({ profile: "prototype-text", cases: output.cases.length, passed: true }));
+    fs.writeFileSync(path.join(outputDir, `${textProfile}-desktop.json`), JSON.stringify(output, null, 2));
+    console.log(JSON.stringify({ profile: textProfile, cases: output.cases.length, passed: true }));
     return;
   }
   const viewState = () => evaluate(`({view:pwaTest.navigation.view,title:document.title,focus:document.activeElement.id,visible:[...document.querySelectorAll('.view')].filter(e=>e.getClientRects().length).map(e=>e.id),current:[...document.querySelectorAll('nav [aria-current=page]')].map(e=>e.id),connectionVisible:Boolean(document.querySelector('#connection').getClientRects().length)})`);

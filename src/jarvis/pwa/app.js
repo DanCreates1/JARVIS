@@ -1,5 +1,5 @@
 const API="/api/v1";
-const PROTOTYPE=document.body?.dataset?.profile==="prototype-text";
+const PROTOTYPE=["prototype-text","daily-text"].includes(document.body?.dataset?.profile);
 const DB_NAME="jarvis-private-client";
 const STORE="identity";
 const SCOPES=["browser.session","identity.read","events.read","session.revoke","client.chat","client.tasks.read","client.status.read"];
@@ -332,10 +332,16 @@ function applyChatResult(result,{silent=false}={}){
   const completed=result.status==="completed";
   if(result.status==="failed"&&!ui.message.value){const draft=state.chatDrafts.get(id)||(state.pendingRequest?.request_id===id?state.pendingRequest.payload?.message:null);if(draft){ui.message.value=draft;state.composerRevision++;}}
   if(silent&&completed&&result.reply===undefined&&state.pendingRequest?.request_id===id&&!ui.log.querySelector(`[data-request="${CSS.escape(id)}"]`))return;
-  const message=completed?"Reply complete.":result.status==="cancelled"?"Request cancelled.":result.status==="interrupted"?"Reply interrupted. Original request will not run again. Review history before sending a new message.":result.error?.code==="upload_unavailable"?"Attachment upload expired or unavailable. Select files again, then Send a new message.":result.error?.code==="attachment_processing_failed"?"Attachment processing failed. Check file format and host attachment readiness; draft kept.":attachmentRecovery(result.error?.code)||"Request failed safely.";
+  const message=completed?"Reply complete.":result.status==="cancelled"?"Request cancelled.":result.status==="interrupted"?"Reply interrupted. Original request will not run again. Review history before sending a new message.":result.error?.code==="upload_unavailable"?"Attachment upload expired or unavailable. Select files again, then Send a new message.":result.error?.code==="attachment_processing_failed"?"Attachment processing failed. Check file format and host attachment readiness; draft kept.":attachmentRecovery(result.error?.code)||modelRecovery(result.error?.code)||"Request failed safely.";
   if(!silent&&!state.chatAnnounced.has(id))row(completed?"jarvis":"meta",completed?`JARVIS: ${result.reply||"Completed"}${result.reply_truncated?"\n[Reply excerpt. Review Core history.]":""}`:message,id);
   if(silent){if(completed&&typeof result.reply==="string")row("jarvis",`JARVIS: ${result.reply}${result.reply_truncated?"\n[Reply excerpt. Review Core history.]":""}`,id,true);state.chatActive.delete(id);state.chatAnnounced.set(id,completed);if(completed&&state.chatDrafts.has(id)&&ui.message.value.trim()===state.chatDrafts.get(id))ui.message.value="";state.chatDrafts.delete(id);if(state.pendingRequest?.request_id===id){state.pendingRequest=null;writeChatMarker(null).catch(()=>{});}updateControls();}
   else completeReply(id,completed?`${message} ${result.reply||""}`:message,completed);
+}
+function modelRecovery(code){
+  if(code==="provider_error")return "Model unavailable or request rejected. Check the configured model on your laptop, then review history before sending a new message. No automatic provider change.";
+  if(code==="invalid_provider_response")return "Model returned an invalid reply. Review history before sending a new message; no automatic retry.";
+  if(code==="request_timeout")return "Reply timed out. Review the original request and history before sending a new message; no automatic retry.";
+  return null;
 }
 async function checkPendingRequest({silent=false}={}){
   const pending=state.pendingRequest;if(!pending)return;
@@ -467,7 +473,7 @@ async function connect(){
   }finally{if(state.connecting===generation)state.connecting=false;updateControls();}
   if(current())startStreamOwnership();
 }
-async function refreshStatus(){const generation=state.sessionGeneration,csrf=state.csrf,status=await (await api("/client/status")).json();if(!currentSession(generation,csrf))return;state.attachmentsAllowed=!PROTOTYPE&&status.attachments?.available===true;state.voiceReady=!PROTOTYPE&&status.voice?.available===true;state.voiceMax=Math.min(30000,Math.max(120,status.voice?.max_duration_ms||30000));updateVoiceControls();ui.device.replaceChildren();const entries=[["Name",status.device.display_name],["State",status.device.state],["Key version",status.device.key_version],["Session",status.session.id]];if(status.assistant?.profile==="prototype-text")entries.push(["Assistant",`${status.assistant.provider} · ${status.assistant.model} · ${status.assistant.cloud_policy}`]);for(const [name,value] of entries){const wrap=document.createElement("div"),dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=name;dd.textContent=String(value);wrap.append(dt,dd);ui.device.append(wrap);}}
+async function refreshStatus(){const generation=state.sessionGeneration,csrf=state.csrf,status=await (await api("/client/status")).json();if(!currentSession(generation,csrf))return;state.attachmentsAllowed=!PROTOTYPE&&status.attachments?.available===true;state.voiceReady=!PROTOTYPE&&status.voice?.available===true;state.voiceMax=Math.min(30000,Math.max(120,status.voice?.max_duration_ms||30000));updateVoiceControls();ui.device.replaceChildren();const entries=[["Name",status.device.display_name],["State",status.device.state],["Key version",status.device.key_version],["Session",status.session.id]];if(["prototype-text","daily-text"].includes(status.assistant?.profile))entries.push(["Assistant",`${status.assistant.provider} · ${status.assistant.model} · ${status.assistant.cloud_policy}`]);for(const [name,value] of entries){const wrap=document.createElement("div"),dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=name;dd.textContent=String(value);wrap.append(dt,dd);ui.device.append(wrap);}}
 async function refreshTasks({more=false,offset:requestedOffset=null}={}){
   if(PROTOTYPE)return;
   if(state.tasksBusy||!state.csrf)return;
@@ -806,7 +812,8 @@ function renderLibrary(page){
 }
 function cancelLibrary(){state.libraryRead?.abort.abort();state.libraryRead=null;if(state.libraryPage)ui.libraryState.textContent="Shown library may be stale. Refresh library before editing.";}
 function attachmentRecovery(code){
-  return ({storage_quota:"Core attachment capacity reached. Wait for retention expiry or ask trusted host to review storage. Draft kept.",attachment_unavailable:"Selected attachment expired or unavailable. Refresh attachment status, review selection, then Send a new request. Draft kept.",processing_interrupted:"Core processing interrupted. No automatic retry. Select original file again after reviewing status. Draft kept.",processing_timeout:"Parser timed out. Choose a smaller supported file and Send a new request. Draft kept.",attachments_disabled:"Attachments unavailable on Core. Ask trusted host to check existing configuration. Draft kept.",processing_rejected:"Parser rejected file. Choose a readable TXT/MD, text PDF or supported PNG/JPEG. No automatic reprocessing.",processing_cancelled:"Processing cancelled. Select original file again only when ready to Send."})[code]||"";
+  const messages={storage_quota:"Core attachment capacity reached. Wait for retention expiry or ask trusted host to review storage. Draft kept.",attachment_unavailable:"Selected attachment expired or unavailable. Refresh attachment status, review selection, then Send a new request. Draft kept.",processing_interrupted:"Core processing interrupted. No automatic retry. Select original file again after reviewing status. Draft kept.",processing_timeout:"Parser timed out. Choose a smaller supported file and Send a new request. Draft kept.",attachments_disabled:"Attachments unavailable on Core. Ask trusted host to check existing configuration. Draft kept.",processing_rejected:"Parser rejected file. Choose a readable TXT/MD, text PDF or supported PNG/JPEG. No automatic reprocessing.",processing_cancelled:"Processing cancelled. Select original file again only when ready to Send."};
+  return Object.hasOwn(messages,code)?messages[code]:"";
 }
 function cancelAttachmentRead(){state.attachmentRead?.abort.abort();state.attachmentRead=null;clearTimeout(state.attachmentTimer);state.attachmentTimer=null;if(state.attachmentPage)ui.conversationAttachmentsState.textContent="Displayed attachment status may be stale. Refresh after reconnecting.";}
 function clearAttachmentMetadata(){cancelAttachmentRead();state.attachmentPage=null;state.attachmentOffset=0;state.reuseSelected.clear();ui.conversationAttachments.replaceChildren();ui.conversationAttachmentsState.textContent="Open a saved conversation to inspect attachments.";ui.attachmentsNext.hidden=ui.attachmentsPrevious.hidden=true;}
@@ -1048,6 +1055,6 @@ window.addEventListener("online",()=>{
 });
 window.addEventListener("pageshow",()=>{renderGarminStatus();if(state.csrf&&state.subscription&&!state.connecting){if(state.streamOwner)state.streamOwner.tasksPending=true;state.streamAbort?.abort();setConnected(false,"Checking live connection");startStreamOwnership();}});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderGarminStatus();if(state.csrf&&state.subscription&&!state.connecting){if(state.streamOwner)state.streamOwner.tasksPending=true;state.streamAbort?.abort();setConnected(false,"Checking live connection");startStreamOwnership();}}});
-if("serviceWorker" in navigator)navigator.serviceWorker.register("/app/sw.js?v=14",{scope:"/app/"}).catch(()=>announce("Offline shell unavailable"));
+if("serviceWorker" in navigator)navigator.serviceWorker.register("/app/sw.js?v=15",{scope:"/app/"}).catch(()=>announce("Offline shell unavailable"));
 const initialGeneration=state.sessionGeneration;
 loadIdentity().then(identity=>{if(state.sessionGeneration!==initialGeneration)return;state.hasIdentity=Boolean(identity);updateControls();if(identity){ui.accessStatus.textContent="Enrolled key found. Connect existing device to start a fresh session.";announce(ui.accessStatus.textContent);}}).catch(()=>{if(state.sessionGeneration===initialGeneration)announce("Device storage unavailable");});

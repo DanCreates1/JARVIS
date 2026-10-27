@@ -15,7 +15,7 @@ const save = () => fs.writeFileSync(path.join(dir, "browser-results.json"), JSON
 const providerCalls = () => {try{return fs.readFileSync(path.join(dir,'provider-calls.jsonl'),'utf8').trim().split('\n').filter(Boolean).length;}catch{return 0;}};
 const log = fs.openSync(path.join(dir, "core.log"), "a");
 async function startCore() {
-  core = spawn(config.python, ["scripts/prototype-acceptance.py", "--serve", dir, "--port", String(config.port), "--model", config.model.name], {windowsHide:true, stdio:["ignore", log, log]});
+  core = spawn(config.python, ["scripts/prototype-acceptance.py", "--serve", dir, "--port", String(config.port), "--model", config.model.name, "--profile", config.profile||"prototype-text"], {windowsHide:true, stdio:["ignore", log, log]});
   for (let i=0;i<200;i++) {
     if(core.exitCode!==null)throw Error("Synthetic Core exited; inspect ignored core.log");
     const ready=spawnSync(config.python,["-c",`import socket; s=socket.create_connection(('127.0.0.1',${config.port}),.1); s.close()`],{windowsHide:true,stdio:"ignore"});
@@ -84,13 +84,13 @@ async function main(){
   await fresh();await send(config.cases[0].prompt,"cold-E1");
   const conversations={};
   for(const item of config.cases){
-    if(item.id==='F1'||item.id==='F2'){
-      const cid=conversations[item.id==='F1'?'C1':'R2'];
+    if(item.parent||item.id==='F1'||item.id==='F2'){
+      const cid=conversations[item.parent||(item.id==='F1'?'C1':'R2')];
       await evaluate(`chooseConversation(${JSON.stringify(cid)})`);await ready();
     }else await fresh();
     const result=await send(item.prompt,item.id);conversations[item.id]=result.conversation;
   }
-  report.checks.push("ten frozen corpus prompts through real PWA");save();
+  report.checks.push(`${config.cases.length} frozen corpus prompts through real PWA`);save();
   await fresh();
   const streamed=await send('Give exactly 20 numbered synthetic desk labels, each containing three words. Do not perform any actions. Use under 150 words.','stream-demo');
   report.streaming_passed=Boolean(streamed.completed&&streamed.visible_changes>=2&&!streamed.reply.includes('The current time'));

@@ -1,5 +1,8 @@
 # Text prototype: one Windows Core
 
+For the explicit daily text candidate, use [daily capability/startup contract](DAILY_TEXT.md).
+This original prototype launcher and prompt remain the accepted regression baseline.
+
 PROTO-2.2 profile/recovery rehearsal, **2026-10-25**. Primary client: authenticated `/app/`; local CLI and
 loopback `/` are operator fallbacks. Canonical scope: [Prototype Plan](PROTOTYPE_PLAN.md).
 Requires the locked setup in [Windows setup](setup-windows.md), existing Ollama, and the

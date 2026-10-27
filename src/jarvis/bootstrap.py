@@ -88,6 +88,7 @@ from jarvis.research import (
 )
 from jarvis.security import phase_one_policy
 from jarvis.security.computer_policy import ComputerProposalPolicy
+from jarvis.text_policy import DAILY_TEXT_PROMPT, text_response_guidance
 from jarvis.tools import CurrentTimeTool, UnifiedToolRegistry, phase_one_tools
 
 SYSTEM_PROMPT = """\
@@ -342,8 +343,10 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
         privacy_gate = PrivacyGate()
         provider = ModelRouter(
             providers,
-            advertise_tools=settings.runtime_profile != "prototype-text",
-            policy=RoutingPolicy(privacy_gate),
+            advertise_tools=settings.runtime_profile == "standard",
+            policy=RoutingPolicy(
+                privacy_gate, local_text_only=settings.runtime_profile == "daily-text"
+            ),
             max_cloud_cost_usd=settings.max_cloud_cost_usd,
             health=ProviderHealthTracker(
                 window_size=settings.provider_health_window_size,
@@ -399,7 +402,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
         registered_tools: tuple[Tool, ...] = phase_one_tools(
             allowed_file_roots=(settings.data_dir,)
         )
-        if settings.runtime_profile == "prototype-text":
+        if settings.runtime_profile in {"prototype-text", "daily-text"}:
             # Keep the deterministic clock path; text generation needs no tool schemas.
             registered_tools = (CurrentTimeTool(),)
         tool_policy: ToolPolicy = phase_one_policy()
@@ -422,11 +425,20 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
             tools=registered_tools,
             policy=tool_policy,
             system_prompt=(
-                SYSTEM_PROMPT + "\n" + TEXT_PROFILE_PROMPT
-                if settings.runtime_profile == "prototype-text"
+                SYSTEM_PROMPT
+                + "\n"
+                + (
+                    DAILY_TEXT_PROMPT
+                    if settings.runtime_profile == "daily-text"
+                    else TEXT_PROFILE_PROMPT
+                )
+                if settings.runtime_profile in {"prototype-text", "daily-text"}
                 else SYSTEM_PROMPT
             ),
             context_message_limit=settings.context_message_limit,
+            response_guidance=(
+                text_response_guidance if settings.runtime_profile == "daily-text" else None
+            ),
             context_recent_message_limit=settings.context_recent_message_limit,
             context_summary_max_chars=settings.context_summary_max_chars,
             max_tool_iterations=settings.max_tool_iterations,

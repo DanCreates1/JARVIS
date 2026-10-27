@@ -105,8 +105,9 @@ class PrivacyGate:
 
 
 class RoutingPolicy:
-    def __init__(self, gate: PrivacyGate | None = None) -> None:
+    def __init__(self, gate: PrivacyGate | None = None, *, local_text_only: bool = False) -> None:
         self.gate = gate or PrivacyGate()
+        self.local_text_only = local_text_only
 
     def decide(
         self,
@@ -118,7 +119,11 @@ class RoutingPolicy:
         latency_class: LatencyClass | None = None,
     ) -> RoutingDecision:
         sensitivity = forced_sensitivity or self.gate.classify(text)
-        if sensitivity is not SensitivityClass.PUBLIC:
+        if self.local_text_only:
+            role = ModelRole.LOCAL
+            level = ReasoningLevel.NONE
+            reason = "Explicit local text profile uses bounded non-thinking generation."
+        elif sensitivity is not SensitivityClass.PUBLIC:
             role = ModelRole.LOCAL
             level = ReasoningLevel.NONE
             reason = "Sensitive or uncertain content must remain local."
@@ -152,7 +157,9 @@ class RoutingPolicy:
             reason=reason,
             sensitivity=sensitivity,
             reasoning_level=level,
-            fallback_chain=_fallback_chain(role, sensitivity=sensitivity),
+            fallback_chain=()
+            if self.local_text_only
+            else _fallback_chain(role, sensitivity=sensitivity),
             requested_role=requested_role,
         )
 

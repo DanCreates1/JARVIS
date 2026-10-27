@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Iterable, Mapping, Sequence
+from collections.abc import AsyncIterator, Callable, Iterable, Mapping, Sequence
 from contextlib import suppress
 
 from pydantic import JsonValue, ValidationError
@@ -113,6 +113,7 @@ class AssistantService:
         tools: Iterable[Tool],
         policy: ToolPolicy,
         system_prompt: str = "",
+        response_guidance: Callable[[str], str] | None = None,
         context_message_limit: int = 20,
         context_recent_message_limit: int | None = None,
         context_summary_max_chars: int = 2_000,
@@ -161,6 +162,7 @@ class AssistantService:
             definition.name: definition for definition in self.tool_definitions
         }
         self.system_prompt = system_prompt.strip()
+        self.response_guidance = response_guidance
         self.context_message_limit = context_message_limit
         self.context_recent_message_limit = effective_recent_limit
         self.context_summary_max_chars = context_summary_max_chars
@@ -1229,6 +1231,15 @@ class AssistantService:
             disclosure_sensitivity=SensitivityClass.PUBLIC,
             disclosure_source="static-system-prompt",
         )
+        if self.response_guidance:
+            guidance = Message(
+                conversation_id=conversation.id,
+                role=MessageRole.SYSTEM,
+                content=self.response_guidance(request.user_input),
+                disclosure_sensitivity=SensitivityClass.PUBLIC,
+                disclosure_source="static-text-response-guidance",
+            )
+            return (system, *dynamic_context, *recent[:-1], guidance, *recent[-1:])
         return (system, *dynamic_context, *recent)
 
     async def _persist(

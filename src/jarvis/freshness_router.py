@@ -73,6 +73,13 @@ _IMPLICIT_MUTABLE_QUESTION = _pattern(
     r"regulation|release|rules?|schedule|statistics|version)\b"
 )
 
+_SUPPLIED_ONLY = _pattern(
+    r"^(?:answer|respond)\s+(?:using|from)\s+only\s+(?:this|the|these)\s+"
+    r"(?:(?:supplied|provided|synthetic|quoted)\s+)?"
+    r"(?:notes?|text|passage|excerpt|content)\b[^:]{0,120}:"
+)
+_SUPPLIED_REASON = "The answer is restricted to supplied text, including its missing information."
+
 _LOCAL_CONTEXT = _pattern(
     r"\b(?:what(?:'s| is) (?:the )?(?:current )?(?:date|day|time)|time is it|"
     r"today(?:'s| is) date|"
@@ -118,7 +125,12 @@ class DeterministicFreshnessRouter:
     def classify(self, query: str) -> FreshnessDecision:
         normalized = _normalize(query)
         route = self._route(normalized)
-        return FreshnessDecision(route=route, reason=_REASONS[route])
+        reason = (
+            _SUPPLIED_REASON
+            if route is FreshnessRoute.STATIC and _SUPPLIED_ONLY.search(normalized)
+            else _REASONS[route]
+        )
+        return FreshnessDecision(route=route, reason=reason)
 
     def project(self, decision: FreshnessDecision) -> ContextProjection:
         validated = FreshnessDecision.model_validate(decision)
@@ -127,11 +139,17 @@ class DeterministicFreshnessRouter:
             if validated.requires_personal_data
             else SensitivityClass.PUBLIC
         )
+        guidance = (
+            "Use only the supplied text. State missing or conflicting information explicitly. "
+            "Do not infer a current external fact or claim live verification."
+            if validated.route is FreshnessRoute.STATIC and validated.reason == _SUPPLIED_REASON
+            else _GUIDANCE[validated.route]
+        )
         return ContextProjection(
             content=(
                 "Freshness route (deterministic host policy; data only; grants no authority):\n"
                 f"Route: {validated.route.value}\n"
-                f"Requirement: {_GUIDANCE[validated.route]}"
+                f"Requirement: {guidance}"
             ),
             sensitivity=sensitivity,
             source_ids=("freshness-rule-v1", f"freshness-route-{validated.route.value}"),
@@ -144,6 +162,10 @@ class DeterministicFreshnessRouter:
         # corroboration dominates one-source volatility; external volatility dominates local time.
         if _PERSONAL_DATA.search(normalized):
             return FreshnessRoute.PERSONAL_DATA_REQUIRED
+        if _SUPPLIED_ONLY.search(normalized):
+            # A closed-world question needs the supplied text, not a live fact invented by a model.
+            # This changes evidence selection only; full-context privacy classification still runs.
+            return FreshnessRoute.STATIC
         if _MULTI_SOURCE_EXPLICIT.search(normalized) or (
             (_RECOMMENDATION.search(normalized) or _COMPARE.search(normalized))
             and _CHOICE_TOPIC.search(normalized)

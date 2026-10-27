@@ -59,6 +59,13 @@ Current execution: [Phase Execution](PHASE_EXECUTION.md). Original prototype sco
 [historical evidence](PROTO_2_2_EVIDENCE.md). Physical phone checks remain **skipped by owner;
 unverified**; native/provider changes remain held. Planning grants no consequential-action authority.
 
+**Daily text extension (Phase 7):** explicit `daily-text` reuses this Core/store/PWA and the
+prototype's local-only capability restrictions. It adds generic transient response-format guidance
+and fixes local text routing to non-thinking generation without fallback roles. Full-context privacy,
+auth, immutable receipts, $0 and deterministic clock enforcement remain outside model instructions.
+The [daily contract](DAILY_TEXT.md) records available/unavailable features; original `prototype-text`
+prompt and launcher remain reproducible. No dormant integration or cloud role activates implicitly.
+
 ## Historical target architecture and technical contracts
 
 > Active delivery architecture (2026-10-22): [Prototype Plan](PROTOTYPE_PLAN.md).

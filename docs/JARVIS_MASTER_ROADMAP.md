@@ -33,7 +33,7 @@ integrations globally or creating another runtime. This plan itself enables no f
   can contain substantial old code while its current product acceptance is still `not-started`.
 - Delivery follows numeric priority, subject only to actual listed dependencies. A blocked
   integration is not a prerequisite for unrelated work. No later phase starts without a request
-  covering it; this planning session does not execute Phase 7.
+  covering it; a planning row or handoff grants no execution authority.
 - Full release gates, privacy/auth/approval controls, the native publication hold and owner-skipped
   phone policy apply throughout. No planning row grants credential, health, enrollment, device,
   deployment, signing, spend or external-message authority.
@@ -53,7 +53,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [4](#phase-4--integrated-text-acceptance) | Integrated text acceptance | complete | 3 | Historical PROTO-2.1; bounded corpus 8/10 |
 | [5](#phase-5--prototype-recovery-and-receipt) | Prototype recovery and receipt | complete | 4 | Historical PROTO-2.2, published `466a409` |
 | [6](#phase-6--architecture-and-managed-roadmap) | Architecture and managed roadmap | complete | 5 | Owner choices, flat ledger, command/report migration and gates evidenced |
-| [7](#phase-7--text-quality-and-daily-use-polish) | Text quality and daily-use polish | not-started | 6 | Next; fix two known failures and expand useful-task evaluation |
+| [7](#phase-7--text-quality-and-daily-use-polish) | Text quality and daily-use polish | complete | 6 | Explicit daily text; 10/10 original, 37/40 + 37/40 + 36/40 expanded; all safety and release gates |
 | [8](#phase-8--private-garmin-workspace) | Private Garmin workspace | not-started | 7 | Protected Core session + read-only PWA foundation; health access remains separate |
 | [9](#phase-9--files-and-attachments) | Files and attachments | not-started | 7 | Legacy G/F14/F15 foundations; bounded product acceptance |
 | [10](#phase-10--inspectable-memory-and-project-context) | Inspectable memory and project context | not-started | 7 | Legacy memory/F continuity; safe owner-facing lifecycle |
@@ -72,7 +72,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [23](#phase-23--wearables-and-additional-devices) | Wearables and additional devices | deferred | Supported vendor path + device/scopes authority | Generic legacy wearable boundary; adapter/device acceptance absent |
 | [24](#phase-24--restricted-maintenance-assistance) | Restricted maintenance assistance | deferred | 14, 17, 19 + explicit narrow use case | Proposal-only isolated assistance; no self-authorized production changes |
 
-**Progress basis:** **6/19 primary phase receipts closed (~32%)**. This is an unweighted management
+**Progress basis:** **7/19 primary phase receipts closed (~37%)**. This is an unweighted management
 count, not percentage of code written, elapsed effort or mobile MVP acceptance.
 Existing foundations reduce future work but earn no new phase closure without current evidence.
 Prototype acceptance remains **100% = 10/10 groups** under its original scope. Full mobile MVP,
@@ -143,6 +143,11 @@ complete gates. Keep `prototype-text` baseline reproducible; explicit capability
 later feature activation. No automatic larger-model download, provider replacement or integration.
 Read: [corpus](PROTOTYPE_CORPUS.md), [Phase 4 source evidence](PROTO_2_1_EVIDENCE.md),
 [Phase 5 source receipt](PROTO_2_2_EVIDENCE.md), [text runbook](PROTOTYPE_TEXT_RUNBOOK.md).
+
+Status: **complete**, 2026-10-26. [Completion evidence](phase-reports/current/PHASE_7_COMPLETION.md),
+[daily capability contract](DAILY_TEXT.md), [expanded frozen corpus](PHASE_7_CORPUS.json).
+Three final runs meet unchanged thresholds; sorting/conversion/explanation failures stay visible.
+Original prototype prompt/launcher and historical 8/10 evidence remain intact. No later feature is enabled.
 
 ### Phase 8 — Private Garmin workspace
 
@@ -371,7 +376,7 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 
 ## Next action
 
-**Next: Initiate Phase 7 — Text quality and daily-use polish.** Phase 6 consolidation is complete.
-Read this roadmap and [Phase Execution](PHASE_EXECUTION.md). Preserve held native/provider changes,
-the accepted prototype baseline, existing failed legacy gates and skipped/unverified phone status.
-No feature phase starts in this consolidation session.
+**Next: Initiate Phase 8 — Private Garmin workspace.** Phase 7 text qualification is complete.
+Read this roadmap, [Phase Execution](PHASE_EXECUTION.md) and Phase 8 references before implementation.
+Preserve held native/provider changes, the accepted prototype baseline, existing failed legacy gates
+and skipped/unverified phone status. Phase 7 grants no new health scope, login or integration activation.

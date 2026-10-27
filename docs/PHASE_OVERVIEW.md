@@ -16,10 +16,12 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
 
 - **Phases 1–5 complete:** mapped PROTO audit, security baseline, runnable text, integrated
   acceptance and recovery/receipt. Original evidence and scope limits remain unchanged.
-- **Phase 6 complete:** architecture and flat roadmap consolidation; next feature work not started.
-- **Next: Phase 7 — Text quality and daily-use polish.** Fix polite-tone/checklist-format failures
-  and freeze expanded evaluation before tuning. Read the master's Phase 7 definition first.
-- Progress basis: **6/19 primary phase receipts closed (~32%)**; an
+- **Phase 6 complete:** architecture and flat roadmap consolidation.
+- **Phase 7 complete — Text quality and daily-use polish.** Explicit daily text profile;
+  repeated 10/10 original and 37/40, 37/40, 36/40 expanded, every safety case passing.
+  [Completion evidence](phase-reports/current/PHASE_7_COMPLETION.md) retains failures and limits.
+- **Next: Phase 8 — Private Garmin workspace.** No integration activation follows automatically.
+- Progress basis: **7/19 primary phase receipts closed (~37%)**; an
   unweighted management count, not code/effort percentage or full mobile MVP acceptance.
 - Historical prototype acceptance stays **100% = 10/10 groups**, corpus **8/10**. Full mobile MVP,
   physical acceptance and production readiness remain unestablished.

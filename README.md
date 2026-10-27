@@ -9,14 +9,16 @@ Laptop must remain on/reachable. Private/uncertain content stays local; optional
 privacy-gated at **$0**. Native/server work remains deferred; held native/provider edits stay held.
 
 Historical PROTO work maps to completed **Phases 1–5**. **Phase 6 complete**: architecture and
-planning consolidated. Next implementation: **Phase 7 — Text quality and daily-use polish**, not started here.
+planning consolidated. **Phase 7 — Text quality and daily-use polish** is complete;
+[daily text contract](docs/DAILY_TEXT.md) defines the explicit opt-in capability slice.
 Use [Phase Execution](docs/PHASE_EXECUTION.md), [overview](docs/PHASE_OVERVIEW.md) and current
 reports under `docs/phase-reports/current/`. Avoid subphases; old numerical/lettered/mobile/F-series
 IDs are explicit legacy aliases. The [old prototype plan](docs/PROTOTYPE_PLAN.md) and
 [acceptance receipt](docs/PROTO_2_2_EVIDENCE.md) retain their original evidence.
 
 Prototype acceptance remains **100% (10/10 groups)**; installed `qwen3:1.7b` scores **8/10**.
-Polite rewrite tone and one checklist format remain Phase 7 work. This is not full mobile MVP,
+These limitations remain historical prototype evidence; daily text has separate Phase 7 qualification.
+Next: **Phase 8 — Private Garmin workspace**. This is not full mobile MVP,
 physical acceptance or production readiness. Manual phone checks: **skipped by owner; unverified**.
 The capability catalog and dated records below are historical implementation references;
 their phase numbers and next actions do not override the current master roadmap.
@@ -26,6 +28,9 @@ their phase numbers and next actions do not override the current master roadmap.
 Text prototype launch and recovery: [one Windows profile](docs/PROTOTYPE_TEXT_RUNBOOK.md).
 Run `rtk proxy .\scripts\open-local.cmd` from this checkout. Uses existing local Ollama and
 authenticated PWA; no Garmin, native build, cloud provider or microphone required.
+
+Daily text launch: `rtk proxy .\scripts\open-daily.cmd`. Same installed `qwen3:1.7b`, local-only
+boundaries and PWA; separate generic quality guidance. Original prototype prompt stays unchanged.
 
 JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–8, Phases 9A–9C, and Phase 11 implement a
 local deterministic privacy gate, configurable NVIDIA/Groq/Gemini/Ollama roles,

@@ -1168,6 +1168,17 @@ test("completed answer announced once; delta, failed and cancelled behavior expl
   event("chat.cancelled", {}, "cancelled-reply"); assert.equal(h.get("#chat-status").textContent, "Request cancelled.");
 });
 
+test("model failures expose bounded recovery without leaking provider text or retrying", async () => {
+  const h = harness(); await h.ready;
+  for(const [code, expected] of [["provider_error",/Model unavailable/],["invalid_provider_response",/invalid reply/],["request_timeout",/timed out/],["__proto__",/Request failed safely/]]){
+    h.context.failure={request_id:`failure:${code}`,status:"failed",error:{code,message:"PRIVATE PROVIDER BODY"}};
+    h.run("state.chatActive.add(failure.request_id);applyChatResult(failure)");
+    assert.match(h.get("#chat-status").textContent,expected);
+    assert.equal(h.get("#chat-status").textContent.includes("PRIVATE PROVIDER BODY"),false);
+  }
+  assert.equal(h.requests.length,0);
+});
+
 test("failed send keeps draft and repeated submit cannot duplicate in-flight request", async () => {
   const h = harness(); await h.ready; h.activate(); h.run("state.subscription='synthetic-subscription'");
   h.get("#message").value = "Synthetic draft";
