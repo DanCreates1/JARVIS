@@ -18,6 +18,11 @@ Explicit daily text: [capability/startup contract](DAILY_TEXT.md),
 generation and per-request format guidance. `open-local.cmd` preserves the original prototype.
 Stop an existing Core normally before another writer; no store replacement or new route.
 
+Explicit private Garmin: [capability/startup/recovery contract](PRIVATE_GARMIN.md),
+`rtk proxy .\scripts\open-garmin.cmd`. Reuses protected saved session and daily local text;
+existing health scope required, explicit Refresh Garmin only. No reimport, new login/MFA,
+enrollment or route change. Original prototype/daily launchers remain text only.
+
 ## Supported baseline
 
 - Windows 10 or Windows 11

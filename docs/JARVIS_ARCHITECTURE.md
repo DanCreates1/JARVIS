@@ -66,6 +66,13 @@ auth, immutable receipts, $0 and deterministic clock enforcement remain outside 
 The [daily contract](DAILY_TEXT.md) records available/unavailable features; original `prototype-text`
 prompt and launcher remain reproducible. No dormant integration or cloud role activates implicitly.
 
+**Private Garmin extension (Phase 8):** explicit `private-garmin` extends daily local text with
+the existing read-only health view. Six normalized bridge reads stay outside conversation/model
+context; exact owner/device/session health scope remains mandatory. Protected session stays on
+Windows; immutable health cache is process memory only, output is bounded during transport, and
+failed refresh cannot resurrect an old server success. No background polling or startup login/
+import. [Capability and recovery](PRIVATE_GARMIN.md). Text-only profiles deny the health endpoint.
+
 ## Historical target architecture and technical contracts
 
 > Active delivery architecture (2026-10-22): [Prototype Plan](PROTOTYPE_PLAN.md).

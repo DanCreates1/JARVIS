@@ -18,10 +18,17 @@ const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/cs
 const allowed = new Set(["index.html", "app.js", "app.css", "sw.js", "pcm-worklet.js", "manifest.webmanifest", "icon.svg"]);
 const apiRequests = [];
 const textProfile = process.env.PWA_TEST_PROFILE;
-const textPrototype = ["prototype-text", "daily-text"].includes(textProfile);
+const privateGarmin = textProfile === "private-garmin";
+const textPrototype = ["prototype-text", "daily-text", "private-garmin"].includes(textProfile);
 const server = http.createServer((request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");
   if (url.pathname.startsWith("/api/")) apiRequests.push({ method: request.method, path: url.pathname });
+  if(url.pathname === "/api/v1/client/garmin" && request.method === "GET") {
+    assert.equal(request.headers["x-jarvis-browser-origin"], `http://127.0.0.1:${server.address().port}`);
+    const now=new Date(),day=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+    response.writeHead(200,{"Content-Type":"application/json","Cache-Control":"no-store"});
+    response.end(JSON.stringify({date:day,refreshed_at:now.toISOString(),steps:123456,resting_heart_rate:57,sleep_minutes:null,stress:24,body_battery:null,activities_available:false,activities:[]}));return;
+  }
   const uploadId=url.pathname.match(/^\/api\/v1\/client\/attachments\/([0-9a-f]{32})$/)?.[1];
   if(uploadId&&request.headers['x-jarvis-csrf']==='synthetic'){
     let size=0;request.on('data',chunk=>{size+=chunk.length;});request.on('end',()=>{
@@ -35,7 +42,7 @@ const server = http.createServer((request, response) => {
   }
   let content = fs.readFileSync(path.join(assets, file));
   if (file === "index.html" && textPrototype) content = Buffer.from(content.toString("utf8").replace('data-profile="standard"', `data-profile="${textProfile}"`));
-  if (file === "app.js") content = Buffer.from(content.toString("utf8").replace('catch{if(state.voice===op)discardVoice("Microphone unavailable', 'catch(error){globalThis.voiceTestError=String(error);if(state.voice===op)discardVoice("Microphone unavailable') + "\nglobalThis.pwaTest={row,processEvent,logout,setConnected,renderGarmin,state,selectView,navigation,updateControls,selectAttachments,clearAttachments,searchHistory,clearSearch,loadTask,loadLibrary,chooseConversation,renderReply,formatReply,loadAttachmentMetadata,renderAttachmentMetadata,refreshTasks,loadTaskTimeline,renderTaskTimeline};\n");
+  if (file === "app.js") content = Buffer.from(content.toString("utf8").replace('catch{if(state.voice===op)discardVoice("Microphone unavailable', 'catch(error){globalThis.voiceTestError=String(error);if(state.voice===op)discardVoice("Microphone unavailable') + "\nglobalThis.pwaTest={row,processEvent,logout,setConnected,renderGarmin,refreshGarmin,state,selectView,navigation,updateControls,selectAttachments,clearAttachments,searchHistory,clearSearch,loadTask,loadLibrary,chooseConversation,renderReply,formatReply,loadAttachmentMetadata,renderAttachmentMetadata,refreshTasks,loadTaskTimeline,renderTaskTimeline};\n");
   response.writeHead(200, { "Content-Type": types[path.extname(file)], "Cache-Control": "no-store" });
   response.end(content);
 });
@@ -84,9 +91,10 @@ async function main() {
     const visible = selector => evaluate(`Boolean(document.querySelector(${JSON.stringify(selector)}).getClientRects().length)`);
     assert.equal(await evaluate("pwaTest.navigation.view"), "chat");
     for (const selector of ["#nav-chat", "#nav-settings", "#log"]) assert.ok(await visible(selector));
-    for (const selector of ["#nav-garmin", "#task-panel", "#attachment-file", "#record-message", "#notify"]) assert.equal(await visible(selector), false);
+    for (const selector of ["#task-panel", "#attachment-file", "#record-message", "#notify"]) assert.equal(await visible(selector), false);
+    assert.equal(await visible("#nav-garmin"),privateGarmin);
     await evaluate("pwaTest.selectView('garmin')");
-    assert.equal(await evaluate("pwaTest.navigation.view"), "chat");
+    assert.equal(await evaluate("pwaTest.navigation.view"), privateGarmin?"garmin":"chat");
     await evaluate("pwaTest.selectView('settings')");
     assert.ok(await visible("#recovery-title"));
     assert.equal(await evaluate("document.activeElement.id"), "settings-title");
@@ -103,6 +111,24 @@ async function main() {
     assert.ok(ax.nodes.some(node => node.role?.value === "log" && node.name?.value === "Conversation"));
     assert.equal(apiRequests.length, 0, "navigation makes no health, task, capture, cloud or research request");
     output.cases = ["Chat/Settings only", "dormant controls hidden", "Garmin deep link normalized", "Settings focus and keyboard", "specific recovery", "Send retains readiness gate", "320/1280 reflow", "named conversation log", "zero optional navigation requests"];
+    if(privateGarmin){
+      output.cases[0]="Chat/Garmin/Settings only";output.cases[2]="Garmin navigation makes no read";
+      await evaluate("(async()=>{pwaTest.state.healthAllowed=true;pwaTest.selectView('garmin');await pwaTest.refreshGarmin(true);})()");
+      assert.equal(apiRequests.length,1);assert.equal(apiRequests[0].path,"/api/v1/client/garmin");
+      assert.equal(await evaluate("document.querySelectorAll('#garmin-metrics > div').length"),5);
+      assert.ok((await evaluate("document.querySelector('#garmin-metrics').textContent")).includes("Unavailable"));
+      assert.ok((await evaluate("document.querySelector('#garmin-activities').textContent")).includes("unavailable"));
+      assert.ok((await evaluate("document.querySelector('#garmin-state').textContent")).includes("last checked"));
+      assert.equal(await evaluate("document.querySelector('#message').value"),"");
+      for(const width of [320,1280]){
+        await call("Emulation.setDeviceMetricsOverride",{width,height:900,deviceScaleFactor:1,mobile:false});
+        assert.ok(await evaluate("document.documentElement.scrollWidth<=innerWidth"));
+      }
+      const healthAx=await call("Accessibility.getFullAXTree");assert.ok(healthAx.nodes.some(node=>node.role?.value==="heading"&&node.name?.value==="Garmin"));
+      await evaluate("pwaTest.logout()");
+      assert.equal(await evaluate("document.querySelector('#garmin-metrics').children.length"),0);
+      output.cases.push("explicit bounded refresh","partial unavailable fields","health reflow and named AX heading","logout clears health");
+    }
     fs.writeFileSync(path.join(outputDir, `${textProfile}-desktop.json`), JSON.stringify(output, null, 2));
     console.log(JSON.stringify({ profile: textProfile, cases: output.cases.length, passed: true }));
     return;

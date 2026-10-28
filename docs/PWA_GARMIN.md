@@ -1,5 +1,10 @@
 # JARVIS phone web app and Garmin
 
+Current numbered Phase 8: [private laptop/PWA workspace](PRIVATE_GARMIN.md), explicit
+`private-garmin` profile and current Core/synthetic acceptance. Historical M3 evidence below
+remains dated; its phone rows are **skipped by owner; unverified**, not current prerequisites.
+Existing protected session stays sole Core-owned session; no reimport or automatic new login.
+
 Status: M3A/M3B complete; protected live Core session accepted, health-scoped iPhone acceptance pending.
 Updated: 2026-10-16
 
@@ -15,7 +20,7 @@ see [Garmin connector and reports](GARMIN_CONNECTOR.md). That standalone report 
 the Core bridge's Windows Credential Locker or complete the phone acceptance below.
 
 The existing private JARVIS PWA is the $0 iPhone app path. Safari can add it to the Home Screen.
-Phase 8 already proved physical-iPhone install, enrollment, chat, and reconnect. Native M2C
+Legacy Phase 8 already proved physical-iPhone install, enrollment, chat, and reconnect. Native M2C
 acceptance remains deferred: the owner has no Mac or paid Apple Developer membership and permits
 no project spending. No native-build result is claimed.
 
@@ -129,7 +134,7 @@ CLI authentication overrides `NETRC` with the null device; saved-session API ses
 These controls do not turn the unofficial client's authentication internals into a stable API.
 
 Keep Core bound to loopback behind the existing private Tailscale HTTPS Serve route. Do not use
-the Phase 8D launcher Run/Stop against an unowned route. After a separately approved fresh
+the Legacy Phase 8D launcher Run/Stop against an unowned route. After a separately approved fresh
 browser ticket, open the existing Home Screen PWA, connect, and tap **Refresh Garmin**. Garmin
 data requires the trusted laptop and tailnet to be online; offline data is labeled stale. Phone
 storage and service-worker cache never hold Garmin API responses.

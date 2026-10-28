@@ -22,7 +22,7 @@ from jarvis.core import (
     RuntimeStatus,
     RuntimeStreamFrame,
 )
-from jarvis.garmin.service import GarminSummary
+from jarvis.garmin.service import GarminSummary, GarminUnavailableError
 from jarvis.memory import SQLiteConversationStore
 from jarvis.proactivity import PWAProactivityAdapter, SQLiteProactivityDeviceStore
 from jarvis.remote import (
@@ -260,9 +260,17 @@ def test_pwa_proactivity_routes_use_scoped_adapter_and_generic_errors(tmp_path: 
         assert missing.json() == {"detail": "Proactivity state unavailable"}
 
 
-def test_pwa_garmin_requires_dedicated_scope_and_returns_only_summary(tmp_path: Path) -> None:
+@pytest.mark.parametrize("profile", ["standard", "prototype-text", "daily-text", "private-garmin"])
+def test_pwa_garmin_requires_dedicated_scope_and_returns_only_summary(
+    tmp_path: Path, profile: str
+) -> None:
     scopes = (*ALL_SCOPES, RemoteScope.CLIENT_HEALTH_READ)
-    settings = Settings(data_dir=tmp_path, trusted_browser_origins=(ORIGIN,), _env_file=None)
+    settings = Settings(
+        data_dir=tmp_path,
+        trusted_browser_origins=(ORIGIN,),
+        runtime_profile=profile,  # type: ignore[arg-type]
+        _env_file=None,
+    )
     key = Ed25519PrivateKey.generate()
     created: dict[str, object] = {}
     reader = _FakeGarminReader()
@@ -276,7 +284,7 @@ def test_pwa_garmin_requires_dedicated_scope_and_returns_only_summary(tmp_path: 
         denied = client.get("/api/v1/client/garmin", headers={"X-Jarvis-Browser-Origin": ORIGIN})
         assert denied.status_code == 403
         assert reader.calls == []
-        _bootstrap(
+        csrf = _bootstrap(
             client,
             key,
             str(created["device_id"]),
@@ -287,11 +295,68 @@ def test_pwa_garmin_requires_dedicated_scope_and_returns_only_summary(tmp_path: 
             "/api/v1/client/garmin?refresh=true",
             headers={"X-Jarvis-Browser-Origin": ORIGIN},
         )
+        if profile in {"prototype-text", "daily-text"}:
+            assert allowed.status_code == 503
+            assert reader.calls == []
+            return
         assert allowed.status_code == 200
         assert allowed.json()["steps"] == 4321
         assert allowed.json()["resting_heart_rate"] == 57
         assert "token" not in allowed.text and "location" not in allowed.text
         assert reader.calls == [True]
+        assert allowed.headers["cache-control"] == "no-store"
+        assert client.get("/api/v1/client/garmin").status_code == 403
+        assert (
+            client.get(
+                "/api/v1/client/garmin", headers={"X-Jarvis-Browser-Origin": "https://evil.test"}
+            ).status_code
+            == 403
+        )
+        assert client.post("/api/v1/client/garmin", headers={"Origin": ORIGIN}).status_code == 401
+        assert (
+            client.post(
+                "/api/v1/client/garmin", headers={"Origin": ORIGIN, "X-Jarvis-CSRF": csrf}
+            ).status_code
+            == 405
+        )
+        assert reader.calls == [True]
+        app.state.runtime.memory_host_id = "host:foreign"
+        assert (
+            client.get(
+                "/api/v1/client/garmin", headers={"X-Jarvis-Browser-Origin": ORIGIN}
+            ).status_code
+            == 403
+        )
+        assert reader.calls == [True]
+
+
+def test_garmin_unavailable_hides_provider_details_and_never_calls_model(tmp_path: Path) -> None:
+    class UnavailableReader:
+        async def summary(self, *, refresh: bool = False) -> GarminSummary:
+            raise GarminUnavailableError("SYNTHETIC_PRIVATE_PROVIDER_ERROR")
+
+    scopes = (*ALL_SCOPES, RemoteScope.CLIENT_HEALTH_READ)
+    settings = Settings(
+        data_dir=tmp_path,
+        trusted_browser_origins=(ORIGIN,),
+        runtime_profile="private-garmin",
+        _env_file=None,
+    )
+    key = Ed25519PrivateKey.generate()
+    created: dict[str, object] = {}
+    app = create_app(
+        settings,
+        runtime_factory=_runtime_factory(tmp_path, settings, key, created, scopes=scopes),  # type: ignore[arg-type]
+        garmin_reader=UnavailableReader(),
+    )
+    with TestClient(app, base_url="https://testserver") as client:
+        assert client.get("/api/v1/client/garmin").status_code == 401
+        _bootstrap(client, key, str(created["device_id"]), [scope.value for scope in scopes])
+        response = client.get("/api/v1/client/garmin", headers={"X-Jarvis-Browser-Origin": ORIGIN})
+        assert response.status_code == 503
+        assert response.headers["cache-control"] == "no-store"
+        assert "SYNTHETIC_PRIVATE" not in response.text
+        assert created["service"].calls == 0
 
 
 def _bootstrap(
@@ -315,7 +380,7 @@ def _bootstrap(
     return str(response.json()["csrf_token"])
 
 
-@pytest.mark.parametrize("profile", ["standard", "prototype-text", "daily-text"])
+@pytest.mark.parametrize("profile", ["standard", "prototype-text", "daily-text", "private-garmin"])
 def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(
     tmp_path: Path, profile: str
 ) -> None:
@@ -349,9 +414,9 @@ def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(
         assert "indexedDB" in script.text and '"JARVIS_LOGOUT"' in script.text
         assert 'headers["X-Jarvis-Browser-Origin"]=window.location.origin' in script.text
         assert "SHELL.includes(shellKey)" in worker.text and "cache.put" in worker.text
-        assert 'const CACHE="jarvis-shell-v15"' in worker.text
+        assert 'const CACHE="jarvis-shell-v16"' in worker.text
         assert "self.skipWaiting()" in worker.text
-        assert "/app/app.js?v=15" in shell.text and "/app/sw.js?v=15" in script.text
+        assert "/app/app.js?v=16" in shell.text and "/app/sw.js?v=16" in script.text
         assert "ui.logout.disabled=!state.hasIdentity" in script.text
         assert manifest.json()["start_url"] == "/app/"
         asset_bytes = sum(

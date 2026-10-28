@@ -216,7 +216,8 @@ def test_core_check_rejects_stale_future_naive_or_wrong_day(
     capsys: pytest.CaptureFixture[str],
     overrides: dict[str, Any],
 ) -> None:
-    _, read = _fake_service(monkeypatch, _summary(**overrides))
+    # Deliberately bypass model validation to exercise the diagnostic's own defense too.
+    _, read = _fake_service(monkeypatch, _summary().model_copy(update=overrides))
 
     assert CHECK.main(["--read"]) == 1
 

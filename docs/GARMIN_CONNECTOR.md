@@ -1,5 +1,10 @@
 # Local Garmin connector and batch reports
 
+Current numbered Phase 8 uses the [private Core/PWA workspace](PRIVATE_GARMIN.md). Protected
+Core session was accepted in historical M3B; do not run this standalone reporter against its
+independent token copy. Dated migration/report instructions below preserve history and grant
+no new login, import, session replacement, disclosure or health scope authority.
+
 Updated: 2026-10-07. Status: local Desktop migration; Core/PWA acceptance pending.
 
 ## Organized local files

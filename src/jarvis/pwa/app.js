@@ -1,5 +1,6 @@
 const API="/api/v1";
-const PROTOTYPE=["prototype-text","daily-text"].includes(document.body?.dataset?.profile);
+const PRIVATE_GARMIN=document.body?.dataset?.profile==="private-garmin";
+const PROTOTYPE=["prototype-text","daily-text","private-garmin"].includes(document.body?.dataset?.profile);
 const DB_NAME="jarvis-private-client";
 const STORE="identity";
 const SCOPES=["browser.session","identity.read","events.read","session.revoke","client.chat","client.tasks.read","client.status.read"];
@@ -22,7 +23,7 @@ Object.assign(ui,Object.fromEntries(Object.entries({record:"record-message",stop
 const views=Object.fromEntries(["chat","garmin","settings"].map(name=>[name,{panel:document.querySelector(`#view-${name}`),link:document.querySelector(`#nav-${name}`),heading:document.querySelector(`#${name}-title`)}]));
 const navigation={view:null,chatScroll:0,chatFollow:true};
 function selectView(name,{replace=false,focus=true}={}){
-  if(!Object.hasOwn(views,name)||(PROTOTYPE&&name==="garmin"))name="chat";
+  if(!Object.hasOwn(views,name)||(PROTOTYPE&&!PRIVATE_GARMIN&&name==="garmin"))name="chat";
   const hash=`#/${name}`;
   if(window.location.hash!==hash)window.history[replace?"replaceState":"pushState"](null,"",hash);
   if(navigation.view==="chat"){
@@ -56,17 +57,18 @@ function renderGarmin(summary){
   for(const [label,value] of values){const card=document.createElement("div"),dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=label;dd.textContent=value==null?"Unavailable":String(value);card.append(dt,dd);ui.garminMetrics.append(card);}
   ui.garminActivities.replaceChildren();
   for(const activity of summary.activities||[]){const item=document.createElement("li");item.textContent=`${activity.name} · ${activity.type}${activity.started?` · ${activity.started.slice(0,10)}`:""}`;ui.garminActivities.append(item);}
-  if(!ui.garminActivities.children.length){const item=document.createElement("li");item.textContent="No recent activities.";ui.garminActivities.append(item);}
+  if(!ui.garminActivities.children.length){const item=document.createElement("li");item.textContent=summary.activities_available===false?"Recent activities unavailable.":"No recent activities.";ui.garminActivities.append(item);}
   state.healthSnapshot={date:summary.date,refreshed:Date.parse(summary.refreshed_at)};state.healthMessage="";renderGarminStatus();
 }
 function renderGarminStatus(){
   clearTimeout(state.healthTimer);state.healthTimer=null;
   const snapshot=state.healthSnapshot;
   if(!snapshot){if(state.healthMessage)ui.garminState.textContent=state.healthMessage;return;}
-  const age=Date.now()-snapshot.refreshed,valid=Number.isFinite(snapshot.refreshed),stale=!valid||age<0||age>=300000;
+  const now=new Date(),day=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+  const age=Date.now()-snapshot.refreshed,valid=Number.isFinite(snapshot.refreshed),stale=!valid||age<0||age>=300000||snapshot.date!==day;
   const checked=valid?new Date(snapshot.refreshed).toLocaleString():"Unknown";
   ui.garminState.textContent=`${state.healthMessage?state.healthMessage+" ":""}${snapshot.date} · last checked ${checked}${stale?" · Stale. Refresh Garmin to check current data.":""}`;
-  if(!stale)state.healthTimer=setTimeout(renderGarminStatus,300000-age);
+  if(!stale){const midnight=new Date(now);midnight.setHours(24,0,0,0);state.healthTimer=setTimeout(renderGarminStatus,Math.min(300000-age,midnight-Date.now()));}
 }
 function cancelGarmin(){state.healthGeneration+=1;state.healthAbort?.abort();state.healthAbort=null;}
 function clearGarmin(){
@@ -74,7 +76,7 @@ function clearGarmin(){
   ui.refreshGarmin.disabled=true;ui.garmin.setAttribute("aria-busy","false");ui.garminMetrics.replaceChildren();ui.garminActivities.replaceChildren();ui.garminState.textContent="Connect JARVIS to see Garmin data.";
 }
 async function refreshGarmin(force){
-  if(PROTOTYPE)return;
+  if(PROTOTYPE&&!PRIVATE_GARMIN)return;
   if(!state.online||!state.healthAllowed)return;
   cancelGarmin();
   const generation=state.healthGeneration,csrf=state.csrf,controller=new AbortController();state.healthAbort=controller;
@@ -82,6 +84,7 @@ async function refreshGarmin(force){
   state.healthMessage="Checking Garmin…";renderGarminStatus();updateControls();
   try{const summary=await (await api(`/client/garmin${force?"?refresh=true":""}`,{signal:controller.signal})).json();if(current())renderGarmin(summary);}
   catch(error){if(current()&&error.name!=="AbortError"){
+    if(error.status===403){clearGarmin();ui.garminState.textContent="Garmin access denied. Connect existing device; review approved access on your trusted laptop.";return;}
     const message=error.status===503?"Garmin unavailable. Try again later; if it continues, check Garmin status on your trusted laptop.":"Garmin check failed. Try again after connection recovers.";
     state.healthMessage=message+(ui.garminMetrics.children.length?" Shown Garmin data may be stale.":"");renderGarminStatus();
   }}finally{if(state.healthAbort===controller)state.healthAbort=null;updateControls();}
@@ -473,7 +476,15 @@ async function connect(){
   }finally{if(state.connecting===generation)state.connecting=false;updateControls();}
   if(current())startStreamOwnership();
 }
-async function refreshStatus(){const generation=state.sessionGeneration,csrf=state.csrf,status=await (await api("/client/status")).json();if(!currentSession(generation,csrf))return;state.attachmentsAllowed=!PROTOTYPE&&status.attachments?.available===true;state.voiceReady=!PROTOTYPE&&status.voice?.available===true;state.voiceMax=Math.min(30000,Math.max(120,status.voice?.max_duration_ms||30000));updateVoiceControls();ui.device.replaceChildren();const entries=[["Name",status.device.display_name],["State",status.device.state],["Key version",status.device.key_version],["Session",status.session.id]];if(["prototype-text","daily-text"].includes(status.assistant?.profile))entries.push(["Assistant",`${status.assistant.provider} · ${status.assistant.model} · ${status.assistant.cloud_policy}`]);for(const [name,value] of entries){const wrap=document.createElement("div"),dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=name;dd.textContent=String(value);wrap.append(dt,dd);ui.device.append(wrap);}}
+async function refreshStatus(){
+  const generation=state.sessionGeneration,csrf=state.csrf,status=await (await api("/client/status")).json();if(!currentSession(generation,csrf))return;
+  state.attachmentsAllowed=!PROTOTYPE&&status.attachments?.available===true;state.voiceReady=!PROTOTYPE&&status.voice?.available===true;state.voiceMax=Math.min(30000,Math.max(120,status.voice?.max_duration_ms||30000));updateVoiceControls();
+  if(status.garmin?.available===false){clearGarmin();ui.garminState.textContent="Garmin unavailable for this profile or approved device access. Review access on your trusted laptop.";}
+  ui.device.replaceChildren();
+  const entries=[["Name",status.device.display_name],["State",status.device.state],["Key version",status.device.key_version],["Session",status.session.id]];
+  if(["prototype-text","daily-text","private-garmin"].includes(status.assistant?.profile))entries.push(["Assistant",`${status.assistant.provider} · ${status.assistant.model} · ${status.assistant.cloud_policy}`]);
+  for(const [name,value] of entries){const wrap=document.createElement("div"),dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=name;dd.textContent=String(value);wrap.append(dt,dd);ui.device.append(wrap);}
+}
 async function refreshTasks({more=false,offset:requestedOffset=null}={}){
   if(PROTOTYPE)return;
   if(state.tasksBusy||!state.csrf)return;
@@ -575,7 +586,7 @@ function startStreamOwnership(){
   if(!state.csrf||!state.subscription||state.connecting)return;
   if(state.streamOwner){state.streamWake?.();return state.streamOwner.promise;}
   state.stopping=false;
-  const owner={tasksPending:true,generation:state.sessionGeneration,controller:new AbortController(),cancelled:false,promise:null,healthPending:state.healthAllowed&&!state.healthSnapshot};state.streamOwner=owner;
+  const owner={tasksPending:true,generation:state.sessionGeneration,controller:new AbortController(),cancelled:false,promise:null,healthPending:!PRIVATE_GARMIN&&state.healthAllowed&&!state.healthSnapshot};state.streamOwner=owner;
   const run=async()=>{if(state.streamOwner!==owner||owner.cancelled)return;await streamLoop(owner);};
   if(navigator.locks){setConnected(false,"Waiting for live stream");ui.accessStatus.textContent="Waiting for live stream. Another tab may own it; close that tab or retry Connect existing device.";}
   const request=(()=>{try{return navigator.locks
@@ -1055,6 +1066,6 @@ window.addEventListener("online",()=>{
 });
 window.addEventListener("pageshow",()=>{renderGarminStatus();if(state.csrf&&state.subscription&&!state.connecting){if(state.streamOwner)state.streamOwner.tasksPending=true;state.streamAbort?.abort();setConnected(false,"Checking live connection");startStreamOwnership();}});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderGarminStatus();if(state.csrf&&state.subscription&&!state.connecting){if(state.streamOwner)state.streamOwner.tasksPending=true;state.streamAbort?.abort();setConnected(false,"Checking live connection");startStreamOwnership();}}});
-if("serviceWorker" in navigator)navigator.serviceWorker.register("/app/sw.js?v=15",{scope:"/app/"}).catch(()=>announce("Offline shell unavailable"));
+if("serviceWorker" in navigator)navigator.serviceWorker.register("/app/sw.js?v=16",{scope:"/app/"}).catch(()=>announce("Offline shell unavailable"));
 const initialGeneration=state.sessionGeneration;
 loadIdentity().then(identity=>{if(state.sessionGeneration!==initialGeneration)return;state.hasIdentity=Boolean(identity);updateControls();if(identity){ui.accessStatus.textContent="Enrolled key found. Connect existing device to start a fresh session.";announce(ui.accessStatus.textContent);}}).catch(()=>{if(state.sessionGeneration===initialGeneration)announce("Device storage unavailable");});

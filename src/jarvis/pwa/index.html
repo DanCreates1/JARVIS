@@ -9,7 +9,7 @@
   <link rel="manifest" href="/app/manifest.webmanifest">
   <link rel="icon" href="/app/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app/app.css">
-  <script src="/app/app.js?v=15" type="module"></script>
+  <script src="/app/app.js?v=16" type="module"></script>
 </head>
 <body data-profile="standard">
   <header>
@@ -95,7 +95,8 @@
         <button id="retry-chat" type="button" class="secondary" hidden disabled>Retry request</button>
       </div>
       <p class="hint">Use Settings to connect your existing device. Offline messages are never queued. Cancel reply stops the current request. Retry request checks the original receipt after a lost connection; review history before sending a new message.</p>
-      <p class="hint prototype-only">Text assistant: explanations, rewrites, summaries and checklists from supplied text; saved conversations and host clock. Live web evidence is unavailable. Files, health, email, calendar and computer actions are unavailable in this profile.</p>
+      <p class="hint prototype-only text-only">Text assistant: explanations, rewrites, summaries and checklists from supplied text; saved conversations and host clock. Live web evidence is unavailable. Files, health, email, calendar and computer actions are unavailable in this profile.</p>
+      <p class="hint garmin-only">Private workspace: daily local text and read-only Garmin with existing approved health access. Garmin data stays outside chat and model context. Files, web research, email, calendar, capture and computer actions are unavailable.</p>
     </section>
 
     <section id="task-panel" class="panel" aria-labelledby="tasks-title">
@@ -143,6 +144,7 @@
         <button id="refresh-garmin" type="button" class="quiet" disabled>Refresh Garmin</button>
       </div>
       <p id="garmin-state" role="status">Connect JARVIS to see Garmin data.</p>
+      <p class="hint">Last checked means Core fetched Garmin, not when your wearable synced. Device sync time is unavailable. Refresh checks current data; no background health polling. Values stay in this tab's memory and never enter chat automatically.</p>
       <dl id="garmin-metrics" class="metrics"></dl>
       <h3>Recent activities</h3>
       <ul id="garmin-activities"><li>No Garmin data yet.</li></ul>

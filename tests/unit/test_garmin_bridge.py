@@ -340,3 +340,48 @@ def test_bridge_cli_disables_ambient_netrc_and_restores_process_state(
     assert bridge.main() == 1
     assert os.environ["NETRC"] == "synthetic-must-not-read"
     assert logging.root.manager.disable == previous_level
+
+
+@pytest.mark.parametrize(
+    "activities", [None, {}, [None], "malformed", [], [{"activityName": "private"}]]
+)
+def test_empty_activities_and_unavailable_endpoint_are_distinct(activities: object) -> None:
+    result = normalize_summary(
+        day=date(2026, 10, 27),
+        stats=None,
+        heart=None,
+        sleep=None,
+        stress=None,
+        battery=None,
+        activities=activities,
+    )
+    assert result["activities_available"] is (
+        isinstance(activities, list) and all(isinstance(item, dict) for item in activities)
+    )
+    assert "private" not in json.dumps(result)
+    assert all(result[key] is None for key in ("steps", "sleep_minutes", "stress", "body_battery"))
+
+
+def test_summary_performs_only_six_fixed_read_methods_with_bounded_arguments() -> None:
+    calls: list[tuple[str, tuple[object, ...]]] = []
+
+    class Reader:
+        def __getattr__(self, name: str) -> object:
+            def read(*args: object) -> object:
+                calls.append((name, args))
+                return [] if name in {"get_body_battery", "get_activities"} else {}
+
+            return read
+
+    result = bridge._collect_summary(Reader(), TooManyRequestsError)
+    assert [name for name, _ in calls] == [
+        "get_stats",
+        "get_heart_rates",
+        "get_sleep_data",
+        "get_stress_data",
+        "get_body_battery",
+        "get_activities",
+    ]
+    assert calls[-1][1] == (0, 3)
+    assert all(args == (result["date"],) for _, args in calls[:-1])
+    assert result["activities_available"] is True

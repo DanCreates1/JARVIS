@@ -246,6 +246,9 @@ def normalize_summary(
     sleep = sleep if isinstance(sleep, dict) else {}
     stress = stress if isinstance(stress, dict) else {}
     battery = battery if isinstance(battery, list) else []
+    activities_available = isinstance(activities, list) and all(
+        isinstance(item, dict) for item in activities[:3]
+    )
     activities = activities if isinstance(activities, list) else []
     sleep_daily = sleep.get("dailySleepDTO")
     sleep_daily = sleep_daily if isinstance(sleep_daily, dict) else {}
@@ -291,6 +294,7 @@ def normalize_summary(
         ),
         "stress": _number(stress.get("avgStressLevel"), 0, 100),
         "body_battery": latest_battery,
+        "activities_available": activities_available,
         "activities": rows,
     }
 

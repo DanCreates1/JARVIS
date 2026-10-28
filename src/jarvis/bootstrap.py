@@ -345,7 +345,8 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
             providers,
             advertise_tools=settings.runtime_profile == "standard",
             policy=RoutingPolicy(
-                privacy_gate, local_text_only=settings.runtime_profile == "daily-text"
+                privacy_gate,
+                local_text_only=settings.runtime_profile in {"daily-text", "private-garmin"},
             ),
             max_cloud_cost_usd=settings.max_cloud_cost_usd,
             health=ProviderHealthTracker(
@@ -402,7 +403,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
         registered_tools: tuple[Tool, ...] = phase_one_tools(
             allowed_file_roots=(settings.data_dir,)
         )
-        if settings.runtime_profile in {"prototype-text", "daily-text"}:
+        if settings.runtime_profile in {"prototype-text", "daily-text", "private-garmin"}:
             # Keep the deterministic clock path; text generation needs no tool schemas.
             registered_tools = (CurrentTimeTool(),)
         tool_policy: ToolPolicy = phase_one_policy()
@@ -429,15 +430,17 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
                 + "\n"
                 + (
                     DAILY_TEXT_PROMPT
-                    if settings.runtime_profile == "daily-text"
+                    if settings.runtime_profile in {"daily-text", "private-garmin"}
                     else TEXT_PROFILE_PROMPT
                 )
-                if settings.runtime_profile in {"prototype-text", "daily-text"}
+                if settings.runtime_profile in {"prototype-text", "daily-text", "private-garmin"}
                 else SYSTEM_PROMPT
             ),
             context_message_limit=settings.context_message_limit,
             response_guidance=(
-                text_response_guidance if settings.runtime_profile == "daily-text" else None
+                text_response_guidance
+                if settings.runtime_profile in {"daily-text", "private-garmin"}
+                else None
             ),
             context_recent_message_limit=settings.context_recent_message_limit,
             context_summary_max_chars=settings.context_summary_max_chars,

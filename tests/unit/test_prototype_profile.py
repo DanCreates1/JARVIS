@@ -11,7 +11,7 @@ from jarvis.config import Settings
 from jarvis.web import create_app
 
 
-@pytest.mark.parametrize("profile", ["prototype-text", "daily-text"])
+@pytest.mark.parametrize("profile", ["prototype-text", "daily-text", "private-garmin"])
 def test_text_profile_overrides_existing_feature_flags(
     monkeypatch: pytest.MonkeyPatch, profile: str
 ) -> None:
@@ -48,7 +48,7 @@ def test_text_profile_overrides_existing_feature_flags(
     assert settings.web_host == "127.0.0.1"
 
 
-@pytest.mark.parametrize("profile", ["prototype-text", "daily-text"])
+@pytest.mark.parametrize("profile", ["prototype-text", "daily-text", "private-garmin"])
 def test_text_profile_rejects_remote_model_even_with_old_opt_in(profile: str) -> None:
     with pytest.raises(ValidationError, match="remote Ollama endpoints require"):
         Settings(
@@ -59,7 +59,7 @@ def test_text_profile_rejects_remote_model_even_with_old_opt_in(profile: str) ->
         )
 
 
-@pytest.mark.parametrize("profile", ["standard", "prototype-text", "daily-text"])
+@pytest.mark.parametrize("profile", ["standard", "prototype-text", "daily-text", "private-garmin"])
 def test_shell_profile_keeps_security_headers(profile: str) -> None:
     settings = Settings(_env_file=None, runtime_profile=profile)  # type: ignore[arg-type]
     # Shell serving needs no runtime initialization, model or production database.
@@ -78,7 +78,7 @@ def test_standard_profile_retains_historical_research() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("profile", ["prototype-text", "daily-text"])
+@pytest.mark.parametrize("profile", ["prototype-text", "daily-text", "private-garmin"])
 async def test_text_runtime_exposes_only_clock_and_never_model_file_tools(
     tmp_path: Path, profile: str
 ) -> None:
@@ -88,5 +88,9 @@ async def test_text_runtime_exposes_only_clock_and_never_model_file_tools(
         assert set(runtime.service.tools) == {"get_current_time"}
         assert not runtime.provider.advertise_tools
         assert runtime.research is None
-        assert runtime.provider.policy.local_text_only == (profile == "daily-text")
-        assert (runtime.service.response_guidance is not None) == (profile == "daily-text")
+        assert runtime.provider.policy.local_text_only == (
+            profile in {"daily-text", "private-garmin"}
+        )
+        assert (runtime.service.response_guidance is not None) == (
+            profile in {"daily-text", "private-garmin"}
+        )

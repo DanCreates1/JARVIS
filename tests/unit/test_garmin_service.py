@@ -3,6 +3,7 @@
 import asyncio
 import json
 import traceback
+from datetime import UTC, datetime
 from pathlib import Path
 from sys import executable
 from unittest.mock import AsyncMock, Mock
@@ -16,7 +17,7 @@ from jarvis.garmin.service import GarminSummaryService, GarminUnavailableError
 def _summary_bytes() -> bytes:
     return json.dumps(
         {
-            "date": "2026-09-30",
+            "date": datetime.now(UTC).astimezone().date().isoformat(),
             "refreshed_at": "2026-09-30T12:00:00Z",
             "steps": 1234,
             "activities": [{"name": "Synthetic walk", "type": "walking", "started": "2026-09-30"}],
@@ -37,12 +38,20 @@ def _mock_bridge(
     bridge.touch()
     process = Mock()
     process.returncode = returncode
-    process.communicate = AsyncMock(
-        return_value=(stdout if stdout is not None else _summary_bytes(), None)
-    )
+    process.stdout = asyncio.StreamReader()
+    process.stdout.feed_data(stdout if stdout is not None else _summary_bytes())
+    process.stdout.feed_eof()
     process.wait = AsyncMock(return_value=returncode)
     process.kill = Mock()
-    spawn = AsyncMock(return_value=process)
+
+    async def fresh_process(*_args: object, **_kwargs: object) -> Mock:
+        if spawn.await_count > 1:
+            process.stdout = asyncio.StreamReader()
+            process.stdout.feed_data(stdout if stdout is not None else _summary_bytes())
+            process.stdout.feed_eof()
+        return process
+
+    spawn = AsyncMock(side_effect=fresh_process)
     monkeypatch.setattr(service_module.asyncio, "create_subprocess_exec", spawn)
     reader = GarminSummaryService(python_path=python, bridge_path=bridge)
     return reader, process, spawn
@@ -107,6 +116,7 @@ async def test_bridge_uses_isolated_python_and_only_required_windows_environment
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.DEVNULL,
+        limit=8_193,
         env=safe_environment,
     )
 
@@ -174,7 +184,7 @@ async def test_refresh_timeout_kills_and_reaps_child(
 ) -> None:
     reader, process, _ = _mock_bridge(tmp_path, monkeypatch)
     process.returncode = None
-    process.communicate.side_effect = TimeoutError
+    process.stdout.read = AsyncMock(side_effect=TimeoutError)
     wait_for = AsyncMock(wraps=asyncio.wait_for)
     monkeypatch.setattr(service_module.asyncio, "wait_for", wait_for)
 
@@ -194,12 +204,12 @@ async def test_cancelled_refresh_kills_and_reaps_child(
     process.returncode = None
     started = asyncio.Event()
 
-    async def pending_communication() -> tuple[bytes, None]:
+    async def pending_communication(_size: int) -> bytes:
         started.set()
         await asyncio.Future()
-        return _summary_bytes(), None
+        return b""
 
-    process.communicate.side_effect = pending_communication
+    process.stdout.read = AsyncMock(side_effect=pending_communication)
     task = asyncio.create_task(reader.summary())
     await asyncio.wait_for(started.wait(), timeout=1)
     task.cancel()
@@ -244,3 +254,117 @@ async def test_bridge_failures_hide_private_output_in_errors_and_logs(
 
     assert "SYNTHETIC_PRIVATE_VALUE" not in "".join(traceback.format_exception(caught.value))
     assert "SYNTHETIC_PRIVATE_VALUE" not in caplog.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure", ["provider", "missing-bridge"])
+async def test_failed_refresh_does_not_resurrect_previous_server_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str
+) -> None:
+    now = [1000.0]
+    monkeypatch.setattr(service_module, "monotonic", lambda: now[0])
+    reader, process, spawn = _mock_bridge(tmp_path, monkeypatch)
+    await reader.summary()
+    now[0] = 1060.0
+    process.returncode = 1
+    if failure == "missing-bridge":
+        await asyncio.to_thread((tmp_path / "bridge.py").unlink)
+    expected = "bridge_unavailable" if failure == "missing-bridge" else "refresh_failed"
+    with pytest.raises(GarminUnavailableError, match=expected):
+        await reader.summary(refresh=True)
+    for refresh in (True, False):
+        with pytest.raises(GarminUnavailableError, match="refresh_limited"):
+            await reader.summary(refresh=refresh)
+    assert spawn.await_count == (1 if failure == "missing-bridge" else 2)
+    now[0] = 1120.0
+    process.returncode = 0
+    if failure == "missing-bridge":
+        await asyncio.to_thread((tmp_path / "bridge.py").touch)
+    assert await reader.summary()
+    assert spawn.await_count == (2 if failure == "missing-bridge" else 3)
+
+
+@pytest.mark.asyncio
+async def test_duplicate_concurrent_refreshes_share_one_read_and_cache_is_immutable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    reader, _, spawn = _mock_bridge(tmp_path, monkeypatch)
+    results = await asyncio.gather(*(reader.summary(refresh=True) for _ in range(10)))
+    assert spawn.await_count == 1
+    assert all(result is results[0] for result in results)
+    with pytest.raises(ValueError, match="frozen"):
+        results[0].steps = 99
+    with pytest.raises(ValueError, match="frozen"):
+        results[0].activities[0].name = "changed"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "replacement",
+    [
+        {"steps": True},
+        {"steps": "123"},
+        {"stress": 50.5},
+        {"activities_available": "true"},
+        {"date": "2026-02-31"},
+        {"refreshed_at": "2026-10-27T12:00:00"},
+        {"activities": [{"name": "a", "type": "b", "started": ""}] * 4},
+    ],
+)
+async def test_untrusted_bridge_schema_rejects_coercion_dates_and_oversized_lists(
+    replacement: dict[str, object], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = json.loads(_summary_bytes()) | replacement
+    reader, _, _ = _mock_bridge(tmp_path, monkeypatch, stdout=json.dumps(data).encode())
+    with pytest.raises(GarminUnavailableError, match="refresh_failed"):
+        await reader.summary()
+
+
+@pytest.mark.asyncio
+async def test_duplicate_bridge_fields_are_not_silently_reinterpreted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = _summary_bytes()[:-1] + b',"steps":999}'
+    reader, _, _ = _mock_bridge(tmp_path, monkeypatch, stdout=data)
+    with pytest.raises(GarminUnavailableError, match="refresh_failed"):
+        await reader.summary()
+
+
+@pytest.mark.asyncio
+async def test_real_overflowing_child_is_killed_and_reaped_before_its_sleep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bridge = tmp_path / "overflow.py"
+    bridge.write_text(
+        "import os, time\nos.write(1, b'x' * 9000)\ntime.sleep(120)\n", encoding="utf-8"
+    )
+    spawn = asyncio.create_subprocess_exec
+    children: list[asyncio.subprocess.Process] = []
+
+    async def capture(*args: object, **kwargs: object) -> asyncio.subprocess.Process:
+        child = await spawn(*args, **kwargs)
+        children.append(child)
+        return child
+
+    monkeypatch.setattr(service_module.asyncio, "create_subprocess_exec", capture)
+    reader = GarminSummaryService(python_path=Path(executable), bridge_path=bridge)
+    with pytest.raises(GarminUnavailableError, match="refresh_failed"):
+        await asyncio.wait_for(reader.summary(), timeout=5)
+    assert len(children) == 1 and children[0].returncode is not None
+
+
+@pytest.mark.asyncio
+async def test_restart_drops_cache_and_throttle_instead_of_persisting_health(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    reader, _, spawn = _mock_bridge(tmp_path, monkeypatch)
+    first = await reader.summary()
+    restarted = GarminSummaryService(
+        python_path=tmp_path / "python.exe", bridge_path=tmp_path / "bridge.py"
+    )
+    assert await restarted.summary() is not first
+    assert spawn.await_count == 2
+    assert await asyncio.to_thread(lambda: {path.name for path in tmp_path.iterdir()}) == {
+        "python.exe",
+        "bridge.py",
+    }

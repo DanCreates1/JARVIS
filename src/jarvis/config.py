@@ -41,7 +41,9 @@ class Settings(BaseSettings):
 
     data_dir: Path = Field(default_factory=default_data_dir)
     database_filename: str = "jarvis.db"
-    runtime_profile: Literal["standard", "prototype-text", "daily-text"] = "standard"
+    runtime_profile: Literal["standard", "prototype-text", "daily-text", "private-garmin"] = (
+        "standard"
+    )
     ollama_base_url: AnyHttpUrl = AnyHttpUrl("http://127.0.0.1:11434")
     ollama_model: str = "qwen3:0.6b"
     ollama_context_tokens: int = Field(default=4_096, ge=512, le=262_144)
@@ -340,7 +342,7 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def apply_runtime_profile(self) -> Settings:
         """Keep the opt-in text slice local even with older feature flags in dotenv."""
-        if self.runtime_profile in {"prototype-text", "daily-text"}:
+        if self.runtime_profile in {"prototype-text", "daily-text", "private-garmin"}:
             self.ollama_temperature = 0
             self.cloud_policy = "local_only"
             self.local_model = self.ollama_model

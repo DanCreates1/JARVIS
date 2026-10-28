@@ -9,6 +9,55 @@ const vm = require("node:vm");
 const script = readFileSync(path.join(__dirname, "../../src/jarvis/pwa/app.js"), "utf8");
 const EMPTY = "Connect JARVIS to see Garmin data.";
 
+for(const profile of ["prototype-text","daily-text","private-garmin"]){
+  test(`Phase 8 ${profile} keeps Garmin behind explicit capability and refresh`,async()=>{
+    const h=harness(new Map(),"",profile);await h.ready;h.activate();h.run("selectView('garmin')");
+    assert.equal(h.requests.length,0);
+    assert.equal(h.run("navigation.view"),profile==="private-garmin"?"garmin":"chat");
+    const read=h.run("refreshGarmin(true)");
+    if(profile==="private-garmin"){
+      await h.waitForRequests(1);h.respond(h.requests[0],h.summary(123456));
+    }
+    await read;
+    assert.equal(h.requests.length,profile==="private-garmin"?1:0);
+    assert.equal(h.storage.size,0);assert.equal(h.records.size,0);
+  });
+}
+
+test("Phase 8 health-scope denial clears previous values immediately",async()=>{
+  const h=harness();await h.ready;h.activate();h.context.data=h.summary(123456);h.run("renderGarmin(data)");
+  const read=h.run("refreshGarmin(true)");await h.waitForRequests(1);h.respond(h.requests[0],{detail:"denied"},403);await read;
+  assert.equal(h.get("#garmin-metrics").children.length,0);assert.equal(h.get("#garmin-activities").children.length,0);
+  assert.equal(h.run("state.healthAllowed"),false);assert.equal(h.get("#refresh-garmin").disabled,true);
+  assert.match(h.get("#garmin-state").textContent,/access denied/);
+});
+
+test("Phase 8 partial availability distinguishes empty activities from unavailable",async()=>{
+  const h=harness();await h.ready;h.activate();
+  for(const available of [false,true]){
+    h.context.data={...h.summary(null),activities:[],activities_available:available};h.run("renderGarmin(data)");
+    assert.equal(h.get("#garmin-metrics").children[0].children[1].textContent,"Unavailable");
+    assert.equal(h.get("#garmin-activities").children[0].textContent,available?"No recent activities.":"Recent activities unavailable.");
+  }
+});
+
+test("Phase 8 recent fetch becomes stale across local-day rollover without a read",async()=>{
+  const h=harness();await h.ready;h.activate();
+  h.clock.now=new Date(2026,9,7,23,59,50).getTime();h.context.data={...h.summary(123456),refreshed_at:new Date(h.clock.now).toISOString()};h.run("renderGarmin(data)");
+  assert.doesNotMatch(h.get("#garmin-state").textContent,/Stale/);
+  h.clock.now+=20000;h.run("renderGarminStatus()");
+  assert.match(h.get("#garmin-state").textContent,/Stale/);assert.equal(h.requests.length,0);
+});
+
+test("Phase 8 Garmin rendering never enters public chat request or browser storage",async()=>{
+  const h=harness(new Map(),"","private-garmin");await h.ready;h.activate();h.context.data=h.summary(123456);h.run("renderGarmin(data);state.subscription='owned'");
+  h.get("#message").value="Public synthetic rewrite";const send=h.run("sendMessage({preventDefault(){}})");await h.waitForRequests(1);
+  const body=h.requests[0].options.body,payload=JSON.parse(body);
+  assert.equal(body.includes("123456"),false);assert.deepEqual(Object.keys(payload).sort(),["conversation_id","message","request_id","subscription_id"]);
+  assert.equal(JSON.stringify([...h.records]).includes("123456"),false);assert.equal(JSON.stringify([...h.storage]).includes("123456"),false);
+  h.respond(h.requests[0],{request_id:payload.request_id,status:"completed",reply:"Public synthetic reply"});await send;
+});
+
 function descendants(node){return [node,...node.children.flatMap(descendants)];}
 test("F15 old task-list body cannot reappear after offline then successful reconnect",async()=>{
   const h=harness();await h.ready;h.activate();const stale=h.run("refreshTasks()");await h.waitForRequests(1);
@@ -144,7 +193,7 @@ function element() {
   };
 }
 
-function harness(records = new Map(), hash = "") {
+function harness(records = new Map(), hash = "", profile = "standard") {
   const nodes = new Map(), requests = [], windowEvents = {}, timers = [], storage = new Map();
   const location = { origin: "https://synthetic.test", hash }, historyEntries = [{ state: null, hash }];
   let historyIndex = 0;
@@ -158,6 +207,7 @@ function harness(records = new Map(), hash = "") {
   };
   const clock = { now: Date.parse("2026-10-07T12:00:00Z") };
   class FakeDate extends Date {
+    constructor(...args) { super(...(args.length ? args : [clock.now])); }
     static now() { return clock.now; }
   }
   const get = (selector) => {
@@ -203,7 +253,7 @@ function harness(records = new Map(), hash = "") {
   const context = vm.createContext({
     AbortController, DOMException, TextEncoder, URLSearchParams, Date: FakeDate, Promise, CSS: { escape: value => value },
     crypto: { randomUUID: () => "synthetic-request" },
-    document: { querySelector: get, createElement: tag => Object.assign(element(),{tagName:tag.toUpperCase()}), addEventListener: listen },
+    document: { body: {dataset: {profile}}, querySelector: get, createElement: tag => Object.assign(element(),{tagName:tag.toUpperCase()}), addEventListener: listen },
     window: { location, history, scrollTo() {}, addEventListener: listen },
     navigator: { onLine: true },
     indexedDB: { open: () => storageRequest(database) },

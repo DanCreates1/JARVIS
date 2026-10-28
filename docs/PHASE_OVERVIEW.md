@@ -20,7 +20,8 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
 - **Phase 7 complete — Text quality and daily-use polish.** Explicit daily text profile;
   repeated 10/10 original and 37/40, 37/40, 36/40 expanded, every safety case passing.
   [Completion evidence](phase-reports/current/PHASE_7_COMPLETION.md) retains failures and limits.
-- **Next: Phase 8 — Private Garmin workspace.** No integration activation follows automatically.
+- **Phase 8 closeout pending — Private Garmin workspace.** Explicit opt-in profile; current protected
+  Core read and synthetic lifecycle evidence in [progress report](phase-reports/current/PHASE_8_PROGRESS.md).
 - Progress basis: **7/19 primary phase receipts closed (~37%)**; an
   unweighted management count, not code/effort percentage or full mobile MVP acceptance.
 - Historical prototype acceptance stays **100% = 10/10 groups**, corpus **8/10**. Full mobile MVP,

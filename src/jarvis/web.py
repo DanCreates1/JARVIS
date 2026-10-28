@@ -568,7 +568,7 @@ def create_app(
     @app.get("/app/", include_in_schema=False)
     async def pwa_index() -> HTMLResponse:
         content = (_PWA_ROOT / "index.html").read_text(encoding="utf-8")
-        if configured.runtime_profile in {"prototype-text", "daily-text"}:
+        if configured.runtime_profile in {"prototype-text", "daily-text", "private-garmin"}:
             content = content.replace(
                 'data-profile="standard"', f'data-profile="{configured.runtime_profile}"'
             )
@@ -793,6 +793,11 @@ def create_app(
                     "voice": voice.metadata()
                     if RemoteScope.CLIENT_CHAT in context.scopes
                     else {"available": False},
+                    "garmin": {
+                        "available": configured.runtime_profile
+                        not in {"prototype-text", "daily-text"}
+                        and RemoteScope.CLIENT_HEALTH_READ in context.scopes,
+                    },
                     "attachments": {
                         "available": runtime.attachments is not None
                         and runtime.attachments.enabled
@@ -979,6 +984,8 @@ def create_app(
     ) -> dict[str, object]:
         context = _remote_context(request)
         _require_remote_host(_runtime(request), context)
+        if configured.runtime_profile in {"prototype-text", "daily-text"}:
+            raise HTTPException(status_code=503, detail="Garmin unavailable in text-only profile")
         try:
             summary = await garmin_service.summary(refresh=refresh)
         except GarminUnavailableError:

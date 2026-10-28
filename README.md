@@ -32,6 +32,10 @@ authenticated PWA; no Garmin, native build, cloud provider or microphone require
 Daily text launch: `rtk proxy .\scripts\open-daily.cmd`. Same installed `qwen3:1.7b`, local-only
 boundaries and PWA; separate generic quality guidance. Original prototype prompt stays unchanged.
 
+Private Garmin launch: `rtk proxy .\scripts\open-garmin.cmd`.
+[Capability and recovery](docs/PRIVATE_GARMIN.md): same local daily text plus explicit read-only
+Garmin refresh; existing health-scoped identity required. No startup import, login or new scope.
+
 JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–8, Phases 9A–9C, and Phase 11 implement a
 local deterministic privacy gate, configurable NVIDIA/Groq/Gemini/Ollama roles,
 zero-cost fallback routing, durable SQLite state, audited read-only tools, CLI,

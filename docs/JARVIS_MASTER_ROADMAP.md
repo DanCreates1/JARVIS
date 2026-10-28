@@ -54,7 +54,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [5](#phase-5--prototype-recovery-and-receipt) | Prototype recovery and receipt | complete | 4 | Historical PROTO-2.2, published `466a409` |
 | [6](#phase-6--architecture-and-managed-roadmap) | Architecture and managed roadmap | complete | 5 | Owner choices, flat ledger, command/report migration and gates evidenced |
 | [7](#phase-7--text-quality-and-daily-use-polish) | Text quality and daily-use polish | complete | 6 | Explicit daily text; 10/10 original, 37/40 + 37/40 + 36/40 expanded; all safety and release gates |
-| [8](#phase-8--private-garmin-workspace) | Private Garmin workspace | not-started | 7 | Protected Core session + read-only PWA foundation; health access remains separate |
+| [8](#phase-8--private-garmin-workspace) | Private Garmin workspace | implemented-closeout-pending | 7 | Local/Core acceptance passes; safe publication and fresh CI pending; production health access remains separate |
 | [9](#phase-9--files-and-attachments) | Files and attachments | not-started | 7 | Legacy G/F14/F15 foundations; bounded product acceptance |
 | [10](#phase-10--inspectable-memory-and-project-context) | Inspectable memory and project context | not-started | 7 | Legacy memory/F continuity; safe owner-facing lifecycle |
 | [11](#phase-11--grounded-public-research) | Grounded public research | not-started | 7 | Legacy research/freshness; live source access and cited acceptance |
@@ -150,6 +150,8 @@ Three final runs meet unchanged thresholds; sorting/conversion/explanation failu
 Original prototype prompt/launcher and historical 8/10 evidence remain intact. No later feature is enabled.
 
 ### Phase 8 — Private Garmin workspace
+
+Status: **implemented-closeout-pending**, 2026-10-27. [Current progress](phase-reports/current/PHASE_8_PROGRESS.md).
 
 Outcome: useful read-only health/activity view through Core. Reuse protected saved session, isolated
 Python bridge and existing normalized PWA view; no reimport/new login as routine startup. Verify
