@@ -184,7 +184,7 @@ async def test_refresh_timeout_kills_and_reaps_child(
 ) -> None:
     reader, process, _ = _mock_bridge(tmp_path, monkeypatch)
     process.returncode = None
-    process.stdout.read = AsyncMock(side_effect=TimeoutError)
+    process.stdout.read = AsyncMock(side_effect=[TimeoutError, b""])
     wait_for = AsyncMock(wraps=asyncio.wait_for)
     monkeypatch.setattr(service_module.asyncio, "wait_for", wait_for)
 
@@ -209,7 +209,14 @@ async def test_cancelled_refresh_kills_and_reaps_child(
         await asyncio.Future()
         return b""
 
-    process.stdout.read = AsyncMock(side_effect=pending_communication)
+    read_count = 0
+
+    async def read(size: int) -> bytes:
+        nonlocal read_count
+        read_count += 1
+        return await pending_communication(size) if read_count == 1 else b""
+
+    process.stdout.read = AsyncMock(side_effect=read)
     task = asyncio.create_task(reader.summary())
     await asyncio.wait_for(started.wait(), timeout=1)
     task.cancel()
@@ -331,12 +338,13 @@ async def test_duplicate_bridge_fields_are_not_silently_reinterpreted(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("output_size", [9_000, 2_000_000])
 async def test_real_overflowing_child_is_killed_and_reaped_before_its_sleep(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, output_size: int
 ) -> None:
     bridge = tmp_path / "overflow.py"
     bridge.write_text(
-        "import os, time\nos.write(1, b'x' * 9000)\ntime.sleep(120)\n", encoding="utf-8"
+        f"import os, time\nos.write(1, b'x' * {output_size})\ntime.sleep(120)\n", encoding="utf-8"
     )
     spawn = asyncio.create_subprocess_exec
     children: list[asyncio.subprocess.Process] = []

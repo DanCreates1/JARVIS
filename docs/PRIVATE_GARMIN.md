@@ -34,7 +34,8 @@ the standalone reporter against the independent original copy.
 
 The bridge uses its locked Python 3.12 environment, fixed six read methods, no library retry,
 90-second total child deadline and 8,192-byte normalized output limit enforced during reading.
-Overflow/timeout/cancellation kill and reap the child. Concurrent refreshes share the existing
+Overflow/timeout/cancellation kill the child, discard remaining pipe output in fixed chunks, then
+reap it without a full-pipe deadlock. Concurrent refreshes share the existing
 Core lock/cache/throttle. Process restart drops health/cache/throttle; it does not reimport tokens.
 Cached summaries are immutable. Duplicate JSON fields, invalid dates, naive fetch timestamps,
 coerced numeric values, extra private fields and oversized activity lists fail closed.

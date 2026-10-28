@@ -120,14 +120,22 @@ class GarminSummaryService:
                         }
                     },
                 )
+                output_complete = False
                 try:
                     stdout = await asyncio.wait_for(_read_output(process), timeout=90)
+                    output_complete = True
                 except TimeoutError:
                     raise GarminUnavailableError("refresh_timeout") from None
                 finally:
-                    if process.returncode is None:
-                        with suppress(ProcessLookupError):
-                            process.kill()
+                    if not output_complete:
+                        if process.returncode is None:
+                            with suppress(ProcessLookupError):
+                                process.kill()
+                        # wait() alone can deadlock when a full pipe paused its reader.
+                        # Discard after kill in fixed chunks, never buffer private output.
+                        if process.stdout is not None:
+                            while await process.stdout.read(4_096):
+                                pass
                         await process.wait()
                 if process.returncode != 0:
                     raise GarminUnavailableError("refresh_failed")

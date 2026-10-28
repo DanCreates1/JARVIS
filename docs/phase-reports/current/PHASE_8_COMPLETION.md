@@ -1,6 +1,6 @@
 # Phase 8 — Private Garmin workspace
 
-- Status: `complete`
+- Status: `implemented-closeout-pending`
 - Started / updated: 2026-10-27 / 2026-10-27
 - Namespace: current numbered roadmap
 - Recommended Codex model / reasoning: `gpt-6-astra` / `ultra` for identity/authority decisions
@@ -55,7 +55,7 @@ Frozen before implementation/live reads:
   renewal need not occur to fabricate evidence; synthetic rotation proof stays distinct.
 - [x] Updated capability/setup/freshness/disconnect/recovery documentation. Live disconnect is
   excluded; synthetic protected-store deletion only, actual deletion remains consequential.
-- [x] Full protocol gates: locks/sync, format/lint/types, pytest >=85%, audits including restored
+- [ ] Full protocol gates: locks/sync, format/lint/types, pytest >=85%, audits including restored
   extras and sidecar, PWA/PCM/accessibility standard + prototype + daily + Garmin, secret/whitespace/
   document links, isolated publication source and held/baseline preservation, safe commit/push and
   exact remote/fresh CI verification.
@@ -140,7 +140,38 @@ All strict audits report zero known vulnerabilities; no suppressions. Existing t
 capability skips and Starlette test-client warning remain. One extra published test and different
 coverage denominator come from preserved original provider code/tests outside held removal.
 Both complete suites ran serially after exact focused failures passed, without editing those tests.
-Final code and locks are frozen; subsequent changes are receipt/status/link wording only.
+Those code/lock gates describe the initial publication. The post-closure stress repair below
+requires fresh complete gates; earlier passes are not substituted.
+
+### Post-closure large-output stress repair
+
+During final CI follow-up, a new synthetic 2,000,000-byte worker exposed a cleanup defect in the
+new bounded reader: output rejection killed the child but waited before draining its paused pipe.
+The 9,000-byte test had not filled the pipe. Independent five-second watchdog expired and emitted
+closed-loop transport warnings; no real Garmin session/data was involved in that failed probe.
+
+Repair discards remaining stdout in fixed 4,096-byte chunks after kill, then reaps. It never
+accumulates discarded bytes or exposes them. Real-child regressions now test both 9,000 and
+2,000,000 bytes with unchanged five-second watchdog and 90-second Core child deadline; 25 service
+cases pass, including timeout/cancel, both large-output paths and no private diagnostic text.
+The independent 2 MB probe now settles without warnings. No timeout or acceptance limit weakened.
+
+Third bounded live Core read on the repaired isolated source passes schema/freshness/activity
+bound and all six category-presence flags. No values or credentials emitted; no reimport/login/
+enrollment/revocation. Same unchanged pinned sidecar and protected session, no competing live reader
+started by this work. Static format/lint/types and fresh serial full suites pass in both checkouts.
+Repair publication and fresh CI remain pending. Initial publication/closure receipts above remain
+historical, not acceptance of this later repair.
+
+| Repaired source gate | Working | Isolated publication |
+| --- | --- | --- |
+| Full pytest, unchanged 85% floor | 1,584 passed / 3 skipped; 86.02%; 135.49 s | 1,585 passed / 3 skipped; 85.97%; 134.74 s |
+| Ruff format / lint / Mypy | Pass; 169 typed files | Pass; 169 typed files |
+| Installed root and sidecar audits | Zero known vulnerabilities | Zero known vulnerabilities |
+| PWA/PCM | 154 + 7 passed | Full suite executes same lifecycle wrapper; source unchanged |
+
+Concurrent audit-cache writes emitted performance-only Windows cache permission warnings; both
+strict installed audits completed with zero vulnerabilities. No OS policy or audit rule changed.
 
 Security repair sources: [upstream advisory](https://github.com/msgpack/msgpack-python/security/advisories/GHSA-j586-36cw-2gc2),
 [fixed release](https://github.com/msgpack/msgpack-python/releases/tag/v1.2.3). Advisory provider
@@ -170,8 +201,9 @@ passes Windows quality job `122570026468` and secret job `122570026821` at that 
 Post-publication history scan passes 131 commits; only the 28 original held paths remain dirty,
 all five shared held hunks recompose correctly, and index is clean.
 
-This receipt/status/link closeout changes documentation only. Application bytes, locks and test
-cases remain exactly the tested implementation. Final closure commit/tracking/live remote and its
+Initial `fdf2667` receipt/status/link closeout changed documentation only; its
+[fresh CI 40613936587](https://github.com/DanCreates1/JARVIS/actions/runs/40613936587) passed.
+The later pipe cleanup repair above requires new application gates and publication. Final commit/tracking/live remote and its
 own fresh CI are checked separately after push and reported in the closing reply; implementation
 CI is not substituted for that later commit. Standing safe publication authority applies.
 
@@ -180,6 +212,6 @@ live disconnect or phone request occurred. Current phase completion covers prote
 automated scoped PWA projection. Real owner health-scoped browser/physical acceptance remains
 unestablished; phone checks **skipped by owner; unverified**. Native/provider publication holds stay.
 
-Progress: **8/19 primary receipts closed (~42%)**, unweighted management count, not code/effort
-or mobile MVP acceptance. Next current phase: **Phase 9 — Files and attachments**; prerequisite
-Phase 7 is complete. Handoff does not start Phase 9 or grant integration/scope/deployment authority.
+Progress during reopened closeout: **7/19 primary receipts closed (~37%)**, unweighted management
+count, not code/effort or mobile MVP acceptance. Next: **Finish Phase 8**; Phase 9 stays queued
+until current repair acceptance and publication pass. No integration/scope/deployment authority added.
