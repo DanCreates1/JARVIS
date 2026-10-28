@@ -54,7 +54,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [5](#phase-5--prototype-recovery-and-receipt) | Prototype recovery and receipt | complete | 4 | Historical PROTO-2.2, published `466a409` |
 | [6](#phase-6--architecture-and-managed-roadmap) | Architecture and managed roadmap | complete | 5 | Owner choices, flat ledger, command/report migration and gates evidenced |
 | [7](#phase-7--text-quality-and-daily-use-polish) | Text quality and daily-use polish | complete | 6 | Explicit daily text; 10/10 original, 37/40 + 37/40 + 36/40 expanded; all safety and release gates |
-| [8](#phase-8--private-garmin-workspace) | Private Garmin workspace | implemented-closeout-pending | 7 | Local/Core acceptance passes; safe publication and fresh CI pending; production health access remains separate |
+| [8](#phase-8--private-garmin-workspace) | Private Garmin workspace | complete | 7 | Explicit local Garmin workspace, full synthetic matrix/current Core evidence and release gates; production health access remains separate |
 | [9](#phase-9--files-and-attachments) | Files and attachments | not-started | 7 | Legacy G/F14/F15 foundations; bounded product acceptance |
 | [10](#phase-10--inspectable-memory-and-project-context) | Inspectable memory and project context | not-started | 7 | Legacy memory/F continuity; safe owner-facing lifecycle |
 | [11](#phase-11--grounded-public-research) | Grounded public research | not-started | 7 | Legacy research/freshness; live source access and cited acceptance |
@@ -72,7 +72,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [23](#phase-23--wearables-and-additional-devices) | Wearables and additional devices | deferred | Supported vendor path + device/scopes authority | Generic legacy wearable boundary; adapter/device acceptance absent |
 | [24](#phase-24--restricted-maintenance-assistance) | Restricted maintenance assistance | deferred | 14, 17, 19 + explicit narrow use case | Proposal-only isolated assistance; no self-authorized production changes |
 
-**Progress basis:** **7/19 primary phase receipts closed (~37%)**. This is an unweighted management
+**Progress basis:** **8/19 primary phase receipts closed (~42%)**. This is an unweighted management
 count, not percentage of code written, elapsed effort or mobile MVP acceptance.
 Existing foundations reduce future work but earn no new phase closure without current evidence.
 Prototype acceptance remains **100% = 10/10 groups** under its original scope. Full mobile MVP,
@@ -151,7 +151,10 @@ Original prototype prompt/launcher and historical 8/10 evidence remain intact. N
 
 ### Phase 8 — Private Garmin workspace
 
-Status: **implemented-closeout-pending**, 2026-10-27. [Current progress](phase-reports/current/PHASE_8_PROGRESS.md).
+Status: **complete**, 2026-10-27. [Completion evidence](phase-reports/current/PHASE_8_COMPLETION.md),
+[capability/startup/recovery contract](PRIVATE_GARMIN.md). Explicit `private-garmin` extends daily
+local text without enabling other integrations. Current protected Core reads and synthetic scoped
+PWA lifecycle pass; no production scope/enrollment or physical-phone acceptance is inferred.
 
 Outcome: useful read-only health/activity view through Core. Reuse protected saved session, isolated
 Python bridge and existing normalized PWA view; no reimport/new login as routine startup. Verify
@@ -378,7 +381,7 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 
 ## Next action
 
-**Next: Initiate Phase 8 — Private Garmin workspace.** Phase 7 text qualification is complete.
-Read this roadmap, [Phase Execution](PHASE_EXECUTION.md) and Phase 8 references before implementation.
+**Next: Initiate Phase 9 — Files and attachments.** Phase 7 prerequisite and Phase 8 workspace are complete.
+Read this roadmap, [Phase Execution](PHASE_EXECUTION.md) and Phase 9 references before implementation.
 Preserve held native/provider changes, the accepted prototype baseline, existing failed legacy gates
-and skipped/unverified phone status. Phase 7 grants no new health scope, login or integration activation.
+and skipped/unverified phone status. Phase 8 grants no new health scope, login or automatic integration activation.

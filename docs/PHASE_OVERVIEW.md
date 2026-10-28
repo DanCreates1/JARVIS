@@ -1,6 +1,6 @@
 # JARVIS Phase Overview
 
-Navigation view, **2026-10-26**. [Master Roadmap](JARVIS_MASTER_ROADMAP.md) is the **single status
+Navigation view, **2026-10-27**. [Master Roadmap](JARVIS_MASTER_ROADMAP.md) is the **single status
 ledger** and owns scope/dependencies. [Phase Execution](PHASE_EXECUTION.md) owns commands;
 [current reports](phase-reports/current/) hold acceptance evidence. Old phase numbers are legacy
 aliases; the [crosswalk](JARVIS_MASTER_ROADMAP.md#historical-alias-map) resolves collisions.
@@ -20,9 +20,11 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
 - **Phase 7 complete — Text quality and daily-use polish.** Explicit daily text profile;
   repeated 10/10 original and 37/40, 37/40, 36/40 expanded, every safety case passing.
   [Completion evidence](phase-reports/current/PHASE_7_COMPLETION.md) retains failures and limits.
-- **Phase 8 closeout pending — Private Garmin workspace.** Explicit opt-in profile; current protected
-  Core read and synthetic lifecycle evidence in [progress report](phase-reports/current/PHASE_8_PROGRESS.md).
-- Progress basis: **7/19 primary phase receipts closed (~37%)**; an
+- **Phase 8 complete — Private Garmin workspace.** Explicit opt-in profile; current protected
+  Core read and synthetic lifecycle evidence in [completion report](phase-reports/current/PHASE_8_COMPLETION.md).
+  Production health scope/enrollment remains separate; no physical acceptance inferred.
+- **Next: Phase 9 — Files and attachments.** No automatic feature activation.
+- Progress basis: **8/19 primary phase receipts closed (~42%)**; an
   unweighted management count, not code/effort percentage or full mobile MVP acceptance.
 - Historical prototype acceptance stays **100% = 10/10 groups**, corpus **8/10**. Full mobile MVP,
   physical acceptance and production readiness remain unestablished.

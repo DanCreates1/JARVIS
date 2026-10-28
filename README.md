@@ -18,7 +18,9 @@ IDs are explicit legacy aliases. The [old prototype plan](docs/PROTOTYPE_PLAN.md
 
 Prototype acceptance remains **100% (10/10 groups)**; installed `qwen3:1.7b` scores **8/10**.
 These limitations remain historical prototype evidence; daily text has separate Phase 7 qualification.
-Next: **Phase 8 — Private Garmin workspace**. This is not full mobile MVP,
+**Phase 8 — Private Garmin workspace complete:** explicit local profile, protected Core evidence,
+automated scoped PWA lifecycle and release gates. [Receipt](docs/phase-reports/current/PHASE_8_COMPLETION.md).
+Next: **Phase 9 — Files and attachments**. This is not full mobile MVP,
 physical acceptance or production readiness. Manual phone checks: **skipped by owner; unverified**.
 The capability catalog and dated records below are historical implementation references;
 their phase numbers and next actions do not override the current master roadmap.

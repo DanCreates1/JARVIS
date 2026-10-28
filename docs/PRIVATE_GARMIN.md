@@ -71,7 +71,7 @@ original `open-local.cmd`. Protected session remains in Windows Credential Locke
 publication stays held; phone checks **skipped by owner; unverified**. No medical interpretation,
 physical/mobile MVP/production acceptance or deployment follows from this workspace.
 
-Evidence: [Phase 8 report](phase-reports/current/PHASE_8_PROGRESS.md),
+Evidence: [Phase 8 report](phase-reports/current/PHASE_8_COMPLETION.md),
 [protected connector contract](PWA_GARMIN.md). Rechecked primary implementation references:
 [pinned Garmin client](https://github.com/cyberjunky/python-garminconnect/blob/c3c1c0d66579696e3843cba20f985c66069140b9/garminconnect/client.py),
 [Windows keyring backend](https://keyring.readthedocs.io/en/latest/),

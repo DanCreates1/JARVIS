@@ -1,6 +1,6 @@
 # Phase 8 — Private Garmin workspace
 
-- Status: `implemented-closeout-pending`
+- Status: `complete`
 - Started / updated: 2026-10-27 / 2026-10-27
 - Namespace: current numbered roadmap
 - Recommended Codex model / reasoning: `gpt-6-astra` / `ultra` for identity/authority decisions
@@ -55,7 +55,7 @@ Frozen before implementation/live reads:
   renewal need not occur to fabricate evidence; synthetic rotation proof stays distinct.
 - [x] Updated capability/setup/freshness/disconnect/recovery documentation. Live disconnect is
   excluded; synthetic protected-store deletion only, actual deletion remains consequential.
-- [ ] Full protocol gates: locks/sync, format/lint/types, pytest >=85%, audits including restored
+- [x] Full protocol gates: locks/sync, format/lint/types, pytest >=85%, audits including restored
   extras and sidecar, PWA/PCM/accessibility standard + prototype + daily + Garmin, secret/whitespace/
   document links, isolated publication source and held/baseline preservation, safe commit/push and
   exact remote/fresh CI verification.
@@ -120,7 +120,8 @@ API-denial cases. Latest targeted Core/API run 34 passed. PWA/PCM now 154 + 7 ca
 Desktop Edge: standard 72, prototype 9, daily 9, private Garmin 13 passing. New profile exercises
 explicit synthetic HTTP refresh, partial values, named accessibility heading, 320/1280 reflow and
 logout clearing. Browser default-font/geometry/AX evidence is not physical Safari or spoken screen
-reader acceptance. Final local release evidence follows; publication/fresh CI remains pending.
+reader acceptance. Final local release evidence follows; implementation publication and fresh CI
+also pass below. Documentation closure receives its own exact-SHA CI check in the closing reply.
 
 | Final local gate | Working checkout | Isolated publication source |
 | --- | --- | --- |
@@ -162,11 +163,23 @@ the export equal starting HEAD, not held working candidates. Original system/tex
 both text launchers and original/expanded corpora remain unchanged. No runtime data, tokens, raw
 live values, model weights, screenshots, logs or generated artifacts are publication inputs.
 
-Standing safe commit/push authority applies. Implementation publication, exact HEAD/tracking/live
-remote agreement and fresh Windows quality/secret jobs are the remaining closure steps. Keep this
-report pending until those pass, then rename to completion and advance the ledger. No deployment,
-signing, scope grant, enrollment, new login, import, token revocation or phone request occurred.
+Published implementation `1cbaf5fb1d282062e6df58cb679db97403972f1a`; committed tree equals reviewed
+export `09421ff9d730085467f8458a1ef6e55c588186e4`. Local HEAD, tracking `origin/main` and live
+upstream matched. [Fresh CI 40613362830](https://github.com/DanCreates1/JARVIS/actions/runs/40613362830)
+passes Windows quality job `122570026468` and secret job `122570026821` at that exact SHA.
+Post-publication history scan passes 131 commits; only the 28 original held paths remain dirty,
+all five shared held hunks recompose correctly, and index is clean.
 
-Task source only; held native/provider edits excluded. Progress remains **7/19 closed
-(~37%)**, unweighted phase receipts, not code/effort or mobile MVP acceptance. On completion next
-current phase is Phase 9; no automatic start. If externally blocked, resume Phase 8 with exact cause.
+This receipt/status/link closeout changes documentation only. Application bytes, locks and test
+cases remain exactly the tested implementation. Final closure commit/tracking/live remote and its
+own fresh CI are checked separately after push and reported in the closing reply; implementation
+CI is not substituted for that later commit. Standing safe publication authority applies.
+
+No deployment, signing, scope grant, production enrollment, new login, import, token revocation,
+live disconnect or phone request occurred. Current phase completion covers protected Core and
+automated scoped PWA projection. Real owner health-scoped browser/physical acceptance remains
+unestablished; phone checks **skipped by owner; unverified**. Native/provider publication holds stay.
+
+Progress: **8/19 primary receipts closed (~42%)**, unweighted management count, not code/effort
+or mobile MVP acceptance. Next current phase: **Phase 9 — Files and attachments**; prerequisite
+Phase 7 is complete. Handoff does not start Phase 9 or grant integration/scope/deployment authority.
