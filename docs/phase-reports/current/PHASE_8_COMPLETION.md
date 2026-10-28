@@ -1,6 +1,6 @@
 # Phase 8 — Private Garmin workspace
 
-- Status: `implemented-closeout-pending`
+- Status: `complete`
 - Started / updated: 2026-10-27 / 2026-10-27
 - Namespace: current numbered roadmap
 - Recommended Codex model / reasoning: `gpt-6-astra` / `ultra` for identity/authority decisions
@@ -55,7 +55,7 @@ Frozen before implementation/live reads:
   renewal need not occur to fabricate evidence; synthetic rotation proof stays distinct.
 - [x] Updated capability/setup/freshness/disconnect/recovery documentation. Live disconnect is
   excluded; synthetic protected-store deletion only, actual deletion remains consequential.
-- [ ] Full protocol gates: locks/sync, format/lint/types, pytest >=85%, audits including restored
+- [x] Full protocol gates: locks/sync, format/lint/types, pytest >=85%, audits including restored
   extras and sidecar, PWA/PCM/accessibility standard + prototype + daily + Garmin, secret/whitespace/
   document links, isolated publication source and held/baseline preservation, safe commit/push and
   exact remote/fresh CI verification.
@@ -160,8 +160,8 @@ Third bounded live Core read on the repaired isolated source passes schema/fresh
 bound and all six category-presence flags. No values or credentials emitted; no reimport/login/
 enrollment/revocation. Same unchanged pinned sidecar and protected session, no competing live reader
 started by this work. Static format/lint/types and fresh serial full suites pass in both checkouts.
-Repair publication and fresh CI remain pending. Initial publication/closure receipts above remain
-historical, not acceptance of this later repair.
+Repair publication and fresh CI also pass below. Initial publication/closure receipts above remain
+historical, not substitutes for acceptance of this later repair.
 
 | Repaired source gate | Working | Isolated publication |
 | --- | --- | --- |
@@ -203,7 +203,14 @@ all five shared held hunks recompose correctly, and index is clean.
 
 Initial `fdf2667` receipt/status/link closeout changed documentation only; its
 [fresh CI 40613936587](https://github.com/DanCreates1/JARVIS/actions/runs/40613936587) passed.
-The later pipe cleanup repair above requires new application gates and publication. Final commit/tracking/live remote and its
+The later pipe cleanup repair passed new application gates and was published as
+`861b06c5643e2d6157591a54db99394caade8431`, tree `f89890c651626b834d7cd7bde07c833863916bf3`.
+HEAD, tracking and live remote matched. [Fresh repair CI 40615225872](https://github.com/DanCreates1/JARVIS/actions/runs/40615225872)
+passes Windows quality job `122576028343` and secret job `122576028015` at that exact SHA.
+History scan passes 133 commits. Held-path recomposition/hash/deletion proof passes again;
+only the original 28 held paths remain dirty, index clean. This final receipt/status closeout
+changes documentation only, with application/test/lock bytes identical to the repaired gate.
+Final commit/tracking/live remote and its
 own fresh CI are checked separately after push and reported in the closing reply; implementation
 CI is not substituted for that later commit. Standing safe publication authority applies.
 
@@ -212,6 +219,6 @@ live disconnect or phone request occurred. Current phase completion covers prote
 automated scoped PWA projection. Real owner health-scoped browser/physical acceptance remains
 unestablished; phone checks **skipped by owner; unverified**. Native/provider publication holds stay.
 
-Progress during reopened closeout: **7/19 primary receipts closed (~37%)**, unweighted management
-count, not code/effort or mobile MVP acceptance. Next: **Finish Phase 8**; Phase 9 stays queued
-until current repair acceptance and publication pass. No integration/scope/deployment authority added.
+Progress: **8/19 primary receipts closed (~42%)**, unweighted management count, not code/effort or
+mobile MVP acceptance. Next current phase: **Phase 9 — Files and attachments**; actual prerequisite
+Phase 7 is complete. Handoff does not start it or add integration/scope/deployment authority.
