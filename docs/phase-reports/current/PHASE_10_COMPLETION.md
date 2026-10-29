@@ -1,6 +1,6 @@
 # Phase 10 — Inspectable memory and project context
 
-- Status: `implemented-closeout-pending`
+- Status: `complete`
 - Started / updated: 2026-10-28 / 2026-10-28
 - Namespace: current numbered roadmap
 - Recommended Codex model / reasoning: `gpt-6-astra` / `xhigh`, `ultra` for authority
@@ -50,7 +50,7 @@ Frozen before implementation/tuning/current measurements:
   context generation; no owner store. Unavailable/error/cancel/restart and private erasure tested.
 - [x] Full working and isolated publication gates, >=85% coverage, preserved extras, both locked
   audits, PWA/desktop regression profiles, secret/whitespace checks.
-- [ ] Safe commit/push and fresh exact CI.
+- [x] Safe commit/push and fresh exact implementation CI; closure CI verified separately.
 - [x] Current setup/recovery/limits docs; phone checks **skipped by owner; unverified**.
 
 ## Milestone log
@@ -139,7 +139,24 @@ expiry excludes recall; physical forgetting remains explicit. No physical/mobile
 
 ## Publication and handoff
 
-- Held paths preserved; prototype baseline unchanged. Publication source reviewed; exact-source
-  quality, audits, benchmarks, live/browser and recovery gates pass. Commit/push/fresh CI pending.
-- Progress: 9/19 primary receipts closed (~47%), unweighted management count.
-- Next current work remains Phase 10 until acceptance closes; Phase 11 not started.
+Reviewed implementation published as `b422980ed4a4855142de3229980eca38cc93d185`, tree
+`fe4b4d9933c31fb177994b7b0e05fc69a54abad9`, matching reviewed isolated publication source.
+HEAD, tracking origin/main and live upstream matched after push. All 28 held paths preserved;
+five shared held changes recompose exactly, other held hashes/deletion state unchanged, index clean.
+Original prototype prompts, launchers, corpora and locks unchanged. Native manifests and held
+provider changes excluded. Post-publication history scan: 137 commits, zero leaks.
+
+[Fresh implementation CI 40796940055](https://github.com/DanCreates1/JARVIS/actions/runs/40796940055)
+passes Windows quality job `123195573765` and secret job `123195574162` at the exact implementation
+SHA. This closure changes documentation only; application/test/script/dependency blobs remain
+identical. Closing commit/tracking/live remote, held-state proof and its own fresh CI are verified
+separately after publication and reported in the closing reply; implementation CI is never
+substituted for a later commit.
+
+No deployment/signing, real owner-store/health read, enrollment/new scope, credential change,
+cloud disclosure, paid service, model download or phone request occurred. Phone checks
+**skipped by owner; unverified**. No physical/native/mobile MVP/production acceptance is inferred.
+
+Progress: **10/19 primary receipts closed (~53%)**, unweighted management count, not code/effort
+or mobile MVP acceptance. Next current phase: **Phase 11 — Grounded public research**; prerequisite
+Phase 7 complete. No Phase 11 implementation started. Handoff grants no additional authority.

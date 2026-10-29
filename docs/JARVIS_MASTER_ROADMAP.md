@@ -56,7 +56,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [7](#phase-7--text-quality-and-daily-use-polish) | Text quality and daily-use polish | complete | 6 | Explicit daily text; 10/10 original, 37/40 + 37/40 + 36/40 expanded; all safety and release gates |
 | [8](#phase-8--private-garmin-workspace) | Private Garmin workspace | complete | 7 | Explicit local Garmin workspace, synthetic/current Core acceptance, full-pipe cleanup repair and fresh CI; health access remains separate |
 | [9](#phase-9--files-and-attachments) | Files and attachments | complete | 7 | Explicit private-files; current cited PWA/Core workflow, recovery/security/release gates and fresh CI pass |
-| [10](#phase-10--inspectable-memory-and-project-context) | Inspectable memory and project context | implemented-closeout-pending | 7 | Trusted-local review, exact lifecycle, current retrieval/project/release gates pass; publication CI pending |
+| [10](#phase-10--inspectable-memory-and-project-context) | Inspectable memory and project context | complete | 7 | Trusted-local review, exact lifecycle, current retrieval/project/release gates and fresh CI pass |
 | [11](#phase-11--grounded-public-research) | Grounded public research | not-started | 7 | Legacy research/freshness; live source access and cited acceptance |
 | [12](#phase-12--foreground-voice) | Foreground voice | not-started | 7 | Legacy voice/F13; chosen local speech/reply experience |
 | [13](#phase-13--controlled-windows-actions) | Controlled Windows actions | not-started | 7 | Existing broker/tools; current exact live-effect acceptance |
@@ -72,7 +72,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [23](#phase-23--wearables-and-additional-devices) | Wearables and additional devices | deferred | Supported vendor path + device/scopes authority | Generic legacy wearable boundary; adapter/device acceptance absent |
 | [24](#phase-24--restricted-maintenance-assistance) | Restricted maintenance assistance | deferred | 14, 17, 19 + explicit narrow use case | Proposal-only isolated assistance; no self-authorized production changes |
 
-**Progress basis:** **9/19 primary phase receipts closed (~47%)**. This is an unweighted management
+**Progress basis:** **10/19 primary phase receipts closed (~53%)**. This is an unweighted management
 count, not percentage of code written, elapsed effort or mobile MVP acceptance.
 Existing foundations reduce future work but earn no new phase closure without current evidence.
 Prototype acceptance remains **100% = 10/10 groups** under its original scope. Full mobile MVP,
@@ -182,9 +182,10 @@ cloud upload. Read [attachments](ATTACHMENTS.md), [F14](PWA_F14_WORKFLOWS.md), [
 
 ### Phase 10 — Inspectable memory and project context
 
-Status: **implemented-closeout-pending**, 2026-10-28. [Progress evidence](phase-reports/current/PHASE_10_PROGRESS.md),
+Status: **complete**, 2026-10-28. [Completion evidence](phase-reports/current/PHASE_10_COMPLETION.md),
 [capability and recovery](PRIVATE_MEMORY.md). Current synthetic owner lifecycle, source-explained
-recall, project continuity and full working/isolated gates pass. Publication/fresh CI pending.
+recall, project continuity, full working/isolated gates and fresh CI pass. Trusted-local review
+grants no remote memory-control scope or automatic trust; physical acceptance remains unverified.
 
 Outcome: owner can inspect, approve, correct and forget useful context. Reuse legacy memory states,
 FTS5, provenance, conflict/deletion and private coding continuity. Add only needed PWA projections
@@ -390,8 +391,9 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 
 ## Next action
 
-**Next: Initiate Phase 10 — Inspectable memory and project context.** Actual prerequisite Phase 7
-is complete; Phase 9 files receipt is closed. Read this roadmap, [Phase Execution](PHASE_EXECUTION.md)
-and Phase 10 references before implementation.
+**Next: Initiate Phase 11 — Grounded public research.** Actual prerequisite Phase 7
+is complete; Phase 10 memory receipt is closed. Read this roadmap, [Phase Execution](PHASE_EXECUTION.md)
+and Phase 11 references before implementation. Verify actual live source availability and cited
+acceptance; preserve the historical Wikimedia authentication blocker until directly revalidated.
 Preserve held native/provider changes, the accepted prototype baseline, existing failed legacy gates
 and skipped/unverified phone status. No automatic memory trust, scope, login or integration activation.

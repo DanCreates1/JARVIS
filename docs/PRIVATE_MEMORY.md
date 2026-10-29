@@ -109,7 +109,7 @@ rtk proxy uv run --locked python scripts/phase-f-continuity-benchmark.py --enfor
 
 Live acceptance owns new synthetic stores, TLS fixture/browser profile and installed local model;
 no real credentials, owner state or private route. Runtime evidence remains ignored. Frozen
-retrieval set/thresholds and current measurements: [Phase 10 progress](phase-reports/current/PHASE_10_PROGRESS.md).
+retrieval set/thresholds and current measurements: [Phase 10 completion](phase-reports/current/PHASE_10_COMPLETION.md).
 Existing [memory evidence](phase-reports/PHASE_4_COMPLETION.md) remains historical.
 
 Official contracts checked 2026-10-28: [SQLite FTS5](https://www.sqlite.org/fts5.html),
