@@ -9,7 +9,7 @@
   <link rel="manifest" href="/app/manifest.webmanifest">
   <link rel="icon" href="/app/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app/app.css">
-  <script src="/app/app.js?v=16" type="module"></script>
+  <script src="/app/app.js?v=17" type="module"></script>
 </head>
 <body data-profile="standard">
   <header>
@@ -68,10 +68,11 @@
         <button id="send" type="submit" disabled>Send</button>
       </form>
       <p id="composer-hint" class="hint">Enter adds a line. Send button or Ctrl/⌘+Enter submits deliberately. Drafts stay in this session only.</p>
-      <div data-optional>
+      <div data-optional data-files>
       <label for="attachment-file">Attach photo, PDF or text file</label>
       <input id="attachment-file" type="file" accept="image/png,image/jpeg,application/pdf,text/plain,.txt,.md" multiple disabled aria-describedby="attachment-state">
       <p id="attachment-state" class="hint" role="status" aria-live="polite">Up to four files, 1 MiB each. PNG/JPEG, PDF, TXT/MD. Review, then Send. Files are processed privately on Core.</p>
+      <p id="file-capabilities" class="hint" role="status" aria-live="polite">Connect to check file and local image capabilities. Scanned PDFs and OCR are unavailable.</p>
       <ul id="attachments" aria-label="Selected attachments"></ul>
       <section aria-labelledby="conversation-attachments-title">
         <h3 id="conversation-attachments-title">Conversation attachments</h3>
@@ -83,12 +84,12 @@
           <button id="attachments-next" type="button" class="secondary" hidden>Next attachments</button>
         </div>
       </section>
-      <div class="actions" aria-label="Voice message">
+      <div class="actions" aria-label="Voice message" data-optional>
         <button id="record-message" type="button" class="secondary" disabled aria-describedby="voice-status">Record message</button>
         <button id="stop-recording" type="button" class="secondary" hidden>Stop recording</button>
         <button id="discard-recording" type="button" class="secondary" hidden>Discard recording</button>
       </div>
-      <p id="voice-status" class="hint" role="status" aria-live="polite" aria-atomic="true">Local voice unavailable. Type a message.</p>
+      <p id="voice-status" class="hint" role="status" aria-live="polite" aria-atomic="true" data-optional>Local voice unavailable. Type a message.</p>
       </div>
       <div class="actions">
         <button id="cancel-chat" type="button" class="secondary" disabled>Cancel reply</button>
@@ -97,6 +98,7 @@
       <p class="hint">Use Settings to connect your existing device. Offline messages are never queued. Cancel reply stops the current request. Retry request checks the original receipt after a lost connection; review history before sending a new message.</p>
       <p class="hint prototype-only text-only">Text assistant: explanations, rewrites, summaries and checklists from supplied text; saved conversations and host clock. Live web evidence is unavailable. Files, health, email, calendar and computer actions are unavailable in this profile.</p>
       <p class="hint garmin-only">Private workspace: daily local text and read-only Garmin with existing approved health access. Garmin data stays outside chat and model context. Files, web research, email, calendar, capture and computer actions are unavailable.</p>
+      <p class="hint files-only">Private files: daily local text and deliberately selected text, PDF or PNG/JPEG files. Select files, review previews, then Send to process on Core. Select ready files again to reuse in this conversation. Image understanding needs a configured installed local vision model. Files grant no actions or automatic memory. Health, live web research, email, calendar, capture and computer actions are unavailable.</p>
     </section>
 
     <section id="task-panel" class="panel" aria-labelledby="tasks-title">

@@ -1,6 +1,7 @@
 const API="/api/v1";
 const PRIVATE_GARMIN=document.body?.dataset?.profile==="private-garmin";
-const PROTOTYPE=["prototype-text","daily-text","private-garmin"].includes(document.body?.dataset?.profile);
+const PRIVATE_FILES=document.body?.dataset?.profile==="private-files";
+const PROTOTYPE=["prototype-text","daily-text","private-garmin","private-files"].includes(document.body?.dataset?.profile);
 const DB_NAME="jarvis-private-client";
 const STORE="identity";
 const SCOPES=["browser.session","identity.read","events.read","session.revoke","client.chat","client.tasks.read","client.status.read"];
@@ -478,11 +479,12 @@ async function connect(){
 }
 async function refreshStatus(){
   const generation=state.sessionGeneration,csrf=state.csrf,status=await (await api("/client/status")).json();if(!currentSession(generation,csrf))return;
-  state.attachmentsAllowed=!PROTOTYPE&&status.attachments?.available===true;state.voiceReady=!PROTOTYPE&&status.voice?.available===true;state.voiceMax=Math.min(30000,Math.max(120,status.voice?.max_duration_ms||30000));updateVoiceControls();
+  state.attachmentsAllowed=(!PROTOTYPE||PRIVATE_FILES)&&status.attachments?.available===true;state.voiceReady=!PROTOTYPE&&status.voice?.available===true;state.voiceMax=Math.min(30000,Math.max(120,status.voice?.max_duration_ms||30000));updateVoiceControls();
+  document.querySelector("#file-capabilities").textContent=state.attachmentsAllowed?`Text/MD and text PDFs: local extraction. PNG/JPEG: local normalization. ${status.attachments.vision_configured?"Local image interpretation configured; each request checks availability. OCR is not guaranteed.":"Image understanding unavailable: no local vision model configured."}`:"File processing unavailable for this profile or approved device access.";
   if(status.garmin?.available===false){clearGarmin();ui.garminState.textContent="Garmin unavailable for this profile or approved device access. Review access on your trusted laptop.";}
   ui.device.replaceChildren();
   const entries=[["Name",status.device.display_name],["State",status.device.state],["Key version",status.device.key_version],["Session",status.session.id]];
-  if(["prototype-text","daily-text","private-garmin"].includes(status.assistant?.profile))entries.push(["Assistant",`${status.assistant.provider} · ${status.assistant.model} · ${status.assistant.cloud_policy}`]);
+  if(["prototype-text","daily-text","private-garmin","private-files"].includes(status.assistant?.profile))entries.push(["Assistant",`${status.assistant.provider} · ${status.assistant.model} · ${status.assistant.cloud_policy}`]);
   for(const [name,value] of entries){const wrap=document.createElement("div"),dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=name;dd.textContent=String(value);wrap.append(dt,dd);ui.device.append(wrap);}
 }
 async function refreshTasks({more=false,offset:requestedOffset=null}={}){
@@ -852,7 +854,7 @@ function scheduleAttachmentRefresh(){
   if(state.csrf&&state.online&&state.conversation&&navigation.view==="chat"&&!document.hidden)state.attachmentTimer=setTimeout(()=>loadAttachmentMetadata(),2000);
 }
 async function loadAttachmentMetadata({offset=state.attachmentOffset}={}){
-  if(PROTOTYPE)return;
+  if(PROTOTYPE&&!PRIVATE_FILES)return;
   if(!state.online||!state.conversation)return;cancelAttachmentRead();
   const op={generation:state.sessionGeneration,csrf:state.csrf,conversation:state.conversation,abort:new AbortController()};state.attachmentRead=op;ui.conversationAttachmentsState.textContent="Checking Core attachment status…";updateControls();
   const current=()=>state.attachmentRead===op&&currentSession(op.generation,op.csrf)&&state.conversation===op.conversation&&state.online;
@@ -1066,6 +1068,6 @@ window.addEventListener("online",()=>{
 });
 window.addEventListener("pageshow",()=>{renderGarminStatus();if(state.csrf&&state.subscription&&!state.connecting){if(state.streamOwner)state.streamOwner.tasksPending=true;state.streamAbort?.abort();setConnected(false,"Checking live connection");startStreamOwnership();}});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderGarminStatus();if(state.csrf&&state.subscription&&!state.connecting){if(state.streamOwner)state.streamOwner.tasksPending=true;state.streamAbort?.abort();setConnected(false,"Checking live connection");startStreamOwnership();}}});
-if("serviceWorker" in navigator)navigator.serviceWorker.register("/app/sw.js?v=16",{scope:"/app/"}).catch(()=>announce("Offline shell unavailable"));
+if("serviceWorker" in navigator)navigator.serviceWorker.register("/app/sw.js?v=17",{scope:"/app/"}).catch(()=>announce("Offline shell unavailable"));
 const initialGeneration=state.sessionGeneration;
 loadIdentity().then(identity=>{if(state.sessionGeneration!==initialGeneration)return;state.hasIdentity=Boolean(identity);updateControls();if(identity){ui.accessStatus.textContent="Enrolled key found. Connect existing device to start a fresh session.";announce(ui.accessStatus.textContent);}}).catch(()=>{if(state.sessionGeneration===initialGeneration)announce("Device storage unavailable");});

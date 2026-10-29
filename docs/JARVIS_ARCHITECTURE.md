@@ -73,6 +73,13 @@ Windows; immutable health cache is process memory only, output is bounded during
 failed refresh cannot resurrect an old server success. No background polling or startup login/
 import. [Capability and recovery](PRIVATE_GARMIN.md). Text-only profiles deny the health endpoint.
 
+**Private files extension (Phase 9):** explicit `private-files` extends daily local text with existing
+supplied-attachment processing. Deliberate authenticated staging/Send/reuse retain isolated bounded
+parsers, Core-owned provenance, sticky local privacy and no automatic memory capture. Text/PDF
+extraction and image normalization differ from optional capability-checked local vision; absent
+interpretation stays unavailable. Other integrations and arbitrary filesystem tools remain disabled.
+[Capability, lifecycle and recovery](PRIVATE_FILES.md). Original profiles preserved.
+
 ## Historical target architecture and technical contracts
 
 > Active delivery architecture (2026-10-22): [Prototype Plan](PROTOTYPE_PLAN.md).

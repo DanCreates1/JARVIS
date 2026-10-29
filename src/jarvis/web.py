@@ -568,7 +568,12 @@ def create_app(
     @app.get("/app/", include_in_schema=False)
     async def pwa_index() -> HTMLResponse:
         content = (_PWA_ROOT / "index.html").read_text(encoding="utf-8")
-        if configured.runtime_profile in {"prototype-text", "daily-text", "private-garmin"}:
+        if configured.runtime_profile in {
+            "prototype-text",
+            "daily-text",
+            "private-garmin",
+            "private-files",
+        }:
             content = content.replace(
                 'data-profile="standard"', f'data-profile="{configured.runtime_profile}"'
             )
@@ -795,7 +800,7 @@ def create_app(
                     else {"available": False},
                     "garmin": {
                         "available": configured.runtime_profile
-                        not in {"prototype-text", "daily-text"}
+                        not in {"prototype-text", "daily-text", "private-files"}
                         and RemoteScope.CLIENT_HEALTH_READ in context.scopes,
                     },
                     "attachments": {
@@ -803,6 +808,10 @@ def create_app(
                         and runtime.attachments.enabled
                         and RemoteScope.CLIENT_CHAT in context.scopes,
                         "max_bytes": MAX_STAGE_BYTES,
+                        "vision_configured": runtime.attachments is not None
+                        and runtime.attachments.vision is not None
+                        and runtime.attachments.enabled
+                        and RemoteScope.CLIENT_CHAT in context.scopes,
                     },
                     "device": {
                         "id": device.id,
@@ -984,7 +993,7 @@ def create_app(
     ) -> dict[str, object]:
         context = _remote_context(request)
         _require_remote_host(_runtime(request), context)
-        if configured.runtime_profile in {"prototype-text", "daily-text"}:
+        if configured.runtime_profile in {"prototype-text", "daily-text", "private-files"}:
             raise HTTPException(status_code=503, detail="Garmin unavailable in text-only profile")
         try:
             summary = await garmin_service.summary(refresh=refresh)

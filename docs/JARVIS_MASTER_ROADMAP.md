@@ -55,7 +55,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [6](#phase-6--architecture-and-managed-roadmap) | Architecture and managed roadmap | complete | 5 | Owner choices, flat ledger, command/report migration and gates evidenced |
 | [7](#phase-7--text-quality-and-daily-use-polish) | Text quality and daily-use polish | complete | 6 | Explicit daily text; 10/10 original, 37/40 + 37/40 + 36/40 expanded; all safety and release gates |
 | [8](#phase-8--private-garmin-workspace) | Private Garmin workspace | complete | 7 | Explicit local Garmin workspace, synthetic/current Core acceptance, full-pipe cleanup repair and fresh CI; health access remains separate |
-| [9](#phase-9--files-and-attachments) | Files and attachments | not-started | 7 | Legacy G/F14/F15 foundations; bounded product acceptance |
+| [9](#phase-9--files-and-attachments) | Files and attachments | implemented-closeout-pending | 7 | Explicit private-files; current PWA/Core and local release gates pass; publication/CI pending |
 | [10](#phase-10--inspectable-memory-and-project-context) | Inspectable memory and project context | not-started | 7 | Legacy memory/F continuity; safe owner-facing lifecycle |
 | [11](#phase-11--grounded-public-research) | Grounded public research | not-started | 7 | Legacy research/freshness; live source access and cited acceptance |
 | [12](#phase-12--foreground-voice) | Foreground voice | not-started | 7 | Legacy voice/F13; chosen local speech/reply experience |
@@ -166,6 +166,9 @@ or physical-phone request. Read [Garmin contract](PWA_GARMIN.md), [connector](GA
 [prior progress](phase-reports/PWA_MVP3_PROGRESS.md). Phone rows stay skipped/unverified.
 
 ### Phase 9 — Files and attachments
+
+Status: **implemented-closeout-pending**, 2026-10-28. [Current evidence](phase-reports/current/PHASE_9_PROGRESS.md),
+[capability/startup/recovery contract](PRIVATE_FILES.md). No production scope/feature activation.
 
 Outcome: reliable supplied-content workflows. Reuse G processing and F14/F15 upload, provenance,
 preview, search and same-conversation reuse. Test text/PDF/image capability behavior with bounded

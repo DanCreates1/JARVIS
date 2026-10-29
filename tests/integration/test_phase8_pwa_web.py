@@ -260,7 +260,9 @@ def test_pwa_proactivity_routes_use_scoped_adapter_and_generic_errors(tmp_path: 
         assert missing.json() == {"detail": "Proactivity state unavailable"}
 
 
-@pytest.mark.parametrize("profile", ["standard", "prototype-text", "daily-text", "private-garmin"])
+@pytest.mark.parametrize(
+    "profile", ["standard", "prototype-text", "daily-text", "private-garmin", "private-files"]
+)
 def test_pwa_garmin_requires_dedicated_scope_and_returns_only_summary(
     tmp_path: Path, profile: str
 ) -> None:
@@ -295,7 +297,7 @@ def test_pwa_garmin_requires_dedicated_scope_and_returns_only_summary(
             "/api/v1/client/garmin?refresh=true",
             headers={"X-Jarvis-Browser-Origin": ORIGIN},
         )
-        if profile in {"prototype-text", "daily-text"}:
+        if profile in {"prototype-text", "daily-text", "private-files"}:
             assert allowed.status_code == 503
             assert reader.calls == []
             return
@@ -380,7 +382,9 @@ def _bootstrap(
     return str(response.json()["csrf_token"])
 
 
-@pytest.mark.parametrize("profile", ["standard", "prototype-text", "daily-text", "private-garmin"])
+@pytest.mark.parametrize(
+    "profile", ["standard", "prototype-text", "daily-text", "private-garmin", "private-files"]
+)
 def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(
     tmp_path: Path, profile: str
 ) -> None:
@@ -414,9 +418,9 @@ def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(
         assert "indexedDB" in script.text and '"JARVIS_LOGOUT"' in script.text
         assert 'headers["X-Jarvis-Browser-Origin"]=window.location.origin' in script.text
         assert "SHELL.includes(shellKey)" in worker.text and "cache.put" in worker.text
-        assert 'const CACHE="jarvis-shell-v16"' in worker.text
+        assert 'const CACHE="jarvis-shell-v17"' in worker.text
         assert "self.skipWaiting()" in worker.text
-        assert "/app/app.js?v=16" in shell.text and "/app/sw.js?v=16" in script.text
+        assert "/app/app.js?v=17" in shell.text and "/app/sw.js?v=17" in script.text
         assert "ui.logout.disabled=!state.hasIdentity" in script.text
         assert manifest.json()["start_url"] == "/app/"
         asset_bytes = sum(

@@ -1,5 +1,9 @@
 # Local conversation attachments
 
+Current product entry: [Phase 9 private files workspace](PRIVATE_FILES.md), explicit `private-files`
+via `rtk proxy .\scripts\open-files.cmd`. Other accepted text/Garmin profiles remain unchanged.
+Legacy G/F14/F15 contracts below remain the processing, privacy and lifecycle foundation.
+
 Phase G adds default-off attachments to local CLI and loopback browser chat. Original bytes,
 normalized images and chunks remain in existing private SQLite. Source and model output are
 untrusted data, never tool authority, approved memory or automatic research input.

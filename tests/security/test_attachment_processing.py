@@ -175,6 +175,50 @@ async def test_worker_protocol_output_and_missing_dependency(tmp_path, code, exp
         await processor.process(b"text", AttachmentType.TEXT)
 
 
+@pytest.mark.parametrize("mode", ["overflow", "timeout", "cancel"])
+async def test_large_worker_output_cleanup_drains_pipe_and_reaps(tmp_path, monkeypatch, mode):
+    worker = tmp_path / "flood.py"
+    worker.write_text(
+        "import sys,time;sys.stdin.buffer.read();"
+        + (
+            "sys.stdout.buffer.write(b'x'*16000000)"
+            if mode == "overflow"
+            else "sys.stdout.buffer.write(b'x'*1000000);sys.stdout.flush();time.sleep(30)"
+        ),
+        encoding="utf-8",
+    )
+    processor = IsolatedAttachmentProcessor(timeout_seconds=0.5 if mode == "timeout" else 10)
+    processor.worker = worker
+    children = []
+    spawned = asyncio.Event()
+    original = asyncio.create_subprocess_exec
+
+    async def capture(*args, **kwargs):
+        child = await original(*args, **kwargs)
+        children.append(child)
+        spawned.set()
+        return child
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", capture)
+    task = asyncio.create_task(processor.process(b"synthetic", AttachmentType.TEXT))
+    await asyncio.wait_for(spawned.wait(), 5)
+    if mode == "cancel":
+        await asyncio.sleep(0.2)
+        task.cancel()
+    expected = asyncio.CancelledError if mode == "cancel" else AttachmentError
+    with pytest.raises(
+        expected,
+        match=None
+        if mode == "cancel"
+        else "worker_output_limit"
+        if mode == "overflow"
+        else "processing_timeout",
+    ):
+        await asyncio.wait_for(task, 5)
+    assert len(children) == 1 and children[0].returncode is not None
+    assert children[0].stdout.at_eof()
+
+
 async def test_missing_worker_and_upload_size(tmp_path):
     processor = IsolatedAttachmentProcessor()
     processor.worker = tmp_path / "missing.py"

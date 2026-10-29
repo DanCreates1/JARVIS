@@ -128,8 +128,16 @@ class IsolatedAttachmentProcessor:
         except (ValueError, ValidationError):
             raise AttachmentError("worker_protocol") from None
         finally:
-            if process is not None and process.returncode is None:
-                with suppress(ProcessLookupError):
-                    process.kill()
+            if process is not None:
+                if process.returncode is None:
+                    with suppress(ProcessLookupError):
+                        process.kill()
+                # A paused pipe can keep wait() pending after kill. Discard bounded chunks
+                # before reaping; never accumulate rejected output during cleanup.
+                if process.stdin is not None:
+                    process.stdin.close()
+                if process.stdout is not None:
+                    while await process.stdout.read(4_096):
+                        pass
                 await process.wait()
             working.cleanup()

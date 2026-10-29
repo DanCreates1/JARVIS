@@ -19,7 +19,8 @@ const allowed = new Set(["index.html", "app.js", "app.css", "sw.js", "pcm-workle
 const apiRequests = [];
 const textProfile = process.env.PWA_TEST_PROFILE;
 const privateGarmin = textProfile === "private-garmin";
-const textPrototype = ["prototype-text", "daily-text", "private-garmin"].includes(textProfile);
+const privateFiles = textProfile === "private-files";
+const textPrototype = ["prototype-text", "daily-text", "private-garmin", "private-files"].includes(textProfile);
 const server = http.createServer((request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");
   if (url.pathname.startsWith("/api/")) apiRequests.push({ method: request.method, path: url.pathname });
@@ -91,7 +92,8 @@ async function main() {
     const visible = selector => evaluate(`Boolean(document.querySelector(${JSON.stringify(selector)}).getClientRects().length)`);
     assert.equal(await evaluate("pwaTest.navigation.view"), "chat");
     for (const selector of ["#nav-chat", "#nav-settings", "#log"]) assert.ok(await visible(selector));
-    for (const selector of ["#task-panel", "#attachment-file", "#record-message", "#notify"]) assert.equal(await visible(selector), false);
+    for (const selector of ["#task-panel", "#record-message", "#notify"]) assert.equal(await visible(selector), false);
+    assert.equal(await visible("#attachment-file"),privateFiles);
     assert.equal(await visible("#nav-garmin"),privateGarmin);
     await evaluate("pwaTest.selectView('garmin')");
     assert.equal(await evaluate("pwaTest.navigation.view"), privateGarmin?"garmin":"chat");
@@ -111,6 +113,28 @@ async function main() {
     assert.ok(ax.nodes.some(node => node.role?.value === "log" && node.name?.value === "Conversation"));
     assert.equal(apiRequests.length, 0, "navigation makes no health, task, capture, cloud or research request");
     output.cases = ["Chat/Settings only", "dormant controls hidden", "Garmin deep link normalized", "Settings focus and keyboard", "specific recovery", "Send retains readiness gate", "320/1280 reflow", "named conversation log", "zero optional navigation requests"];
+    if(privateFiles){
+      await evaluate(`(async()=>{pwaTest.state.historyReady=true;pwaTest.state.attachmentsAllowed=true;
+        const canvas=document.createElement('canvas');canvas.width=2;canvas.height=2;canvas.getContext('2d').fillRect(0,0,2,2);
+        const image=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+        await pwaTest.selectAttachments([new File(['<script>synthetic</script>'],'fixture.txt'),new File([image],'fixture.png'),new File(['synthetic PDF'],'fixture.pdf')]);})()`);
+      for(let i=0;i<100;i++){if(await evaluate("pwaTest.state.attachments.length===3&&pwaTest.state.attachments.every(a=>a.phase==='ready')"))break;await pause(20);}
+      assert.equal(await evaluate("pwaTest.state.attachments.every(a=>a.phase==='ready')"),true);
+      assert.equal(await evaluate("document.querySelector('#attachments pre').textContent"),'<script>synthetic</script>');
+      assert.equal(await evaluate("document.querySelector('#attachments img').naturalWidth"),2);
+      assert.equal(await evaluate("document.querySelectorAll('#attachments script').length"),0);
+      for(const width of [320,1280]){
+        await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:false});
+        assert.ok(await evaluate("document.documentElement.scrollWidth<=innerWidth"));
+      }
+      const fileAx=await call('Accessibility.getFullAXTree');
+      for(const name of ['Remove fixture.txt','Remove fixture.png','Remove fixture.pdf'])assert.ok(fileAx.nodes.some(n=>n.role?.value==='button'&&n.name?.value===name));
+      await evaluate("document.querySelector('#attachments button').focus()");await key('Enter',13);
+      assert.equal(await evaluate("pwaTest.state.attachments.length"),2);
+      await evaluate("pwaTest.selectView('settings')");assert.equal(await evaluate("pwaTest.state.attachments.length"),0);
+      assert.ok(apiRequests.every(r=>r.path.startsWith('/api/v1/client/attachments/')));
+      output.cases.push('real File/Blob/XHR selection','inert text and local photo preview','named remove controls and keyboard removal','file reflow','departure discards staged sources');
+    }
     if(privateGarmin){
       output.cases[0]="Chat/Garmin/Settings only";output.cases[2]="Garmin navigation makes no read";
       await evaluate("(async()=>{pwaTest.state.healthAllowed=true;pwaTest.selectView('garmin');await pwaTest.refreshGarmin(true);})()");

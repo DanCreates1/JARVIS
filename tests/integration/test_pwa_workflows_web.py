@@ -29,11 +29,12 @@ from tests.security.test_attachment_processing import pdf
 UPLOAD = "/api/v1/client/attachments/" + "1" * 32
 
 
-@pytest.fixture
-def workflows(tmp_path: Path):
+@pytest.fixture(params=["standard", "private-files"])
+def workflows(tmp_path: Path, request):
     settings = Settings(
         data_dir=tmp_path,
         attachments_enabled=True,
+        runtime_profile=request.param,
         trusted_browser_origins=(ORIGIN,),
         _env_file=None,
     )
@@ -80,6 +81,13 @@ def terminal(client, headers, request_id="request:f14"):
 @pytest.mark.parametrize("kind", ["text", "pdf", "png", "jpeg"])
 def test_upload_explicit_send_processing_history_and_search(workflows, kind):
     client, headers, app, *_ = workflows
+    capability = client.get("/api/v1/client/status", headers={"Origin": ORIGIN})
+    assert capability.status_code == 200
+    assert capability.json()["attachments"] == {
+        "available": True,
+        "max_bytes": 1_048_576,
+        "vision_configured": False,
+    }
     body = b"synthetic source"
     filename = "fixture.txt"
     media_type = "text/plain"

@@ -9,7 +9,7 @@ const vm = require("node:vm");
 const script = readFileSync(path.join(__dirname, "../../src/jarvis/pwa/app.js"), "utf8");
 const EMPTY = "Connect JARVIS to see Garmin data.";
 
-for(const profile of ["prototype-text","daily-text","private-garmin"]){
+for(const profile of ["prototype-text","daily-text","private-garmin","private-files"]){
   test(`Phase 8 ${profile} keeps Garmin behind explicit capability and refresh`,async()=>{
     const h=harness(new Map(),"",profile);await h.ready;h.activate();h.run("selectView('garmin')");
     assert.equal(h.requests.length,0);
@@ -20,6 +20,20 @@ for(const profile of ["prototype-text","daily-text","private-garmin"]){
     }
     await read;
     assert.equal(h.requests.length,profile==="private-garmin"?1:0);
+    assert.equal(h.storage.size,0);assert.equal(h.records.size,0);
+  });
+}
+
+for(const profile of ["prototype-text","daily-text","private-garmin","private-files"]){
+  test(`Phase 9 ${profile} keeps file and vision capability explicit`,async()=>{
+    const h=harness(new Map(),"",profile);await h.ready;h.activate();
+    for(const configured of [false,true]){
+      const count=h.requests.length+1,read=h.run("refreshStatus()");await h.waitForRequests(count);
+      h.respond(h.requests.at(-1),{attachments:{available:true,vision_configured:configured},voice:{available:true},device:{},session:{}});await read;
+      assert.equal(h.run("state.attachmentsAllowed"),profile==="private-files");
+      assert.equal(h.run("state.voiceReady"),false);
+      assert.match(h.get("#file-capabilities").textContent,profile!=="private-files"?/File processing unavailable/:configured?/each request checks availability/:/Image understanding unavailable/);
+    }
     assert.equal(h.storage.size,0);assert.equal(h.records.size,0);
   });
 }

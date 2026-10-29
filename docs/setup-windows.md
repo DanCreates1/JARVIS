@@ -23,6 +23,12 @@ Explicit private Garmin: [capability/startup/recovery contract](PRIVATE_GARMIN.m
 existing health scope required, explicit Refresh Garmin only. No reimport, new login/MFA,
 enrollment or route change. Original prototype/daily launchers remain text only.
 
+Explicit private files: [capability/startup/recovery contract](PRIVATE_FILES.md),
+`rtk proxy .\scripts\open-files.cmd`. Same local daily text plus deliberate text/PDF/image uploads
+and same-conversation reuse. Optional image understanding needs configured installed local vision;
+otherwise unavailable. Existing application access required; no new scope, model download, cloud
+upload, filesystem tool or automatic memory promotion.
+
 ## Supported baseline
 
 - Windows 10 or Windows 11

@@ -39,6 +39,11 @@ Private Garmin launch: `rtk proxy .\scripts\open-garmin.cmd`.
 [Capability and recovery](docs/PRIVATE_GARMIN.md): same local daily text plus explicit read-only
 Garmin refresh; existing health-scoped identity required. No startup import, login or new scope.
 
+Private files launch: `rtk proxy .\scripts\open-files.cmd`.
+[Capability and recovery](docs/PRIVATE_FILES.md): local daily text plus deliberate text/PDF/image
+selection, private processing and same-conversation reuse. Image understanding requires configured
+installed local vision; otherwise unavailable. No cloud upload or automatic memory promotion.
+
 JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–8, Phases 9A–9C, and Phase 11 implement a
 local deterministic privacy gate, configurable NVIDIA/Groq/Gemini/Ollama roles,
 zero-cost fallback routing, durable SQLite state, audited read-only tools, CLI,
