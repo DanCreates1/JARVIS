@@ -1,6 +1,6 @@
 # Phase 9 — Files and attachments
 
-- Status: `implemented-closeout-pending`
+- Status: `complete`
 - Started / updated: 2026-10-28 / 2026-10-28
 - Namespace: current numbered roadmap
 - Recommended Codex model / reasoning: `gpt-6-astra` / `xhigh`; `ultra` for authority
@@ -57,7 +57,7 @@ Frozen before implementation and live measurement:
   deletion/restart. Staging/selecting alone invokes no parser/model.
 - [x] Current setup/capability/privacy/retention/deletion/recovery docs and official primary
   dependency/OS/provider documentation checked. Physical phone checks **skipped by owner; unverified**.
-- [ ] Full protocol gates: locks/sync, format/lint/types, pytest >=85%, base/restored-extra/sidecar
+- [x] Full protocol gates: locks/sync, format/lint/types, pytest >=85%, base/restored-extra/sidecar
   audits, PWA/PCM and desktop standard/prototype/daily/Garmin/files, secret/whitespace/link checks,
   exact isolated publication-source gates, held/baseline preservation, safe commit/push and fresh CI.
 
@@ -143,7 +143,22 @@ excluded. Phone checks **skipped by owner; unverified**.
 
 ## Publication and handoff
 
-- Only reviewed Phase 9 hunks may publish; held native/provider edits preserved.
-- Commit/tracking/live remote/fresh CI pending.
-- Progress: 8/19 primary receipts closed (~42%), unweighted management count, not mobile MVP
-  acceptance. Next current phase after closure: Phase 10; no automatic execution.
+Reviewed implementation published as `5170d0194f1a935a5d3501660b728c3671fae25f`, tree
+`11daf9edc691226d2f9803a4e773a0b11c9e8f52`, exactly matching isolated tested source.
+HEAD, tracking `origin/main` and live upstream matched after push.
+[Fresh CI 40792578005](https://github.com/DanCreates1/JARVIS/actions/runs/40792578005)
+passes Windows quality job `123181138615` and secret job `123181138947` at that exact SHA.
+Post-publication scan: 135 commits, no leaks. All 28 held paths remain dirty as intended;
+five shared held hunks recompose exactly and other held hashes/deletion state remain identical.
+Index clean. Native manifests, held provider edits and original prototype baseline preserved.
+
+This closure changes documentation only. All 399 application/test/script blobs remain identical
+to the accepted implementation; locks remain unchanged. Closing commit/tracking/live remote,
+held-state preservation and its own fresh CI are verified separately after publication and
+reported in the closing reply; implementation CI is not substituted for a later commit.
+No deployment, signing, production scope/enrollment, health read, credential change, cloud upload,
+new model, paid service or phone request occurred. No next-phase implementation started.
+
+Progress: **9/19 primary receipts closed (~47%)**, unweighted management count, not code/effort
+or mobile MVP acceptance. Next current phase: **Phase 10 — Inspectable memory and project context**;
+actual prerequisite Phase 7 is complete. Handoff grants no automatic execution or new authority.

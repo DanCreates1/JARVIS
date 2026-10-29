@@ -21,7 +21,10 @@ These limitations remain historical prototype evidence; daily text has separate 
 **Phase 8 — Private Garmin workspace complete:** explicit local profile, protected Core evidence,
 automated scoped PWA lifecycle, large-output cleanup repair and release gates.
 [Receipt](docs/phase-reports/current/PHASE_8_COMPLETION.md).
-Next: **Phase 9 — Files and attachments**. This is not full mobile MVP,
+**Phase 9 — Files and attachments complete:** private-files profile, grounded text/PDF reuse,
+explicit unavailable image understanding, recovery/security/release gates and fresh CI.
+[Receipt](docs/phase-reports/current/PHASE_9_COMPLETION.md).
+Next: **Phase 10 — Inspectable memory and project context**. This is not full mobile MVP,
 physical acceptance or production readiness. Manual phone checks: **skipped by owner; unverified**.
 The capability catalog and dated records below are historical implementation references;
 their phase numbers and next actions do not override the current master roadmap.

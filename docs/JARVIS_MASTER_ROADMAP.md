@@ -55,7 +55,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [6](#phase-6--architecture-and-managed-roadmap) | Architecture and managed roadmap | complete | 5 | Owner choices, flat ledger, command/report migration and gates evidenced |
 | [7](#phase-7--text-quality-and-daily-use-polish) | Text quality and daily-use polish | complete | 6 | Explicit daily text; 10/10 original, 37/40 + 37/40 + 36/40 expanded; all safety and release gates |
 | [8](#phase-8--private-garmin-workspace) | Private Garmin workspace | complete | 7 | Explicit local Garmin workspace, synthetic/current Core acceptance, full-pipe cleanup repair and fresh CI; health access remains separate |
-| [9](#phase-9--files-and-attachments) | Files and attachments | implemented-closeout-pending | 7 | Explicit private-files; current PWA/Core and local release gates pass; publication/CI pending |
+| [9](#phase-9--files-and-attachments) | Files and attachments | complete | 7 | Explicit private-files; current cited PWA/Core workflow, recovery/security/release gates and fresh CI pass |
 | [10](#phase-10--inspectable-memory-and-project-context) | Inspectable memory and project context | not-started | 7 | Legacy memory/F continuity; safe owner-facing lifecycle |
 | [11](#phase-11--grounded-public-research) | Grounded public research | not-started | 7 | Legacy research/freshness; live source access and cited acceptance |
 | [12](#phase-12--foreground-voice) | Foreground voice | not-started | 7 | Legacy voice/F13; chosen local speech/reply experience |
@@ -72,7 +72,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [23](#phase-23--wearables-and-additional-devices) | Wearables and additional devices | deferred | Supported vendor path + device/scopes authority | Generic legacy wearable boundary; adapter/device acceptance absent |
 | [24](#phase-24--restricted-maintenance-assistance) | Restricted maintenance assistance | deferred | 14, 17, 19 + explicit narrow use case | Proposal-only isolated assistance; no self-authorized production changes |
 
-**Progress basis:** **8/19 primary phase receipts closed (~42%)**. This is an unweighted management
+**Progress basis:** **9/19 primary phase receipts closed (~47%)**. This is an unweighted management
 count, not percentage of code written, elapsed effort or mobile MVP acceptance.
 Existing foundations reduce future work but earn no new phase closure without current evidence.
 Prototype acceptance remains **100% = 10/10 groups** under its original scope. Full mobile MVP,
@@ -167,8 +167,10 @@ or physical-phone request. Read [Garmin contract](PWA_GARMIN.md), [connector](GA
 
 ### Phase 9 — Files and attachments
 
-Status: **implemented-closeout-pending**, 2026-10-28. [Current evidence](phase-reports/current/PHASE_9_PROGRESS.md),
-[capability/startup/recovery contract](PRIVATE_FILES.md). No production scope/feature activation.
+Status: **complete**, 2026-10-28. [Completion evidence](phase-reports/current/PHASE_9_COMPLETION.md),
+[capability/startup/recovery contract](PRIVATE_FILES.md). Actual synthetic PWA/Core/local-model
+facts/citations/reuse, unavailable image understanding, restart/replay/privacy and full release
+gates pass. No production scope/feature activation or physical acceptance inferred.
 
 Outcome: reliable supplied-content workflows. Reuse G processing and F14/F15 upload, provenance,
 preview, search and same-conversation reuse. Test text/PDF/image capability behavior with bounded
@@ -384,7 +386,8 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 
 ## Next action
 
-**Next: Initiate Phase 9 — Files and attachments.** Phase 7 prerequisite and Phase 8 workspace are complete.
-Read this roadmap, [Phase Execution](PHASE_EXECUTION.md) and Phase 9 references before implementation.
+**Next: Initiate Phase 10 — Inspectable memory and project context.** Actual prerequisite Phase 7
+is complete; Phase 9 files receipt is closed. Read this roadmap, [Phase Execution](PHASE_EXECUTION.md)
+and Phase 10 references before implementation.
 Preserve held native/provider changes, the accepted prototype baseline, existing failed legacy gates
-and skipped/unverified phone status. Phase 8 grants no new health scope, login or automatic integration activation.
+and skipped/unverified phone status. No automatic memory trust, scope, login or integration activation.

@@ -85,7 +85,7 @@ rtk proxy uv run --locked python scripts/phase-g-attachments-benchmark.py --enfo
 Live command uses only new ignored synthetic TLS identities/stores/files and installed local model;
 never loads owner configuration/credentials. Results stay under ignored `runtime/phase9/`.
 Foundation contracts: [F14](PWA_F14_WORKFLOWS.md), [F15](PWA_F15_WORKSPACE.md).
-Current evidence: [Phase 9 progress](phase-reports/current/PHASE_9_PROGRESS.md).
+Current evidence: [Phase 9 completion](phase-reports/current/PHASE_9_COMPLETION.md).
 
 Official contracts rechecked 2026-10-28: [Ollama vision](https://docs.ollama.com/capabilities/vision),
 [Pillow security](https://pillow.readthedocs.io/en/stable/handbook/security.html),
