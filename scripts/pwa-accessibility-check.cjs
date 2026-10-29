@@ -20,7 +20,7 @@ const apiRequests = [];
 const textProfile = process.env.PWA_TEST_PROFILE;
 const privateGarmin = textProfile === "private-garmin";
 const privateFiles = textProfile === "private-files";
-const textPrototype = ["prototype-text", "daily-text", "private-garmin", "private-files", "private-memory"].includes(textProfile);
+const textPrototype = ["prototype-text", "daily-text", "private-garmin", "private-files", "private-memory", "public-research"].includes(textProfile);
 const server = http.createServer((request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");
   if (url.pathname.startsWith("/api/")) apiRequests.push({ method: request.method, path: url.pathname });

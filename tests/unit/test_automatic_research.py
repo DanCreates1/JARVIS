@@ -79,7 +79,7 @@ def _report(*sources: SourceRecord, answer: str | None = None) -> ResearchReport
 @pytest.mark.asyncio
 async def test_projects_live_timestamped_citations_without_pending_storage() -> None:
     workflow = FakeWorkflow(_report(_source(1), _source(2)))
-    projector = AutomaticResearchProjector(workflow, host_id="host-1")  # type: ignore[arg-type]
+    projector = AutomaticResearchProjector(workflow, host_id="host-1", clock=lambda: NOW)  # type: ignore[arg-type]
 
     projection = await projector.project(
         "Compare current evidence.",
@@ -106,7 +106,7 @@ async def test_multi_source_same_host_is_explicitly_insufficient() -> None:
     workflow = FakeWorkflow(
         _report(_source(1, host="same.example"), _source(2, host="same.example"))
     )
-    projector = AutomaticResearchProjector(workflow, host_id="host-1")  # type: ignore[arg-type]
+    projector = AutomaticResearchProjector(workflow, host_id="host-1", clock=lambda: NOW)  # type: ignore[arg-type]
 
     projection = await projector.project(
         "Compare current claim.",
@@ -124,7 +124,7 @@ async def test_multi_source_same_host_is_explicitly_insufficient() -> None:
 @pytest.mark.asyncio
 async def test_non_live_route_cannot_trigger_research() -> None:
     workflow = FakeWorkflow(_report(_source(1)))
-    projector = AutomaticResearchProjector(workflow, host_id="host-1")  # type: ignore[arg-type]
+    projector = AutomaticResearchProjector(workflow, host_id="host-1", clock=lambda: NOW)  # type: ignore[arg-type]
 
     with pytest.raises(ValueError, match="live-evidence route"):
         await projector.project(
@@ -143,6 +143,7 @@ async def test_projection_is_bounded_without_losing_source_mapping() -> None:
         workflow,
         host_id="host-1",
         max_projection_chars=12_000,
+        clock=lambda: NOW,
     )
 
     projection = await projector.project(
@@ -166,6 +167,7 @@ async def test_projection_never_truncates_a_cited_claim_mid_sentence() -> None:
         workflow,
         host_id="host-1",
         max_projection_chars=12_000,
+        clock=lambda: NOW,
     )
 
     projection = await projector.project(
@@ -189,7 +191,7 @@ async def test_projection_never_truncates_a_cited_claim_mid_sentence() -> None:
 )
 async def test_private_or_uncertain_request_is_denied_before_workflow(query: str) -> None:
     workflow = FakeWorkflow(_report(_source(1)))
-    projector = AutomaticResearchProjector(workflow, host_id="host-1")  # type: ignore[arg-type]
+    projector = AutomaticResearchProjector(workflow, host_id="host-1", clock=lambda: NOW)  # type: ignore[arg-type]
 
     with pytest.raises(ResearchSearchError) as caught:
         await projector.project(

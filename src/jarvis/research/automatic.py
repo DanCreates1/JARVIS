@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
+from datetime import UTC, datetime
 from urllib.parse import urlsplit
 
 from jarvis.core import ContextProjection, FreshnessDecision, SensitivityClass
+from jarvis.core.models import GroundedResearchProjection
 from jarvis.llm.routing import PrivacyGate
 from jarvis.research.adapters import ResearchSearchError
 from jarvis.research.freshness import KnowledgeRequest, evaluate_knowledge_report
-from jarvis.research.models import ResearchErrorCode, ResearchPlan, ResearchReport
+from jarvis.research.models import ResearchErrorCode, ResearchPlan, ResearchReport, SourceState
+from jarvis.research.security import PublicResearchUrlPolicy
 from jarvis.research.workflow import ResearchWorkflow
 
 
@@ -27,6 +31,8 @@ class AutomaticResearchProjector:
         max_projection_chars: int = 20_000,
         max_age_seconds: int = 3_600,
         privacy_gate: PrivacyGate | None = None,
+        grounded_answers: bool = False,
+        clock: Callable[[], datetime] | None = None,
     ) -> None:
         if not 2 <= max_sources <= 4:
             raise ValueError("automatic research max_sources must be between 2 and 4")
@@ -46,6 +52,8 @@ class AutomaticResearchProjector:
         self._max_projection_chars = max_projection_chars
         self._max_age_seconds = max_age_seconds
         self._privacy_gate = privacy_gate or PrivacyGate()
+        self._grounded_answers = grounded_answers
+        self._clock = clock or (lambda: datetime.now(UTC))
 
     async def project(
         self,
@@ -79,10 +87,23 @@ class AutomaticResearchProjector:
         """Project validated evidence without acquisition or persistence."""
         if not decision.requires_live_evidence:
             raise ValueError("automatic research requires a live-evidence route")
+        now = self._clock()
+        if (
+            any(
+                source.host_id != self._host_id
+                or source.state is not SourceState.ACTIVE
+                or source.retrieved_at > now
+                or source.last_checked_at > now
+                or (source.published_at is not None and source.published_at > now)
+                for source in report.sources
+            )
+            or report.generated_at > now
+        ):
+            raise ValueError("research evidence has invalid ownership, state or timestamps")
         snapshot = evaluate_knowledge_report(
             report,
             KnowledgeRequest(query=report.objective, max_age_seconds=self._max_age_seconds),
-            now=report.generated_at,
+            now=now,
             online=True,
             retrieved_live=True,
         )
@@ -97,21 +118,89 @@ class AutomaticResearchProjector:
             fresh_until=snapshot.fresh_until.isoformat(),
             max_chars=self._max_projection_chars,
         )
-        return ContextProjection(
+        projection = ContextProjection(
             content=content,
             sensitivity=SensitivityClass.PUBLIC,
             source_ids=tuple(source.id for source in report.sources),
             source="volatile-automatic-research",
         )
+        if self._grounded_answers:
+            return GroundedResearchProjection(
+                **projection.model_dump(),
+                answer=_grounded_answer(
+                    report, sufficient=sufficient, now=now, fresh_until=snapshot.fresh_until
+                ),
+            )
+        return projection
 
 
 def _independent_hosts(report: ResearchReport) -> tuple[str, ...]:
     hosts = {
-        (urlsplit(source.url).hostname or "").casefold().removeprefix("www.")
+        ".".join((urlsplit(source.url).hostname or "").casefold().split(".")[-2:])
         for source in report.sources
     }
     hosts.discard("")
     return tuple(sorted(hosts))
+
+
+def _literal(value: str) -> str:
+    """Keep source wording inert in the bounded Markdown renderer."""
+    return re.sub(r"([\\`*_{}\[\]()<>#+.!|~-])", r"\\\1", " ".join(value.split()))
+
+
+def _grounded_answer(
+    report: ResearchReport, *, sufficient: bool, now: datetime, fresh_until: datetime
+) -> str:
+    sources = {source.id: source for source in report.sources}
+    lines = [
+        "Public source excerpts. Source statements are not independently verified.",
+        f"Checked {now.isoformat()}. Publication dates may be unknown.",
+        f"Evidence expires {fresh_until.isoformat()}; saved conversation replies do not refresh.",
+    ]
+    if not sufficient:
+        lines.append("Insufficient distinct source sites for corroboration; consensus unavailable.")
+    else:
+        lines.append("Distinct source sites do not establish publisher independence or consensus.")
+    seen: set[tuple[str, str]] = set()
+    quoted_words: dict[str, int] = {}
+    for claim in report.claims:
+        for citation in claim.citations:
+            source = sources[citation.source_id]
+            if citation.quote is None or (source.id, citation.quote) in seen:
+                continue
+            PublicResearchUrlPolicy().validate_syntax(source.url)
+            span = re.fullmatch(r"text:(\d+)-(\d+)", citation.locator)
+            if span is None:
+                raise ValueError("grounded answer requires an exact text locator")
+            start, end = map(int, span.groups())
+            if (
+                start >= end
+                or end > len(source.extracted_text)
+                or source.extracted_text[start:end] != citation.quote
+            ):
+                raise ValueError("grounded answer quote does not match its source span")
+            quoted_words[source.id] = quoted_words.get(source.id, 0) + len(citation.quote.split())
+            if quoted_words[source.id] > 25:
+                raise ValueError("grounded answer exceeds source quote budget")
+            seen.add((source.id, citation.quote))
+            published = source.published_at.isoformat() if source.published_at else "unknown"
+            lines.append(
+                f"Source states: {_literal(citation.quote)} "
+                f"[Source {list(sources).index(source.id) + 1}](<{source.url}>) "
+                f"(retrieved {source.retrieved_at.isoformat()}; published {published})."
+            )
+    if not seen:
+        raise ValueError("grounded answer requires exact cited source excerpts")
+    if report.contradictions:
+        lines.append(
+            "Conflicting evidence: " + " ".join(_literal(x) for x in report.contradictions)
+        )
+    if report.unanswered_questions:
+        lines.append("Unresolved: " + " ".join(_literal(x) for x in report.unanswered_questions))
+    answer = "\n\n".join(lines)
+    if len(answer) > 20_000:
+        raise ValueError("grounded answer exceeds fixed bound")
+    return answer
 
 
 def _render_projection(

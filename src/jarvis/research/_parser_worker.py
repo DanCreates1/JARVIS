@@ -17,6 +17,25 @@ MAX_PDF_PAGES = 100
 IGNORED_ELEMENTS = frozenset(
     {"script", "style", "template", "noscript", "svg", "nav", "aside", "footer", "header"}
 )
+BLOCK_ELEMENTS = frozenset(
+    {
+        "p",
+        "li",
+        "tr",
+        "div",
+        "br",
+        "section",
+        "article",
+        "dt",
+        "dd",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+    }
+)
 
 
 class ResearchHtmlParser(HTMLParser):
@@ -37,6 +56,8 @@ class ResearchHtmlParser(HTMLParser):
             self.language = attributes["lang"][:35]
         if normalized_tag in IGNORED_ELEMENTS:
             self.ignored_depth += 1
+        if normalized_tag in BLOCK_ELEMENTS and self.ignored_depth == 0:
+            self.text_parts.append("\u2029")
         if normalized_tag == "title" and self.ignored_depth == 0:
             self.in_title = True
         if normalized_tag == "meta":
@@ -53,6 +74,8 @@ class ResearchHtmlParser(HTMLParser):
             self.in_title = False
         if normalized_tag in IGNORED_ELEMENTS and self.ignored_depth > 0:
             self.ignored_depth -= 1
+        if normalized_tag in BLOCK_ELEMENTS and self.ignored_depth == 0:
+            self.text_parts.append("\u2029")
 
     def handle_data(self, data: str) -> None:
         if self.ignored_depth > 0:
@@ -98,7 +121,11 @@ def parse_document(source_url: str, media_type: str, encoding: str, body: bytes)
         parser = ResearchHtmlParser()
         parser.feed(body.decode(encoding, errors="replace"))
         parser.close()
-        text = normalize(" ".join(parser.text_parts))
+        text = "\n".join(
+            normalized
+            for part in " ".join(parser.text_parts).split("\u2029")
+            if (normalized := normalize(part))
+        )
         if not text:
             raise ValueError("empty HTML")
         return {

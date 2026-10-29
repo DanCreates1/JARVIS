@@ -1,5 +1,10 @@
 # JARVIS
 
+Explicit Phase 11 public research: `rtk proxy .\scripts\open-research.cmd`.
+Current public HTTPS source excerpts with exact citations, freshness and deterministic unavailable
+states; no cloud model or automatic research storage. Wikimedia discovery remains blocked with
+`authentication_required`. [Capability and recovery](docs/PUBLIC_RESEARCH.md).
+
 ## Current delivery — one numbered roadmap
 
 [Master Roadmap](docs/JARVIS_MASTER_ROADMAP.md) owns all active phase IDs, scope, dependencies,

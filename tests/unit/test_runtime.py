@@ -264,8 +264,8 @@ async def test_research_failure_keeps_explicit_missing_evidence_constraint() -> 
     result = await service.respond("What is the latest Python version?")
 
     assert result.status is RuntimeStatus.COMPLETED
-    assert "No web evidence is attached" in provider.requests[0].messages[0].content
-    assert "reason=unavailable" in provider.requests[0].messages[1].content
+    assert provider.requests == []
+    assert "Current evidence is unavailable" in result.reply
     unavailable = next(
         event for event in result.events if event.type is RuntimeEventType.RESEARCH_UNAVAILABLE
     )
@@ -296,7 +296,9 @@ async def test_research_failure_exposes_only_safe_reason_code(code: ResearchErro
     result = await service.respond("What is the latest Python version?")
 
     assert result.status is RuntimeStatus.COMPLETED
-    assert f"reason={code.value}" in provider.requests[0].messages[1].content
+    assert provider.requests == []
+    assert "Current evidence is unavailable" in result.reply
+    assert any(code.value in (event.detail or "") for event in result.events)
     assert all(
         "private query or provider detail" not in (event.detail or "") for event in result.events
     )

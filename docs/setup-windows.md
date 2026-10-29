@@ -31,6 +31,11 @@ upload, filesystem tool or automatic memory promotion.
 
 ## Supported baseline
 
+Explicit public research: [capability/startup/recovery contract](PUBLIC_RESEARCH.md),
+`rtk proxy .\scripts\open-research.cmd`. Same local text plus bounded deliberate public HTTPS
+sources and exact cited excerpts. Missing evidence stays unavailable; Wikimedia discovery remains
+`authentication_required`. No cloud model, account, new scope, automatic storage or provider switch.
+
 - Windows 10 or Windows 11
 - PowerShell 5.1 or newer
 - Git

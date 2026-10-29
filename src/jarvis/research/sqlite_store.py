@@ -142,8 +142,9 @@ class SQLiteResearchStore:
                 exact = await _fetchone(
                     connection,
                     "SELECT * FROM research_sources WHERE host_id = ? AND url = ? "
-                    "AND content_sha256 = ? AND state = 'active' ORDER BY version DESC LIMIT 1",
-                    (host_id, fetched.final_url, digest),
+                    "AND content_sha256 = ? AND extracted_text = ? "
+                    "AND state = 'active' ORDER BY version DESC LIMIT 1",
+                    (host_id, fetched.final_url, digest, parsed.text),
                 )
                 if exact is not None:
                     await connection.execute(
@@ -672,8 +673,14 @@ class SQLiteResearchStore:
                     exact = await _fetchone(
                         connection,
                         "SELECT * FROM research_sources WHERE host_id = ? AND url = ? "
-                        "AND content_sha256 = ? AND state = 'active' ORDER BY version DESC LIMIT 1",
-                        (host_id, source_candidate.url, source_candidate.content_sha256),
+                        "AND content_sha256 = ? AND extracted_text = ? "
+                        "AND state = 'active' ORDER BY version DESC LIMIT 1",
+                        (
+                            host_id,
+                            source_candidate.url,
+                            source_candidate.content_sha256,
+                            source_candidate.extracted_text,
+                        ),
                     )
                     if exact is not None:
                         await connection.execute(

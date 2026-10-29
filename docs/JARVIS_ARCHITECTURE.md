@@ -87,6 +87,15 @@ source-explained bounded FTS retrieval, correction/expiry-aware derivations and 
 reuse the existing store. Repository context stays explicit-root/CLI-only, private and non-executing.
 [Capability, lifecycle and recovery](PRIVATE_MEMORY.md). Accepted prototype profile remains intact.
 
+**Public research extension (Phase 11):** explicit `public-research` reuses daily local text and
+the bounded existing research workflow. Public current queries can select up to four HTTPS source
+URLs; configured discovery remains separately availability-gated. Exact cited excerpts settle
+through canonical conversation receipts without a second model rewrite. Failed or expired evidence
+is explicitly unavailable. Acquisition stays volatile; final replies still follow conversation
+retention. Ledger storage keeps exact approval, and parser changes preserve immutable source-span
+versions. [Capability, source limitations and recovery](PUBLIC_RESEARCH.md). Wikimedia historical
+`authentication_required` remains; direct-source success is not discovery acceptance.
+
 ## Historical target architecture and technical contracts
 
 > Active delivery architecture (2026-10-22): [Prototype Plan](PROTOTYPE_PLAN.md).

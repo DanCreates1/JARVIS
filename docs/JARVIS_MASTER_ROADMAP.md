@@ -57,7 +57,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [8](#phase-8--private-garmin-workspace) | Private Garmin workspace | complete | 7 | Explicit local Garmin workspace, synthetic/current Core acceptance, full-pipe cleanup repair and fresh CI; health access remains separate |
 | [9](#phase-9--files-and-attachments) | Files and attachments | complete | 7 | Explicit private-files; current cited PWA/Core workflow, recovery/security/release gates and fresh CI pass |
 | [10](#phase-10--inspectable-memory-and-project-context) | Inspectable memory and project context | complete | 7 | Trusted-local review, exact lifecycle, current retrieval/project/release gates and fresh CI pass |
-| [11](#phase-11--grounded-public-research) | Grounded public research | not-started | 7 | Legacy research/freshness; live source access and cited acceptance |
+| [11](#phase-11--grounded-public-research) | Grounded public research | implemented-closeout-pending | 7 | Legacy research/freshness; live source access and cited acceptance |
 | [12](#phase-12--foreground-voice) | Foreground voice | not-started | 7 | Legacy voice/F13; chosen local speech/reply experience |
 | [13](#phase-13--controlled-windows-actions) | Controlled Windows actions | not-started | 7 | Existing broker/tools; current exact live-effect acceptance |
 | [14](#phase-14--bounded-tasks-and-project-workflows) | Bounded tasks and project workflows | not-started | 7; 13 for action-bearing flows | Existing DAG/scheduler/task views; usable safe workflow/control |
@@ -196,6 +196,10 @@ or unreviewed repository execution. Read [memory evidence](phase-reports/PHASE_4
 [continuity](TOKEN_CONTINUITY.md), [memory ownership](architecture.md#memory-boundary).
 
 ### Phase 11 — Grounded public research
+
+Status: **implemented-closeout-pending**, 2026-10-28. [Progress evidence](phase-reports/current/PHASE_11_PROGRESS.md),
+[capability and source limits](PUBLIC_RESEARCH.md). Direct official-source acquisition works;
+Wikimedia discovery retains `authentication_required`. Local and isolated gates pass; publication/fresh CI pending.
 
 Outcome: useful current answers with verified sources or explicit unavailable evidence. Reuse
 freshness classification, search/fetch/parser/citation workflow and existing general-search port.

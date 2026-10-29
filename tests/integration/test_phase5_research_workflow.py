@@ -190,6 +190,45 @@ async def test_research_storage_requires_exact_approval_and_never_promotes_memor
 
 
 @pytest.mark.asyncio
+async def test_approved_report_never_reuses_different_parser_text_for_same_body(
+    tmp_path: Path,
+) -> None:
+    database = tmp_path / "changed-parser.db"
+    async with SQLiteResearchStore(database) as store:
+        original = run_result()
+        delegate = FakeOrchestrator(original)
+        service = workflow(store, delegate)
+        pending = await service.run(host_id=HOST, plan=original.plan)
+        await service.approve(approval(pending))
+        first = (await store.list_sources(host_id=HOST))[0]
+        source = original.report.sources[0].model_copy(
+            update={"extracted_text": "New block. Alpha evidence."}
+        )
+        cite = original.report.claims[0].citations[0].model_copy(update={"locator": "text:11-16"})
+        claim = original.report.claims[0].model_copy(update={"citations": (cite,)})
+        delegate.result = original.model_copy(
+            update={
+                "report": original.report.model_copy(
+                    update={"sources": (source,), "claims": (claim,)}
+                )
+            }
+        )
+        pending = await service.run(host_id=HOST, plan=original.plan)
+        await service.approve(approval(pending))
+        sources = await store.list_sources(host_id=HOST, state=None)
+        assert len(sources) == 2
+        newest = next(item for item in sources if item.version == 2)
+        assert newest.supersedes_id == first.id
+        assert newest.extracted_text[11:16] == "Alpha"
+    async with SQLiteResearchStore(database) as store:
+        sources = await store.list_sources(host_id=HOST, state=None)
+        assert (
+            next(item for item in sources if item.id == first.id).extracted_text
+            == "Alpha evidence."
+        )
+
+
+@pytest.mark.asyncio
 async def test_approval_denial_discards_content_and_cannot_be_replayed(tmp_path: Path) -> None:
     async with SQLiteResearchStore(tmp_path / "research.db") as store:
         service = workflow(store, FakeOrchestrator(run_result()))

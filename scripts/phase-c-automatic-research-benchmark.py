@@ -113,7 +113,7 @@ def _cases() -> tuple[tuple[str, FreshnessRoute], ...]:
 async def _run() -> dict[str, object]:
     router = DeterministicFreshnessRouter()
     workflow = FixtureWorkflow()
-    projector = AutomaticResearchProjector(workflow, host_id="host-benchmark")  # type: ignore[arg-type]
+    projector = AutomaticResearchProjector(workflow, host_id="host-benchmark", clock=lambda: NOW)  # type: ignore[arg-type]
     failures: list[str] = []
     projection_latencies_ms: list[float] = []
     live_cases = 0

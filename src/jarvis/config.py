@@ -48,6 +48,7 @@ class Settings(BaseSettings):
         "private-garmin",
         "private-files",
         "private-memory",
+        "public-research",
     ] = "standard"
     ollama_base_url: AnyHttpUrl = AnyHttpUrl("http://127.0.0.1:11434")
     ollama_model: str = "qwen3:0.6b"
@@ -353,6 +354,7 @@ class Settings(BaseSettings):
             "private-garmin",
             "private-files",
             "private-memory",
+            "public-research",
         }:
             coding_requested = self.coding_context_enabled
             self.ollama_temperature = 0
@@ -377,6 +379,8 @@ class Settings(BaseSettings):
                 "pwa_voice_enabled",
             ):
                 setattr(self, name, False)
+            self.research_enabled = self.runtime_profile == "public-research"
+            self.automatic_research_enabled = self.research_enabled
             self.attachments_enabled = self.runtime_profile == "private-files"
             self.coding_context_enabled = (
                 self.runtime_profile == "private-memory" and coding_requested

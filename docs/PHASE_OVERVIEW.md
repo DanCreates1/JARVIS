@@ -30,7 +30,9 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
 - **Phase 10 complete — Inspectable memory and project context.** Explicit private-memory profile,
   trusted-local exact review, source-explained retrieval and private project context; full gates and
   fresh CI pass. [Completion evidence](phase-reports/current/PHASE_10_COMPLETION.md).
-- **Next: Phase 11 — Grounded public research.** No automatic implementation.
+- **Phase 11 implemented-closeout-pending — Grounded public research.** Explicit public-source excerpts;
+  [progress](phase-reports/current/PHASE_11_PROGRESS.md). Local/isolated gates pass; publication/fresh CI pending.
+  Wikimedia discovery retains its historical authentication blocker.
 - Progress basis: **10/19 primary phase receipts closed (~53%)**; an
   unweighted management count, not code/effort percentage or full mobile MVP acceptance.
 - Historical prototype acceptance stays **100% = 10/10 groups**, corpus **8/10**. Full mobile MVP,

@@ -140,6 +140,40 @@ async def test_source_versioning_revalidation_search_and_restart(tmp_path: Path)
         assert len(await reopened.list_sources(host_id=HOST_A, state=None)) == 3
 
 
+async def test_parser_projection_change_versions_same_raw_body_without_rebinding_citations(
+    tmp_path: Path,
+) -> None:
+    database = tmp_path / "parser-version.db"
+    fetched, parsed = document("Alpha first. Beta second.")
+    async with SQLiteResearchStore(database) as store:
+        first = await store.record_document(
+            host_id=HOST_A, topic="parser", fetched=fetched, parsed=parsed
+        )
+        old_claim = await store.add_claim(
+            host_id=HOST_A,
+            topic="parser",
+            statement="Beta second.",
+            status=ClaimStatus.VERIFIED,
+            citations=(Citation(source_id=first.id, locator="text:13-25", quote="Beta second."),),
+        )
+        changed = parsed.model_copy(update={"text": "Alpha first.\nBeta second."})
+        second = await store.record_document(
+            host_id=HOST_A, topic="parser", fetched=fetched, parsed=changed
+        )
+        assert second.id != first.id and second.version == 2
+        assert second.content_sha256 == first.content_sha256
+        assert (
+            await store.get_claim(host_id=HOST_A, claim_id=old_claim.id)
+        ).status is ClaimStatus.STALE
+    async with SQLiteResearchStore(database) as store:
+        assert (
+            await store.get_source(host_id=HOST_A, source_id=first.id)
+        ).extracted_text == parsed.text
+        assert (
+            await store.get_source(host_id=HOST_A, source_id=second.id)
+        ).extracted_text == changed.text
+
+
 async def test_claim_versions_conflicts_and_evidence_boundaries(tmp_path: Path) -> None:
     async with SQLiteResearchStore(tmp_path / "research.db") as store:
         first_source = await add_source(store, "Source one")

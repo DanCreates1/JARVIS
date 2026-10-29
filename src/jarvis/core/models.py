@@ -319,6 +319,12 @@ class ContextProjection(CoreModel):
     source: Annotated[str, Field(min_length=1, max_length=100)]
 
 
+class GroundedResearchProjection(ContextProjection):
+    """Adapter-validated cited answer, settled without a second model rewrite."""
+
+    answer: Annotated[str, Field(min_length=1, max_length=20_000)]
+
+
 class FreshnessDecision(CoreModel):
     """Content-free host decision describing evidence needed for one request."""
 

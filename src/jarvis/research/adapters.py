@@ -451,7 +451,9 @@ def _validation_details(exc: ValidationError) -> list[str]:
     ]
 
 
-_SENTENCE = re.compile(r"[^.!?]+[.!?]?")
+_SENTENCE = re.compile(r"[^\n]+?(?:[.!?](?=\s|$)|(?=\n|$))")
+_UNSAFE_EXTRACT = re.compile(r"https?://|\[source:", re.IGNORECASE)
+_CONTEXT_DEPENDENT_EXTRACT = re.compile(r"\b(?:above|below)\b", re.IGNORECASE)
 _WORD = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
 _STOP_WORDS = frozenset(
     {
@@ -524,6 +526,7 @@ def _optional_aware_datetime(value: object) -> datetime | None:
 
 
 def _research_keywords(text: str) -> frozenset[str]:
+    text = re.sub(r"https?://\S+", "", text, flags=re.IGNORECASE)
     return frozenset(
         word.casefold()
         for word in _WORD.findall(text)
@@ -536,7 +539,12 @@ def _best_extract(text: str, keywords: frozenset[str]) -> tuple[str, int]:
     for match in _SENTENCE.finditer(text):
         raw_sentence = match.group()
         sentence = raw_sentence.strip()
-        if not 20 <= len(sentence) <= 1_000 or _INJECTION_TEXT.search(sentence):
+        if (
+            not 20 <= len(sentence) <= 1_000
+            or _INJECTION_TEXT.search(sentence)
+            or _UNSAFE_EXTRACT.search(sentence)
+            or _CONTEXT_DEPENDENT_EXTRACT.search(sentence)
+        ):
             continue
         sentence_words = _WORD.findall(sentence)
         words = {word.casefold() for word in sentence_words}
@@ -547,7 +555,8 @@ def _best_extract(text: str, keywords: frozenset[str]) -> tuple[str, int]:
         raise ValueError("research source has no safe extractive evidence span")
     _, negative_start, sentence = max(candidates)
     start = -negative_start
-    quote = " ".join(sentence.split()[:25])
+    quote_words = list(re.finditer(r"\S+", sentence))
+    quote = sentence[: quote_words[min(25, len(quote_words)) - 1].end()]
     return quote, start
 
 

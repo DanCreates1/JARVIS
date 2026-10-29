@@ -12,7 +12,15 @@ from jarvis.web import create_app
 
 
 @pytest.mark.parametrize(
-    "profile", ["prototype-text", "daily-text", "private-garmin", "private-files", "private-memory"]
+    "profile",
+    [
+        "prototype-text",
+        "daily-text",
+        "private-garmin",
+        "private-files",
+        "private-memory",
+        "public-research",
+    ],
 )
 def test_text_profile_overrides_existing_feature_flags(
     monkeypatch: pytest.MonkeyPatch, profile: str
@@ -50,7 +58,11 @@ def test_text_profile_overrides_existing_feature_flags(
     assert all(
         getattr(settings, flag)
         is (
-            (profile == "private-files" and flag == "attachments_enabled")
+            (
+                profile == "public-research"
+                and flag in {"research_enabled", "automatic_research_enabled"}
+            )
+            or (profile == "private-files" and flag == "attachments_enabled")
             or (profile == "private-memory" and flag == "coding_context_enabled")
         )
         for flag in flags
@@ -59,7 +71,15 @@ def test_text_profile_overrides_existing_feature_flags(
 
 
 @pytest.mark.parametrize(
-    "profile", ["prototype-text", "daily-text", "private-garmin", "private-files", "private-memory"]
+    "profile",
+    [
+        "prototype-text",
+        "daily-text",
+        "private-garmin",
+        "private-files",
+        "private-memory",
+        "public-research",
+    ],
 )
 def test_text_profile_rejects_remote_model_even_with_old_opt_in(profile: str) -> None:
     with pytest.raises(ValidationError, match="remote Ollama endpoints require"):
@@ -80,6 +100,7 @@ def test_text_profile_rejects_remote_model_even_with_old_opt_in(profile: str) ->
         "private-garmin",
         "private-files",
         "private-memory",
+        "public-research",
     ],
 )
 def test_shell_profile_keeps_security_headers(profile: str) -> None:
@@ -101,7 +122,15 @@ def test_standard_profile_retains_historical_research() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "profile", ["prototype-text", "daily-text", "private-garmin", "private-files", "private-memory"]
+    "profile",
+    [
+        "prototype-text",
+        "daily-text",
+        "private-garmin",
+        "private-files",
+        "private-memory",
+        "public-research",
+    ],
 )
 async def test_text_runtime_exposes_only_clock_and_never_model_file_tools(
     tmp_path: Path, profile: str
@@ -111,11 +140,25 @@ async def test_text_runtime_exposes_only_clock_and_never_model_file_tools(
     ) as runtime:
         assert set(runtime.service.tools) == {"get_current_time"}
         assert not runtime.provider.advertise_tools
-        assert runtime.research is None
+        assert (runtime.research is not None) == (profile == "public-research")
         assert runtime.provider.policy.local_text_only == (
-            profile in {"daily-text", "private-garmin", "private-files", "private-memory"}
+            profile
+            in {
+                "daily-text",
+                "private-garmin",
+                "private-files",
+                "private-memory",
+                "public-research",
+            }
         )
         assert (runtime.service.response_guidance is not None) == (
-            profile in {"daily-text", "private-garmin", "private-files", "private-memory"}
+            profile
+            in {
+                "daily-text",
+                "private-garmin",
+                "private-files",
+                "private-memory",
+                "public-research",
+            }
         )
         assert (runtime.attachments is not None) == (profile == "private-files")

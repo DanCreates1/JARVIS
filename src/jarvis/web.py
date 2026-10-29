@@ -600,6 +600,7 @@ def create_app(
             "private-garmin",
             "private-files",
             "private-memory",
+            "public-research",
         }:
             content = content.replace(
                 'data-profile="standard"', f'data-profile="{configured.runtime_profile}"'
@@ -827,7 +828,13 @@ def create_app(
                     else {"available": False},
                     "garmin": {
                         "available": configured.runtime_profile
-                        not in {"prototype-text", "daily-text", "private-files", "private-memory"}
+                        not in {
+                            "prototype-text",
+                            "daily-text",
+                            "private-files",
+                            "private-memory",
+                            "public-research",
+                        }
                         and RemoteScope.CLIENT_HEALTH_READ in context.scopes,
                     },
                     "attachments": {
@@ -1025,6 +1032,7 @@ def create_app(
             "daily-text",
             "private-files",
             "private-memory",
+            "public-research",
         }:
             raise HTTPException(status_code=503, detail="Garmin unavailable in text-only profile")
         try:

@@ -33,6 +33,7 @@ from .models import (
     Conversation,
     FreshnessDecision,
     FreshnessRoute,
+    GroundedResearchProjection,
     LatencyClass,
     Message,
     MessageRole,
@@ -427,6 +428,8 @@ class AssistantService:
                 await self.memory.capture_candidates(persisted)
 
         research_projection: ContextProjection | None = None
+        grounded_research_answer: str | None = None
+        research_failed = False
         if (
             freshness_decision is not None
             and freshness_decision.requires_live_evidence
@@ -461,18 +464,25 @@ class AssistantService:
                 detail="Started bounded volatile public research.",
             )
             try:
-                research_projection = ContextProjection.model_validate(
-                    await self.automatic_research.project(
-                        request.user_input,
-                        freshness_decision,
-                    )
+                raw_projection = await self.automatic_research.project(
+                    request.user_input,
+                    freshness_decision,
                 )
+                if isinstance(raw_projection, GroundedResearchProjection):
+                    validated = GroundedResearchProjection.model_validate(raw_projection)
+                    grounded_research_answer = validated.answer
+                    research_projection = ContextProjection(
+                        **validated.model_dump(exclude={"answer"})
+                    )
+                else:
+                    research_projection = ContextProjection.model_validate(raw_projection)
                 if research_projection.sensitivity is not SensitivityClass.PUBLIC:
                     raise ValueError("automatic research projection must be public")
                 freshness_projection = None
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
+                research_failed = True
                 reason = _research_failure_reason(exc)
                 research_projection = ContextProjection(
                     content=(
@@ -532,9 +542,9 @@ class AssistantService:
             live_evidence_unavailable = (
                 freshness_decision is not None
                 and freshness_decision.requires_live_evidence
-                and self.automatic_research is None
+                and (self.automatic_research is None or research_failed)
             )
-            if not live_evidence_unavailable:
+            if not live_evidence_unavailable and grounded_research_answer is None:
                 events.add(
                     RuntimeEventType.PROVIDER_REQUESTED,
                     conversation_id=conversation.id,
@@ -549,8 +559,16 @@ class AssistantService:
                     # No model can verify current facts without a live evidence source.
                     # Settle through the normal validated persistence/receipt path.
                     response = ProviderResponse(
-                        content="Current evidence is unavailable; live research is disabled."
+                        content=(
+                            "Current evidence is unavailable; public research failed. "
+                            "Retry later or supply public HTTPS source URLs."
+                            if research_failed
+                            else "Current evidence is unavailable; live research is disabled."
+                        )
                     )
+                    provider_stream = None
+                elif grounded_research_answer is not None:
+                    response = ProviderResponse(content=grounded_research_answer)
                     provider_stream = None
                 elif isinstance(self.provider, RoutedStreamingChatProvider):
                     provider_stream = self.provider.stream_chat_routed(

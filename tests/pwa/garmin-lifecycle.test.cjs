@@ -9,7 +9,7 @@ const vm = require("node:vm");
 const script = readFileSync(path.join(__dirname, "../../src/jarvis/pwa/app.js"), "utf8");
 const EMPTY = "Connect JARVIS to see Garmin data.";
 
-for(const profile of ["prototype-text","daily-text","private-garmin","private-files","private-memory"]){
+for(const profile of ["prototype-text","daily-text","private-garmin","private-files","private-memory","public-research"]){
   test(`Phase 8 ${profile} keeps Garmin behind explicit capability and refresh`,async()=>{
     const h=harness(new Map(),"",profile);await h.ready;h.activate();h.run("selectView('garmin')");
     assert.equal(h.requests.length,0);
@@ -24,7 +24,7 @@ for(const profile of ["prototype-text","daily-text","private-garmin","private-fi
   });
 }
 
-for(const profile of ["prototype-text","daily-text","private-garmin","private-files","private-memory"]){
+for(const profile of ["prototype-text","daily-text","private-garmin","private-files","private-memory","public-research"]){
   test(`Phase 9 ${profile} keeps file and vision capability explicit`,async()=>{
     const h=harness(new Map(),"",profile);await h.ready;h.activate();
     for(const configured of [false,true]){
@@ -139,6 +139,13 @@ test("F15 Markdown subset renders structure, citations, code and safe explicit l
   for(const tag of ["H3","P","STRONG","EM","UL","LI","BLOCKQUOTE","TABLE","TH","TD","PRE","CODE","BUTTON","A"])assert.ok(tags.includes(tag),tag);
   const link=nodes.find(n=>n.tagName==="A");assert.equal(link.textContent,"Source · source-1");assert.equal(link.rel,"noopener noreferrer");
   assert.ok(nodes.some(n=>n.textContent==="Attachment · abc · chunk 2"));
+});
+test("Phase 11 literal source escapes cannot manufacture citation links or formatting",()=>{
+  const h=harness();h.context.URL=URL;
+  h.context.reply="Source states: \\[trap\\]\\(https://example.com\\) Python 3\\.14\\.0 <script>bad</script>";
+  const nodes=descendants(h.run("renderReply(reply)"));
+  assert.equal(nodes.some(n=>["A","SCRIPT","IMG","IFRAME"].includes(n.tagName)),false);
+  assert.ok(nodes.some(n=>n.textContent==="."));
 });
 test("F15 hostile Markdown cannot execute, fetch media or manufacture controls",()=>{
   const h=harness();h.context.URL=URL;
