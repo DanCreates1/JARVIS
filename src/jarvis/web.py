@@ -310,6 +310,9 @@ def create_app(
                 )
         else:
             _apply_security_headers(response, api_only=request.url.path.startswith("/api/"))
+            if request.url.path.startswith("/memory"):
+                _apply_pwa_security_headers(response, path=request.url.path)
+                response.headers["Cache-Control"] = "no-store"
         trusted_origin = getattr(request.state, "trusted_origin", None)
         if isinstance(trusted_origin, str):
             _apply_cors_headers(response, trusted_origin)
@@ -475,7 +478,30 @@ def create_app(
                 return _remote_error(409, exc.code)
             except (UnicodeError, ValueError):
                 return _remote_error(400, "Malformed remote authentication headers")
+        if request.url.path.startswith(("/api/memor", "/memory")):
+            try:
+                _require_local_attachment_request(
+                    request,
+                    resource="Memory controls",
+                    allow_cookie=request.method == "GET"
+                    and request.url.path in {"/memory", "/memory/app.js"},
+                )
+                if request.method in _UNSAFE_METHODS:
+                    async with asyncio.timeout(10):
+                        await _read_bounded_remote_body(request, limit=262_144)
+            except HTTPException as exc:
+                return _remote_error(exc.status_code, str(exc.detail))
+            except RemoteBodyTooLargeError:
+                return _remote_error(413, "Memory request too large")
+            except (ValueError, UnicodeError):
+                return _remote_error(400, "Malformed memory request")
+            except TimeoutError:
+                return _remote_error(408, "Memory request timed out")
         return await call_next(request)
+
+    from jarvis.memory.workspace import install_memory_workspace
+
+    install_memory_workspace(app, runtime=_runtime)
 
     @app.get("/api/v1/client/voice")
     async def voice_availability(request: Request) -> dict[str, object]:
@@ -573,6 +599,7 @@ def create_app(
             "daily-text",
             "private-garmin",
             "private-files",
+            "private-memory",
         }:
             content = content.replace(
                 'data-profile="standard"', f'data-profile="{configured.runtime_profile}"'
@@ -800,7 +827,7 @@ def create_app(
                     else {"available": False},
                     "garmin": {
                         "available": configured.runtime_profile
-                        not in {"prototype-text", "daily-text", "private-files"}
+                        not in {"prototype-text", "daily-text", "private-files", "private-memory"}
                         and RemoteScope.CLIENT_HEALTH_READ in context.scopes,
                     },
                     "attachments": {
@@ -993,7 +1020,12 @@ def create_app(
     ) -> dict[str, object]:
         context = _remote_context(request)
         _require_remote_host(_runtime(request), context)
-        if configured.runtime_profile in {"prototype-text", "daily-text", "private-files"}:
+        if configured.runtime_profile in {
+            "prototype-text",
+            "daily-text",
+            "private-files",
+            "private-memory",
+        }:
             raise HTTPException(status_code=503, detail="Garmin unavailable in text-only profile")
         try:
             summary = await garmin_service.summary(refresh=refresh)
@@ -2355,23 +2387,25 @@ def _assistant_request(payload: ChatInput | PWAChatInput) -> AssistantRequest:
     )
 
 
-def _require_local_attachment_request(request: Request) -> None:
+def _require_local_attachment_request(
+    request: Request, *, resource: str = "Attachments", allow_cookie: bool = False
+) -> None:
     # Tailnet reverse proxy may connect from loopback. Origin/Host must also be literal local.
     client = request.client.host if request.client is not None else ""
     hosts = _header_values(request, "host")
     if client not in {"127.0.0.1", "::1", "testclient"} or len(hosts) != 1:
-        raise HTTPException(403, "Attachments require local interface")
+        raise HTTPException(403, f"{resource} require local interface")
     origin = f"{request.url.scheme}://{hosts[0]}"
     permitted_hosts = {"127.0.0.1", "::1", "localhost"}
     if client == "testclient":
         permitted_hosts.add("testserver")
     if urlsplit(origin).hostname not in permitted_hosts:
-        raise HTTPException(403, "Attachments require local origin")
+        raise HTTPException(403, f"{resource} require local origin")
     supplied = _header_values(request, "origin")
     if supplied and supplied != (origin,):
-        raise HTTPException(403, "Attachment origin denied")
+        raise HTTPException(403, f"{resource} origin denied")
     if request.headers.get("sec-fetch-site") not in {None, "same-origin", "none"}:
-        raise HTTPException(403, "Attachment origin denied")
+        raise HTTPException(403, f"{resource} origin denied")
     if any(
         name.lower()
         in {
@@ -2380,11 +2414,11 @@ def _require_local_attachment_request(request: Request) -> None:
             "x-forwarded-host",
             "x-forwarded-proto",
             "authorization",
-            "cookie",
         }
+        | (set() if allow_cookie else {"cookie"})
         for name in request.headers
     ):
-        raise HTTPException(403, "Attachment forwarding/authentication denied")
+        raise HTTPException(403, f"{resource} forwarding/authentication denied")
 
 
 def _local_attachments(request: Request, *, require_enabled: bool = False) -> AttachmentService:

@@ -9,7 +9,7 @@ const vm = require("node:vm");
 const script = readFileSync(path.join(__dirname, "../../src/jarvis/pwa/app.js"), "utf8");
 const EMPTY = "Connect JARVIS to see Garmin data.";
 
-for(const profile of ["prototype-text","daily-text","private-garmin","private-files"]){
+for(const profile of ["prototype-text","daily-text","private-garmin","private-files","private-memory"]){
   test(`Phase 8 ${profile} keeps Garmin behind explicit capability and refresh`,async()=>{
     const h=harness(new Map(),"",profile);await h.ready;h.activate();h.run("selectView('garmin')");
     assert.equal(h.requests.length,0);
@@ -24,7 +24,7 @@ for(const profile of ["prototype-text","daily-text","private-garmin","private-fi
   });
 }
 
-for(const profile of ["prototype-text","daily-text","private-garmin","private-files"]){
+for(const profile of ["prototype-text","daily-text","private-garmin","private-files","private-memory"]){
   test(`Phase 9 ${profile} keeps file and vision capability explicit`,async()=>{
     const h=harness(new Map(),"",profile);await h.ready;h.activate();
     for(const configured of [false,true]){

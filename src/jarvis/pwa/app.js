@@ -1,7 +1,7 @@
 const API="/api/v1";
 const PRIVATE_GARMIN=document.body?.dataset?.profile==="private-garmin";
 const PRIVATE_FILES=document.body?.dataset?.profile==="private-files";
-const PROTOTYPE=["prototype-text","daily-text","private-garmin","private-files"].includes(document.body?.dataset?.profile);
+const PROTOTYPE=["prototype-text","daily-text","private-garmin","private-files","private-memory"].includes(document.body?.dataset?.profile);
 const DB_NAME="jarvis-private-client";
 const STORE="identity";
 const SCOPES=["browser.session","identity.read","events.read","session.revoke","client.chat","client.tasks.read","client.status.read"];
@@ -484,7 +484,7 @@ async function refreshStatus(){
   if(status.garmin?.available===false){clearGarmin();ui.garminState.textContent="Garmin unavailable for this profile or approved device access. Review access on your trusted laptop.";}
   ui.device.replaceChildren();
   const entries=[["Name",status.device.display_name],["State",status.device.state],["Key version",status.device.key_version],["Session",status.session.id]];
-  if(["prototype-text","daily-text","private-garmin","private-files"].includes(status.assistant?.profile))entries.push(["Assistant",`${status.assistant.provider} · ${status.assistant.model} · ${status.assistant.cloud_policy}`]);
+  if(["prototype-text","daily-text","private-garmin","private-files","private-memory"].includes(status.assistant?.profile))entries.push(["Assistant",`${status.assistant.provider} · ${status.assistant.model} · ${status.assistant.cloud_policy}`]);
   for(const [name,value] of entries){const wrap=document.createElement("div"),dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=name;dd.textContent=String(value);wrap.append(dt,dd);ui.device.append(wrap);}
 }
 async function refreshTasks({more=false,offset:requestedOffset=null}={}){
@@ -1071,3 +1071,7 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderGar
 if("serviceWorker" in navigator)navigator.serviceWorker.register("/app/sw.js?v=17",{scope:"/app/"}).catch(()=>announce("Offline shell unavailable"));
 const initialGeneration=state.sessionGeneration;
 loadIdentity().then(identity=>{if(state.sessionGeneration!==initialGeneration)return;state.hasIdentity=Boolean(identity);updateControls();if(identity){ui.accessStatus.textContent="Enrolled key found. Connect existing device to start a fresh session.";announce(ui.accessStatus.textContent);}}).catch(()=>{if(state.sessionGeneration===initialGeneration)announce("Device storage unavailable");});
+
+// Local memory approval is a trusted-host surface, never a remote chat scope.
+const memoryLink=document.querySelector("#memory-link");
+if(memoryLink&&document.body.dataset.profile==="private-memory"&&["127.0.0.1","localhost","[::1]"].includes(window.location.hostname))memoryLink.hidden=false;

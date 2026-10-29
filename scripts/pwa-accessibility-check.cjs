@@ -20,7 +20,7 @@ const apiRequests = [];
 const textProfile = process.env.PWA_TEST_PROFILE;
 const privateGarmin = textProfile === "private-garmin";
 const privateFiles = textProfile === "private-files";
-const textPrototype = ["prototype-text", "daily-text", "private-garmin", "private-files"].includes(textProfile);
+const textPrototype = ["prototype-text", "daily-text", "private-garmin", "private-files", "private-memory"].includes(textProfile);
 const server = http.createServer((request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");
   if (url.pathname.startsWith("/api/")) apiRequests.push({ method: request.method, path: url.pathname });
@@ -101,7 +101,7 @@ async function main() {
     assert.ok(await visible("#recovery-title"));
     assert.equal(await evaluate("document.activeElement.id"), "settings-title");
     await key("Tab", 9);
-    assert.equal(await evaluate("document.activeElement.id"), "ticket");
+    assert.equal(await evaluate("document.activeElement.id"), textProfile==="private-memory"?"memory-link":"ticket");
     assert.ok((await evaluate("document.querySelector('#view-settings').textContent")).includes("Core unreachable"));
     await evaluate("(async()=>{pwaTest.selectView('chat'); pwaTest.state.csrf='synthetic'; pwaTest.setConnected(true); await pwaTest.refreshTasks(); await pwaTest.loadAttachmentMetadata();})()");
     assert.equal(await evaluate("document.querySelector('#send').disabled"), true, "profile never bypasses authenticated history readiness");
@@ -179,7 +179,7 @@ async function main() {
   assert.equal(await evaluate("location.hash"), "#/chat");
   await evaluate("document.querySelector('#nav-settings').focus()"); await key("Enter", 13);
   assert.equal((await checkView("settings")).focus, "settings-title");
-  await key("Tab", 9); assert.equal(await evaluate("document.activeElement.id"), "ticket");
+  await key("Tab", 9); assert.equal(await evaluate("document.activeElement.id"), textProfile==="private-memory"?"memory-link":"ticket");
   assert.equal(apiRequests.length, 0, "View selection must never call Core");
   await evaluate(`pwaTest.renderGarmin({date:'Synthetic date',refreshed_at:'invalid',steps:null,activities:[{name:'SyntheticLongActivityName'.repeat(8),type:'walking'}]});document.querySelector('#device-status').innerHTML='<div><dt>Session</dt><dd>session:'+ '0123456789'.repeat(20)+'</dd></div>';document.querySelector('#tasks').textContent='SyntheticTask'.repeat(20);document.querySelector('#connection').textContent='Reconnecting — checking authenticated live connection';`);
   for (const width of [320, 375, 390, 430, 844, 1280]) {

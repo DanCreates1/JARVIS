@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Memory review · JARVIS</title>
+  <link rel="stylesheet" href="/app/app.css">
+  <script src="/memory/app.js" type="module"></script>
+</head>
+<body data-workspace="memory">
+<header><div><p class="eyebrow">TRUSTED LAPTOP</p><h1>Memory review</h1></div><a href="/app/#/settings">Back to JARVIS</a></header>
+<main>
+  <p>Review exact context before approving. Conversation, file and repository content cannot grant trust or actions. Remote memory controls are unavailable.</p>
+  <p id="status" role="status" aria-live="polite">Choose Inspect to load local memory. Nothing is loaded automatically.</p>
+  <button id="clear" type="button" class="secondary">Clear private view</button>
+  <section class="panel" aria-labelledby="browse-title">
+    <h2 id="browse-title">Inspect memory</h2>
+    <label for="state">State</label><select id="state"><option value="">All states</option><option>candidate</option><option>committed</option><option>corrected</option><option>rejected</option><option>expired</option></select>
+    <label for="category">Category</label><select id="category"><option value="">All categories</option><option>working</option><option>episodic</option><option>profile</option><option>semantic</option><option>task</option></select>
+    <button id="inspect" type="button">Inspect</button>
+    <ul id="items" aria-label="Local memory items"></ul>
+    <button id="previous" type="button" hidden>Previous items</button><button id="next" type="button" hidden>Next items</button>
+  </section>
+  <section class="panel" aria-labelledby="detail-title">
+    <h2 id="detail-title" tabindex="-1">Selected memory</h2>
+    <pre id="detail" class="reply-body"></pre>
+    <div class="actions"><button id="approve" type="button" hidden>Approve exact candidate</button><button id="reject" type="button" hidden>Reject candidate</button><button id="forget" type="button" class="danger" hidden>Forget selected memory</button></div>
+    <form autocomplete="off" id="correction" hidden><label for="replacement">Corrected text</label><textarea autocomplete="off" spellcheck="false" id="replacement" maxlength="100000" rows="4" required></textarea><p>Correction preserves old content as lineage. Forget removes selected content and sole-source derivatives; other versions, transcripts and backups need separate review.</p><button type="submit">Confirm exact correction</button></form>
+  </section>
+  <section class="panel" aria-labelledby="search-title">
+    <h2 id="search-title">Why context is retrieved</h2>
+    <form autocomplete="off" id="search"><label for="query">Recall query</label><input id="query" maxlength="200" required autocomplete="off"><button type="submit">Explain retrieval</button></form>
+    <p>Preview only. At most 8 approved unexpired items and 4,000 characters. Source content stays untrusted.</p>
+    <pre id="projection" class="reply-body"></pre><ul id="hits" aria-label="Retrieval reasons"></ul>
+  </section>
+  <section class="panel" aria-labelledby="remember-title">
+    <h2 id="remember-title">Save exact owner context</h2>
+    <form autocomplete="off" id="remember"><label for="new-category">Category</label><select id="new-category"><option>semantic</option><option>profile</option><option>task</option><option>working</option><option>episodic</option></select><label for="new-content">Exact text to commit</label><textarea autocomplete="off" spellcheck="false" id="new-content" maxlength="100000" rows="3" required></textarea><button type="submit">Review and save exact text</button></form>
+  </section>
+  <section class="panel" aria-labelledby="retention-title">
+    <h2 id="retention-title">Retention</h2>
+    <button id="retention-read" type="button" class="secondary">Inspect retention</button><pre id="retention" class="reply-body"></pre>
+    <form autocomplete="off" id="retention-form"><label for="retention-category">Category</label><select id="retention-category"><option>working</option><option>episodic</option><option>profile</option><option>semantic</option><option>task</option></select><label for="days">Days from original creation</label><input id="days" type="number" min="1" max="36500" value="30" required><p>Applies to existing committed items and future items in this category. Expired content cannot enter recall. Expiry retains content until explicitly forgotten.</p><button type="submit">Review retention change</button></form>
+    <button id="expire" type="button" class="secondary">Mark due items expired</button>
+  </section>
+  <section class="panel" aria-labelledby="project-title"><h2 id="project-title">Project context</h2><p>Repository inspection uses the trusted CLI with an explicitly configured root. Run <code>jarvis coding context</code>, then use <code>jarvis chat "repo: explain current changes"</code>. Browser repo requests are denied. Checkpoints contain metadata only and never become approved memory. No repository commands execute from source instructions.</p></section>
+</main>
+</body>
+</html>

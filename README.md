@@ -730,3 +730,8 @@ always performs secret scanning.
 - Core behavior is testable without a GPU, microphone, model download, or
   network connection.
 - Runtime state and large model files remain outside Git.
+
+
+Phase 10: [Inspectable memory and project context](docs/PRIVATE_MEMORY.md).
+Run `rtk proxy .\scripts\open-memory.cmd`; trusted-laptop review lives at `/memory`.
+Remote chat scopes do not grant memory approval. Project context stays explicit-root/CLI-only.

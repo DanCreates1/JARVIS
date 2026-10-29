@@ -80,6 +80,13 @@ extraction and image normalization differ from optional capability-checked local
 interpretation stays unavailable. Other integrations and arbitrary filesystem tools remain disabled.
 [Capability, lifecycle and recovery](PRIVATE_FILES.md). Original profiles preserved.
 
+**Private memory extension (Phase 10):** explicit `private-memory` extends daily local text with
+trusted-laptop memory review linked from PWA Settings. Literal local peer/Host/Origin admission
+protects all memory controls; no remote client scope grants approval. Exact version/digest approval,
+source-explained bounded FTS retrieval, correction/expiry-aware derivations and canonical deletion
+reuse the existing store. Repository context stays explicit-root/CLI-only, private and non-executing.
+[Capability, lifecycle and recovery](PRIVATE_MEMORY.md). Accepted prototype profile remains intact.
+
 ## Historical target architecture and technical contracts
 
 > Active delivery architecture (2026-10-22): [Prototype Plan](PROTOTYPE_PLAN.md).

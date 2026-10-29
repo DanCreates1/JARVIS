@@ -826,3 +826,11 @@ driver changes, or endpoint removal. Keep the software kill switch active while 
 The virtual environment is disposable. Close running JARVIS processes, remove
 only the repository's `.venv` directory, and rerun `./scripts/bootstrap.ps1`.
 Conversation data is outside `.venv` and should not be affected.
+
+
+## Phase 10 private memory
+
+Use `rtk proxy .\scripts\open-memory.cmd` after stopping the existing Core normally.
+Open the literal loopback PWA URL, then Settings → Open trusted local memory review.
+Remote clients have no memory-control scope. Exact lifecycle, explicit CLI project root,
+retention/deletion limits and recovery: [Private memory](PRIVATE_MEMORY.md).

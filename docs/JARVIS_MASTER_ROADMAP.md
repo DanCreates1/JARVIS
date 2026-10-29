@@ -56,7 +56,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [7](#phase-7--text-quality-and-daily-use-polish) | Text quality and daily-use polish | complete | 6 | Explicit daily text; 10/10 original, 37/40 + 37/40 + 36/40 expanded; all safety and release gates |
 | [8](#phase-8--private-garmin-workspace) | Private Garmin workspace | complete | 7 | Explicit local Garmin workspace, synthetic/current Core acceptance, full-pipe cleanup repair and fresh CI; health access remains separate |
 | [9](#phase-9--files-and-attachments) | Files and attachments | complete | 7 | Explicit private-files; current cited PWA/Core workflow, recovery/security/release gates and fresh CI pass |
-| [10](#phase-10--inspectable-memory-and-project-context) | Inspectable memory and project context | not-started | 7 | Legacy memory/F continuity; safe owner-facing lifecycle |
+| [10](#phase-10--inspectable-memory-and-project-context) | Inspectable memory and project context | implemented-closeout-pending | 7 | Trusted-local review, exact lifecycle, current retrieval/project/release gates pass; publication CI pending |
 | [11](#phase-11--grounded-public-research) | Grounded public research | not-started | 7 | Legacy research/freshness; live source access and cited acceptance |
 | [12](#phase-12--foreground-voice) | Foreground voice | not-started | 7 | Legacy voice/F13; chosen local speech/reply experience |
 | [13](#phase-13--controlled-windows-actions) | Controlled Windows actions | not-started | 7 | Existing broker/tools; current exact live-effect acceptance |
@@ -181,6 +181,10 @@ local adapter; an unsupported capability must say unavailable. No arbitrary file
 cloud upload. Read [attachments](ATTACHMENTS.md), [F14](PWA_F14_WORKFLOWS.md), [F15](PWA_F15_WORKSPACE.md).
 
 ### Phase 10 — Inspectable memory and project context
+
+Status: **implemented-closeout-pending**, 2026-10-28. [Progress evidence](phase-reports/current/PHASE_10_PROGRESS.md),
+[capability and recovery](PRIVATE_MEMORY.md). Current synthetic owner lifecycle, source-explained
+recall, project continuity and full working/isolated gates pass. Publication/fresh CI pending.
 
 Outcome: owner can inspect, approve, correct and forget useful context. Reuse legacy memory states,
 FTS5, provenance, conflict/deletion and private coding continuity. Add only needed PWA projections

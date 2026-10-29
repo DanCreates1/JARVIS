@@ -42,7 +42,12 @@ class Settings(BaseSettings):
     data_dir: Path = Field(default_factory=default_data_dir)
     database_filename: str = "jarvis.db"
     runtime_profile: Literal[
-        "standard", "prototype-text", "daily-text", "private-garmin", "private-files"
+        "standard",
+        "prototype-text",
+        "daily-text",
+        "private-garmin",
+        "private-files",
+        "private-memory",
     ] = "standard"
     ollama_base_url: AnyHttpUrl = AnyHttpUrl("http://127.0.0.1:11434")
     ollama_model: str = "qwen3:0.6b"
@@ -347,7 +352,9 @@ class Settings(BaseSettings):
             "daily-text",
             "private-garmin",
             "private-files",
+            "private-memory",
         }:
+            coding_requested = self.coding_context_enabled
             self.ollama_temperature = 0
             self.cloud_policy = "local_only"
             self.local_model = self.ollama_model
@@ -371,6 +378,9 @@ class Settings(BaseSettings):
             ):
                 setattr(self, name, False)
             self.attachments_enabled = self.runtime_profile == "private-files"
+            self.coding_context_enabled = (
+                self.runtime_profile == "private-memory" and coding_requested
+            )
         return self
 
     @model_validator(mode="after")

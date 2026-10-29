@@ -492,17 +492,24 @@ class SQLiteMemoryStore:
                 await connection.execute("BEGIN IMMEDIATE")
                 placeholders = ",".join("?" for _ in source_ids)
                 async with connection.execute(
-                    "SELECT id, state FROM memory_items WHERE host_id = ? "
+                    "SELECT id, state, sensitivity, expires_at FROM memory_items WHERE host_id = ? "
                     f"AND id IN ({placeholders})",
                     (host_id, *source_ids),
                 ) as cursor:
                     sources = tuple(await cursor.fetchall())
                 if len(sources) != len(source_ids) or any(
-                    row["state"] != MemoryState.COMMITTED.value for row in sources
+                    row["state"] != MemoryState.COMMITTED.value
+                    or (
+                        (expiry := _parse_optional_time(row["expires_at"])) is not None
+                        and expiry <= timestamp
+                    )
+                    for row in sources
                 ):
                     raise MemoryStateError(
-                        "all derived sources must be committed for the same host"
+                        "all derived sources must be committed and unexpired for the same host"
                     )
+                if any(row["sensitivity"] != SensitivityClass.PUBLIC.value for row in sources):
+                    sensitivity = SensitivityClass.PRIVATE
                 retention_days = await self._retention_days_locked(connection, host_id, category)
                 if category is MemoryCategory.WORKING and retention_days is None:
                     retention_days = 1
@@ -582,7 +589,10 @@ class SQLiteMemoryStore:
         states: Sequence[MemoryState] = (),
         categories: Sequence[MemoryCategory] = (),
         limit: int = 100,
+        offset: int = 0,
     ) -> tuple[MemoryItem, ...]:
+        if not 0 <= offset <= 10_000:
+            raise ValueError("memory offset must be between 0 and 10000")
         if not 1 <= limit <= _MAX_LIST_LIMIT:
             raise ValueError(f"memory limit must be between 1 and {_MAX_LIST_LIMIT}")
         clauses = ["host_id = ?"]
@@ -596,11 +606,11 @@ class SQLiteMemoryStore:
         if categories:
             clauses.append("category IN (" + ",".join("?" for _ in categories) + ")")
             parameters.extend(category.value for category in categories)
-        parameters.append(limit)
+        parameters.extend((limit, offset))
         sql = (
             "SELECT * FROM memory_items WHERE "
             + " AND ".join(clauses)
-            + " ORDER BY updated_at DESC, id DESC LIMIT ?"
+            + " ORDER BY updated_at DESC, id DESC LIMIT ? OFFSET ?"
         )
         async with self._operation_lock:
             connection = await self._get_connection()
@@ -632,10 +642,29 @@ class SQLiteMemoryStore:
         now = _as_utc(query.now)
         async with self._operation_lock:
             connection = await self._get_connection()
+            # A correction/expiry cannot leave old rollups eligible for recall after restart.
+            # Keep their inspectable content; approval or recomputation is never inferred.
+            async with connection.execute(
+                """
+                WITH RECURSIVE invalid(id) AS (
+                    SELECT id FROM memory_items
+                    WHERE host_id = ? AND (state != 'committed' OR expires_at <= ?)
+                    UNION
+                    SELECT d.derived_memory_id FROM memory_derivations AS d
+                    JOIN invalid ON invalid.id = d.source_memory_id
+                    JOIN memory_items AS i ON i.id = d.derived_memory_id
+                    WHERE i.host_id = ?
+                ) SELECT id FROM invalid
+                """,
+                (query.host_id, _timestamp(now), query.host_id),
+            ) as cursor:
+                invalid_ids = {row["id"] for row in await cursor.fetchall()}
             async with connection.execute(sql, tuple(parameters)) as cursor:
                 rows = await cursor.fetchall()
             hits: list[MemoryHit] = []
             for position, row in enumerate(rows):
+                if row["id"] in invalid_ids:
+                    continue
                 expires_at = _parse_optional_time(row["expires_at"])
                 if expires_at is not None and expires_at <= now:
                     continue

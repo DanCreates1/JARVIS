@@ -9,7 +9,7 @@
   <link rel="manifest" href="/app/manifest.webmanifest">
   <link rel="icon" href="/app/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app/app.css">
-  <script src="/app/app.js?v=17" type="module"></script>
+  <script src="/app/app.js?v=18" type="module"></script>
 </head>
 <body data-profile="standard">
   <header>
@@ -156,6 +156,11 @@
 
     <div id="view-settings" class="view" hidden>
     <h2 id="settings-title" class="view-title" tabindex="-1">Settings</h2>
+    <section class="panel memory-only" aria-labelledby="memory-title">
+      <h3 id="memory-title">Memory and project context</h3>
+      <p>Inspect, approve, correct and forget context on your trusted laptop. Remote memory controls are unavailable. Repository context requires an explicitly configured root and trusted CLI.</p>
+      <a id="memory-link" href="/memory" hidden>Open trusted local memory review</a>
+    </section>
     <section id="setup" class="panel" aria-labelledby="setup-title">
       <h3 id="setup-title">Device access</h3>
       <p class="prototype-only">Connect existing device, then wait for Live connection ready before sending. New enrollment needs an approved ticket from the trusted host.</p>

@@ -27,7 +27,8 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
 - **Phase 9 complete — Files and attachments.** Explicit private-files; current cited PWA/Core
   workflow and recovery/security/release gates pass, with fresh CI.
   [Completion evidence](phase-reports/current/PHASE_9_COMPLETION.md). No production feature activation.
-- **Next: Phase 10 — Inspectable memory and project context.** No automatic implementation.
+- **Phase 10 implemented; closeout pending — Inspectable memory and project context.** Trusted-local review and
+  explicit private-memory profile; current acceptance/gates in [progress report](phase-reports/current/PHASE_10_PROGRESS.md).
 - Progress basis: **9/19 primary phase receipts closed (~47%)**; an
   unweighted management count, not code/effort percentage or full mobile MVP acceptance.
 - Historical prototype acceptance stays **100% = 10/10 groups**, corpus **8/10**. Full mobile MVP,
