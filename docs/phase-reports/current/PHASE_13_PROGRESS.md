@@ -51,7 +51,7 @@ Frozen before implementation/current measurement:
   reused. Phone checks **skipped by owner; unverified**.
 - [x] Full applicable working/isolated quality/security/release gates, >=85% coverage, locked
   base/optional/sidecar audits; starting optional environment restored; recovery/setup docs.
-- [ ] Reviewed task-only publication, held-state proof, exact HEAD/tracking/remote agreement
+- [x] Reviewed task-only publication, held-state proof, exact HEAD/tracking/remote agreement
   and fresh exact CI. No private/generated/runtime data published.
 
 ## Milestone log
@@ -164,8 +164,22 @@ unestablished.
 Task-only publication source: 20 reviewed paths, three shared-file hunks recomposed independently
 of 28 held paths. All other published source remains identical to baseline HEAD. Locks, prototype
 launcher/corpora, PWA assets and held provider/native work preserved. Current link/source/history
-secret and whitespace checks pass; exact commit/tracking/remote and fresh CI are checked after
-publication and recorded in the handoff. No unsafe/runtime/private artifact is staged.
+secret and whitespace checks pass: 220 links/anchors, 584 exact source files, no leaks.
+No unsafe/runtime/private artifact is staged.
+
+Corrected implementation published as `1a617ec40b5cbd5f368fdf3138433589b0feef98`, tree
+`21283fbbf40a52daa11b3455a7b885aa1e1db131`.
+[Fresh exact CI 41225900632](https://github.com/DanCreates1/JARVIS/actions/runs/41225900632)
+passes Windows quality job `124609862574` and secret job `124609862306`. First failed CI remains
+recorded above; it is not counted as a pass. HEAD, tracking and live remote agree on corrected
+implementation. All 28 held paths are preserved: untouched paths keep exact bytes/deletion state;
+three shared documents reproduce held work by inverse recomposition. Dirty path set still equals
+the original 28; original 97-package optional inventory is restored exactly and audited.
+
+This final receipt-only change updates this report. Every application, test, script, dependency
+and other document blob remains identical to the passing corrected implementation. Its own
+commit/tracking/live-remote agreement, held-state proof and fresh CI are checked separately after
+publication and reported in the handoff; implementation CI is not substituted for a later SHA.
 
 Phase remains **blocked-external** only on missing current exact live-effect authority. Selected
 implementation and automated repository work are ready; no exit credit granted for historical
