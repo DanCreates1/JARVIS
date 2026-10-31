@@ -61,6 +61,8 @@ for review and is not copied into durable proposal/grant records or audit projec
 
 Durable grants now bind the complete policy hash as well as its editable version label.
 Manual policy edits invalidate old authority across restart even without changing that label.
+Policy hashing and target previews preserve exact Unicode code points, including fixed argv;
+visually equivalent Unicode forms cannot silently substitute different Windows inputs.
 Pre-upgrade grants bound only to the old label fail closed; propose/review again after upgrade.
 No migration or automatic grant conversion is needed. Same unchanged policy retains unexpired
 authority across normal restart. Consumed grants reject `execute`; inspect audit instead.
@@ -89,7 +91,8 @@ still applies. No private content, raw evidence or allowlist identifiers are pub
 
 ## Current live acceptance boundary
 
-Automated fixtures may move disposable synthetic files under ignored runtime roots. Current
+Automated fixtures move disposable synthetic files under ignored runtime roots; existing
+bounded Python subprocess primitive tests remain part of routine verification. Current brokered
 app/audio/media acceptance requires a separate owner-approved bounded run. Prepared command:
 
 ```powershell
@@ -106,6 +109,7 @@ new direct runtime child for any separately approved repeat. This command grants
 Official Windows contracts rechecked 2026-10-31:
 [SendInput](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput),
 [Endpoint Volume Controls](https://learn.microsoft.com/en-us/windows/win32/coreaudio/endpoint-volume-controls).
+Policy/preview exactness follows [Windows filename code-point semantics](https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation).
 Inserted inputs do not prove recipient/playback state. Endpoint hardware/software controls have
 different exclusive-mode behavior. Native calls may outlive cancellation; no elevated service ships.
 

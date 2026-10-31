@@ -409,9 +409,10 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 **Next: Continue Phase 13 — Controlled Windows actions.** Actual prerequisite Phase 7 is
 complete; Phase 12 receipt is closed for local foreground speech/review/Send/text replies.
 Read this roadmap, [Phase Execution](PHASE_EXECUTION.md), current architecture and Phase 13
-references before implementation. Freeze selected typed Windows actions, preview/receipt and
-live-effect acceptance before measurement. Existing model proposals never grant execution.
-Prepare concrete reviewable consequential actions; exact live effects need applicable standing
-or new owner authority. Preserve held native/provider edits, accepted prototype-text baseline,
+references plus its [current report](phase-reports/current/PHASE_13_PROGRESS.md) before continuing.
+Selected restricted CLI actions, previews/receipts and automated gates pass. Current brokered
+app/audio/media smoke is prepared in [the action contract](CONTROLLED_WINDOWS.md#current-live-acceptance-boundary)
+and awaits exact owner authority. Existing model proposals never grant execution. Preserve held
+native/provider edits, accepted prototype-text baseline,
 current locks, Wikimedia authentication blocker, legacy failed gates and skipped/unverified
 phone status. No new remote action scope, blind replay, arbitrary shell or deployment authority.

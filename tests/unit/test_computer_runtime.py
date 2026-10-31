@@ -13,7 +13,6 @@ from jarvis.permissions import (
     ActionCoordinatorStatus,
     ApprovalSource,
     LocalCliApprovalSurface,
-    sha256_fingerprint,
 )
 
 
@@ -59,9 +58,8 @@ async def test_runtime_builds_fixed_level_one_registry_and_closes_store(tmp_path
         "set_master_volume",
     }
     assert components.actor.capabilities == components.registry.required_capabilities
-    assert components.coordinator.policy_version == (
-        f"phase3-v1:{sha256_fingerprint(components.policy.model_dump(mode='json'))}"
-    )
+    assert components.coordinator.policy_version == components.policy.authority_version
+    assert components.coordinator.policy_version.startswith("phase3-v1:sha256:")
     async with components as entered:
         assert entered is components
 

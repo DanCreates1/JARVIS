@@ -13,7 +13,6 @@ from jarvis.permissions import (
     InteractionInterface,
     PermissionEngine,
     SQLiteActionStore,
-    sha256_fingerprint,
 )
 
 from .config import ComputerAccessConfigStore, ComputerAccessPolicy
@@ -63,7 +62,6 @@ async def build_computer_runtime(
         raise ComputerAccessDisabledError("computer access policy file is disabled")
 
     registry = build_computer_registry(policy)
-    policy_fingerprint = sha256_fingerprint(policy.model_dump(mode="json"))
     # Bind durable authority to the complete policy, including across process restarts.
     # The editable version label alone cannot invalidate a grant after a manual policy edit.
     authority_version = policy.authority_version
@@ -74,10 +72,7 @@ async def build_computer_runtime(
             current = policy_store.load()
         except (OSError, ValueError):
             return False
-        return (
-            current.enabled
-            and sha256_fingerprint(current.model_dump(mode="json")) == policy_fingerprint
-        )
+        return current.enabled and current.authority_version == authority_version
 
     actor = LocalActorFactory(IdentityKeyStore(settings.data_dir)).create(
         interface=interface,

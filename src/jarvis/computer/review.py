@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from jarvis.permissions import ApprovalRequest, canonical_json, render_approval_summary
+import json
+
+from jarvis.permissions import ApprovalRequest, render_approval_summary
 from jarvis.permissions.trusted_cli import terminal_literal
 
 from .config import ComputerAccessPolicy
@@ -34,4 +36,6 @@ def render_local_action_preview(request: ApprovalRequest, policy: ComputerAccess
             "sha256": identity.get("sha256"),
         }
     summary = render_approval_summary(request)
-    return summary + "\nExact targets: " + terminal_literal(canonical_json(details))
+    # Display the exact OS input code points; generic action JSON normalizes Unicode to NFC.
+    encoded = json.dumps(details, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+    return summary + "\nExact targets: " + terminal_literal(encoded)

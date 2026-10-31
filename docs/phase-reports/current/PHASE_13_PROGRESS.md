@@ -66,17 +66,24 @@ Frozen before implementation/current measurement:
   grants bound only the editable version label. Authority now includes the full validated policy
   hash; restart after a manual edit denies old grants. Obsolete pending requests fail before
   prompting. Unchanged-policy CLI approval/execute across fresh runtimes still works.
+- Final review reproduced another exact-binding gap: generic canonical JSON normalized Unicode
+  fixed argv, merging distinct code-point inputs into one policy hash. Policy authority now hashes
+  deterministic exact validated JSON without Unicode normalization. Exact local target previews
+  also preserve code points. Static collision and same-process/restart mutation regressions pass.
+  Official Microsoft filename contracts confirm opaque Windows code points.
 - Exact app preview reads executable/fixed argv/digest from the hash-bound host policy at review.
   An initial attempt to copy argv into canonical preconditions failed the existing minimization
   test; that approach was removed. Existing raw-argv exclusion test remains unchanged and passes.
   File preview shows controlled root/size/digest. Escape, newline, bidi and Rich markup input
   cannot conceal or rewrite preview fields.
-- Current action/security/CLI/Windows/store matrix: **185 passed, 1 existing skip**, 19.49 s.
-  New selected-workflow matrix has nine tests, including real guarded Windows CLI file move,
+- Initial action/security/CLI/Windows/store matrix: **185 passed, 1 existing skip**, 19.49 s.
+  Initial selected-workflow matrix had nine cases, including real guarded Windows CLI file move,
   separate approval/execute, restart/replay rejection, revoked/foreign/claimed grant denial,
   concurrent cancellation, stale optional configuration and obsolete-policy review.
-  Current nine-test rerun passes after strengthening the fixture to forbid native media at the
-  handler boundary; no app/audio/media input was dispatched by automated acceptance.
+  A nine-case rerun passed after strengthening the fixture to forbid native media at the
+  handler boundary; this new selected-workflow matrix dispatches no app/audio/media effect.
+  Full suites retain existing bounded Python launch/termination primitive tests and read-only
+  printer probes under routine test authority. Those do not satisfy current brokered live smoke.
 - Reused unchanged broker/guarded-file benchmark passes: 700 authority checks, 250 fake dispatches,
   24 real Windows move/rollback rounds, no false accepts/duplicates/escapes/failed recovery/remnants.
   Working p50/p95: authority 0.151/0.283 ms, fake broker 0.256/0.478 ms, files 61.772/80.894 ms.
@@ -96,6 +103,21 @@ Frozen before implementation/current measurement:
 - A working full-suite attempt hit Windows `WinError 5` on a disposable voice-settings atomic
   rename. Fresh-path voice suite passes 16 tests; unchanged full gate rerun uses a new ignored
   runtime basetemp. Failure is retained, not suppressed or counted as a pass.
+- First exact implementation CI `41223399481` failed seven new identity-dependent tests because
+  its Windows runner is elevated. Production correctly refused native authority. Policy/store
+  tests now use an explicit synthetic actor port. Native CLI acceptance uses the real current
+  token: non-elevated laptop verifies move/restart/replay; an elevated runner must deny before
+  creating the authority database. A forced-elevation regression verifies runtime and CLI denial.
+  Production elevation guards are unchanged; no skip, gate bypass or native positive claim on CI.
+  The first failed CI log stays ignored under `runtime/phase13/implementation-ci-failure.log`.
+- Final selected workflow has **13 cases** after adding exact-Unicode binding and native denial
+  regressions. Current focused broker/coordinator/selected-workflow checks pass **61 tests**.
+  The full suite includes the expanded **189-case** action/security/CLI/Windows/store selection
+  with its one existing platform skip. Native positive file acceptance is current on this
+  non-elevated laptop; elevated native admission is a denial test, never a positive effect pass.
+- Final Unicode/CI corrections require repeated full working/isolated gates. Earlier passing
+  runs remain historical attempts; two superseded concurrent runs were stopped before completion
+  when contention slowed them. Final gates run serially on new verified ignored basetemp roots.
 
 ## Decisions, authority and blockers
 
@@ -115,21 +137,20 @@ Groq contract; isolated full-suite count therefore includes one additional legac
 
 | Gate | Working source | Isolated publication source |
 | --- | --- | --- |
-| Strict full tests / >=85% branch coverage | 1715 passed / 3 existing skips; 86.42%; 229.02 s | 1716 passed / 3 existing skips; 86.37%; 242.47 s |
+| Strict full tests / >=85% branch coverage | 1719 passed / 3 existing skips; 86.41%; 191.48 s | 1720 passed / 3 existing skips; 86.32%; 203.93 s |
 | Format / lint / Mypy | Pass; 172 source files | Pass; 172 source files |
 | Root base / restored optional / sidecar audits | All clean | Clean base; same unchanged audited sidecar lock |
-| Current action/CLI/security matrix | 185 pass / 1 existing skip | Included in full suite |
-| Final media-fixture safety correction | Nine selected-workflow tests pass separately | Identical test correction copied; no implementation change |
+| Current action/CLI/security selection | 189 cases / 1 existing skip included in full suite | Included in full suite |
+| Final selected workflow / native admission | 13 cases pass; actual non-elevated file workflow and forced elevated denial | Same final source; native token remains real for CLI admission |
 | PWA lifecycle / PCM | 173 pass | 173 pass |
 | Desktop browser profile regression | All eight profiles pass | Assets identical; profile code unchanged |
 | Synthetic empty-state doctor | All fourteen checks pass | Fresh official-Python bootstrap passes |
 | Current grant/broker/file benchmark | All fixed thresholds pass | All fixed thresholds pass |
 
 Retained Starlette TestClient deprecation and three platform/capability skips. No skipped gate
-is treated as a new physical pass. Last test-harness correction replaces an ineffective imported
-native-function monkeypatch with a forbidden media handler; all nine affected tests rerun and
-pass. It changes no production implementation or benchmark threshold. Exact CI runs full final
-source independently after publication.
+is treated as a new physical pass. Final exact policy/preview implementation and test harness
+are included in both repeated full gates above. Exact CI runs the final source independently
+after publication. Earlier passing runs are not substituted for these final results.
 
 ## Known limits, recovery and deferred scope
 

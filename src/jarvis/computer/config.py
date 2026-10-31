@@ -7,6 +7,7 @@ import json
 import os
 import re
 import tempfile
+from hashlib import sha256
 from pathlib import Path
 from typing import Annotated, Literal, Self
 
@@ -149,9 +150,15 @@ class ComputerAccessPolicy(ComputerConfigModel):
     @property
     def authority_version(self) -> str:
         """Bind durable authority to every validated policy value, across restarts."""
-        from jarvis.permissions import sha256_fingerprint
-
-        return f"{self.policy_version}:{sha256_fingerprint(self.model_dump(mode='json'))}"
+        # Fixed argv/paths are Windows input. NFC normalization can collapse distinct targets.
+        payload = json.dumps(
+            self.model_dump(mode="json"),
+            ensure_ascii=True,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("ascii")
+        return f"{self.policy_version}:sha256:{sha256(payload).hexdigest()}"
 
     @field_validator("controlled_root")
     @classmethod
