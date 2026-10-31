@@ -37,13 +37,14 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
 - **Phase 12 complete — Foreground voice.** Explicit local speech/review/Send/text replies;
   current Windows synthetic workflow, full release/security gates and fresh CI pass.
   [Completion evidence](phase-reports/current/PHASE_12_COMPLETION.md). Host controls unchanged.
-- **Phase 13 blocked-external — Controlled Windows actions.** Restricted typed CLI actions,
-  catalog/cancel and durable exact-policy binding; automated gates and current approved app/STOP
-  pass. Volume exact readback fails; guarded rollback restores prior state. Another output and
-  separately approved volume-only attempt remain external.
-  [Progress](phase-reports/current/PHASE_13_PROGRESS.md), [controls](CONTROLLED_WINDOWS.md).
+- **Phase 13 complete — Controlled Windows actions.** Restricted typed CLI
+  actions, catalog/cancel and durable exact-policy binding; current app/STOP and separately
+  authorized bounded volume retry pass. Built-in speakers retain their existing 100%; original
+  headphone default/scalar/mute restored exactly. Earlier headphone readback failure retained;
+  arbitrary percentages/all outputs unqualified. Fresh release gates and reviewed publication pass.
+  [Completion evidence](phase-reports/current/PHASE_13_COMPLETION.md), [controls](CONTROLLED_WINDOWS.md).
   No production activation or automatic live-effect authority.
-- Progress basis: **12/19 primary phase receipts closed (~63%)**; an
+- Progress basis: **13/19 primary phase receipts closed (~68%)**; an
   unweighted management count, not code/effort percentage or full mobile MVP acceptance.
 - Historical prototype acceptance stays **100% = 10/10 groups**, corpus **8/10**. Full mobile MVP,
   physical acceptance and production readiness remain unestablished.
@@ -73,7 +74,8 @@ Definitions, exact prerequisites, current status and gates are in the master:
 
 Manual phone checks: **skipped by owner; unverified**. No phone request/reminder, pass or physical
 acceptance inferred. Native dependency publication hold and unrelated provider changes remain.
-Legacy NVIDIA latency, live Windows effects, source availability and provider credential/access
-gates retain their original unclosed status. Read the [gate register](JARVIS_MASTER_ROADMAP.md#retained-gates-and-authority-register).
+Legacy NVIDIA latency, source availability and provider credential/access gates retain their
+original unclosed status. Earlier Windows headphone readback failure remains recorded alongside
+the bounded current pass. Read the [gate register](JARVIS_MASTER_ROADMAP.md#retained-gates-and-authority-register).
 No planning row enables integrations, creates scopes/grants, enrolls a device, deploys, signs,
 spends or sends a third-party message. Historical overview: [archive](LEGACY_PHASE_OVERVIEW.md).

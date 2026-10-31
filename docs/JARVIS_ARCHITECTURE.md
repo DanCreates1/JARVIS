@@ -103,12 +103,15 @@ Record/Stop yields an editable unsent draft; explicit Send owns canonical chat a
 No browser/cloud speech output, second Core, new action/scope or automatic capture. Local SAPI
 remains the legacy desktop adapter and synthetic fixture source. [Controls and recovery](FOREGROUND_VOICE.md).
 
-**Controlled Windows extension (Phase 13, acceptance in progress):** explicit host-policy
+**Controlled Windows extension (Phase 13, selected acceptance complete):** explicit host-policy
 `controlled-windows` restricts existing broker registrations to enrolled app launch, absolute
 volume, fixed media input and one guarded file move plus bounded filename search. Trusted-local
 CLI owns catalog/preview/review/execute/cancel/audit; remote chat gains no execution scope.
 Durable grants bind the full policy hash across restart. Existing text profiles still disable
-computer access; no production policy is changed. [Controls and recovery](CONTROLLED_WINDOWS.md).
+computer access; no production policy is changed. Current app/STOP and a separately authorized
+current-rounded volume retry pass. Volume proof is bounded to a no-change 100% write on built-in
+speakers; earlier headphone readback failure remains. Original default/scalar/mute restored;
+no arbitrary-percentage or all-device qualification. [Controls and recovery](CONTROLLED_WINDOWS.md).
 
 ## Historical target architecture and technical contracts
 

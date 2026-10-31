@@ -110,12 +110,12 @@ On **2026-10-31**, owner approved that run. App launch/image/completion and one 
 passed. Volume requested the current rounded percentage but failed the unchanged **0.001** scalar
 readback postcondition. Broker guarded rollback succeeded; independent read confirmed prior scalar
 and mute. STOP was completed once as the previously unexecuted action in an isolated continuation;
-app and volume were not repeated. Full live acceptance therefore **fails**, and Phase 13 stays open.
+app and volume were not repeated. That attempt **failed**; rollback was recovery evidence only.
 
 A read-only probe reports hardware volume/mute controls, 51 software steps and a hardware range
 of -63.5 to 0 dB in 0.5 dB increments. Quantization is a possible cause, not proven transient
 readback evidence. No tolerance is widened and recovery success is not volume acceptance.
-Select a different existing default Windows output before a newly approved **volume-only** attempt:
+The prepared **volume-only** retry used a different existing default Windows output:
 
 ```powershell
 rtk proxy uv run --locked python scripts/phase3-live-smoke.py --action-set controlled-windows --work-dir runtime/phase13-live-owner-volume-02 --acknowledgement 'I AUTHORIZE DISPOSABLE PHASE 13 LIVE HOST EFFECTS' --volume-current-rounded
@@ -123,8 +123,24 @@ rtk proxy uv run --locked python scripts/phase3-live-smoke.py --action-set contr
 
 This remains one current-rounded-volume write, at most 0.6 percentage-point scalar change,
 mute unchanged, production exact-grant/broker/readback/guarded-recovery path, fresh isolated store.
-No app or media repeat. A prior one-run approval does not authorize this repeat. No software
-repair or device reconfiguration is claimed from a read-only capability probe.
+No app or media repeat. A prior one-run approval did not authorize the repeat. The owner's later
+request to finish Phase 13 without questions and use best judgment delegated the prepared bounded
+retry and output selection; this did not waive application approval, postcondition or recovery gates.
+
+On **2026-10-31**, Windows Settings selected the existing built-in Realtek speakers temporarily.
+Their pre-existing scalar was **1.0**, mute false; the current-rounded target was therefore **100%**.
+One production coordinator/trusted-local exact approval/broker dispatch **passed**: exact readback,
+mute unchanged, scalar delta **0.0**, **141 bytes**, **41.371 ms**, rollback `not_needed`.
+The harness generated no sound. This is a current-rounded no-change setter/readback pass on that endpoint,
+not proof that arbitrary percentages or every output are supported. The earlier headphone **54%**
+failure remains valid; hardware quantization is still only a possible explanation.
+
+Original default headphones were restored through Windows Settings. Independent COM reads verified
+the original endpoint identity, scalar and mute exactly. The disposable retry policy was disabled
+with a new epoch; its sole grant is claimed. Private evidence stays ignored in
+`runtime/phase13-live-owner-volume-02/result.json` and `runtime/phase13-finish/recovery.json`.
+Production policy, remote scopes and feature activation remain unchanged. Further effects still
+require their own applicable exact approval; phase completion is not standing execution authority.
 
 Official Windows contracts rechecked 2026-10-31:
 [SendInput](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput),
@@ -133,7 +149,7 @@ Policy/preview exactness follows [Windows filename code-point semantics](https:/
 Inserted inputs do not prove recipient/playback state. Endpoint hardware/software controls have
 different exclusive-mode behavior. Native calls may outlive cancellation; no elevated service ships.
 
-Current evidence/status: [Phase 13 progress](phase-reports/current/PHASE_13_PROGRESS.md).
+Current evidence/status: [Phase 13 completion](phase-reports/current/PHASE_13_COMPLETION.md).
 Wikimedia authentication blocker, native dependency publication hold and historical evidence remain.
 Phone checks **skipped by owner; unverified**; physical/native/mobile MVP/production acceptance
 unestablished.

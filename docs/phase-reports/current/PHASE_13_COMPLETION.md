@@ -1,11 +1,13 @@
 # Phase 13 — Controlled Windows actions
 
-- Status: `blocked-external`
+- Status: `complete`
+- Completed: 2026-10-31
 - Started / updated: 2026-10-31
 - Namespace: current numbered roadmap
 - Recommended Codex model / reasoning: `gpt-6-astra` / `ultra` (recommendation only)
 - Session baseline / five-hour stop: 2026-10-31T12:49:34-04:00 / 2026-10-31T17:49:34-04:00
 - Live closeout resumed: 2026-10-31T17:33:00-04:00; five-hour stop 2026-10-31T22:33:00-04:00.
+- Final closeout resumed: 2026-10-31T17:45:00-04:00; five-hour stop 2026-10-31T22:45:00-04:00.
 
 ## Objective and scope
 
@@ -45,10 +47,12 @@ Frozen before implementation/current measurement:
 - [x] Permission benchmark >=500 samples, warm p95 <=25 ms; fake broker >=200, warm p95 <=50 ms;
   >=24 reversible Windows file round trips with verified recovery; zero failures/escapes/remnants.
   Existing <=30 s action deadlines, <=100 KiB results/audit, <=100 MiB single-file ceiling retained.
-- [ ] Current separately owner-authorized live smoke: one enrolled disposable two-second Python
+- [x] Current separately owner-authorized live smoke: one enrolled disposable two-second Python
   app fixture, one rounded-current-volume write (<=0.6 percentage-point scalar change, mute
   unchanged), one global media STOP pair. App and STOP pass under current exact owner approval;
-  volume fails exact readback and rolls back successfully. No playback claim or volume pass.
+  first volume attempt failed exact readback and rolled back successfully. Later owner-directed
+  volume-only retry passes on existing built-in speakers at their unchanged 100%; no playback,
+  arbitrary-percentage or all-output claim. Original default/scalar/mute restored exactly.
   Phone checks **skipped by owner; unverified**.
 - [x] Full applicable working/isolated quality/security/release gates, >=85% coverage, locked
   base/optional/sidecar audits; starting optional environment restored; recovery/setup docs.
@@ -129,12 +133,12 @@ successful guarded rollback restored the prior scalar and mute. The remaining un
 was completed separately without repeating app or volume effects. No production policy,
 enrollment, credential, scope, printer or phone operation was changed.
 
-Current obstacle is volume acceptance, not missing approval for the first run. Read-only diagnosis
+After that first run, the obstacle was volume acceptance, not missing approval. Read-only diagnosis
 shows hardware volume/mute controls and discrete 0.5 dB settings. Hardware quantization is a
 plausible cause; the failed receipt does not preserve the transient observed scalar, so that
-cause is not asserted as proven. Do not loosen the 0.001 readback tolerance, change endpoint,
-repeat a setter or relabel rollback as success to close the phase. A different existing default
-Windows output and one newly approved volume-only attempt are the prepared next step in
+cause is not asserted as proven. The 0.001 readback tolerance remains mandatory; rollback is not
+success. Changing output or repeating a setter required new owner authority. A different existing
+default Windows output and one newly approved volume-only attempt were prepared in
 [Controlled Windows](../../CONTROLLED_WINDOWS.md#current-live-acceptance-boundary).
 
 ### Current owner-authorized live attempt — 2026-10-31
@@ -166,6 +170,52 @@ Windows output and one newly approved volume-only attempt are the prepared next 
   and preservation of all **28** held paths. No application-source repair or gate waiver is claimed.
 
 ## Verification and measurements
+
+### Final bounded volume closeout — 2026-10-31
+
+- Resume baseline `1e6113ee1880a3711a2d0109b09a8171efdcfa4b`; exact baseline
+  [CI 41244494851](https://github.com/DanCreates1/JARVIS/actions/runs/41244494851) already passes.
+  All 28 held paths verified before work; fresh byte/deletion snapshot stays ignored under
+  `runtime/phase13-finish/baseline.json`.
+- Owner requested finishing Phase 13 without questions, delegating best judgment after the
+  prepared output-selection/volume-only boundary was stated. This authorizes that bounded
+  continuation, not repeated app/STOP, unrestricted effects or weakened application controls.
+- Read-only COM enumeration found five active render endpoints. Windows Settings temporarily
+  selected existing built-in Realtek speakers rather than virtual streaming devices. Their
+  existing scalar was 1.0, mute false; the frozen current-rounded target was therefore 100%.
+  No slider change, test sound, playback, installation or new device enrollment.
+- Exactly one fresh isolated volume-only harness run passed at **2026-10-31T21:56:04Z**:
+  production coordinator/trusted-local exact phrase/broker, receipt `succeeded`, postcondition
+  `passed`, rollback `not_needed`, **141 bytes**, **41.371 ms**, scalar delta **0.0**, mute unchanged.
+  Evidence: ignored `runtime/phase13-live-owner-volume-02/result.json` and protected local SQLite.
+  This is no-change setter/readback acceptance on that endpoint. Earlier headphone 54% mismatch
+  and successful recovery remain historical failures; arbitrary percentages/all outputs remain
+  unqualified. The 0.001 exact readback tolerance is unchanged.
+- Original headphone default restored using Windows Settings. Independent COM verification
+  confirms the same endpoint ID and prior scalar/mute exactly; raw identity stays private. Retry
+  policy disabled with a fresh epoch; sole grant is `claimed`, no unclaimed authority remains.
+  Recovery evidence stays ignored at `runtime/phase13-finish/recovery.json`.
+- Current preflight audio/extra-action/harness regression: **60 passed**. An initial command
+  named a nonexistent harness test path and collected no tests; corrected paths pass. No gate
+  skipped or waived. Locked base sync/audit followed by exact restoration of **97 packages**.
+- Fresh closeout gates pass without application/test/script/dependency changes:
+
+  | Gate | Working source | Isolated publication source |
+  | --- | --- | --- |
+  | Full suite / branch coverage | 1719 passed / 3 existing skips; 86.37%; 198.91 s | 1720 passed / 3 existing skips; 86.33%; 171.85 s |
+  | Format / lint / Mypy | Pass; 172 source files | Pass; 172 source files |
+  | Dependency audits | Base, exact restored optional and sidecar clean | Locked base clean; unchanged sidecar lock audited |
+  | PWA lifecycle / PCM | 173 pass | Identical application/test/script blobs |
+  | Desktop / empty-state doctor | Standard and prototype-text pass; all 14 doctor checks pass | Same accepted baseline; full clean source independently tested |
+
+  Current logs/coverage stay ignored under `runtime/phase13-finish/`. Existing platform/capability
+  skips and Starlette deprecation remain; no skip is physical acceptance. Earlier benchmark,
+  eight-profile and bootstrap evidence below remains attributable to unchanged application source.
+  Local link/anchor, exact publication-source, secret, whitespace and held-preservation checks
+  accompany this documentation-only closeout. Fresh exact publication CI is checked separately
+  after push and identified in the final handoff; earlier CI is not substituted.
+
+### Earlier implementation gates
 
 Raw artifacts remain ignored under `runtime/phase13/`. Working runtime CPython 3.11.9;
 fresh publication bootstrap CPython 3.11.9; first isolated environment CPython 3.11.16;
@@ -217,19 +267,21 @@ implementation. All 28 held paths are preserved: untouched paths keep exact byte
 three shared documents reproduce held work by inverse recomposition. Dirty path set still equals
 the original 28; original 97-package optional inventory is restored exactly and audited.
 
-The earlier receipt-only change updated this report and reached exact HEAD `e469383` with
-passing CI linked above. Current live follow-up updates only four safe documentation paths:
-this report, the master roadmap, overview and controlled-Windows contract. Application, test,
-script and dependency blobs remain identical to that passing baseline. Held changes remain
-excluded. Follow-up commit/tracking/live-remote agreement, preservation and fresh exact CI are
-checked separately after publication and reported in the handoff; earlier CI is not substituted
-for a later SHA.
+Earlier receipt-only changes reached `e469383` and `1e6113e` with their own passing exact CI.
+Current final closeout updates five safe document contents and renames this report to
+`PHASE_13_COMPLETION.md`: the report, master roadmap, overview, controlled-Windows contract and
+one current architecture paragraph. The shared architecture hunk is recomposed against published
+source; held provider edits remain excluded. All application, test, script and dependency blobs
+remain identical to baseline `1e6113e`. No runtime/private/generated artifact is published.
+Final commit/tracking/live-remote agreement, preservation and fresh exact CI are checked after
+publication and reported in the handoff; earlier CI is not substituted for a later SHA.
 
-Phase remains **blocked-external** on current volume readback acceptance after the approved run.
-Current app and STOP evidence now pass; volume rollback is recovery evidence only. Selected
-implementation and automated repository work remain ready. No app/media repeats are required.
-Do not start Phase 14 or enable owner actions merely because code is published.
+Current selected Phase 13 scope is **complete**: app, STOP, separately authorized bounded volume
+retry, automated security/recovery/release gates and reviewed task-only closeout. Earlier volume
+rollback remains recovery evidence only; headphone failure and endpoint/percentage limits remain.
+No app/media repeat or production action activation. Phase 14 has not started; its next-chat handoff
+grants no implementation or effect authority in this session.
 
-Progress: **12/19 primary receipts closed (~63%)**,
-unweighted management count, not code/effort or mobile MVP acceptance. Continue current Phase 13
-until all applicable exit gates pass; Phase 14 not started.
+Progress: **13/19 primary receipts closed (~68%)**,
+unweighted management count, not code/effort or mobile MVP acceptance. Next current phase is
+Phase 14 — Bounded tasks and project workflows; not started.
