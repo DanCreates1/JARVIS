@@ -170,8 +170,11 @@ No unsafe/runtime/private artifact is staged.
 Corrected implementation published as `1a617ec40b5cbd5f368fdf3138433589b0feef98`, tree
 `21283fbbf40a52daa11b3455a7b885aa1e1db131`.
 [Fresh exact CI 41225900632](https://github.com/DanCreates1/JARVIS/actions/runs/41225900632)
-passes Windows quality job `124609862574` and secret job `124609862306`. First failed CI remains
-recorded above; it is not counted as a pass. HEAD, tracking and live remote agree on corrected
+passes Windows quality job `124609862574` and secret job `124609862306`. Clean Windows tests pass
+**1722 / 1 existing skip**, **86.08%** coverage, 249.32 s.
+Platform-capability skip counts differ from the local laptop; no skipped physical gate is counted.
+The first failed attempt remains recorded above and is not counted as a pass.
+HEAD, tracking and live remote agree on corrected
 implementation. All 28 held paths are preserved: untouched paths keep exact bytes/deletion state;
 three shared documents reproduce held work by inverse recomposition. Dirty path set still equals
 the original 28; original 97-package optional inventory is restored exactly and audited.
