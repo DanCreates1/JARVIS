@@ -5,6 +5,7 @@
 - Namespace: current numbered roadmap
 - Recommended Codex model / reasoning: `gpt-6-astra` / `ultra` (recommendation only)
 - Session baseline / five-hour stop: 2026-10-31T12:49:34-04:00 / 2026-10-31T17:49:34-04:00
+- Live closeout resumed: 2026-10-31T17:33:00-04:00; five-hour stop 2026-10-31T22:33:00-04:00.
 
 ## Objective and scope
 
@@ -46,9 +47,9 @@ Frozen before implementation/current measurement:
   Existing <=30 s action deadlines, <=100 KiB results/audit, <=100 MiB single-file ceiling retained.
 - [ ] Current separately owner-authorized live smoke: one enrolled disposable two-second Python
   app fixture, one rounded-current-volume write (<=0.6 percentage-point scalar change, mute
-  unchanged), one global media STOP pair. Exact broker receipts and postconditions; no playback
-  claim. Prepare concrete review before requesting authority; historical authorization is not
-  reused. Phone checks **skipped by owner; unverified**.
+  unchanged), one global media STOP pair. App and STOP pass under current exact owner approval;
+  volume fails exact readback and rolls back successfully. No playback claim or volume pass.
+  Phone checks **skipped by owner; unverified**.
 - [x] Full applicable working/isolated quality/security/release gates, >=85% coverage, locked
   base/optional/sidecar audits; starting optional environment restored; recovery/setup docs.
 - [x] Reviewed task-only publication, held-state proof, exact HEAD/tracking/remote agreement
@@ -121,11 +122,48 @@ Frozen before implementation/current measurement:
 
 ## Decisions, authority and blockers
 
-Routine isolated repository fixtures and automated verification are authorized. Current live
-app/audio/media smoke needs exact separate owner authority after preparation. Prepared command
-and exact effect limits are in [Controlled Windows](../../CONTROLLED_WINDOWS.md#current-live-acceptance-boundary).
-Only that acceptance remains external after repository gates. Historical 2026-08-26 permission
-is not reused. No new production policy, enrollment, credential, scope, printer or phone operation.
+Routine isolated repository fixtures and automated verification are authorized. Owner explicitly
+approved the prepared three-action run on 2026-10-31. That authority was used once per action;
+historical 2026-08-26 permission was not reused. Volume failed its unchanged exact readback gate;
+successful guarded rollback restored the prior scalar and mute. The remaining unexecuted STOP
+was completed separately without repeating app or volume effects. No production policy,
+enrollment, credential, scope, printer or phone operation was changed.
+
+Current obstacle is volume acceptance, not missing approval for the first run. Read-only diagnosis
+shows hardware volume/mute controls and discrete 0.5 dB settings. Hardware quantization is a
+plausible cause; the failed receipt does not preserve the transient observed scalar, so that
+cause is not asserted as proven. Do not loosen the 0.001 readback tolerance, change endpoint,
+repeat a setter or relabel rollback as success to close the phase. A different existing default
+Windows output and one newly approved volume-only attempt are the prepared next step in
+[Controlled Windows](../../CONTROLLED_WINDOWS.md#current-live-acceptance-boundary).
+
+### Current owner-authorized live attempt — 2026-10-31
+
+- Original ignored evidence: `runtime/phase13-live-owner-01/result.json`, private SQLite action
+  receipts, and read-only `audio-capabilities.json`. Run returned failure, not acceptance.
+- Enrolled disposable app: exact production coordinator/local CLI/broker receipt succeeded,
+  postcondition passed, executable image verified, fixture completed in **2.001 s**;
+  broker execution **38.805 ms**, bounded result **80 bytes**.
+- Rounded-current volume: production proposal captured prior state and requested **54%**.
+  Receipt is `postcondition_mismatch`, postcondition `mismatch`, rollback `succeeded`.
+  Independent read confirms prior scalar/mute restored. No successful volume acceptance claimed.
+- Read-only endpoint probe: hardware-support flags **3**, **51** software steps,
+  hardware range **-63.5 to 0 dB**, increment **0.5 dB**. No setter, endpoint switch or audio playback.
+- STOP continuation evidence: `runtime/phase13-live-owner-01-media-continuation/result.json`.
+  Only previously unexecuted authorized STOP dispatched, once. Receipt succeeded, postcondition
+  passed, **77 bytes**, **29.832 ms**; Windows accepted both inputs. Playback state unverified.
+- First invocation dispatched no STOP; continuation dispatched no app or volume action. No blind
+  retry, duplicate approved effect, weakened gate or production feature activation.
+- Both disposable policies disabled after receipt review, rotating their policy epochs. All
+  three issued grants are already claimed; no active unclaimed grant remains. Raw identity,
+  policy, database and evidence files stay ignored and unpublished.
+- Before live effects, resume checks passed **54 focused tests**, format/lint/Mypy (**172** source
+  files), root and sidecar dependency audits, lock and whitespace checks. Exact baseline HEAD
+  `e469383` has [passing exact CI 41226620184](https://github.com/DanCreates1/JARVIS/actions/runs/41226620184).
+  Existing full implementation gates below remain attributable to unchanged application source.
+- Post-failure audio/extra-actions/harness regression passes **60 tests**; strict restored-optional
+  dependency audit remains clean. Documentation/source review verifies **128** local links/anchors
+  and preservation of all **28** held paths. No application-source repair or gate waiver is claimed.
 
 ## Verification and measurements
 
@@ -179,14 +217,17 @@ implementation. All 28 held paths are preserved: untouched paths keep exact byte
 three shared documents reproduce held work by inverse recomposition. Dirty path set still equals
 the original 28; original 97-package optional inventory is restored exactly and audited.
 
-This final receipt-only change updates this report. Every application, test, script, dependency
-and other document blob remains identical to the passing corrected implementation. Its own
-commit/tracking/live-remote agreement, held-state proof and fresh CI are checked separately after
-publication and reported in the handoff; implementation CI is not substituted for a later SHA.
+The earlier receipt-only change updated this report and reached exact HEAD `e469383` with
+passing CI linked above. Current live follow-up updates only four safe documentation paths:
+this report, the master roadmap, overview and controlled-Windows contract. Application, test,
+script and dependency blobs remain identical to that passing baseline. Held changes remain
+excluded. Follow-up commit/tracking/live-remote agreement, preservation and fresh exact CI are
+checked separately after publication and reported in the handoff; earlier CI is not substituted
+for a later SHA.
 
-Phase remains **blocked-external** only on missing current exact live-effect authority. Selected
-implementation and automated repository work are ready; no exit credit granted for historical
-effect evidence. Prepared live smoke awaits the single grouped owner decision described above.
+Phase remains **blocked-external** on current volume readback acceptance after the approved run.
+Current app and STOP evidence now pass; volume rollback is recovery evidence only. Selected
+implementation and automated repository work remain ready. No app/media repeats are required.
 Do not start Phase 14 or enable owner actions merely because code is published.
 
 Progress: **12/19 primary receipts closed (~63%)**,

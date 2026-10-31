@@ -38,8 +38,9 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
   current Windows synthetic workflow, full release/security gates and fresh CI pass.
   [Completion evidence](phase-reports/current/PHASE_12_COMPLETION.md). Host controls unchanged.
 - **Phase 13 blocked-external — Controlled Windows actions.** Restricted typed CLI actions,
-  catalog/cancel and durable exact-policy binding; automated gates pass, current live-effect
-  authority pending.
+  catalog/cancel and durable exact-policy binding; automated gates and current approved app/STOP
+  pass. Volume exact readback fails; guarded rollback restores prior state. Another output and
+  separately approved volume-only attempt remain external.
   [Progress](phase-reports/current/PHASE_13_PROGRESS.md), [controls](CONTROLLED_WINDOWS.md).
   No production activation or automatic live-effect authority.
 - Progress basis: **12/19 primary phase receipts closed (~63%)**; an

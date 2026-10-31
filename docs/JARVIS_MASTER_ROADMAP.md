@@ -59,7 +59,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [10](#phase-10--inspectable-memory-and-project-context) | Inspectable memory and project context | complete | 7 | Trusted-local review, exact lifecycle, current retrieval/project/release gates and fresh CI pass |
 | [11](#phase-11--grounded-public-research) | Grounded public research | complete | 7 | Explicit public-source citations, current security/release gates and fresh CI pass; discovery blocker retained |
 | [12](#phase-12--foreground-voice) | Foreground voice | complete | 7 | Explicit local speech/review/Send/text replies; current Windows synthetic/security/release gates and fresh CI pass |
-| [13](#phase-13--controlled-windows-actions) | Controlled Windows actions | blocked-external | 7 | Restricted CLI actions and automated gates pass; current exact app/audio/media authority needed |
+| [13](#phase-13--controlled-windows-actions) | Controlled Windows actions | blocked-external | 7 | Automated gates and current approved app/STOP pass; volume readback fails, guarded rollback succeeds |
 | [14](#phase-14--bounded-tasks-and-project-workflows) | Bounded tasks and project workflows | not-started | 7; 13 for action-bearing flows | Existing DAG/scheduler/task views; usable safe workflow/control |
 | [15](#phase-15--email) | Email | not-started | 7 | Local read/prepare exists; live provider/auth gate remains |
 | [16](#phase-16--calendar-and-reminders) | Calendar and reminders | not-started | 7 | Calendar adapter and lifecycle; write authority separate |
@@ -231,8 +231,10 @@ background phone capture or manual phone checks. Read [F13](PWA_F13_PUSH_TO_TALK
 Status: **blocked-external**, 2026-10-31. [Progress](phase-reports/current/PHASE_13_PROGRESS.md),
 [selected action workflow](CONTROLLED_WINDOWS.md). Explicit restricted host-policy action set,
 typed catalog, exact local previews, cancellation and durable policy-hash binding. Working and
-isolated automated gates pass; current separately authorized app/audio/media smoke remains
-pending. No production activation or phase-completion claim.
+isolated automated gates pass. Current exact owner-approved app and media STOP pass; rounded-current
+volume fails its unchanged exact readback gate and guarded rollback succeeds. Hardware capability
+probe is read-only; another output and separately approved volume-only attempt remain external.
+No production activation or phase-completion claim.
 
 Outcome: a small useful set of typed Windows actions with trustworthy previews and receipts.
 Reuse permission Levels 0–4, expiring exact grants, broker, allowlists, postconditions and rollback.
@@ -396,7 +398,7 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 | Legacy NVIDIA/local-cold latency | Legacy Phase 1 remains `blocked-external`; original 20/20 and p50/p95 gates unchanged. Local fallback/prototype timings are not NVIDIA proof; Phase 11 owns any requested requalification. |
 | Text usefulness | Phase 7 owns known R1/C1 failures. Historical 8/10 remains a bounded pass under the old rubric; prospective stricter target does not rewrite it. |
 | Research live endpoint | Wikimedia `authentication_required` remains confirmed 2026-10-31. Phase 11 direct-source acceptance passes; general discovery remains unavailable until directly revalidated working. |
-| Windows effects | Existing broker implemented; Phase 13 needs exact applicable live authority. Chat/read/task-monitor scope grants no OS/control authority. |
+| Windows effects | Phase 13 current approved app/STOP pass; volume exact readback fails with successful rollback. Another output/approved volume-only attempt remains. Chat/read/task-monitor scope grants no OS/control authority. |
 | Garmin | Existing protected session and normal renewal authority retained. Phase 8 grants no new login, enrollment, health scope, credential replacement or health disclosure. |
 | Email/calendar | Phase 15/16 provider choices/auth/private-read authority remain external inputs when needed. Writes/sends are independently exact-approved. |
 | Native dependencies | Held manifests stay unchanged and unpublished; only selected Phase 21 may revisit a passing reviewed candidate. |
@@ -410,9 +412,10 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 complete; Phase 12 receipt is closed for local foreground speech/review/Send/text replies.
 Read this roadmap, [Phase Execution](PHASE_EXECUTION.md), current architecture and Phase 13
 references plus its [current report](phase-reports/current/PHASE_13_PROGRESS.md) before continuing.
-Selected restricted CLI actions, previews/receipts and automated gates pass. Current brokered
-app/audio/media smoke is prepared in [the action contract](CONTROLLED_WINDOWS.md#current-live-acceptance-boundary)
-and awaits exact owner authority. Existing model proposals never grant execution. Preserve held
+Selected restricted CLI actions, previews/receipts and automated gates pass. Current approved
+app/STOP acceptance passes; volume exact readback fails with successful guarded rollback.
+Read the prepared volume-only next step in [the action contract](CONTROLLED_WINDOWS.md#current-live-acceptance-boundary).
+No app/media repeat, weaker tolerance or model-generated authority. Preserve held
 native/provider edits, accepted prototype-text baseline,
 current locks, Wikimedia authentication blocker, legacy failed gates and skipped/unverified
 phone status. No new remote action scope, blind replay, arbitrary shell or deployment authority.

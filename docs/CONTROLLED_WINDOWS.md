@@ -93,7 +93,7 @@ still applies. No private content, raw evidence or allowlist identifiers are pub
 
 Automated fixtures move disposable synthetic files under ignored runtime roots; existing
 bounded Python subprocess primitive tests remain part of routine verification. Current brokered
-app/audio/media acceptance requires a separate owner-approved bounded run. Prepared command:
+app/audio/media acceptance requires a separate owner-approved bounded run. Original prepared command:
 
 ```powershell
 rtk proxy uv run --locked python scripts/phase3-live-smoke.py --action-set controlled-windows --work-dir runtime/phase13-live-owner-01 --acknowledgement 'I AUTHORIZE DISPOSABLE PHASE 13 LIVE HOST EFFECTS' --app-fixture --volume-current-rounded --media-operation stop
@@ -105,6 +105,26 @@ key-down/key-up pair, which can stop active playback. Fresh isolated store, fixe
 production coordinator/trusted CLI/broker, sanitized receipts, no persistent owner policy change,
 no printer/browser/clipboard/phone effect. Existing work directory refuses overwrite; choose a
 new direct runtime child for any separately approved repeat. This command grants no authority itself.
+
+On **2026-10-31**, owner approved that run. App launch/image/completion and one STOP input pair
+passed. Volume requested the current rounded percentage but failed the unchanged **0.001** scalar
+readback postcondition. Broker guarded rollback succeeded; independent read confirmed prior scalar
+and mute. STOP was completed once as the previously unexecuted action in an isolated continuation;
+app and volume were not repeated. Full live acceptance therefore **fails**, and Phase 13 stays open.
+
+A read-only probe reports hardware volume/mute controls, 51 software steps and a hardware range
+of -63.5 to 0 dB in 0.5 dB increments. Quantization is a possible cause, not proven transient
+readback evidence. No tolerance is widened and recovery success is not volume acceptance.
+Select a different existing default Windows output before a newly approved **volume-only** attempt:
+
+```powershell
+rtk proxy uv run --locked python scripts/phase3-live-smoke.py --action-set controlled-windows --work-dir runtime/phase13-live-owner-volume-02 --acknowledgement 'I AUTHORIZE DISPOSABLE PHASE 13 LIVE HOST EFFECTS' --volume-current-rounded
+```
+
+This remains one current-rounded-volume write, at most 0.6 percentage-point scalar change,
+mute unchanged, production exact-grant/broker/readback/guarded-recovery path, fresh isolated store.
+No app or media repeat. A prior one-run approval does not authorize this repeat. No software
+repair or device reconfiguration is claimed from a read-only capability probe.
 
 Official Windows contracts rechecked 2026-10-31:
 [SendInput](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput),
