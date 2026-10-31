@@ -40,6 +40,7 @@ from jarvis.permissions import (
 )
 
 _ACKNOWLEDGEMENT: Final = "I AUTHORIZE DISPOSABLE PHASE 3 LIVE HOST EFFECTS"
+_CONTROLLED_ACKNOWLEDGEMENT: Final = "I AUTHORIZE DISPOSABLE PHASE 13 LIVE HOST EFFECTS"
 _MEDIA_OPERATIONS: Final = ("stop",)
 _ALLOWED_ACTION_IDS: Final = frozenset({"launch_application", "set_master_volume", "control_media"})
 _FIXTURE_WAIT_SECONDS: Final = 8.0
@@ -57,6 +58,7 @@ def _arguments() -> argparse.Namespace:
         ),
     )
     parser.add_argument("--work-dir", type=Path, required=True)
+    parser.add_argument("--action-set", choices=("legacy", "controlled-windows"), default="legacy")
     parser.add_argument("--acknowledgement", required=True)
     parser.add_argument("--app-fixture", action="store_true")
     parser.add_argument("--volume-current-rounded", action="store_true")
@@ -265,8 +267,13 @@ def _requested_actions(args: argparse.Namespace) -> list[str]:
 
 
 def _validate_authorization(args: argparse.Namespace) -> list[str]:
-    if args.acknowledgement != _ACKNOWLEDGEMENT:
-        raise ValueError(f"refusing host effects; exact acknowledgement is: {_ACKNOWLEDGEMENT}")
+    acknowledgement = (
+        _CONTROLLED_ACKNOWLEDGEMENT
+        if getattr(args, "action_set", "legacy") == "controlled-windows"
+        else _ACKNOWLEDGEMENT
+    )
+    if args.acknowledgement != acknowledgement:
+        raise ValueError(f"refusing host effects; exact acknowledgement is: {acknowledgement}")
     requested = _requested_actions(args)
     if not requested:
         raise ValueError("select at least one explicit live action")
@@ -291,6 +298,7 @@ async def _main() -> int:
 
     policy = ComputerAccessPolicy(
         enabled=True,
+        action_set=args.action_set,
         policy_version=f"phase3-live-{secrets.token_hex(12)}",
         maximum_permission_level=PermissionLevel.LEVEL_2,
         controlled_root=controlled_root,
@@ -299,7 +307,7 @@ async def _main() -> int:
         grant_ttl_seconds=60,
     )
     ComputerAccessConfigStore(work_dir).save(policy)
-    settings = Settings(data_dir=work_dir, computer_access_enabled=True)
+    settings = Settings(data_dir=work_dir, computer_access_enabled=True, _env_file=None)
     results: list[dict[str, object]] = []
     components: ComputerRuntimeComponents | None = None
     failed_action: str | None = None
@@ -409,6 +417,7 @@ async def _main() -> int:
         "generated_at": datetime.now(UTC).isoformat(),
         "status": "passed" if failure_type is None else "failed",
         "operator_acknowledgement_validated": True,
+        "action_set": args.action_set,
         "requested_actions": requested_actions,
         "completed_action_count": len(results),
         "actions": results,

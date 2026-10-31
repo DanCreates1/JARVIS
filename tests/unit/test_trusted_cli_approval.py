@@ -14,10 +14,21 @@ from jarvis.permissions.trusted_cli import (
     LocalCliApprovalSurface,
     approval_phrase,
     render_approval_summary,
+    terminal_literal,
 )
 from tests.fakes.phase3 import action_definition, canonical_action
 
 NOW = datetime(2026, 8, 22, 12, 0, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    "hostile", ["\x1b[2J", "\rEffect: harmless", "\u202etxt.exe", "\u0085", "\u2028"]
+)
+def test_terminal_controls_and_directional_input_are_visible(hostile: str) -> None:
+    rendered = terminal_literal(hostile)
+    assert hostile not in rendered
+    assert "\\" in rendered
+    assert terminal_literal("[conceal]résumé.txt") == "[conceal]résumé.txt"
 
 
 def _actor(

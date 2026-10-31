@@ -210,6 +210,14 @@ Broker requirements before Level 4 ships:
 
 The broker cannot grant itself new actions or edit policy. Administrative support is per operation, never an unrestricted always-root/admin JARVIS.
 
+Current Phase 13 restricted `controlled-windows` host-policy set omits clipboard/browser/printing,
+app groups and hands-free activation. Exact local previews escape terminal controls/directional
+formatting and display markup literally. Durable authority includes the full validated policy
+hash plus its version label, so manual policy edits invalidate old grants across restart. Older
+label-only grants fail closed after upgrade. Local cancellation atomically revokes only an
+unclaimed same-identity grant; claimed effects require receipt inspection/reconciliation.
+No remote execution route or new scope is added. [Selected controls](CONTROLLED_WINDOWS.md).
+
 ## 9. Tool safety
 
 Every tool must have:

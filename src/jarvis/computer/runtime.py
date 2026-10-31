@@ -64,6 +64,9 @@ async def build_computer_runtime(
 
     registry = build_computer_registry(policy)
     policy_fingerprint = sha256_fingerprint(policy.model_dump(mode="json"))
+    # Bind durable authority to the complete policy, including across process restarts.
+    # The editable version label alone cannot invalidate a grant after a manual policy edit.
+    authority_version = policy.authority_version
     policy_store = ComputerAccessConfigStore(settings.data_dir)
 
     def authority_guard(_grant: object) -> bool:
@@ -83,12 +86,12 @@ async def build_computer_runtime(
     store = SQLiteActionStore(settings.database_path)
     await store.initialize()
     try:
-        engine = PermissionEngine(policy_version=policy.policy_version)
+        engine = PermissionEngine(policy_version=authority_version)
         broker = LocalActionBroker(
             registry.actions,
             state_store=store,
             audit_store=store,
-            policy_version=policy.policy_version,
+            policy_version=authority_version,
             authority_guard=authority_guard,
         )
         coordinator = ActionCoordinator(

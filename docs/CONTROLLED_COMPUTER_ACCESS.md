@@ -1,5 +1,9 @@
 # Controlled Computer Access
 
+Current Phase 13 selects the narrower explicit `controlled-windows` policy action set and
+trusted-local CLI workflow. See [selected actions, catalog, cancellation and recovery](CONTROLLED_WINDOWS.md).
+The Phase 3 references below are **Legacy Phase 3**. Legacy handlers remain configuration-gated.
+
 Phase 3 adds narrow Windows actions behind a host-owned policy, exact trusted approval, expiring
 one-use grants, a fixed local broker, postcondition checks, recovery where safe, and sanitized
 audit views. It does not add a shell, arbitrary executable paths, implicit elevation, remote

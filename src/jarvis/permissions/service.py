@@ -357,6 +357,13 @@ class ActionCoordinator:
                 code="approval_not_found",
                 message="Approval request does not exist.",
             )
+        if record.request.action.policy_version != self.policy_version:
+            return self._denied(
+                action=record.request.action,
+                request=record.request,
+                code="policy_version_mismatch",
+                message="Approval request belongs to an obsolete policy; propose again.",
+            )
         if record.status is ApprovalStatus.DENIED:
             return self._denied(
                 action=record.request.action,

@@ -143,17 +143,20 @@ def build_computer_registry(policy: ComputerAccessPolicy) -> ComputerActionRegis
     ]
     if policy.applications:
         actions.append(ApplicationLaunchHandler(policy))
-    if policy.app_groups:
+    if policy.app_groups and policy.action_set == "legacy":
         actions.append(AppGroupLaunchHandler(policy))
     if policy.maximum_permission_level >= PermissionLevel.LEVEL_2:
-        actions.extend((SetClipboardTextHandler(policy), ReversibleMoveHandler(policy)))
-        if policy.browser_targets:
+        if policy.action_set == "legacy":
+            actions.append(SetClipboardTextHandler(policy))
+        actions.append(ReversibleMoveHandler(policy))
+        if policy.browser_targets and policy.action_set == "legacy":
             actions.append(OpenBrowserTargetHandler(policy))
-        if policy.printers:
+        if policy.printers and policy.action_set == "legacy":
             actions.append(PrintControlledTextHandler(policy))
 
     read_tools: list[Tool] = [
         SearchControlledFilesTool(policy),
-        LocalPrinterStatusTool(policy),
     ]
+    if policy.action_set == "legacy":
+        read_tools.append(LocalPrinterStatusTool(policy))
     return ComputerActionRegistry(actions, read_tools=read_tools)

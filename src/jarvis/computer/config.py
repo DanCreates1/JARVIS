@@ -119,6 +119,7 @@ class ComputerAccessPolicy(ComputerConfigModel):
 
     schema_version: Literal[1] = 1
     enabled: bool = False
+    action_set: Literal["legacy", "controlled-windows"] = "legacy"
     policy_version: str = Field(default="phase3-v1", pattern=r"^[a-z0-9][a-z0-9._-]{0,63}$")
     maximum_permission_level: PermissionLevel = PermissionLevel.LEVEL_2
     controlled_root: Path
@@ -145,6 +146,13 @@ class ComputerAccessPolicy(ComputerConfigModel):
     max_print_bytes: int = Field(default=1 * 1024 * 1024, ge=1, le=10 * 1024 * 1024)
     max_print_copies: int = Field(default=5, ge=1, le=20)
 
+    @property
+    def authority_version(self) -> str:
+        """Bind durable authority to every validated policy value, across restarts."""
+        from jarvis.permissions import sha256_fingerprint
+
+        return f"{self.policy_version}:{sha256_fingerprint(self.model_dump(mode='json'))}"
+
     @field_validator("controlled_root")
     @classmethod
     def normalize_controlled_root(cls, value: Path) -> Path:
@@ -163,6 +171,11 @@ class ComputerAccessPolicy(ComputerConfigModel):
             raise ValueError("controlled_root must be absolute")
         if self.maximum_permission_level > PermissionLevel.LEVEL_2:
             raise ValueError("Phase 3 does not enable permission Levels 3 or 4")
+        if self.action_set == "controlled-windows" and (
+            self.hands_free_app_group is not None
+            or any(self.hands_free_mappings.model_dump().values())
+        ):
+            raise ValueError("controlled-windows requires hands-free mappings disabled")
         known_apps = set(self.applications)
         for group_id, group in self.app_groups.items():
             unknown = set(group.applications).difference(known_apps)

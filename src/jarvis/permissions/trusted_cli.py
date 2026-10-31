@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import unicodedata
 from collections.abc import Callable
 from datetime import UTC, datetime
 
@@ -29,6 +30,17 @@ def approval_phrase(request: ApprovalRequest) -> str:
     return f"APPROVE {request.action.fingerprint.removeprefix('sha256:')[-16:]}"
 
 
+def terminal_literal(value: str) -> str:
+    """Expose controls and directional formatting without terminal interpretation."""
+    return "".join(
+        character.encode("unicode_escape").decode("ascii")
+        if unicodedata.category(character).startswith("C")
+        or unicodedata.category(character) in {"Zl", "Zp"}
+        else character
+        for character in value
+    )
+
+
 def render_approval_summary(request: ApprovalRequest) -> str:
     """Render stable plain text suitable for a host-owned terminal."""
     action = request.action
@@ -46,7 +58,7 @@ def render_approval_summary(request: ApprovalRequest) -> str:
         f"Expires: {request.expires_at.isoformat()}",
         f"Fingerprint: {action.fingerprint}",
     )
-    return "\n".join(lines)
+    return "\n".join(terminal_literal(line) for line in lines)
 
 
 def _risk_label(level: PermissionLevel) -> str:

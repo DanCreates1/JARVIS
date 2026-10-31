@@ -53,6 +53,16 @@ def test_live_authorization_is_exact_and_stop_only() -> None:
         LIVE._validate_authorization(_live_arguments(media_operation=None))
 
 
+def test_current_action_set_requires_its_own_exact_authorization() -> None:
+    with pytest.raises(ValueError, match="PHASE 13"):
+        LIVE._validate_authorization(_live_arguments(action_set="controlled-windows"))
+    assert LIVE._validate_authorization(
+        _live_arguments(
+            action_set="controlled-windows", acknowledgement=LIVE._CONTROLLED_ACKNOWLEDGEMENT
+        )
+    ) == ["control_media"]
+
+
 def test_live_paths_require_new_direct_runtime_child(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

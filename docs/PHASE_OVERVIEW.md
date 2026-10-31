@@ -37,7 +37,11 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
 - **Phase 12 complete — Foreground voice.** Explicit local speech/review/Send/text replies;
   current Windows synthetic workflow, full release/security gates and fresh CI pass.
   [Completion evidence](phase-reports/current/PHASE_12_COMPLETION.md). Host controls unchanged.
-- **Next: Phase 13 — Controlled Windows actions.** No automatic implementation or live-effect authority.
+- **Phase 13 blocked-external — Controlled Windows actions.** Restricted typed CLI actions,
+  catalog/cancel and durable exact-policy binding; automated gates pass, current live-effect
+  authority pending.
+  [Progress](phase-reports/current/PHASE_13_PROGRESS.md), [controls](CONTROLLED_WINDOWS.md).
+  No production activation or automatic live-effect authority.
 - Progress basis: **12/19 primary phase receipts closed (~63%)**; an
   unweighted management count, not code/effort percentage or full mobile MVP acceptance.
 - Historical prototype acceptance stays **100% = 10/10 groups**, corpus **8/10**. Full mobile MVP,

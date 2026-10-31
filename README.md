@@ -1,5 +1,8 @@
 # JARVIS
 
+Phase 13 controlled Windows actions: [restricted local workflow](docs/CONTROLLED_WINDOWS.md).
+Current live app/audio/media acceptance pending separate exact owner approval.
+
 Explicit Phase 12 foreground voice: `rtk proxy .\scripts\open-voice.cmd`.
 Local speech, review/edit draft, explicit Send, text replies. Independent host voice controls
 remain default off. [Capability and recovery](docs/FOREGROUND_VOICE.md).

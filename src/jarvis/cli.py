@@ -3008,6 +3008,7 @@ def computer_status() -> None:
     table.add_row("Policy file", str(store.path))
     table.add_row("Policy switch", "enabled" if policy.enabled else "disabled")
     table.add_row("Policy version", policy.policy_version)
+    table.add_row("Action set", policy.action_set)
     table.add_row("Maximum permission level", str(int(policy.maximum_permission_level)))
     table.add_row("Controlled root", str(policy.controlled_root))
     table.add_row("Applications / groups", f"{len(policy.applications)} / {len(policy.app_groups)}")
@@ -3129,11 +3130,71 @@ def computer_propose(
         raise typer.Exit(code=exit_code)
 
 
+@computer_app.command("catalog")
+def computer_catalog() -> None:
+    """Show enabled fixed schemas and limits without proposals, grants or OS effects."""
+    from jarvis.computer.config import ComputerAccessConfigStore
+    from jarvis.computer.registry import build_computer_registry
+
+    settings = _load_settings()
+    try:
+        if not settings.computer_access_enabled:
+            raise ValueError("master switch disabled")
+        policy = ComputerAccessConfigStore(settings.data_dir).load()
+        registry = build_computer_registry(policy)
+    except Exception:
+        console.print("[bold red]Controlled action catalog unavailable. Run computer status.[/]")
+        raise typer.Exit(code=1) from None
+    payload = {
+        "action_set": policy.action_set,
+        "actions": [action.definition.model_dump(mode="json") for action in registry.actions],
+        "read_tools": [tool.definition.model_dump(mode="json") for tool in registry.read_tools],
+        "authority": "Catalog only. Every effect requires exact trusted-local approval.",
+    }
+    console.print(json.dumps(payload, ensure_ascii=True, indent=2), markup=False, highlight=False)
+
+
+@computer_app.command("cancel")
+def computer_cancel(
+    grant_id: Annotated[str, typer.Argument(help="Exact unclaimed one-use grant ID.")],
+) -> None:
+    """Revoke one unclaimed local grant; dispatched effects require reconciliation."""
+    exit_code = asyncio.run(_computer_cancel(_load_settings(), grant_id=grant_id))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+async def _computer_cancel(settings: Settings, *, grant_id: str) -> int:
+    from jarvis.computer.runtime import build_computer_runtime
+
+    try:
+        components = await build_computer_runtime(settings)
+        async with components:
+            grant = await components.store.get_grant(grant_id)
+            if (
+                grant is None
+                or not components.actor.has_execution_authority_for(grant.action.actor)
+                or grant.action.policy_version != components.coordinator.policy_version
+                or not await components.store.revoke_grant(grant_id, revoked_at=datetime.now(UTC))
+            ):
+                console.print(
+                    "[bold yellow]Grant unavailable or already claimed; "
+                    "no cancellation confirmed.[/]"
+                )
+                return 1
+    except Exception:
+        console.print("[bold red]Grant cancellation unavailable. Use computer disable.[/]")
+        return 1
+    console.print("[bold green]Unclaimed grant revoked. No effect dispatched by cancellation.[/]")
+    return 0
+
+
 async def _computer_propose(settings: Settings, *, action: str, raw: dict[str, object]) -> int:
     from pydantic import ValidationError
 
+    from jarvis.computer.review import render_local_action_preview
     from jarvis.computer.runtime import build_computer_runtime
-    from jarvis.permissions import ActionCoordinatorStatus, ApprovalSource, render_approval_summary
+    from jarvis.permissions import ActionCoordinatorStatus, ApprovalSource
 
     try:
         components = await build_computer_runtime(settings)
@@ -3161,7 +3222,11 @@ async def _computer_propose(settings: Settings, *, action: str, raw: dict[str, o
         if result.status is not ActionCoordinatorStatus.PENDING or result.request is None:
             console.print(f"[bold red]Proposal denied:[/] {result.code or 'denied'}")
             return 1
-        console.print(render_approval_summary(result.request))
+        console.print(
+            render_local_action_preview(result.request, components.policy),
+            markup=False,
+            highlight=False,
+        )
         console.print(
             f"[bold yellow]Pending only.[/] Review: `uv run jarvis computer approve "
             f"{result.request.approval_id}`"
@@ -3180,6 +3245,7 @@ def computer_pending() -> None:
 
 async def _computer_pending(settings: Settings) -> int:
     from jarvis.permissions import SQLiteActionStore
+    from jarvis.permissions.trusted_cli import terminal_literal
 
     store = SQLiteActionStore(settings.database_path)
     try:
@@ -3202,7 +3268,7 @@ async def _computer_pending(settings: Settings) -> int:
             record.request.approval_id,
             str(int(action.permission_level)),
             f"{action.action_id}@{action.action_version}",
-            action.human_effect,
+            Text(terminal_literal(action.human_effect)),
             record.request.expires_at.isoformat(),
         )
     console.print(table)
@@ -3221,11 +3287,11 @@ def computer_approve(
 
 
 async def _computer_approve(settings: Settings, *, approval_id: str) -> int:
+    from jarvis.computer.review import render_local_action_preview
     from jarvis.computer.runtime import build_computer_runtime
     from jarvis.permissions import (
         ActionCoordinatorStatus,
         LocalCliApprovalSurface,
-        render_approval_summary,
     )
 
     try:
@@ -3240,7 +3306,9 @@ async def _computer_approve(settings: Settings, *, approval_id: str) -> int:
         from jarvis.permissions import ApprovalRequest
 
         exact = ApprovalRequest.model_validate(request)
-        console.print(render_approval_summary(exact))
+        console.print(
+            render_local_action_preview(exact, components.policy), markup=False, highlight=False
+        )
         console.print("[bold red]This approval can cause the exact effect above.[/]")
         entered = console.input(f"Type [bold]{phrase}[/] to approve, anything else to deny: ")
         return entered == phrase

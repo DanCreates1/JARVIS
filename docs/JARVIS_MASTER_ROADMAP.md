@@ -59,7 +59,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [10](#phase-10--inspectable-memory-and-project-context) | Inspectable memory and project context | complete | 7 | Trusted-local review, exact lifecycle, current retrieval/project/release gates and fresh CI pass |
 | [11](#phase-11--grounded-public-research) | Grounded public research | complete | 7 | Explicit public-source citations, current security/release gates and fresh CI pass; discovery blocker retained |
 | [12](#phase-12--foreground-voice) | Foreground voice | complete | 7 | Explicit local speech/review/Send/text replies; current Windows synthetic/security/release gates and fresh CI pass |
-| [13](#phase-13--controlled-windows-actions) | Controlled Windows actions | not-started | 7 | Existing broker/tools; current exact live-effect acceptance |
+| [13](#phase-13--controlled-windows-actions) | Controlled Windows actions | blocked-external | 7 | Restricted CLI actions and automated gates pass; current exact app/audio/media authority needed |
 | [14](#phase-14--bounded-tasks-and-project-workflows) | Bounded tasks and project workflows | not-started | 7; 13 for action-bearing flows | Existing DAG/scheduler/task views; usable safe workflow/control |
 | [15](#phase-15--email) | Email | not-started | 7 | Local read/prepare exists; live provider/auth gate remains |
 | [16](#phase-16--calendar-and-reminders) | Calendar and reminders | not-started | 7 | Calendar adapter and lifecycle; write authority separate |
@@ -227,6 +227,12 @@ background phone capture or manual phone checks. Read [F13](PWA_F13_PUSH_TO_TALK
 [voice evidence](phase-reports/PHASE_2_COMPLETION.md), [hands-free boundaries](HANDS_FREE_CONTROL.md).
 
 ### Phase 13 — Controlled Windows actions
+
+Status: **blocked-external**, 2026-10-31. [Progress](phase-reports/current/PHASE_13_PROGRESS.md),
+[selected action workflow](CONTROLLED_WINDOWS.md). Explicit restricted host-policy action set,
+typed catalog, exact local previews, cancellation and durable policy-hash binding. Working and
+isolated automated gates pass; current separately authorized app/audio/media smoke remains
+pending. No production activation or phase-completion claim.
 
 Outcome: a small useful set of typed Windows actions with trustworthy previews and receipts.
 Reuse permission Levels 0–4, expiring exact grants, broker, allowlists, postconditions and rollback.
@@ -400,7 +406,7 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 
 ## Next action
 
-**Next: Initiate Phase 13 — Controlled Windows actions.** Actual prerequisite Phase 7 is
+**Next: Continue Phase 13 — Controlled Windows actions.** Actual prerequisite Phase 7 is
 complete; Phase 12 receipt is closed for local foreground speech/review/Send/text replies.
 Read this roadmap, [Phase Execution](PHASE_EXECUTION.md), current architecture and Phase 13
 references before implementation. Freeze selected typed Windows actions, preview/receipt and
