@@ -1,11 +1,12 @@
 # Phase 11 — Grounded public research
 
 - Status: `implemented-closeout-pending`
-- Started / updated: 2026-10-28 / 2026-10-28
+- Started / updated: 2026-10-28 / 2026-10-31
 - Namespace: current numbered roadmap
 - Recommended Codex model / reasoning: `gpt-6-astra` / `xhigh`; `ultra` for authority
   (recommendation only; no UI model change claimed)
 - Session start / five-hour stop: 2026-10-28T21:23:36-04:00 / 2026-10-29T02:23:36-04:00
+- Resume checkpoint / five-hour stop: 2026-10-31T10:59:29-04:00 / 2026-10-31T15:59:29-04:00
 
 ## Objective and scope
 
@@ -109,6 +110,31 @@ Frozen before implementation/tuning/current acceptance measurements:
   runtime/phase11/publication-final/runtime/phase11/acceptance-kg7obz87/. Both pass two acquisitions,
   immutable replay, actual blocked discovery, restart freshness, exact source spans and browser
   erasure. No model call, action, research-source/report row or memory row. Canonical history remains.
+- 2026-10-31 closeout resumed at published implementation `55231bf`. Exact implementation
+  [CI run 40803928842](https://github.com/DanCreates1/JARVIS/actions/runs/40803928842) passed Windows
+  quality job `123218238731` and secret job `123218238431`. Local HEAD, tracking and live upstream
+  agree. All 28 held paths revalidated, including five shared-file recompositions.
+- Fresh same-endpoint Wikimedia probe still returns `authentication_required`; direct official
+  Python/SQLite fetches work. Historical discovery blocker stays open. Fresh working browser/Core
+  acceptance passes at runtime/phase11/acceptance-93ofa7u9/ with two live runs and zero model calls.
+- Fresh root audit found seven newly reported pypdf 6.21.2 advisories,
+  `CVE-2026-119203` through `CVE-2026-119209`. Checked the official
+  [6.21.4 security release](https://github.com/py-pdf/pypdf/releases/tag/6.21.4), raised the minimum
+  to 6.21.4 and updated only pypdf in the root lock. No ignore, security waiver or provider/native
+  change. Base and restored-extra audits now clean; sidecar audit remains clean.
+- Optional environment retains all 97 starting package names; only pypdf changes 6.21.2 to 6.21.4.
+  Corrected a focused-check command naming an absent test file; actual research/PDF/web set passes
+  45 tests. Full working/isolated gates now pass; fresh patch CI remains before closure.
+- Patched full gates: working 1659 passed / 3 skipped, 86.09%, 213.51 s; isolated 1660 passed /
+  3 skipped, 86.05%, 201.66 s. Fresh frozen 30-run research quality metrics all 1.0, zero failures;
+  working p95 328.1023 ms and isolated p95 338.6911 ms (<2000 ms). All seven desktop profiles and
+  171 PWA/PCM checks pass in both sources; format/lint/types, root base/restored-extra and sidecar
+  strict audits, links, exact-source/history secrets and whitespace pass. All 28 resumed held paths
+  retain exact hashes/deletion state. No application/test source change in this repair.
+- Fresh isolated browser/Core live acceptance passes at
+  runtime/phase11/resume-20261031/publication/runtime/phase11/acceptance-s1o0tr6s/.
+  Working and isolated runs each obtain two fresh, exact cited public-source results, verify
+  replay/restart/erasure and retain zero model calls or research-source/report/memory rows.
 
 ## Decisions, authority and blockers
 
@@ -129,7 +155,8 @@ Live acceptance demonstrates exact acquired source statements, not general answe
 publisher independence. The fixed entailment oracle measures fixture-supported source-span
 agreement, not probabilistic NLI or an independent truth score. Lexical extraction remains limited.
 
-Final local gates (CPython 3.11.9, uv 0.12.15, Node 24.20.0, Gitleaks 8.30.1; no lock upgrade):
+2026-10-28 implementation gates (CPython 3.11.9, uv 0.12.15, Node 24.20.0, Gitleaks 8.30.1;
+no lock upgrade in that session; the 2026-10-31 security patch is recorded separately above):
 
 | Gate | Working source | Isolated publication source |
 | --- | --- | --- |
@@ -150,6 +177,23 @@ Final local gates (CPython 3.11.9, uv 0.12.15, Node 24.20.0, Gitleaks 8.30.1; no
 Three existing platform/capability skips and upstream Starlette TestClient deprecation remain.
 No physical acceptance or legacy latency closure follows from these current automated gates.
 
+2026-10-31 security-patch gates supersede the earlier dependency audit for current publication:
+
+| Gate | Working source | Isolated publication source |
+| --- | --- | --- |
+| Full pytest / 85% floor | 1659 passed / 3 skipped; 86.09%; 213.51 s | 1660 passed / 3 skipped; 86.05%; 201.66 s |
+| pypdf / other starting packages | 6.21.4; other 96 names/versions unchanged | Same versions |
+| Root base/restored-extra / sidecar strict audits | Clean / clean / clean | Clean / clean / clean |
+| Format / lint / Mypy | Pass | Pass |
+| PWA/PCM / seven desktop profiles | 171 pass / all pass | Same |
+| Current real public-source browser/Core | 4 groups / 2 runs / 0 model calls | Same |
+| Frozen 30-run quality metrics / failures | All seven 1.0 / 0 | Same |
+| Research p50 / p95, <2000 ms | 309.0671 / 328.1023 ms | 309.2597 / 338.6911 ms |
+| Links / exact source / full history secrets / whitespace | Pass | Pass |
+
+Raw closeout evidence is ignored under runtime/phase11/resume-20261031/; the prior implementation
+receipts remain dated historical measurements rather than being relabeled as new runs.
+
 ## Known limits, recovery and deferred scope
 
 No authenticated/paywalled/JavaScript-rendered sources, crawling, background refresh or automatic
@@ -164,7 +208,9 @@ matches each working file after newline normalization; other 23 held paths retai
 or deletion state. Native manifests, both locks, original launchers/corpora, text response policy
 and original prototype prompt constants match base HEAD. No unsafe artifact enters the export.
 
-Local and isolated gates pass. Commit/push, exact tracking/live remote and fresh CI remain pending.
+Implementation published as `55231bf728c3dae16ac3fb88d16e24dc68d3d29b`, reviewed tree
+`d8f25f3c011813bd50adb9af9d82eb556dd32871`; exact implementation CI passes. Current closeout also
+requires the newly necessary pypdf security patch, its fresh gates/publication/CI and final receipt.
 Held native/provider edits excluded. Progress remains
 10/19 primary receipts (~53%), unweighted management count. Next action remains current Phase 11
 until its selected acceptance and closeout pass; no Phase 12 execution authorized.
