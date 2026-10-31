@@ -49,6 +49,7 @@ class Settings(BaseSettings):
         "private-files",
         "private-memory",
         "public-research",
+        "foreground-voice",
     ] = "standard"
     ollama_base_url: AnyHttpUrl = AnyHttpUrl("http://127.0.0.1:11434")
     ollama_model: str = "qwen3:0.6b"
@@ -355,8 +356,10 @@ class Settings(BaseSettings):
             "private-files",
             "private-memory",
             "public-research",
+            "foreground-voice",
         }:
             coding_requested = self.coding_context_enabled
+            voice_requested = self.pwa_voice_enabled
             self.ollama_temperature = 0
             self.cloud_policy = "local_only"
             self.local_model = self.ollama_model
@@ -380,6 +383,7 @@ class Settings(BaseSettings):
             ):
                 setattr(self, name, False)
             self.research_enabled = self.runtime_profile == "public-research"
+            self.pwa_voice_enabled = self.runtime_profile == "foreground-voice" and voice_requested
             self.automatic_research_enabled = self.research_enabled
             self.attachments_enabled = self.runtime_profile == "private-files"
             self.coding_context_enabled = (

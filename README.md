@@ -1,5 +1,9 @@
 # JARVIS
 
+Explicit Phase 12 foreground voice: `rtk proxy .\scripts\open-voice.cmd`.
+Local speech, review/edit draft, explicit Send, text replies. Independent host voice controls
+remain default off. [Capability and recovery](docs/FOREGROUND_VOICE.md).
+
 Explicit Phase 11 public research: `rtk proxy .\scripts\open-research.cmd`.
 Current public HTTPS source excerpts with exact citations, freshness and deterministic unavailable
 states; no cloud model or automatic research storage. Wikimedia discovery remains blocked with

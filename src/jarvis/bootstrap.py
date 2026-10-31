@@ -361,6 +361,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
                     "private-files",
                     "private-memory",
                     "public-research",
+                    "foreground-voice",
                 },
             ),
             max_cloud_cost_usd=settings.max_cloud_cost_usd,
@@ -429,6 +430,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
             "private-files",
             "private-memory",
             "public-research",
+            "foreground-voice",
         }:
             # Keep the deterministic clock path; text generation needs no tool schemas.
             registered_tools = (CurrentTimeTool(),)
@@ -465,6 +467,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
                         "private-files",
                         "private-memory",
                         "public-research",
+                        "foreground-voice",
                     }
                     else TEXT_PROFILE_PROMPT
                 )
@@ -476,6 +479,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
                     "private-files",
                     "private-memory",
                     "public-research",
+                    "foreground-voice",
                 }
                 else SYSTEM_PROMPT
             ),
@@ -489,6 +493,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
                     "private-files",
                     "private-memory",
                     "public-research",
+                    "foreground-voice",
                 }
                 else None
             ),

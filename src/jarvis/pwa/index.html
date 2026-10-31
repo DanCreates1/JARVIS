@@ -9,7 +9,7 @@
   <link rel="manifest" href="/app/manifest.webmanifest">
   <link rel="icon" href="/app/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app/app.css">
-  <script src="/app/app.js?v=19" type="module"></script>
+  <script src="/app/app.js?v=20" type="module"></script>
 </head>
 <body data-profile="standard">
   <header>
@@ -84,13 +84,13 @@
           <button id="attachments-next" type="button" class="secondary" hidden>Next attachments</button>
         </div>
       </section>
-      <div class="actions" aria-label="Voice message" data-optional>
+      </div>
+      <div class="actions" aria-label="Voice message" data-optional data-voice>
         <button id="record-message" type="button" class="secondary" disabled aria-describedby="voice-status">Record message</button>
         <button id="stop-recording" type="button" class="secondary" hidden>Stop recording</button>
         <button id="discard-recording" type="button" class="secondary" hidden>Discard recording</button>
       </div>
-      <p id="voice-status" class="hint" role="status" aria-live="polite" aria-atomic="true" data-optional>Local voice unavailable. Type a message.</p>
-      </div>
+      <p id="voice-status" class="hint" role="status" aria-live="polite" aria-atomic="true" data-optional data-voice>Local voice unavailable. Type a message.</p>
       <div class="actions">
         <button id="cancel-chat" type="button" class="secondary" disabled>Cancel reply</button>
         <button id="retry-chat" type="button" class="secondary" hidden disabled>Retry request</button>
@@ -98,6 +98,7 @@
       <p class="hint">Use Settings to connect your existing device. Offline messages are never queued. Cancel reply stops the current request. Retry request checks the original receipt after a lost connection; review history before sending a new message.</p>
       <p class="hint prototype-only text-only">Text assistant: explanations, rewrites, summaries and checklists from supplied text; saved conversations and host clock. Live web evidence is unavailable. Files, health, email, calendar and computer actions are unavailable in this profile.</p>
       <p class="hint research-only">Public research: include public HTTPS source URLs for cited excerpts with freshness and source links. Missing evidence stays unavailable. Source statements may disagree or leave questions unresolved. Files, health, email, calendar and computer actions are unavailable in this profile.</p>
+      <p class="hint voice-only">Foreground voice: Record, Stop, review or edit transcript, then Send. Discard or Escape cancels recording; Cancel reply stops generation. Speech stays local. Replies appear as text. Voice unavailable? Type and Send. Files, health, live web research, email, calendar and computer actions are unavailable.</p>
       <p class="hint garmin-only">Private workspace: daily local text and read-only Garmin with existing approved health access. Garmin data stays outside chat and model context. Files, web research, email, calendar, capture and computer actions are unavailable.</p>
       <p class="hint files-only">Private files: daily local text and deliberately selected text, PDF or PNG/JPEG files. Select files, review previews, then Send to process on Core. Select ready files again to reuse in this conversation. Image understanding needs a configured installed local vision model. Files grant no actions or automatic memory. Health, live web research, email, calendar, capture and computer actions are unavailable.</p>
     </section>

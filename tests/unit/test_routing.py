@@ -180,6 +180,34 @@ async def test_text_generation_without_tool_advertising_keeps_direct_clock() -> 
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("advertise_tools", [False, True])
+async def test_clock_after_prior_tool_and_text_turn_never_reuses_old_time(
+    advertise_tools: bool,
+) -> None:
+    local = FakeModelProvider(ModelRole.LOCAL, cloud=False, outcomes=[])
+    router = ModelRouter({ModelRole.LOCAL: local}, advertise_tools=advertise_tools)
+    history = [
+        user_message("What is the time?"),
+        Message(
+            conversation_id="conversation",
+            role=MessageRole.TOOL,
+            content="Old timestamp",
+            tool_call_id="old-clock",
+            tool_name="get_current_time",
+        ),
+        Message(conversation_id="conversation", role=MessageRole.ASSISTANT, content="Old time"),
+        user_message("Reply briefly with a greeting."),
+        Message(conversation_id="conversation", role=MessageRole.ASSISTANT, content="Hello!"),
+        user_message("What is the time?"),
+    ]
+    first = await router.chat(messages=history, tools=[CurrentTimeTool().definition])
+    second = await router.chat(messages=history, tools=[CurrentTimeTool().definition])
+    assert first.tool_calls[0].name == second.tool_calls[0].name == "get_current_time"
+    assert first.tool_calls[0].id != second.tool_calls[0].id
+    assert not local.requests
+
+
+@pytest.mark.asyncio
 async def test_routing_complexity_ignores_host_guidance_but_privacy_scans_all_context() -> None:
     local = FakeModelProvider(
         ModelRole.LOCAL,

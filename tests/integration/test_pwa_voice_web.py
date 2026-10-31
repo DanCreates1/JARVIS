@@ -19,11 +19,15 @@ from tests.integration.test_phase8_remote_web import _headers as signed_headers
 from tests.unit.test_pwa_voice import PCM, service
 
 
-@pytest.fixture
-def voice_web(tmp_path: Path):
-    svc, stt = service(tmp_path)
+@pytest.fixture(params=["standard", "foreground-voice"])
+def voice_web(tmp_path: Path, request):
+    svc, stt = service(tmp_path, runtime_profile=request.param)
     settings = Settings(
-        data_dir=tmp_path, pwa_voice_enabled=True, trusted_browser_origins=(ORIGIN,), _env_file=None
+        data_dir=tmp_path,
+        runtime_profile=request.param,
+        pwa_voice_enabled=True,
+        trusted_browser_origins=(ORIGIN,),
+        _env_file=None,
     )
     key = Ed25519PrivateKey.generate()
     created: dict[str, object] = {}

@@ -240,9 +240,7 @@ class ModelRouter:
             return
 
         direct_call = self.policy.gate.direct_tool_call(latest_user)
-        if direct_call is not None and not any(
-            message.role is MessageRole.TOOL for message in messages
-        ):
+        if direct_call is not None:
             yield ProviderStreamFrame(
                 response=ProviderResponse(content=None, tool_calls=(direct_call,))
             )

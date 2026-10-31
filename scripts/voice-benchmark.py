@@ -1024,7 +1024,7 @@ def versions() -> dict[str, str]:
     return {name: importlib.metadata.version(name) for name in packages}
 
 
-def nvidia_gpu_snapshot() -> dict[str, int] | None:
+def nvidia_gpu_snapshot() -> dict[str, int | float] | None:
     try:
         completed = subprocess.run(
             [
@@ -1037,14 +1037,18 @@ def nvidia_gpu_snapshot() -> dict[str, int] | None:
             text=True,
             timeout=5,
         )
-        values = [int(value.strip()) for value in completed.stdout.splitlines()[0].split(",")]
+        fields = completed.stdout.splitlines()[0].split(",")
+        memory_used, memory_total, utilization = (int(value.strip()) for value in fields[:3])
+        temperature = float(fields[3].strip())
+        if not math.isfinite(temperature):
+            return None
     except (OSError, subprocess.SubprocessError, ValueError, IndexError):
         return None
     return {
-        "memory_used_mib": values[0],
-        "memory_total_mib": values[1],
-        "utilization_percent": values[2],
-        "temperature_c": values[3],
+        "memory_used_mib": memory_used,
+        "memory_total_mib": memory_total,
+        "utilization_percent": utilization,
+        "temperature_c": temperature,
     }
 
 

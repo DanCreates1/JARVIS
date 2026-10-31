@@ -58,7 +58,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [9](#phase-9--files-and-attachments) | Files and attachments | complete | 7 | Explicit private-files; current cited PWA/Core workflow, recovery/security/release gates and fresh CI pass |
 | [10](#phase-10--inspectable-memory-and-project-context) | Inspectable memory and project context | complete | 7 | Trusted-local review, exact lifecycle, current retrieval/project/release gates and fresh CI pass |
 | [11](#phase-11--grounded-public-research) | Grounded public research | complete | 7 | Explicit public-source citations, current security/release gates and fresh CI pass; discovery blocker retained |
-| [12](#phase-12--foreground-voice) | Foreground voice | not-started | 7 | Legacy voice/F13; chosen local speech/reply experience |
+| [12](#phase-12--foreground-voice) | Foreground voice | in-progress | 7 | Explicit foreground input/review/Send/text replies; current acceptance underway |
 | [13](#phase-13--controlled-windows-actions) | Controlled Windows actions | not-started | 7 | Existing broker/tools; current exact live-effect acceptance |
 | [14](#phase-14--bounded-tasks-and-project-workflows) | Bounded tasks and project workflows | not-started | 7; 13 for action-bearing flows | Existing DAG/scheduler/task views; usable safe workflow/control |
 | [15](#phase-15--email) | Email | not-started | 7 | Local read/prepare exists; live provider/auth gate remains |
@@ -213,6 +213,10 @@ Read [research evidence](phase-reports/PHASE_5_COMPLETION.md), [legacy C evidenc
 [freshness evidence](phase-reports/PHASE_B_COMPLETION.md), [legacy latency debt](#retained-gates-and-authority-register).
 
 ### Phase 12 — Foreground voice
+
+Status: **in-progress**, 2026-10-31. [Progress evidence](phase-reports/current/PHASE_12_PROGRESS.md),
+[selected workflow and controls](FOREGROUND_VOICE.md). Local speech input, editable draft,
+explicit Send and text replies; no production voice activation or new output endpoint.
 
 Outcome: deliberate push-to-talk with cancellation, text fallback and clearly controlled replies.
 Reuse local STT/VAD/TTS and F13 canonical PCM/capture lifecycle; freeze selected foreground workflow

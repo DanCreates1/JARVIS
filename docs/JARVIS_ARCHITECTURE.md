@@ -96,6 +96,13 @@ retention. Ledger storage keeps exact approval, and parser changes preserve immu
 versions. [Capability, source limitations and recovery](PUBLIC_RESEARCH.md). Wikimedia historical
 `authentication_required` remains; direct-source success is not discovery acceptance.
 
+**Foreground voice extension (Phase 12):** explicit `foreground-voice` retains daily local text
+and adds the existing F13 foreground capture/transcription path. Independent host configuration,
+software control, local readiness and authenticated `client.chat` remain mandatory. Deliberate
+Record/Stop yields an editable unsent draft; explicit Send owns canonical chat and text replies.
+No browser/cloud speech output, second Core, new action/scope or automatic capture. Local SAPI
+remains the legacy desktop adapter and synthetic fixture source. [Controls and recovery](FOREGROUND_VOICE.md).
+
 ## Historical target architecture and technical contracts
 
 > Active delivery architecture (2026-10-22): [Prototype Plan](PROTOTYPE_PLAN.md).

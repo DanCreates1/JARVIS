@@ -34,7 +34,8 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
   current PDF security repair, full working/isolated gates and fresh CI pass.
   [Completion evidence](phase-reports/current/PHASE_11_COMPLETION.md). Wikimedia discovery retains
   its historical authentication blocker; general discovery and optional cloud remain unqualified.
-- **Next: Phase 12 — Foreground voice.** No automatic implementation.
+- **Phase 12 in progress — Foreground voice.** Selected local speech/review/Send/text-reply
+  workflow; [progress evidence](phase-reports/current/PHASE_12_PROGRESS.md).
 - Progress basis: **11/19 primary phase receipts closed (~58%)**; an
   unweighted management count, not code/effort percentage or full mobile MVP acceptance.
 - Historical prototype acceptance stays **100% = 10/10 groups**, corpus **8/10**. Full mobile MVP,

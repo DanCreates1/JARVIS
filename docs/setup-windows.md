@@ -31,6 +31,10 @@ upload, filesystem tool or automatic memory promotion.
 
 ## Supported baseline
 
+Explicit foreground voice: [capability/startup/recovery contract](FOREGROUND_VOICE.md).
+Use `rtk proxy .\scripts\open-voice.cmd`; independent host voice controls stay default off.
+Local transcription produces an editable draft; explicit Send produces text replies.
+
 Explicit public research: [capability/startup/recovery contract](PUBLIC_RESEARCH.md),
 `rtk proxy .\scripts\open-research.cmd`. Same local text plus bounded deliberate public HTTPS
 sources and exact cited excerpts. Missing evidence stays unavailable; Wikimedia discovery remains

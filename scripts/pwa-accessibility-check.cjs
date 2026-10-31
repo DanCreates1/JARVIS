@@ -20,7 +20,8 @@ const apiRequests = [];
 const textProfile = process.env.PWA_TEST_PROFILE;
 const privateGarmin = textProfile === "private-garmin";
 const privateFiles = textProfile === "private-files";
-const textPrototype = ["prototype-text", "daily-text", "private-garmin", "private-files", "private-memory", "public-research"].includes(textProfile);
+const foregroundVoice = textProfile === "foreground-voice";
+const textPrototype = ["prototype-text", "daily-text", "private-garmin", "private-files", "private-memory", "public-research","foreground-voice"].includes(textProfile);
 const server = http.createServer((request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");
   if (url.pathname.startsWith("/api/")) apiRequests.push({ method: request.method, path: url.pathname });
@@ -88,11 +89,45 @@ async function main() {
   }
   assert.ok(loaded, "PWA script failed to initialize");
   const output = { version: await call("Browser.getVersion"), limitations: "Desktop geometry, browser default-font resizing and keyboard/AX evidence; no physical Safari, spoken screen reader or actual browser 400% zoom acceptance.", cases: [] };
+  async function verifyVoice(){
+  // Actual browser AudioWorklet, synthetic oscillator MediaStream, fake transcription response.
+  // No real microphone permission, Core request or private speech.
+  await evaluate(`(()=>{
+    const original=window.fetch;window.voiceEvidence={permissionCalls:0,uploads:0,bytes:0};
+    window.fetch=async(url,options)=>{if(String(url).endsWith('/client/voice/transcriptions')){voiceEvidence.uploads++;voiceEvidence.bytes=options.body.byteLength;voiceEvidence.stopped=voiceEvidence.stream.getTracks().every(t=>t.readyState==='ended');return new Response(JSON.stringify({text:'Synthetic editable browser draft',duration_ms:Math.round(options.body.byteLength/32)}),{headers:{'Content-Type':'application/json'}});}return original(url,options);};
+    navigator.mediaDevices.getUserMedia=async()=>{voiceEvidence.permissionCalls++;const context=new AudioContext({sampleRate:48000}),oscillator=context.createOscillator(),destination=context.createMediaStreamDestination();oscillator.frequency.value=440;oscillator.connect(destination);oscillator.start();await context.resume();voiceEvidence.generator=context;voiceEvidence.stream=destination.stream;return destination.stream;};
+    pwaTest.state.csrf='synthetic';pwaTest.state.historyReady=true;pwaTest.state.voiceReady=true;pwaTest.state.chatActive.clear();pwaTest.state.pendingRequest=null;pwaTest.state.sending=false;pwaTest.state.historyBusy=false;pwaTest.state.chatAction=null;document.querySelector('#message').value='';pwaTest.setConnected(true);document.querySelector('#record-message').focus();
+  })()`);
+  assert.equal(await evaluate("voiceEvidence.permissionCalls"),0);
+  assert.equal(await evaluate("document.querySelector('#record-message').disabled"),false,JSON.stringify(await evaluate("({online:pwaTest.state.online,ready:pwaTest.state.voiceReady,history:pwaTest.state.historyReady,hidden:document.hidden,focus:document.activeElement.id,nav:pwaTest.navigation.view})")));
+  await key("Enter",13);
+  for(let turn=0;turn<100;turn++){if(await evaluate("pwaTest.state.voice?.phase==='recording'"))break;await pause(30);}
+  assert.equal(await evaluate("pwaTest.state.voice?.phase"),"recording",JSON.stringify(await evaluate("({error:globalThis.voiceTestError,status:document.querySelector('#voice-status').textContent,evidence:{...voiceEvidence,generator:undefined,stream:undefined}})")));
+  assert.equal(await evaluate("document.activeElement.id"),"stop-recording");
+  const voiceAx=await call("Accessibility.getFullAXTree");
+  for(const name of ["Stop recording","Discard recording"])assert.ok(voiceAx.nodes.some(n=>n.role?.value==='button'&&n.name?.value===name));
+  assert.ok(!voiceAx.nodes.some(n=>n.role?.value==='button'&&n.name?.value==='Record message'));
+  output.voice={geometry:[]};
+  for(const width of [320,375,390,430,844,1280])for(const font of [16,32]){
+    await call("Emulation.setDeviceMetricsOverride",{width,height:844,deviceScaleFactor:1,mobile:false});await call("Page.setFontSizes",{fontSizes:{standard:font,fixed:font}});
+    const geometry=await evaluate(`({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,controls:['stop-recording','discard-recording'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return {width:r.width,height:r.height};})})`);
+    assert.ok(geometry.scrollWidth<=width+1);for(const control of geometry.controls)assert.ok(control.width>=44&&control.height>=44);output.voice.geometry.push({font,...geometry});
+  }
+  for(let turn=0;turn<200;turn++){if(await evaluate("(pwaTest.state.voice?.bytes||0)>=4096"))break;await pause(30);}
+  assert.ok(await evaluate("(pwaTest.state.voice?.bytes||0)>=4096"),"Actual worklet must deliver PCM before Stop");
+  await evaluate("document.querySelector('#stop-recording').focus()");await key(" ",32);
+  for(let turn=0;turn<100;turn++){if(await evaluate("!pwaTest.state.voice"))break;await pause(30);}
+  Object.assign(output.voice,await evaluate("({...voiceEvidence,generator:undefined,stream:undefined,draft:document.querySelector('#message').value,readOnly:document.querySelector('#message').readOnly,focus:document.activeElement.id,status:document.querySelector('#voice-status').textContent})"));
+  assert.equal(output.voice.uploads,1,JSON.stringify(output.voice));assert.ok(output.voice.bytes>=3840&&output.voice.bytes<=960000);assert.ok(output.voice.stopped);assert.equal(output.voice.draft,'Synthetic editable browser draft');assert.equal(output.voice.readOnly,false);assert.equal(output.voice.focus,'message');
+  await evaluate("voiceEvidence.generator.close();document.querySelector('#message').value='';pwaTest.updateControls();document.querySelector('#record-message').focus()");await key(" ",32);await pause(150);await key("Escape",27);
+  assert.equal(await evaluate("pwaTest.state.voice"),null);assert.equal(await evaluate("voiceEvidence.uploads"),1);await evaluate("voiceEvidence.generator.close()");
+  }
   if (textPrototype) {
     const visible = selector => evaluate(`Boolean(document.querySelector(${JSON.stringify(selector)}).getClientRects().length)`);
     assert.equal(await evaluate("pwaTest.navigation.view"), "chat");
     for (const selector of ["#nav-chat", "#nav-settings", "#log"]) assert.ok(await visible(selector));
-    for (const selector of ["#task-panel", "#record-message", "#notify"]) assert.equal(await visible(selector), false);
+    for (const selector of ["#task-panel", "#notify"]) assert.equal(await visible(selector), false);
+    assert.equal(await visible("#record-message"),foregroundVoice);
     assert.equal(await visible("#attachment-file"),privateFiles);
     assert.equal(await visible("#nav-garmin"),privateGarmin);
     await evaluate("pwaTest.selectView('garmin')");
@@ -153,6 +188,7 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#garmin-metrics').children.length"),0);
       output.cases.push("explicit bounded refresh","partial unavailable fields","health reflow and named AX heading","logout clears health");
     }
+    if(foregroundVoice){await verifyVoice();output.cases.push("actual worklet and synthetic capture", "keyboard Record/Stop/Discard", "editable draft without Send", "44px controls and reflow");}
     fs.writeFileSync(path.join(outputDir, `${textProfile}-desktop.json`), JSON.stringify(output, null, 2));
     console.log(JSON.stringify({ profile: textProfile, cases: output.cases.length, passed: true }));
     return;
@@ -293,37 +329,7 @@ async function main() {
   await select('settings');assert.equal(await evaluate("pwaTest.state.attachments.length"),0);
   await evaluate("window.fetch=workflowFetch;pwaTest.clearSearch({erase:true});pwaTest.state.taskSelected=null;document.querySelector('#task-detail').hidden=true");
   await select('chat');
-  // Actual browser AudioWorklet, synthetic oscillator MediaStream, fake transcription response.
-  // No real microphone permission, Core request or private speech.
-  await evaluate(`(()=>{
-    const original=window.fetch;window.voiceEvidence={permissionCalls:0,uploads:0,bytes:0};
-    window.fetch=async(url,options)=>{if(String(url).endsWith('/client/voice/transcriptions')){voiceEvidence.uploads++;voiceEvidence.bytes=options.body.byteLength;voiceEvidence.stopped=voiceEvidence.stream.getTracks().every(t=>t.readyState==='ended');return new Response(JSON.stringify({text:'Synthetic editable browser draft',duration_ms:Math.round(options.body.byteLength/32)}),{headers:{'Content-Type':'application/json'}});}return original(url,options);};
-    navigator.mediaDevices.getUserMedia=async()=>{voiceEvidence.permissionCalls++;const context=new AudioContext({sampleRate:48000}),oscillator=context.createOscillator(),destination=context.createMediaStreamDestination();oscillator.frequency.value=440;oscillator.connect(destination);oscillator.start();await context.resume();voiceEvidence.generator=context;voiceEvidence.stream=destination.stream;return destination.stream;};
-    pwaTest.state.csrf='synthetic';pwaTest.state.historyReady=true;pwaTest.state.voiceReady=true;pwaTest.state.chatActive.clear();pwaTest.state.pendingRequest=null;pwaTest.state.sending=false;pwaTest.state.historyBusy=false;pwaTest.state.chatAction=null;document.querySelector('#message').value='';pwaTest.setConnected(true);document.querySelector('#record-message').focus();
-  })()`);
-  assert.equal(await evaluate("voiceEvidence.permissionCalls"),0);
-  assert.equal(await evaluate("document.querySelector('#record-message').disabled"),false,JSON.stringify(await evaluate("({online:pwaTest.state.online,ready:pwaTest.state.voiceReady,history:pwaTest.state.historyReady,hidden:document.hidden,focus:document.activeElement.id,nav:pwaTest.navigation.view})")));
-  await key("Enter",13);
-  for(let turn=0;turn<100;turn++){if(await evaluate("pwaTest.state.voice?.phase==='recording'"))break;await pause(30);}
-  assert.equal(await evaluate("pwaTest.state.voice?.phase"),"recording",JSON.stringify(await evaluate("({error:globalThis.voiceTestError,status:document.querySelector('#voice-status').textContent,evidence:{...voiceEvidence,generator:undefined,stream:undefined}})")));
-  assert.equal(await evaluate("document.activeElement.id"),"stop-recording");
-  const voiceAx=await call("Accessibility.getFullAXTree");
-  for(const name of ["Stop recording","Discard recording"])assert.ok(voiceAx.nodes.some(n=>n.role?.value==='button'&&n.name?.value===name));
-  assert.ok(!voiceAx.nodes.some(n=>n.role?.value==='button'&&n.name?.value==='Record message'));
-  output.voice={geometry:[]};
-  for(const width of [320,375,390,430,844,1280])for(const font of [16,32]){
-    await call("Emulation.setDeviceMetricsOverride",{width,height:844,deviceScaleFactor:1,mobile:false});await call("Page.setFontSizes",{fontSizes:{standard:font,fixed:font}});
-    const geometry=await evaluate(`({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,controls:['stop-recording','discard-recording'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return {width:r.width,height:r.height};})})`);
-    assert.ok(geometry.scrollWidth<=width+1);for(const control of geometry.controls)assert.ok(control.width>=44&&control.height>=44);output.voice.geometry.push({font,...geometry});
-  }
-  for(let turn=0;turn<200;turn++){if(await evaluate("(pwaTest.state.voice?.bytes||0)>=4096"))break;await pause(30);}
-  assert.ok(await evaluate("(pwaTest.state.voice?.bytes||0)>=4096"),"Actual worklet must deliver PCM before Stop");
-  await evaluate("document.querySelector('#stop-recording').focus()");await key(" ",32);
-  for(let turn=0;turn<100;turn++){if(await evaluate("!pwaTest.state.voice"))break;await pause(30);}
-  Object.assign(output.voice,await evaluate("({...voiceEvidence,generator:undefined,stream:undefined,draft:document.querySelector('#message').value,readOnly:document.querySelector('#message').readOnly,focus:document.activeElement.id,status:document.querySelector('#voice-status').textContent})"));
-  assert.equal(output.voice.uploads,1,JSON.stringify(output.voice));assert.ok(output.voice.bytes>=3840&&output.voice.bytes<=960000);assert.ok(output.voice.stopped);assert.equal(output.voice.draft,'Synthetic editable browser draft');assert.equal(output.voice.readOnly,false);assert.equal(output.voice.focus,'message');
-  await evaluate("voiceEvidence.generator.close();document.querySelector('#message').value='';pwaTest.updateControls();document.querySelector('#record-message').focus()");await key(" ",32);await pause(150);await key("Escape",27);
-  assert.equal(await evaluate("pwaTest.state.voice"),null);assert.equal(await evaluate("voiceEvidence.uploads"),1);await evaluate("voiceEvidence.generator.close()");
+  await verifyVoice();
   // F15 populated workspace and complete explicit interactions in actual Chromium.
   await evaluate(`(()=>{
     window.workspaceFetch=window.fetch;window.workspaceRequests=[];window.workspaceCopies=[];

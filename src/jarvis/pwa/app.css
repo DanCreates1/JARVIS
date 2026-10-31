@@ -35,6 +35,7 @@ input{width:100%;min-width:0;min-height:44px;border:1px solid #6388a8;border-rad
 .memory-only{display:none}body[data-profile="private-memory"] .memory-only{display:block}
 body[data-profile="private-memory"] .prototype-only{display:block}body[data-profile="private-memory"] :is([data-optional],#nav-garmin,#task-panel){display:none!important}
 .research-only{display:none}body[data-profile="public-research"] :is(.prototype-only,.research-only){display:block}body[data-profile="public-research"] :is([data-optional],#nav-garmin,#task-panel,.text-only){display:none!important}
+.voice-only{display:none}body[data-profile="foreground-voice"] :is(.prototype-only,.voice-only){display:block}body[data-profile="foreground-voice"] :is([data-optional]:not([data-voice]),#nav-garmin,#task-panel,.text-only){display:none!important}
 #detail,#projection,#retention{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;max-height:32rem;overflow:auto}
 #memory-link,body[data-workspace="memory"] a{color:#bae6fd}
 #memory-link:focus-visible,body[data-workspace="memory"] a:focus-visible{outline:3px solid #55cfff;outline-offset:2px}
