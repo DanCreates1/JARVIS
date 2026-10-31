@@ -1,6 +1,7 @@
 # Public research
 
 Current Phase 11 capability: explicit `public-research` on the existing Windows Core/PWA.
+[Completion evidence](phase-reports/current/PHASE_11_COMPLETION.md), closed 2026-10-31.
 Run `scripts\open-research.cmd` or `scripts\open-research.cmd doctor`. Stop an existing Core by
 its normal owner-controlled shutdown before starting another writer. This launcher uses the
 installed `qwen3:1.7b` for ordinary local chat; no download or cloud fallback. Original
@@ -40,8 +41,8 @@ Publication time and current retrieval time remain different facts.
 ## Discovery status
 
 Without explicit URLs, existing `JARVIS_RESEARCH_SEARCH_PROVIDER=wikimedia` uses the unchanged
-`https://en.wikipedia.org/w/api.php` endpoint. The current 2026-10-28 production-fetcher probe still
-returns normalized **`authentication_required`** (HTTP access denial). Legacy C's 2026-10-02
+`https://en.wikipedia.org/w/api.php` endpoint. The 2026-10-28 and 2026-10-31 production-fetcher probes still
+return normalized **`authentication_required`** (HTTP access denial). Legacy C's 2026-10-02
 blocker remains. Successful direct official-source reads do not clear that discovery blocker.
 Queries requiring discovery therefore return unavailable on this configuration.
 
@@ -57,8 +58,7 @@ These primary contracts were checked 2026-10-28; they do not prove local endpoin
 This profile forces local-only models, loopback Core and $0. PWA files, health and memory-review
 entry points, coding, email, voice, Windows actions and background integrations remain disabled.
 Existing daily-text local recall and trusted-local controls retain their original boundaries.
-Existing PWA
-application authentication, scopes, ownership, CSRF, replay and cancellation controls remain.
+Existing PWA application authentication, scopes, ownership, CSRF, replay and cancellation controls remain.
 No new enrollment or production scope follows from profile selection. Automated acceptance uses
 disposable synthetic identities/state only. Optional cloud in historical standard mode retains
 its existing current terms/free-capacity and full-context privacy gates; none is qualified here.
@@ -83,6 +83,11 @@ source, 100000 total source chars, 45 s total and 20000 chars per projection/rep
 at most 25 words per source. Fetch/parser limits, media allowlists, cancellation and fail-closed
 SSRF protections remain authoritative. Parsing is a bounded child process, not an OS sandbox.
 No JavaScript rendering, authenticated sources, crawling, background refresh or offline web cache.
+
+Locked PDF parser minimum is `pypdf>=6.21.4,<7` after 2026-10-31 security revalidation.
+Use locked setup to apply the reviewed patch; do not downgrade to recreate the earlier audit.
+The [official 6.21.4 release](https://github.com/py-pdf/pypdf/releases/tag/6.21.4) records its
+security repairs. Other 96 starting package names/versions and the sidecar lock remain unchanged.
 
 For research failure, check connectivity and public source accessibility, then issue a new explicit
 request. Never add credentials or weaken DNS/TLS/privacy checks. For local chat-only recovery,

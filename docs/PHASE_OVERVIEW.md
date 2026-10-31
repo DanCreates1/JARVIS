@@ -1,6 +1,6 @@
 # JARVIS Phase Overview
 
-Navigation view, **2026-10-28**. [Master Roadmap](JARVIS_MASTER_ROADMAP.md) is the **single status
+Navigation view, **2026-10-31**. [Master Roadmap](JARVIS_MASTER_ROADMAP.md) is the **single status
 ledger** and owns scope/dependencies. [Phase Execution](PHASE_EXECUTION.md) owns commands;
 [current reports](phase-reports/current/) hold acceptance evidence. Old phase numbers are legacy
 aliases; the [crosswalk](JARVIS_MASTER_ROADMAP.md#historical-alias-map) resolves collisions.
@@ -30,10 +30,12 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
 - **Phase 10 complete — Inspectable memory and project context.** Explicit private-memory profile,
   trusted-local exact review, source-explained retrieval and private project context; full gates and
   fresh CI pass. [Completion evidence](phase-reports/current/PHASE_10_COMPLETION.md).
-- **Phase 11 implemented-closeout-pending — Grounded public research.** Explicit public-source excerpts;
-  [progress](phase-reports/current/PHASE_11_PROGRESS.md). Local/isolated gates pass; publication/fresh CI pending.
-  Wikimedia discovery retains its historical authentication blocker.
-- Progress basis: **10/19 primary phase receipts closed (~53%)**; an
+- **Phase 11 complete — Grounded public research.** Explicit public-source excerpts, exact citations,
+  current PDF security repair, full working/isolated gates and fresh CI pass.
+  [Completion evidence](phase-reports/current/PHASE_11_COMPLETION.md). Wikimedia discovery retains
+  its historical authentication blocker; general discovery and optional cloud remain unqualified.
+- **Next: Phase 12 — Foreground voice.** No automatic implementation.
+- Progress basis: **11/19 primary phase receipts closed (~58%)**; an
   unweighted management count, not code/effort percentage or full mobile MVP acceptance.
 - Historical prototype acceptance stays **100% = 10/10 groups**, corpus **8/10**. Full mobile MVP,
   physical acceptance and production readiness remain unestablished.

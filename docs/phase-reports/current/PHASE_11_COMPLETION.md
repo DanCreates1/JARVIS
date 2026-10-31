@@ -1,6 +1,6 @@
 # Phase 11 — Grounded public research
 
-- Status: `implemented-closeout-pending`
+- Status: `complete`
 - Started / updated: 2026-10-28 / 2026-10-31
 - Namespace: current numbered roadmap
 - Recommended Codex model / reasoning: `gpt-6-astra` / `xhigh`; `ultra` for authority
@@ -52,7 +52,7 @@ Frozen before implementation/tuning/current acceptance measurements:
   and clickable citations; at least two official publishers across selected evidence fixtures.
   Browser content stays inert; no automatic source/memory persistence, cloud/tool call, login or
   disclosure of prior conversation. Repeated request/restart obtains fresh evidence or unavailable.
-- [ ] Full working/isolated release gates, >=85% coverage, locked root/sidecar audits, preserved
+- [x] Full working/isolated release gates, >=85% coverage, locked root/sidecar audits, preserved
   optional environment, PWA/desktop regressions including prototype-text, source/history secret
   scans, whitespace, links and reviewed task-only commit/push with fresh exact CI.
 - [x] Setup/recovery/limits documented. Phone checks **skipped by owner; unverified**.
@@ -90,8 +90,8 @@ Frozen before implementation/tuning/current acceptance measurements:
   conversation ID rather than original null; Core correctly denied changed payload. Harness now
   replays exact payload. Browser harness exposure/string escaping repaired; no product gate waived.
 - Full working suite initially passes 1654 tests / 3 existing skips, 86.06% coverage, 161.41 s.
-  Current-span end-bound defense received focused verification afterward. Final source/profile
-  matrix and isolated publication reruns remain pending. Root base/restored-extra and sidecar strict
+  Current-span end-bound defense received focused verification afterward; the later final
+  source/profile and isolated publication reruns below close that checkpoint. Root base/restored-extra and sidecar strict
   audits pass. Exact 97-package starting optional environment restored; no lock change.
 - Final relevance repair excludes URL path tokens and contextless above/below references from
   lexical selection. Regression fixture frozen before that repair. Final real answer excerpts
@@ -124,7 +124,7 @@ Frozen before implementation/tuning/current acceptance measurements:
   change. Base and restored-extra audits now clean; sidecar audit remains clean.
 - Optional environment retains all 97 starting package names; only pypdf changes 6.21.2 to 6.21.4.
   Corrected a focused-check command naming an absent test file; actual research/PDF/web set passes
-  45 tests. Full working/isolated gates now pass; fresh patch CI remains before closure.
+  45 tests. Full working/isolated gates and fresh patch CI pass before closure.
 - Patched full gates: working 1659 passed / 3 skipped, 86.09%, 213.51 s; isolated 1660 passed /
   3 skipped, 86.05%, 201.66 s. Fresh frozen 30-run research quality metrics all 1.0, zero failures;
   working p95 328.1023 ms and isolated p95 338.6911 ms (<2000 ms). All seven desktop profiles and
@@ -203,14 +203,36 @@ production acceptance unestablished.
 
 ## Publication and handoff
 
-Reviewed 34 safe task paths, including five shared-file three-way merges. Recomposition exactly
-matches each working file after newline normalization; other 23 held paths retain original hashes
-or deletion state. Native manifests, both locks, original launchers/corpora, text response policy
-and original prototype prompt constants match base HEAD. No unsafe artifact enters the export.
+Original implementation published as `55231bf728c3dae16ac3fb88d16e24dc68d3d29b`, reviewed tree
+`d8f25f3c011813bd50adb9af9d82eb556dd32871`. Reviewed 34 task paths, five shared-file three-way
+merges; recomposition preserves held edits. The implementation's exact
+[CI 40803928842](https://github.com/DanCreates1/JARVIS/actions/runs/40803928842) passed Windows
+quality `123218238731` and secrets `123218238431`.
 
-Implementation published as `55231bf728c3dae16ac3fb88d16e24dc68d3d29b`, reviewed tree
-`d8f25f3c011813bd50adb9af9d82eb556dd32871`; exact implementation CI passes. Current closeout also
-requires the newly necessary pypdf security patch, its fresh gates/publication/CI and final receipt.
-Held native/provider edits excluded. Progress remains
-10/19 primary receipts (~53%), unweighted management count. Next action remains current Phase 11
-until its selected acceptance and closeout pass; no Phase 12 execution authorized.
+Security repair published as `eb7c4368420edf3e5c0965df0a44874d7dd01dc2`, reviewed tree
+`1f4e17fd0325fe7b6132d0da3ebddd4371e1bccc`. Exactly three paths: root package minimum/lock and
+this phase report. No application, test, native or provider source change. Current
+[patch CI 41213724518](https://github.com/DanCreates1/JARVIS/actions/runs/41213724518) passed
+Windows quality `124573808257` and secrets `124573808377` at that exact SHA. Root HEAD, tracking
+origin/main and live upstream agreed after publication. Fresh 2026-10-31 source/citation/browser,
+working/isolated, security, audit and recovery evidence above closes selected Phase 11 scope.
+
+All 28 resumed held paths retain exact bytes/deletion state. Native manifests, original prototype
+prompts/launchers/corpora, response policy, sidecar lock and every unrelated package version remain
+unchanged. The root lock deliberately updates only pypdf 6.21.2 to 6.21.4 for the failed current
+security gate; preserving historical acceptance does not require retaining a vulnerable dependency.
+No credential, owner runtime store, private data, generated artifact or unsafe held path published.
+
+This closing change only renames/updates the receipt, current ledger/overview and capability docs.
+Application/test/script/dependency blobs remain identical to the passing security-repair commit.
+Closing commit/tracking/live remote, held-state proof and its own fresh CI are verified separately
+after publication and reported in the closing reply; earlier CI is not substituted for a later SHA.
+
+Wikimedia `authentication_required` remains a recorded, freshly reconfirmed discovery limitation.
+No alternate endpoint, login/paywall bypass, paid source, optional cloud qualification, production
+scope/enrollment, signing/deployment, model download or health-data access occurred. Phone checks
+**skipped by owner; unverified**. No physical/native/mobile MVP/production acceptance inferred.
+
+Progress: **11/19 primary receipts closed (~58%)**, unweighted management count, not code/effort
+or mobile MVP acceptance. Next current phase: **Phase 12 — Foreground voice**; prerequisite
+Phase 7 complete. No Phase 12 implementation started or capture/cloud/model authority granted.

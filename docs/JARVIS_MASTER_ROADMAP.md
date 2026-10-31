@@ -57,7 +57,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [8](#phase-8--private-garmin-workspace) | Private Garmin workspace | complete | 7 | Explicit local Garmin workspace, synthetic/current Core acceptance, full-pipe cleanup repair and fresh CI; health access remains separate |
 | [9](#phase-9--files-and-attachments) | Files and attachments | complete | 7 | Explicit private-files; current cited PWA/Core workflow, recovery/security/release gates and fresh CI pass |
 | [10](#phase-10--inspectable-memory-and-project-context) | Inspectable memory and project context | complete | 7 | Trusted-local review, exact lifecycle, current retrieval/project/release gates and fresh CI pass |
-| [11](#phase-11--grounded-public-research) | Grounded public research | implemented-closeout-pending | 7 | Legacy research/freshness; live source access and cited acceptance |
+| [11](#phase-11--grounded-public-research) | Grounded public research | complete | 7 | Explicit public-source citations, current security/release gates and fresh CI pass; discovery blocker retained |
 | [12](#phase-12--foreground-voice) | Foreground voice | not-started | 7 | Legacy voice/F13; chosen local speech/reply experience |
 | [13](#phase-13--controlled-windows-actions) | Controlled Windows actions | not-started | 7 | Existing broker/tools; current exact live-effect acceptance |
 | [14](#phase-14--bounded-tasks-and-project-workflows) | Bounded tasks and project workflows | not-started | 7; 13 for action-bearing flows | Existing DAG/scheduler/task views; usable safe workflow/control |
@@ -72,7 +72,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [23](#phase-23--wearables-and-additional-devices) | Wearables and additional devices | deferred | Supported vendor path + device/scopes authority | Generic legacy wearable boundary; adapter/device acceptance absent |
 | [24](#phase-24--restricted-maintenance-assistance) | Restricted maintenance assistance | deferred | 14, 17, 19 + explicit narrow use case | Proposal-only isolated assistance; no self-authorized production changes |
 
-**Progress basis:** **10/19 primary phase receipts closed (~53%)**. This is an unweighted management
+**Progress basis:** **11/19 primary phase receipts closed (~58%)**. This is an unweighted management
 count, not percentage of code written, elapsed effort or mobile MVP acceptance.
 Existing foundations reduce future work but earn no new phase closure without current evidence.
 Prototype acceptance remains **100% = 10/10 groups** under its original scope. Full mobile MVP,
@@ -197,9 +197,10 @@ or unreviewed repository execution. Read [memory evidence](phase-reports/PHASE_4
 
 ### Phase 11 — Grounded public research
 
-Status: **implemented-closeout-pending**, 2026-10-28. [Progress evidence](phase-reports/current/PHASE_11_PROGRESS.md),
-[capability and source limits](PUBLIC_RESEARCH.md). Direct official-source acquisition works;
-Wikimedia discovery retains `authentication_required`. Local and isolated gates pass; publication/fresh CI pending.
+Status: **complete**, 2026-10-31. [Completion evidence](phase-reports/current/PHASE_11_COMPLETION.md),
+[capability and source limits](PUBLIC_RESEARCH.md). Explicit public-source retrieval, exact cited
+excerpts, current pypdf security repair, working/isolated gates and fresh patch CI pass. Wikimedia
+discovery still returns `authentication_required`; no general discovery or cloud qualification inferred.
 
 Outcome: useful current answers with verified sources or explicit unavailable evidence. Reuse
 freshness classification, search/fetch/parser/citation workflow and existing general-search port.
@@ -384,7 +385,7 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 | --- | --- |
 | Legacy NVIDIA/local-cold latency | Legacy Phase 1 remains `blocked-external`; original 20/20 and p50/p95 gates unchanged. Local fallback/prototype timings are not NVIDIA proof; Phase 11 owns any requested requalification. |
 | Text usefulness | Phase 7 owns known R1/C1 failures. Historical 8/10 remains a bounded pass under the old rubric; prospective stricter target does not rewrite it. |
-| Research live endpoint | Wikimedia `authentication_required` remains recorded. Phase 11 must verify actual chosen sources; no invented retrieval/citation. |
+| Research live endpoint | Wikimedia `authentication_required` remains confirmed 2026-10-31. Phase 11 direct-source acceptance passes; general discovery remains unavailable until directly revalidated working. |
 | Windows effects | Existing broker implemented; Phase 13 needs exact applicable live authority. Chat/read/task-monitor scope grants no OS/control authority. |
 | Garmin | Existing protected session and normal renewal authority retained. Phase 8 grants no new login, enrollment, health scope, credential replacement or health disclosure. |
 | Email/calendar | Phase 15/16 provider choices/auth/private-read authority remain external inputs when needed. Writes/sends are independently exact-approved. |
@@ -395,9 +396,10 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 
 ## Next action
 
-**Next: Initiate Phase 11 — Grounded public research.** Actual prerequisite Phase 7
-is complete; Phase 10 memory receipt is closed. Read this roadmap, [Phase Execution](PHASE_EXECUTION.md)
-and Phase 11 references before implementation. Verify actual live source availability and cited
-acceptance; preserve the historical Wikimedia authentication blocker until directly revalidated.
-Preserve held native/provider changes, the accepted prototype baseline, existing failed legacy gates
-and skipped/unverified phone status. No automatic memory trust, scope, login or integration activation.
+**Next: Initiate Phase 12 — Foreground voice.** Actual prerequisite Phase 7 is complete;
+Phase 11 receipt is closed. Read this roadmap, [Phase Execution](PHASE_EXECUTION.md) and the
+Phase 12 references before implementation. Freeze the selected foreground speech workflow and
+quality/latency budgets before measurement. Reuse existing Core, STT/VAD/TTS and F13 transport.
+Preserve held native/provider edits, accepted prototype-text baseline, current dependency locks,
+historical Wikimedia authentication blocker, legacy failed gates and skipped/unverified phone
+status. No automatic capture, model download, cloud speech, new scope or integration activation.
