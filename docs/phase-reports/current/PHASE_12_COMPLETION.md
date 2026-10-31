@@ -1,6 +1,6 @@
 # Phase 12 — Foreground voice
 
-- Status: `implemented-closeout-pending`
+- Status: `complete`
 - Started / updated: 2026-10-31
 - Namespace: current numbered roadmap
 - Recommended Codex model / reasoning: `gpt-6-astra` / `xhigh`; `ultra` for authority
@@ -55,7 +55,7 @@ Frozen before implementation and current measurement:
   transport benchmark: 100 reconnects/10000 events, zero isolation/replay failures,
   p95 <=25 ms, RSS growth <=50 MiB, shell <=256000 bytes. Phone checks
   **skipped by owner; unverified**.
-- [ ] Full working/isolated release gates, >=85% coverage, locked root/base/restored-extra and
+- [x] Full working/isolated release gates, >=85% coverage, locked root/base/restored-extra and
   sidecar audits, exact-source/history secrets, whitespace/links, recovery docs, task-only
   publication and fresh exact CI. Held paths preserved by task-hunk recomposition.
 
@@ -92,7 +92,7 @@ Frozen before implementation and current measurement:
   telemetry is unavailable: current driver temperature `46.84` broke integer-only parsing.
   Memory query itself works. Parser now accepts finite fractional temperature, preserving integer
   memory counters and fail-closed missing/malformed telemetry. Eight benchmark tests pass.
-  Original failed artifact is retained separately; unchanged full benchmark rerun underway.
+  Original failed artifact is retained separately; unchanged full benchmark rerun passes below.
 - Repaired full corpus rerun passes every unchanged threshold: quiet/noisy WER 0%, accented
   17.25%, short interactive p50/p95 562.48/833.53 ms, RTF p95 0.4779, cold load 2812.26 ms,
   RSS growth 479072256 bytes, discrete GPU growth 0 MiB (2271 MiB before/after), resident
@@ -130,7 +130,7 @@ CPU/int8/four threads/16 kHz, local files only. No speech/model download or phys
 
 Working format/lint/Mypy and synthetic empty-state doctor pass. Isolated format/lint/Mypy,
 base and sidecar audits, full tests and 173 PWA/PCM checks pass. Existing Starlette TestClient
-deprecation and three platform/capability skips retained. Fresh publication CI pending.
+deprecation and three platform/capability skips retained. Fresh exact implementation CI passes.
 
 | Gate | Working source | Isolated publication source |
 | --- | --- | --- |
@@ -153,8 +153,28 @@ acceptance remains unestablished.
 
 ## Publication and handoff
 
-- Task-only source/hunks: 26 paths, five shared-file recompositions; held native/provider edits
-  excluded. Exact source snapshot: ignored `runtime/phase12/publication-v3/`.
-- Commit/tracking/live remote/fresh CI: pending.
-- Progress: 11/19 primary receipts closed (~58%), unweighted management count; no physical credit.
-- Next current phase remains Phase 12 until this receipt closes. No Phase 13 implementation.
+Implementation published as `ea7f02ff763ffdf13ec6f7bfd91911cad3aeea54`, reviewed tree
+`566616b9e936cfe4b54e1e4044bee1c58473fb5a`. Exactly 26 task paths; five shared-file task hunks
+recomposed against published source. Native/provider work remains excluded. Exact implementation
+[CI 41219092578](https://github.com/DanCreates1/JARVIS/actions/runs/41219092578) passes Windows
+quality job `124589713918` and secret job `124589713832`. Local HEAD/tracking/live upstream agree.
+
+All 28 original held paths preserved: untouched paths retain exact bytes/deletion state; five
+shared paths reproduce the held edits when recomposed with published task source. Dirty-path
+inventory still equals the original 28. Locks, prototype launcher/corpora and historical evidence
+unchanged. Starting 97-package optional environment restored exactly and audited after bootstrap.
+No secret, runtime store, raw audio, recording, model, browser profile, generated artifact or
+private data published. Production controls, identity/scopes and existing Core service untouched.
+
+Closing change renames/updates this receipt, capability link and current ledger/overview only.
+All application/test/script/dependency blobs remain identical to the passing implementation.
+Closing commit/tracking/live remote, held-state proof and its own fresh CI are checked separately
+after publication; implementation CI is not substituted for a later SHA.
+
+Phone checks **skipped by owner; unverified**. Physical/native/mobile MVP/production acceptance
+unestablished. Wikimedia `authentication_required`, legacy NVIDIA latency and native dependency
+publication hold retained. No continuous capture, cloud speech, device effect or model download.
+
+Progress: **12/19 primary receipts closed (~63%)**, unweighted management count, not code/effort
+or physical/mobile MVP acceptance. Next current phase: **Phase 13 — Controlled Windows actions**;
+actual prerequisite Phase 7 complete. No Phase 13 implementation or live-effect authority granted.

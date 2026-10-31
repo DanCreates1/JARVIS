@@ -58,7 +58,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [9](#phase-9--files-and-attachments) | Files and attachments | complete | 7 | Explicit private-files; current cited PWA/Core workflow, recovery/security/release gates and fresh CI pass |
 | [10](#phase-10--inspectable-memory-and-project-context) | Inspectable memory and project context | complete | 7 | Trusted-local review, exact lifecycle, current retrieval/project/release gates and fresh CI pass |
 | [11](#phase-11--grounded-public-research) | Grounded public research | complete | 7 | Explicit public-source citations, current security/release gates and fresh CI pass; discovery blocker retained |
-| [12](#phase-12--foreground-voice) | Foreground voice | in-progress | 7 | Explicit foreground input/review/Send/text replies; current acceptance underway |
+| [12](#phase-12--foreground-voice) | Foreground voice | complete | 7 | Explicit local speech/review/Send/text replies; current Windows synthetic/security/release gates and fresh CI pass |
 | [13](#phase-13--controlled-windows-actions) | Controlled Windows actions | not-started | 7 | Existing broker/tools; current exact live-effect acceptance |
 | [14](#phase-14--bounded-tasks-and-project-workflows) | Bounded tasks and project workflows | not-started | 7; 13 for action-bearing flows | Existing DAG/scheduler/task views; usable safe workflow/control |
 | [15](#phase-15--email) | Email | not-started | 7 | Local read/prepare exists; live provider/auth gate remains |
@@ -72,7 +72,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [23](#phase-23--wearables-and-additional-devices) | Wearables and additional devices | deferred | Supported vendor path + device/scopes authority | Generic legacy wearable boundary; adapter/device acceptance absent |
 | [24](#phase-24--restricted-maintenance-assistance) | Restricted maintenance assistance | deferred | 14, 17, 19 + explicit narrow use case | Proposal-only isolated assistance; no self-authorized production changes |
 
-**Progress basis:** **11/19 primary phase receipts closed (~58%)**. This is an unweighted management
+**Progress basis:** **12/19 primary phase receipts closed (~63%)**. This is an unweighted management
 count, not percentage of code written, elapsed effort or mobile MVP acceptance.
 Existing foundations reduce future work but earn no new phase closure without current evidence.
 Prototype acceptance remains **100% = 10/10 groups** under its original scope. Full mobile MVP,
@@ -214,7 +214,7 @@ Read [research evidence](phase-reports/PHASE_5_COMPLETION.md), [legacy C evidenc
 
 ### Phase 12 — Foreground voice
 
-Status: **in-progress**, 2026-10-31. [Progress evidence](phase-reports/current/PHASE_12_PROGRESS.md),
+Status: **complete**, 2026-10-31. [Completion evidence](phase-reports/current/PHASE_12_COMPLETION.md),
 [selected workflow and controls](FOREGROUND_VOICE.md). Local speech input, editable draft,
 explicit Send and text replies; no production voice activation or new output endpoint.
 
@@ -400,10 +400,12 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 
 ## Next action
 
-**Next: Initiate Phase 12 — Foreground voice.** Actual prerequisite Phase 7 is complete;
-Phase 11 receipt is closed. Read this roadmap, [Phase Execution](PHASE_EXECUTION.md) and the
-Phase 12 references before implementation. Freeze the selected foreground speech workflow and
-quality/latency budgets before measurement. Reuse existing Core, STT/VAD/TTS and F13 transport.
-Preserve held native/provider edits, accepted prototype-text baseline, current dependency locks,
-historical Wikimedia authentication blocker, legacy failed gates and skipped/unverified phone
-status. No automatic capture, model download, cloud speech, new scope or integration activation.
+**Next: Initiate Phase 13 — Controlled Windows actions.** Actual prerequisite Phase 7 is
+complete; Phase 12 receipt is closed for local foreground speech/review/Send/text replies.
+Read this roadmap, [Phase Execution](PHASE_EXECUTION.md), current architecture and Phase 13
+references before implementation. Freeze selected typed Windows actions, preview/receipt and
+live-effect acceptance before measurement. Existing model proposals never grant execution.
+Prepare concrete reviewable consequential actions; exact live effects need applicable standing
+or new owner authority. Preserve held native/provider edits, accepted prototype-text baseline,
+current locks, Wikimedia authentication blocker, legacy failed gates and skipped/unverified
+phone status. No new remote action scope, blind replay, arbitrary shell or deployment authority.

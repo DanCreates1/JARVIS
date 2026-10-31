@@ -65,7 +65,7 @@ opens a physical microphone, plays speakers, changes host controls or downloads 
 Generated audio, keys, stores and browser evidence stay ignored under `runtime/`.
 
 F13 transport/lifecycle contracts: [original contract](PWA_F13_PUSH_TO_TALK.md).
-Current measurements: [Phase 12 report](phase-reports/current/PHASE_12_PROGRESS.md).
+Current measurements: [Phase 12 report](phase-reports/current/PHASE_12_COMPLETION.md).
 Phone checks **skipped by owner; unverified**. Desktop/synthetic evidence grants no physical,
 native, mobile MVP or production acceptance. Wikimedia authentication blocker/native hold remain.
 
