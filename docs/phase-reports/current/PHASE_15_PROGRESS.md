@@ -4,7 +4,7 @@
 - Started / updated: 2026-10-31 / 2026-11-01
 - Namespace: current numbered roadmap
 - Recommended Codex model / reasoning: gpt-6-astra / ultra (recommendation only)
-- Current verification checkpoint / conservative stop: 2026-11-01 16:43:47 UTC / 2026-11-01 20:30 UTC
+- Current verification checkpoint / conservative stop: 2026-11-01 17:16:23 UTC / 2026-11-01 20:30 UTC
 
 ## Objective and scope
 
@@ -151,6 +151,17 @@ Frozen before new provider implementation or live measurement:
     format/lint/Mypy and focused checks pass. A fresh built/installed wheel matches the final
     Gmail source bytes and passes real isolated parser/default-off checks without credentials.
     All application/test/configuration/lock source remains unchanged after these final gates.
+16. Resume at `17d93dda6679efec5bea216ccaba1ce9853591bb`: HEAD, tracking and live remote agree;
+    exact-commit [CI 41329115610](https://github.com/DanCreates1/JARVIS/actions/runs/41329115610)
+    completed successfully. Current focused email/Gmail unit/security/Core suite passes 152 tests
+    in 10.35 s; root lock check and whitespace checks pass. All 28 held paths retain exact bytes/
+    deletion state. Prior chat review confirms only personal Gmail/auth selection was supplied;
+    no local account alias, exact mailbox or Desktop OAuth client-registration status/path exists
+    in that handoff. Requested missing setup information; no credential discovery, account/profile
+    read, login, project creation, scope change or live mailbox read attempted. Protected auth/
+    activation and live acceptance remain blocked on these external inputs and applicable authority.
+    No application/test/configuration/lock source changed; prior full-source gates remain the
+    implementation evidence. This resumed checkpoint changes this report only.
 
 ## Decisions, authority and blockers
 
