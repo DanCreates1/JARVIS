@@ -140,6 +140,32 @@ async def test_disable_during_read_and_cancellation():
         await task
 
 
+@pytest.mark.parametrize("operation", ["list_threads", "read_thread"])
+async def test_disable_then_reenable_cannot_resurrect_inflight_email(operation):
+    started, gate = asyncio.Event(), asyncio.Event()
+
+    class Wait(Provider):
+        async def list_threads(self):
+            started.set()
+            await gate.wait()
+            return await super().list_threads()
+
+        async def read_thread(self, thread_id):
+            started.set()
+            await gate.wait()
+            return await super().read_thread(thread_id)
+
+    service = EmailService(Wait())
+    call = service.list_threads() if operation == "list_threads" else service.read_thread("t1")
+    task = asyncio.create_task(call)
+    await started.wait()
+    service.enabled = False
+    service.enabled = True
+    gate.set()
+    with pytest.raises(EmailError, match="email_disabled"):
+        await task
+
+
 async def test_max_projection_unicode_and_long_ids():
     class Many(Provider):
         async def read_thread(self, thread_id):

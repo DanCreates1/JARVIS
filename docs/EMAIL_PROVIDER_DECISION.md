@@ -1,6 +1,8 @@
 # Phase 15 provider and authentication decision
 
-Status: selection pending, 2026-10-31. No live access or provider adapter enabled.
+Status: personal Gmail selected, 2026-11-01. Desktop delegated OAuth with PKCE and
+`https://www.googleapis.com/auth/gmail.readonly` selected. Exact account/client registration and
+consequential setup/read review remain pending. No live access or provider adapter enabled.
 [Current progress](phase-reports/current/PHASE_15_PROGRESS.md) freezes scope and acceptance.
 
 ## Choices reviewed
@@ -33,6 +35,69 @@ only if selected and approved as part of the concrete auth review. References:
 [API terms](https://learn.microsoft.com/en-us/legal/microsoft-apis/terms-of-use).
 
 ## Concrete review after selection
+
+### Selected Gmail contract — frozen 2026-11-01 before implementation
+
+Owner selected personal Gmail; do not infer the connected chat account. A local account alias,
+exact mailbox address and owner-controlled Desktop OAuth client must be supplied locally before
+activation. Application data remains on Windows. System-browser authorization code + S256 PKCE,
+random state, an ephemeral IPv4 loopback callback, and protected per-user Windows token storage
+are the selected auth design; no embedded browser, service account or application-wide delegation.
+Only the selected read scope is allowed. Refresh access needs concrete review; no automatic login,
+scope expansion, token replacement, account switching or fallback to exports.
+
+First implementation milestone: inactive read adapter behind `EmailReadProvider`, injected
+host-only token source, synthetic transport and lifecycle tests. No production credential loading,
+OAuth flow, startup wiring or network-enabled CLI is added by that milestone. The token source is
+not a model/client port. Production auth/activation remains separate unfinished Phase 15 work.
+
+Frozen request/response limits (all total deadlines include token acquisition and parsing):
+
+| Operation | Allowed requests | Deadline | Decoded HTTP response cap |
+| --- | --- | --- | --- |
+| List | `users/me/profile`, then one `threads.list` page, `maxResults=100`; no pagination | 5 s total | 16 KiB profile; 32 KiB list |
+| Selected thread | Profile; minimal thread inventory; at most 16 `messages.get(format=raw)`; final minimal inventory | 30 s total; 5 s/request | 16 KiB each inventory; 192 KiB each raw envelope; 16 KiB profile; <=3,194,880 bytes total |
+
+Thread inventory must contain 1–16 distinct message IDs, matching thread IDs and history versions.
+All raw responses must match that inventory; final inventory/history must remain identical.
+Reject changed, incomplete, duplicate or over-limit threads; never silently summarize a subset.
+The inventory check detects observed changes, not a provider transaction or verified chronology.
+Every MIME message remains <=128 KiB and passes the existing isolated text-only parser. No
+attachment endpoint, HTML rendering, remote-resource fetching, provider draft, write or send API.
+Raw MIME can contain inert attachment bytes inside the same message bound.
+
+Allowed data origin is exactly `https://gmail.googleapis.com`; token exchange, when implemented,
+will use exactly `https://oauth2.googleapis.com/token`. API transport disables ambient proxies,
+redirects, cookie persistence and automatic retries. Only adapter-built GET paths/queries are used.
+401/403, 429, 5xx, malformed JSON, timeout, unavailable transport and limits yield fixed errors
+without private content. Cancellation closes responses and drains parser work. Disable invalidates
+in-flight operations even across disable/re-enable. No mailbox data or raw provider error is logged.
+
+Profile address must exactly match configured normalized personal `@gmail.com` address before
+mail requests. No dot/plus/alias equivalence guessing. Token source also binds that exact account
+and the exact read scope.
+Bearer tokens are ASCII and at most 8,192 characters including padding; malformed/expired tokens
+are denied before any profile request. Token-source error details are never propagated.
+Provider IDs are opaque bounded ASCII (1–28 letters/digits/`_`/`-`); unsupported IDs fail closed.
+Canonical IDs encode an account fingerprint, thread/message kind and
+reversible base32 provider ID, within existing export ID validation. Export ID rules stay unchanged.
+Digests identify observed MIME bytes; headers/dates remain unverified and IDs grant no authority.
+
+Official sources reviewed 2026-11-01: [desktop OAuth](https://developers.google.com/identity/protocols/oauth2/native-app),
+[scopes](https://developers.google.com/workspace/gmail/api/auth/scopes),
+[profile](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users/getProfile),
+[thread listing](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.threads/list),
+[thread read](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.threads/get),
+[message read](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/get),
+[message/raw schema](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages),
+[Workspace data policy](https://developers.google.com/workspace/workspace-api-user-data-developer-policy),
+[API user-data policy](https://developers.google.com/terms/api-services-user-data-policy).
+[Google APIs terms](https://developers.google.com/terms) were also reviewed before any live use;
+owner-specific project/consent requirements remain pending, and no acceptance is performed here.
+Local private summaries must remain user-facing and must not train general models. Restricted-scope
+personal-use/testing exceptions, consent-screen publishing state and token lifetime require review
+against the actual client project; no public verification, paid assessment or terms acceptance is
+claimed. This implementation milestone does not accept terms or activate access.
 
 Record selected provider/account type, client-registration ownership, exact scopes/refresh policy,
 protected credential location, fixed allowed API origins, account-binding strategy and bounded
