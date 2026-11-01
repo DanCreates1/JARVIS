@@ -1,5 +1,5 @@
 :root{font:100%/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;background:#07111f;color:#e8f1ff}
-.prototype-only{display:none}body:is([data-profile="prototype-text"],[data-profile="daily-text"]) .prototype-only{display:block}body:is([data-profile="prototype-text"],[data-profile="daily-text"]) :is([data-optional],#nav-garmin,#task-panel){display:none!important}
+.prototype-only{display:none}body:is([data-profile="prototype-text"],[data-profile="daily-text"],[data-profile="private-email"]) .prototype-only{display:block}body:is([data-profile="prototype-text"],[data-profile="daily-text"],[data-profile="private-email"]) :is([data-optional],#nav-garmin,#task-panel){display:none!important}
 body[data-profile="private-garmin"] .prototype-only{display:block}body[data-profile="private-garmin"] :is([data-optional],#task-panel){display:none!important}
 .garmin-only{display:none}body[data-profile="private-garmin"] .garmin-only{display:block}body[data-profile="private-garmin"] .text-only{display:none}
 .files-only{display:none}body[data-profile="private-files"] :is(.prototype-only,.files-only){display:block}body[data-profile="private-files"] :is([data-optional]:not([data-files]),#nav-garmin,#task-panel,.text-only){display:none!important}

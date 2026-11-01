@@ -61,7 +61,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [12](#phase-12--foreground-voice) | Foreground voice | complete | 7 | Explicit local speech/review/Send/text replies; current Windows synthetic/security/release gates and fresh CI pass |
 | [13](#phase-13--controlled-windows-actions) | Controlled Windows actions | complete | 7 | Current app/STOP and bounded volume retry pass; recovery, automated release gates and reviewed publication |
 | [14](#phase-14--bounded-tasks-and-project-workflows) | Bounded tasks and project workflows | complete | 7; 13 for action-bearing flows | Bounded project review, durable foreground controls, current recovery/release gates and reviewed publication |
-| [15](#phase-15--email) | Email | blocked-external | 7 | Personal Gmail/auth design selected; inactive read adapter; exact account/client setup and protected auth/live acceptance pending |
+| [15](#phase-15--email) | Email | blocked-external | 7 | Gmail bounded reads/protected auth/default-off composition implemented; approved project/client setup and actual auth/live acceptance pending |
 | [16](#phase-16--calendar-and-reminders) | Calendar and reminders | not-started | 7 | Calendar adapter and lifecycle; write authority separate |
 | [17](#phase-17--background-scheduling-and-proactivity) | Background scheduling and proactivity | not-started | 14 | Existing inert/foreground policy; explicit bounded worker and opt-in |
 | [18](#phase-18--daily-briefing) | Daily briefing | not-started | 10, 15, 16, 17; 8 only for Garmin content | Compose approved sources with honest freshness/omissions |
@@ -265,8 +265,10 @@ Read [task evidence](phase-reports/PHASE_6_COMPLETION.md), [F14](PWA_F14_WORKFLO
 
 Status: **blocked-external**, 2026-11-01. [Current progress](phase-reports/current/PHASE_15_PROGRESS.md),
 [provider/auth decision](EMAIL_PROVIDER_DECISION.md). Personal Gmail / desktop delegated OAuth /
-`gmail.readonly` selected. Inactive read adapter and synthetic lifecycle/privacy tests implemented;
-exact local account/client setup, protected auth/activation and live acceptance remain pending.
+`gmail.readonly` selected. Bounded read adapter, protected Windows credentials, explicit PKCE OAuth,
+foreground renewal and default-off composition implemented; synthetic gates recorded in progress.
+Owner confirmed no project/client exists. [Prepared setup](GMAIL_SETUP.md), applicable terms/consent,
+exact local account/client inputs and actual auth/live acceptance remain pending.
 No credential, new scope, live mailbox access or write authority inferred.
 
 Outcome: approved-provider read/thread summaries and preparation of drafts with provenance.
@@ -423,8 +425,8 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 **Next: Continue Phase 15 — Email.** Current Phase 14 selected bounded project/workflow acceptance
 is complete. Read [current progress](phase-reports/current/PHASE_15_PROGRESS.md), this roadmap,
 [Phase Execution](PHASE_EXECUTION.md), current architecture and
-Phase 15 references. Select the provider and review current official auth/API/terms before live
-adapter work; applicable credential/private-read authority remains separate. Reuse local read/
+Phase 15 references. Review the prepared Gmail setup and actual project/account inputs before
+consequential setup or live access; credential/private-read authority remains separate. Reuse local read/
 prepare contracts; no send/write or unattended polling authority is inherited.
 Preserve held provider/native changes, prototype-text, current locks, Wikimedia/legacy limits,
 endpoint-specific volume qualification and skipped/unverified phone status. Phase 15 initiation

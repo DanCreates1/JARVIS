@@ -219,7 +219,17 @@ class RuntimeComponents:
 async def build_runtime(settings: Settings) -> RuntimeComponents:
     """Construct and initialize every runtime adapter exactly once."""
     topology_manifest, deployment, deployment_health = _deployment_context(settings)
-    email = build_email_service(settings.email_export_root, enabled=settings.email_enabled)
+    email = build_email_service(
+        settings.email_export_root,
+        enabled=settings.email_enabled,
+        provider=settings.email_provider,
+        gmail_account=(
+            settings.email_gmail_account.get_secret_value()
+            if settings.email_gmail_account
+            else None
+        ),
+        gmail_client_file=settings.email_gmail_client_file,
+    )
     coding_context = build_coding_context(
         settings.coding_repository_root,
         settings.data_dir,
@@ -363,6 +373,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
                     "private-memory",
                     "public-research",
                     "foreground-voice",
+                    "private-email",
                 },
             ),
             max_cloud_cost_usd=settings.max_cloud_cost_usd,
@@ -432,6 +443,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
             "private-memory",
             "public-research",
             "foreground-voice",
+            "private-email",
         }:
             # Keep the deterministic clock path; text generation needs no tool schemas.
             registered_tools = (CurrentTimeTool(),)
@@ -469,6 +481,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
                         "private-memory",
                         "public-research",
                         "foreground-voice",
+                        "private-email",
                     }
                     else TEXT_PROFILE_PROMPT
                 )
@@ -481,6 +494,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
                     "private-memory",
                     "public-research",
                     "foreground-voice",
+                    "private-email",
                 }
                 else SYSTEM_PROMPT
             ),
@@ -495,6 +509,7 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
                     "private-memory",
                     "public-research",
                     "foreground-voice",
+                    "private-email",
                 }
                 else None
             ),

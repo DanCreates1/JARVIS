@@ -93,12 +93,16 @@ class GmailReadProvider:
         enabled: bool = False,
         transport: httpx.AsyncBaseTransport | None = None,
         parser: IsolatedEmailParser | None = None,
+        max_messages: int = 16,
     ) -> None:
         self._account = _account(account)
         self._tag = hashlib.sha256(self._account.encode("ascii")).hexdigest()[:16]
         self._tokens = tokens
         self._transport = transport
         self._parser = parser or IsolatedEmailParser()
+        if type(max_messages) is not int or not 1 <= max_messages <= 16:
+            raise EmailError("gmail_configuration")
+        self._max_messages = max_messages
         if type(enabled) is not bool:
             raise EmailError("gmail_configuration")
         self._enabled = enabled
@@ -242,6 +246,11 @@ class GmailReadProvider:
         except (ValueError, UnicodeError, RecursionError):
             raise EmailError("gmail_protocol") from None
 
+    async def verify_account(self) -> None:
+        """Exact mailbox/profile check only; no thread or message acquisition."""
+        async with self._operation(5):
+            pass
+
     async def list_threads(self) -> tuple[str, ...]:
         async with self._operation(5) as (client, generation):
             data = await self._get(
@@ -278,7 +287,7 @@ class GmailReadProvider:
             raise EmailError("gmail_provenance")
         history = _history(data.get("historyId"))
         items = data.get("messages")
-        if not isinstance(items, list) or not 1 <= len(items) <= 16:
+        if not isinstance(items, list) or not 1 <= len(items) <= self._max_messages:
             raise EmailError("gmail_thread_limit")
         references: list[tuple[str, str | None]] = []
         for item in items:

@@ -602,6 +602,7 @@ def create_app(
             "private-memory",
             "public-research",
             "foreground-voice",
+            "private-email",
         }:
             content = content.replace(
                 'data-profile="standard"', f'data-profile="{configured.runtime_profile}"'
@@ -836,6 +837,7 @@ def create_app(
                             "private-memory",
                             "public-research",
                             "foreground-voice",
+                            "private-email",
                         }
                         and RemoteScope.CLIENT_HEALTH_READ in context.scopes,
                     },
@@ -1036,6 +1038,7 @@ def create_app(
             "private-memory",
             "public-research",
             "foreground-voice",
+            "private-email",
         }:
             raise HTTPException(status_code=503, detail="Garmin unavailable in text-only profile")
         try:

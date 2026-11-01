@@ -21,6 +21,7 @@ from jarvis.web import create_app
         "private-memory",
         "public-research",
         "foreground-voice",
+        "private-email",
     ],
 )
 def test_text_profile_overrides_existing_feature_flags(
@@ -66,6 +67,7 @@ def test_text_profile_overrides_existing_feature_flags(
             or (profile == "private-files" and flag == "attachments_enabled")
             or (profile == "private-memory" and flag == "coding_context_enabled")
             or (profile == "foreground-voice" and flag == "pwa_voice_enabled")
+            or (profile == "private-email" and flag == "email_enabled")
         )
         for flag in flags
     )
@@ -82,6 +84,7 @@ def test_text_profile_overrides_existing_feature_flags(
         "private-memory",
         "public-research",
         "foreground-voice",
+        "private-email",
     ],
 )
 def test_text_profile_rejects_remote_model_even_with_old_opt_in(profile: str) -> None:
@@ -105,6 +108,7 @@ def test_text_profile_rejects_remote_model_even_with_old_opt_in(profile: str) ->
         "private-memory",
         "public-research",
         "foreground-voice",
+        "private-email",
     ],
 )
 def test_shell_profile_keeps_security_headers(profile: str) -> None:
@@ -143,6 +147,7 @@ def test_foreground_profile_preserves_independent_host_gate(requested: bool) -> 
         "private-memory",
         "public-research",
         "foreground-voice",
+        "private-email",
     ],
 )
 async def test_text_runtime_exposes_only_clock_and_never_model_file_tools(
@@ -163,6 +168,7 @@ async def test_text_runtime_exposes_only_clock_and_never_model_file_tools(
                 "private-memory",
                 "public-research",
                 "foreground-voice",
+                "private-email",
             }
         )
         assert (runtime.service.response_guidance is not None) == (
@@ -174,6 +180,7 @@ async def test_text_runtime_exposes_only_clock_and_never_model_file_tools(
                 "private-memory",
                 "public-research",
                 "foreground-voice",
+                "private-email",
             }
         )
         assert (runtime.attachments is not None) == (profile == "private-files")

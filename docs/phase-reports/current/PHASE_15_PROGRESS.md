@@ -4,7 +4,7 @@
 - Started / updated: 2026-10-31 / 2026-11-01
 - Namespace: current numbered roadmap
 - Recommended Codex model / reasoning: gpt-6-astra / ultra (recommendation only)
-- Current verification checkpoint / conservative stop: 2026-11-01 17:16:23 UTC / 2026-11-01 20:30 UTC
+- Current verification checkpoint / conservative stop: 2026-11-01 17:42:57 UTC / 2026-11-01 20:30 UTC
 
 ## Objective and scope
 
@@ -37,16 +37,16 @@ Frozen before new provider implementation or live measurement:
 - [x] Owner-selected personal Gmail / desktop delegated OAuth / exact `gmail.readonly` design;
   current official API/OAuth/data-policy sources and provider budgets reviewed/frozen before code.
 - [ ] Exact account/client ownership, applicable project terms/setup and private-read authority;
-  protected production token storage/auth/activation remain unimplemented and unaccepted.
+  protected host token storage/auth/configuration are implemented; actual setup/auth remain unaccepted.
 - [x] Inactive Gmail read-adapter milestone: synthetic account/scope/provenance/transport/lifecycle
   matrix and real parser/Core privacy checks; no runtime activation or production token source.
-- [ ] Explicit default-off configuration and exact account binding. No startup login, mailbox
+- [x] Explicit default-off configuration and exact account binding, verified synthetically. No startup login, mailbox
   discovery, automatic fallback to exports/another account, remote email endpoint or polling.
-- [ ] Foreground reads only: bounded list of at most 100 thread references; explicitly selected
+- [x] Synthetic foreground-read gates: bounded list of at most 100 thread references; explicitly selected
   thread at most 16 messages, each at most 128 KiB; reject over-limit/incomplete thread responses
   rather than silently summarizing an incomplete thread. Provider mapping must preserve canonical
   IDs/provenance without changing local export ID rules or inventing verified chronology.
-- [ ] Read data: selected message text, bounded unverified From/To/Subject/Date metadata and
+- [x] Synthetic read/preparation data gates: selected text, bounded unverified From/To/Subject/Date metadata and
   source IDs/digests only. HTML rendering, attachment extraction, forwarded-body evidence and
   remote-resource fetching excluded; any MIME bytes remain inert within parser bounds.
   Summary excerpts <=512 characters; <=64 extraction candidates; projection <=8,000
@@ -57,7 +57,7 @@ Frozen before new provider implementation or live measurement:
   Existing private reply history retains normal conversation deletion/backup semantics. Sticky
   email privacy survives disable, restart, failed acquisition and selection removal; no automatic
   research, cloud override, memory capture, action or send authority.
-- [ ] Every network operation bounded by time/bytes/request count; read/thread <=30 s and list
+- [x] Synthetic network gates: every operation bounded by time/bytes/request count; read/thread <=30 s and list
   <=5 s, zero automatic read retries. Freeze provider-specific request/response budgets before
   implementation. Redirects/unapproved origins denied; malformed schema, wrong ownership,
   over-size, rate limit and provider outage fail with content-free errors. Cancel drains work.
@@ -65,7 +65,7 @@ Frozen before new provider implementation or live measurement:
   credentials stop access; no automatic login, account switch or scope expansion. Any authorized
   same-account renewal stays bounded. Disconnect behavior and provider-side revocation instructions
   documented; token deletion/revocation never conflated with disabling reads or erasing history.
-- [ ] Synthetic hostile MIME/provider lifecycle matrix: injection, cross-account/ID mismatch,
+- [x] Synthetic hostile MIME/provider lifecycle matrix: injection, cross-account/ID mismatch,
   malformed/oversized/truncated responses, timeout/cancel, 401/403/429/5xx, network loss, duplicate
   IDs, restart, disable/revocation and no unexpected cloud/research/effects/private logging.
 - [x] Existing frozen local benchmark: 100 single-message cases, four operations/case, 400 isolated
@@ -162,19 +162,73 @@ Frozen before new provider implementation or live measurement:
     activation and live acceptance remain blocked on these external inputs and applicable authority.
     No application/test/configuration/lock source changed; prior full-source gates remain the
     implementation evidence. This resumed checkpoint changes this report only.
+17. Owner confirmed no project/client exists. Implemented bounded explicit local PKCE OAuth,
+    Windows per-user Credential Manager create/read/exact disconnect, exact account/client/scope
+    binding and foreground-only renewal. Existing credentials cannot be replaced automatically.
+    Access tokens remain volatile; refresh grants never enter settings/model/client/diagnostics.
+    A disposable random synthetic Windows credential target passes actual create/read/refuse-
+    replacement/delete; native failures, capacity and handle cleanup pass synthetic checks.
+18. Added explicit `private-email` with independent default-false email gate, lazy credential
+    acquisition and provider choice without fallback. Reused one Core/service/CLI/private routing.
+    Applied existing text-only model/tool/prompt and PWA exclusions; Garmin/files/voice stay denied.
+    Shell v21 invalidates prior asset cache while preserving API/private-data cache exclusions.
+    Added `gmail-auth`, `gmail-disconnect` and `gmail-proof` trusted-local commands, each with a
+    default-No concrete confirmation. No production environment file or actual account touched.
+19. Prepared selected-thread proof rejects >3-message inventories before raw reads, performs one
+    network read and reuses the volatile observed thread for cited preparation plus a fixed synthetic
+    unsent/unstored draft. Output contains sanitized counts/timing/booleans only. Synthetic tests
+    cover 1/3/4-message bounds, hostile callback headers/state/replay, exact S256, wrong account,
+    token scope/rotation denial, five-second renewal deadline, cancel/drain, restart/local deletion
+    and real parser/Core privacy. Focused email/auth matrix passes 270 tests; final profile/auth/
+    PWA transport subset passes 169 tests. Final exact-source full gate receipts follow below.
+20. Final frozen working source passes **1,971 tests**, three existing skips, **86.60% combined
+    statement/branch coverage**, 249.27 s. Exact isolated publication source passes **1,972 tests**,
+    three existing skips, **86.56%**, 235.68 s; the extra legacy provider test remains published.
+    Ruff format/lint and Mypy pass (177 source files). New Gmail adapter/auth/credential-module
+    coverage is 98.53% / 93.64% / 100%. Existing Starlette TestClient deprecation remains.
+    Full source hashes were frozen before these final runs and checked before publication.
+21. Root/base optional and isolated locked base/Garmin audits pass without dependency/lock changes.
+    Working and publication PWA lifecycle/PCM **175 tests**, standard desktop **72 cases**,
+    prototype-text **9 cases** and private-email **9 cases** pass. Fresh built/installed wheel
+    contains exact auth/read/proof/service source, shell v21 and the real isolated MIME worker;
+    parser/default-off/lazy-source checks use zero owner credentials. Synthetic Windows local-model
+    smoke passes doctor/private email/cloud denial/restart/delete/unsent draft in both environments.
+22. Final local-export benchmark passes unchanged 100/100 cases, 400 real parser processes and zero
+    oracle/provenance failures in each environment. Working p50/p95 **504.440/567.891 ms**;
+    publication **611.562/666.529 ms**, against frozen p95 <=1,000 ms. Maximum projection 490
+    characters; no cache, credentials, cloud/research calls, effects or spend. Runs followed full
+    tests and model smokes without another benchmark/model workload. These are local-export
+    performance proofs, not Google auth or Gmail live-read latency evidence.
 
 ## Decisions, authority and blockers
 
-Provider/account type and auth design are selected; exact mailbox binding, local account alias and
-Desktop OAuth client-registration ownership/status remain missing. One information question is
-pending; no connected-chat mailbox or credential is inferred. Reviewed alternatives and selected
-auth/data contract live in [provider decision](../../EMAIL_PROVIDER_DECISION.md). No credential,
-login, scope change, live private read, new client/project or terms acceptance attempted.
-Independent safe work completed: frozen provider budgets, inactive adapter, hostile lifecycle/Core
-privacy tests and shared disable-generation repair. The next concrete auth/setup review depends
-on whether an owner-controlled Desktop client already exists. Protected-token implementation,
-runtime activation and bounded live proof remain unfinished; synthetic injected tokens grant no
-production authority. Do not request passwords, tokens or secret client files in chat.
+Owner clarified on resume: no Google project or Desktop OAuth client exists. Independent next
+milestone is protected host credentials, explicit local OAuth command and default-off composition,
+all verified synthetically before any consequential setup review. No project creation, terms
+acceptance, login or new grant is authorized by that clarification. Local alias defaults to
+`personal`; exact mailbox and downloaded Desktop client file are explicit local command inputs.
+Frozen auth budgets: one system-browser launch, 180 s total OAuth flow, ephemeral IPv4 loopback
+callback, at most eight inbound requests and four active handlers, 8 KiB request headers and 2 s
+header deadline. S256 PKCE and constant-time random-state checks; no callback code in output/logs.
+Exactly one token POST (5 s / 16 KiB JSON) and one exact-account profile GET before initial storage;
+no mailbox body access during auth. Foreground renewal is at most one token POST per operation,
+within existing 5/30 s operation deadlines, zero retries. Windows per-user local-machine Credential
+Manager stores only exact account/client/scope-bound refresh grants, <=2,560 bytes serialized and
+refresh token <=2,048 ASCII characters; access tokens remain volatile. Initial creation refuses an
+existing credential; no automatic replacement, revocation, account switch or scope expansion.
+Local token deletion requires an explicit trusted-local command confirmation; disable is separate.
+No dependency/lock changes, ambient proxy, redirect, browser/client secret projection or polling.
+Current primary OAuth/API/policy and Windows credential-storage documentation reviewed before code.
+
+Provider/account/auth design selected; owner confirmed no existing project/client. Exact mailbox
+and downloaded Desktop registration are explicit local inputs; no connected-chat account is
+inferred. [Prepared setup/approval](../../GMAIL_SETUP.md) describes an owner-controlled personal
+project, Gmail API only, Desktop client, External/Testing audience and only the owner as test user,
+with no billing linkage/public publishing. Project/terms setup, new OAuth consent with offline
+renewal, exact-account profile verification and one deliberately selected <=3-message read need
+consequential authority. No actual Google credential, login, new scope, profile/mailbox access,
+project/client creation or terms acceptance attempted. Synthetic protected storage grants no
+production authority. No passwords, tokens or secret client contents belong in chat.
 
 ## Verification and measurements
 
@@ -207,17 +261,25 @@ desktop/prototype accessibility; `phase-i-email-benchmark.py --enforce` and
 `git diff --check`. Locked isolated execution uses `uv run --locked`; working checks use the
 unchanged locked `.venv` with optional packages preserved.
 
+Auth milestone final sources use ignored `auth-final-*-source-v2.json` hash receipts. Development
+runs before this freeze receive no final-source acceptance credit: one changing-source run had
+1,955 passing tests but 84.66% coverage; final source fixes and reruns above preserve the 85% gate.
+An initial isolated run produced 169 fixture setup errors from `FileNotFoundError [WinError 3]`
+creating its nested relative basetemp. A new-directory diagnostic passed. Both final full runs use
+separate fresh absolute paths under the existing workspace `runtime/` parent, verified ignored and
+absent before pytest. No gate, test or threshold was disabled. Final full runs contain no errors.
+
 ## Known limits, recovery and deferred scope
 
-Existing functionality remains explicit local `.eml` exports and trusted-local preparation only.
-The new Gmail adapter is inactive and reachable only by explicit trusted-host Python composition
-with an injected token source; ordinary bootstrap/CLI still supports exports only. No production
-auth/token-storage/renewal acceptance is claimed. Existing source replies retain normal history
+Explicit local `.eml` exports remain available. The Gmail adapter now has explicit protected-host
+auth/renewal and lazy default-off bootstrap/CLI composition; actual Google setup/auth/live acceptance
+remain pending. No production setting was activated. Existing source replies retain normal history
 semantics; provider bytes/errors/projections remain volatile. Google profile/account binding proves
 the authenticated mailbox match, not authentic senders or transactional thread chronology.
 Disable `JARVIS_EMAIL_ENABLED`, remove selection and restart to stop local acquisition. Export
 sources are never modified. Delete private derived replies using existing conversation lifecycle;
 SQL deletion does not securely erase WAL, backups or storage. Preserve migration 016 on rollback.
+Disable and disconnect follow [current runbook](../../GMAIL_SETUP.md#disable-disconnect-and-recovery).
 No full email, provider, physical or production acceptance claimed.
 
 ## Publication and handoff
@@ -229,14 +291,17 @@ the original 97 package versions remain unchanged. No provider/native/applicatio
 test/lock/private/runtime artifact is included. Exact staged/publication tree agreement and
 HEAD/tracking/live-remote equality and fresh exact-commit CI passed for that initiation checkpoint.
 Those gates did not validate a live email adapter or phase completion.
-Current checkpoint additionally reviews the inactive adapter, shared preparation lifecycle and
-focused unit/Core integration tests. Only this task's ten source/documentation/test paths may be
-published; no held path, dependency lock, private account/client descriptor or runtime artifact.
-Current release checks pass for both sources, including unchanged root/Garmin locks and audits,
-PWA/desktop checks, synthetic local benchmark/smoke, secret scans and documentation/source review.
-The exact publication tree, normal push and HEAD/tracking/live-remote agreement are verified when
-published; fresh exact-commit CI is checked separately afterward and recorded in the final handoff
-and ignored publication receipt. This checkpoint does not close Phase 15 or activate Gmail.
+Inactive-adapter publication `17d93dd` has exact-commit successful CI linked in milestone 16.
+Resumed verification-only report checkpoint `58de0f7` precedes the current auth implementation.
+Current publication reviews 26 task paths: bounded auth/read/preparation, explicit settings/CLI,
+text-only Core/PWA profile exclusion/cache update, tests and six email/status/setup documents.
+Two held files (`config.py`, `bootstrap.py`) contain only separately isolated task additions;
+reversing those additions reproduces the original held hashes. Other 26 held paths retain exact
+bytes/deletion state. Held provider/native edits, locks, private client/account descriptors and
+runtime artifacts are excluded from publication. Final working/isolated release evidence is
+recorded in the verification section; exact tree/push/ref agreement and fresh exact-commit CI
+are checked separately and recorded in the final handoff/ignored receipt. Repository auth code
+and a passing synthetic proof do not close Phase 15 or enable an actual Google grant.
 Progress remains **14/19 primary receipts closed (~74%)**, unweighted management count, not
 code/effort or mobile MVP acceptance. Next current work: **Continue Phase 15 — Email** with exact
-local account/client setup and protected auth/activation review; Phase 16 has not started.
+approved project/client setup, exact local inputs and actual auth/live proof; Phase 16 has not started.
