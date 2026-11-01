@@ -51,6 +51,8 @@ class FakeActionStore:
             idempotency_key="effect-key",
             outcome=ExecutionOutcome.SUCCEEDED,
             error_code=None,
+            actor="actor-a",
+            grant_id="grant-a",
         )
         action = SimpleNamespace(
             action_id=action_id,
@@ -120,6 +122,8 @@ async def test_computer_adapter_rejects_mutation_and_reconciles_without_replay()
         await handler.validate(bound)
     assert captured.value.failure_class is TaskFailureClass.DENIED
     store.grant.action.action_id = "action.safe"
+    assert await handler.reconcile(bound) is None
+    store.receipt.action_id = "action.safe"
     reconciled = await handler.reconcile(bound)
     assert reconciled is not None
     assert coordinator.calls == 0
@@ -203,6 +207,21 @@ async def test_computer_adapter_fails_closed_for_invalid_binding_actor_and_recei
                 arguments={"action_id": "action.safe", "idempotency_key": 1},
             )
         )
+    with pytest.raises(ValueError, match="idempotency key"):
+        await handler.validate(
+            context(
+                arguments={
+                    "action_id": "action.safe",
+                    "idempotency_key": "different-key",
+                }
+            )
+        )
+
+    for field, wrong in (("actor", "foreign-actor"), ("grant_id", "foreign-grant")):
+        original = getattr(store.receipt, field)
+        setattr(store.receipt, field, wrong)
+        assert await handler.reconcile(context(grant_id="grant-a")) is None
+        setattr(store.receipt, field, original)
 
     store.grant.action.actor = "other-actor"
     with pytest.raises(TaskHandlerError, match="grant_actor_mismatch"):

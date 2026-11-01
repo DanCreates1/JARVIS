@@ -113,6 +113,15 @@ current-rounded volume retry pass. Volume proof is bounded to a no-change 100% w
 speakers; earlier headphone readback failure remains. Original default/scalar/mute restored;
 no arbitrary-percentage or all-device qualification. [Controls and recovery](CONTROLLED_WINDOWS.md).
 
+Current Phase 14 extends the existing task engine with deterministic supplied-checklist project
+reviews and optional stored approved research metadata. Migration 020 separates durable pause/cancel
+requests from optimistic execution checkpoints. A content-free SQLite lock file beside the canonical
+database admits one foreground task operation across processes; process death releases the lock,
+then existing orphan reconciliation runs before any dispatch. The lock owns no task data and has no
+time-based takeover. PWA retains its authenticated read-only projection; trusted-local CLI owns
+planning, run, results and controls. No background scheduler, remote scope, provider call or new OS
+effect authority follows. [Workflow and recovery](BOUNDED_TASKS.md).
+
 ## Historical target architecture and technical contracts
 
 > Active delivery architecture (2026-10-22): [Prototype Plan](PROTOTYPE_PLAN.md).

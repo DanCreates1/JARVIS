@@ -254,7 +254,7 @@ async def test_effect_timeout_requires_reconciliation_without_duplicate_executio
     effect = FixtureHandler(
         "effect.slow",
         kind=TaskNodeKind.EFFECT,
-        delay=0.05,
+        delay=0.5,
         reconcile_result=TaskHandlerResult(output={"reconciled": True}),
     )
     service = await scheduler(tmp_path, effect)
@@ -266,7 +266,7 @@ async def test_effect_timeout_requires_reconciliation_without_duplicate_executio
                 id="effect",
                 handler="effect.slow",
                 arguments={},
-                timeout_seconds=0.01,
+                timeout_seconds=0.1,
                 idempotency_key="uncertain-effect",
             )
         ),

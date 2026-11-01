@@ -44,7 +44,10 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
   arbitrary percentages/all outputs unqualified. Fresh release gates and reviewed publication pass.
   [Completion evidence](phase-reports/current/PHASE_13_COMPLETION.md), [controls](CONTROLLED_WINDOWS.md).
   No production activation or automatic live-effect authority.
-- Progress basis: **13/19 primary phase receipts closed (~68%)**; an
+- **Phase 14 complete — Bounded tasks and project workflows.** Trusted-local project reviews,
+  durable foreground controls, restart/ownership acceptance and full release gates pass. Remote monitoring remains
+  read-only. [Completion evidence](phase-reports/current/PHASE_14_COMPLETION.md).
+- Progress basis: **14/19 primary phase receipts closed (~74%)**; an
   unweighted management count, not code/effort percentage or full mobile MVP acceptance.
 - Historical prototype acceptance stays **100% = 10/10 groups**, corpus **8/10**. Full mobile MVP,
   physical acceptance and production readiness remain unestablished.
