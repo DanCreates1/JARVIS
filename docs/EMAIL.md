@@ -1,6 +1,9 @@
 # Private email read and preparation
 
-Status: IA local release; IB live provider integration blocked on fresh authority.
+Status: current Phase 15 `blocked-external`; local read/prepare foundation retained from Legacy IA.
+Provider/account selection precedes live-adapter implementation or access. See
+[current acceptance](phase-reports/current/PHASE_15_PROGRESS.md) and
+[provider/auth decision](EMAIL_PROVIDER_DECISION.md). No live provider is selected or enabled.
 
 Email is default off. IA reads an explicitly configured local folder of owner-exported `.eml`
 messages. It does not log into or discover an account. No credential, OAuth, IMAP, SMTP, provider
@@ -95,8 +98,10 @@ Use existing conversation deletion for private replies; SQL deletion does not se
 backups, terminal output or underlying storage. Keep migration 016 and the private database when
 rolling source back so sticky privacy remains available.
 
-IB needs owner-selected provider/account type, fresh credential/access scopes and a separately
-authorized private mailbox smoke. Review current official OAuth/API documentation then implement
+Current Phase 15 needs owner-selected provider/account type, applicable credential/access scopes
+and an authorized bounded private mailbox smoke. Existing explicit authority persists within scope;
+selection alone does not grant login, new scopes or private reads. Review current official
+OAuth/API documentation then implement
 the adapter behind `EmailReadProvider`. Any provider draft/write/send requires exact existing
 Phase 3 approval plus provider authorization and fresh external-effect authority. No blanket
 send permission transfers from reading email, preparing a draft or Git publication. Stop before
