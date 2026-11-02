@@ -84,6 +84,16 @@ def _etag(value: object) -> str:
     return value
 
 
+def _query_window(window: CalendarWindow) -> CalendarWindow:
+    try:
+        return CalendarWindow(
+            start=window.start.replace(microsecond=0),
+            end=window.end.replace(microsecond=0) + timedelta(seconds=bool(window.end.microsecond)),
+        )
+    except ValidationError:
+        raise CalendarError("calendar_window_limit") from None
+
+
 @dataclass(frozen=True, repr=False)
 class GoogleCalendarAccessToken:
     """Host-only verified grant; never display, cache, log or send to a model/client."""
@@ -256,10 +266,7 @@ class GoogleCalendarReadProvider:
             raise CalendarError("calendar_occurrence_limit")
         events: list[CalendarOccurrence] = []
         seen: set[str] = set()
-        envelope_start = window.start.replace(microsecond=0)
-        envelope_end = window.end.replace(microsecond=0) + timedelta(
-            seconds=bool(window.end.microsecond)
-        )
+        envelope = _query_window(window)
         for item in items:
             event = _object(item)
             if set(event) - {
@@ -304,7 +311,7 @@ class GoogleCalendarReadProvider:
             end, end_day = _instant(event.get("end"), zone)
             if all_day != end_day or end <= start:
                 raise CalendarError("calendar_event_interval")
-            if start >= envelope_end or end <= envelope_start:
+            if start >= envelope.end or end <= envelope.start:
                 raise CalendarError("calendar_provider_window")
             title = event.get("summary", "")
             transparency = event.get("transparency", "opaque")
@@ -359,6 +366,7 @@ class GoogleCalendarReadProvider:
         self._check(generation)
         try:
             window = CalendarWindow.model_validate(window.model_dump(warnings=False))
+            query = _query_window(window)
             async with asyncio.timeout(5):
                 try:
                     token = await self._tokens.acquire()
@@ -402,17 +410,13 @@ class GoogleCalendarReadProvider:
                         or identity["verified_email"] is not True
                     ):
                         raise CalendarError("calendar_account_mismatch")
-                    start = window.start.replace(microsecond=0)
-                    end = window.end.replace(microsecond=0) + timedelta(
-                        seconds=bool(window.end.microsecond)
-                    )
                     data = await self._get(
                         client,
                         generation,
                         "/calendar/v3/calendars/" + quote(self._calendar, safe="") + "/events",
                         {
-                            "timeMin": start.isoformat(),
-                            "timeMax": end.isoformat(),
+                            "timeMin": query.start.isoformat(),
+                            "timeMax": query.end.isoformat(),
                             "maxResults": str(self._max_events),
                             "singleEvents": "true",
                             "showDeleted": "false",

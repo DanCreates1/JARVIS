@@ -524,6 +524,21 @@ async def test_first_live_proof_ceiling_is_enforceable_before_any_later_work() -
             GoogleCalendarReadProvider(ACCOUNT, Tokens(), max_events=limit)
 
 
+async def test_rounded_server_query_cannot_exceed_31_days_before_token_acquisition() -> None:
+    start = WINDOW.start + timedelta(microseconds=1)
+    window = CalendarWindow(start=start, end=start + timedelta(days=31))
+    wire, tokens = Wire(), Tokens()
+    with pytest.raises(CalendarError, match="calendar_window_limit"):
+        await provider(wire, tokens).read(window)
+    assert not wire.requests and tokens.calls == 0
+    whole = CalendarWindow(start=WINDOW.start, end=WINDOW.start + timedelta(days=31))
+    await provider(wire, tokens).read(whole)
+    query = wire.requests[-1].url.params
+    assert datetime.fromisoformat(query["timeMax"]) - datetime.fromisoformat(
+        query["timeMin"]
+    ) == timedelta(days=31)
+
+
 @pytest.mark.parametrize(
     "account,calendar_id",
     [

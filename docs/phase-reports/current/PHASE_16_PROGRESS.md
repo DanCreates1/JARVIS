@@ -83,7 +83,7 @@ concrete inert proposal; [setup review](../../GOOGLE_CALENDAR_SETUP.md) records 
 Frozen Google/local/reminder focused matrix passes **171 tests**, 11.81 s before final formatting;
 new Google subset contains 83 tests. Exact complete-source verification follows below.
 
-Exact frozen Google milestone source passes **2,145 tests**, three existing skips,
+Initial frozen Google milestone source passes **2,145 tests**, three existing skips,
 **86.86%** combined statement/branch coverage, 264.13 s in working checkout. Isolated
 publication source passes **2,143 tests**, three existing skips, **86.81%**, 258.56 s.
 Existing Starlette TestClient deprecation retained; two-test difference belongs to held
@@ -105,6 +105,26 @@ body; corrected to actual asynchronous byte streams without weakening production
 Oversize fixture IDs were shortened to avoid Windows temp-path limits. An initial helper-copy
 shell quoting error was corrected using a file-backed script; only the subsequent nonempty
 staged/exact-source scans count. No production source changed after the final freeze.
+
+Post-review bound correction supersedes the initial Google source receipt: conservative
+whole-second rounding could otherwise widen a fractional 31-day query by one second. A shared
+query-window validator now enforces the original 31-day ceiling **before token acquisition**;
+invalid rounded windows make zero credential/provider calls. Initial live proof will require
+whole-second endpoints and <=7 days. Frozen final v2 focused matrix: **172 pass**, 11.98 s.
+Final exact isolated source: **2,144 pass**, three existing skips, **86.81%**, 257.13 s.
+Final working source: **2,146 pass**, three existing skips, **86.86%**, 225.93 s.
+Ruff format/lint/Mypy and rebuilt/installed exact-wheel synthetic smoke pass again; PWA,
+dependency and lock source remain identical to their passing receipts above.
+
+The first v2 working run had 2,145 passes plus one unrelated `WinError 5` during atomic replace
+of a synthetic voice-settings fixture. No Calendar assertion failed. A fresh ignored absolute
+basetemp passes all 18 voice diagnostics, then the complete working gate passes in a separate
+new ignored directory. No voice source, assertion, permission policy, coverage floor or gate
+was changed or skipped. Failed-run evidence remains retained and is not a full pass.
+Final source hashes use `tested-source.json`; `tested-source-v1.json` preserves earlier hashes.
+Final coverage logs are `google-working-v2-fresh` / `google-isolated-v2` and corresponding
+`working-coverage-v2-fresh.json` / `isolated-coverage-v2.json`. Documentation updated only after
+final tests. Prepared read/renewal approval remains pending; no auth or live activity occurred.
 
 ### Local foundation — prior verified work
 

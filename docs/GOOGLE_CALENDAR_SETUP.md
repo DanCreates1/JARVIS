@@ -29,7 +29,7 @@ Review and approve together before external setup/access:
    entry replacement, refresh-token rotation, account changes or scope expansion. This grants
    no unattended acquisition authority. Existing Gmail credentials remain separate.
 
-4. Grant one explicit foreground primary-calendar acceptance read: owner-selected interval
+4. Grant one explicit foreground primary-calendar acceptance read: owner-selected whole-second interval
    **<=7 days**, **<=100 expanded entries**, one verified-email identity GET and one event-page
    GET, five-second read deadline, zero retries/pagination. Inspect only bounded basic event
    evidence and prepare an unsent local proposal; evidence output must contain counts/booleans,
@@ -85,7 +85,9 @@ fail the entire operation. No partial availability claim. Recurrence is expanded
 fail closed. Cancelled tombstones are not busy and may lack time/title. Moved instances retain
 identity through originalStartTime. Date-only end is exclusive and uses calendar timezone.
 Timed values require explicit offsets; a supplied IANA timezone must agree with that offset.
-Exact subsecond windows are filtered locally after a conservative whole-second server query.
+Exact subsecond windows are filtered locally after a conservative whole-second server query;
+the rounded query must also fit 31 days, or fail before token acquisition. Initial proof uses
+whole-second endpoints and a seven-day ceiling.
 Cancelled/transparent events do not conflict; adjacent intervals do not overlap.
 
 ETags, normalized source/window and stable ordered response metadata bind revisions. Changes
