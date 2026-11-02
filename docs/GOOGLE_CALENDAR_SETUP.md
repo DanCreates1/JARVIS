@@ -22,6 +22,13 @@ Review and approve together before external setup/access:
 3. Request exactly:
    - `https://www.googleapis.com/auth/calendar.events.owned.readonly`
    - `https://www.googleapis.com/auth/userinfo.email`
+
+   Include offline access for **explicit foreground same-account renewal**, not background
+   polling. Store the exact account/client/primary/scope-bound refresh grant in a distinct
+   per-user Windows Credential Manager entry; access tokens remain volatile. Refuse existing
+   entry replacement, refresh-token rotation, account changes or scope expansion. This grants
+   no unattended acquisition authority. Existing Gmail credentials remain separate.
+
 4. Grant one explicit foreground primary-calendar acceptance read: owner-selected interval
    **<=7 days**, **<=100 expanded entries**, one verified-email identity GET and one event-page
    GET, five-second read deadline, zero retries/pagination. Inspect only bounded basic event

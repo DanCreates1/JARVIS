@@ -161,7 +161,10 @@ Current Google/primary selection supersedes that missing-choice blocker. Require
 OAuth setup/grant and actual authorized read remain unavailable; provider selection does not
 approve them. [Prepared review](../../GOOGLE_CALENDAR_SETUP.md) groups Calendar API/client,
 two scopes, exact primary target and one <=7-day/100-entry proof. No external setup, new login,
-grant, identity/calendar read or protected auth-store creation attempted. Gmail approval persists
+grant persistence/renewal or identity/calendar read is authorized yet. The prepared review explicitly
+includes distinct protected Windows refresh-grant storage and bounded foreground same-account
+renewal; no background use, token replacement or scope expansion.
+No grant, identity/calendar read or protected auth-store creation attempted. Gmail approval persists
 within its existing email scope. Protected calendar login/storage/renewal remains a subsequent
 implementation milestone; current source cannot activate a live calendar by itself.
 
