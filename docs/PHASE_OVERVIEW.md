@@ -1,6 +1,6 @@
 # JARVIS Phase Overview
 
-Navigation view, **2026-10-31**. [Master Roadmap](JARVIS_MASTER_ROADMAP.md) is the **single status
+Navigation view, **2026-11-01**. [Master Roadmap](JARVIS_MASTER_ROADMAP.md) is the **single status
 ledger** and owns scope/dependencies. [Phase Execution](PHASE_EXECUTION.md) owns commands;
 [current reports](phase-reports/current/) hold acceptance evidence. Old phase numbers are legacy
 aliases; the [crosswalk](JARVIS_MASTER_ROADMAP.md#historical-alias-map) resolves collisions.
@@ -56,6 +56,11 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
   [provider/auth decision](EMAIL_PROVIDER_DECISION.md). Local exports remain available; no live access.
 - Historical prototype acceptance stays **100% = 10/10 groups**, corpus **8/10**. Full mobile MVP,
   physical acceptance and production readiness remain unestablished.
+- **Phase 16 blocked-external — Calendar and reminders.** Explicit bounded local ICS inspection,
+  conflict/change proposals and owner-authored drafts reuse existing Core/foreground reminder
+  controls. [Contract](CALENDAR.md), [progress](phase-reports/current/PHASE_16_PROGRESS.md).
+  Working/isolated full gates and Windows synthetic/installed-wheel proof pass. Selected
+  source/provider and authorized live-read evidence pending; no new scopes or worker.
 
 ## Remaining delivery map
 

@@ -25,6 +25,7 @@ from jarvis import __version__
 from jarvis.attachments import AttachmentError, AttachmentService, AttachmentType, AttachmentUpload
 from jarvis.attachments.models import MAX_UPLOAD_BYTES
 from jarvis.bootstrap import build_runtime
+from jarvis.calendar.cli import app as calendar_app
 from jarvis.coding_context import CodingContextError, build_coding_context
 from jarvis.config import Settings
 from jarvis.core import (
@@ -112,6 +113,7 @@ app = typer.Typer(
     no_args_is_help=True,
     add_completion=False,
 )
+app.add_typer(calendar_app, name="calendar")
 voice_app = typer.Typer(
     name="voice",
     help="Local push-to-talk, devices, kill switch, and diagnostics.",
