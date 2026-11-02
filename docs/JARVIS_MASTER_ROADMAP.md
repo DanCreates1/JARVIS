@@ -62,7 +62,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [13](#phase-13--controlled-windows-actions) | Controlled Windows actions | complete | 7 | Current app/STOP and bounded volume retry pass; recovery, automated release gates and reviewed publication |
 | [14](#phase-14--bounded-tasks-and-project-workflows) | Bounded tasks and project workflows | complete | 7; 13 for action-bearing flows | Bounded project review, durable foreground controls, current recovery/release gates and reviewed publication |
 | [15](#phase-15--email) | Email | blocked-external | 7 | Gmail bounded reads/protected auth/default-off composition implemented; approved project/client setup and actual auth/live acceptance pending |
-| [16](#phase-16--calendar-and-reminders) | Calendar and reminders | blocked-external | 7 | Local ICS/read/prepare/reminder foundation and release gates pass; selected source/provider and authorized live proof pending |
+| [16](#phase-16--calendar-and-reminders) | Calendar and reminders | blocked-external | 7 | Google primary selected; bounded inactive read adapter and local foundation; protected auth/new grant/live proof pending |
 | [17](#phase-17--background-scheduling-and-proactivity) | Background scheduling and proactivity | not-started | 14 | Existing inert/foreground policy; explicit bounded worker and opt-in |
 | [18](#phase-18--daily-briefing) | Daily briefing | not-started | 10, 15, 16, 17; 8 only for Garmin content | Compose approved sources with honest freshness/omissions |
 | [19](#phase-19--laptoppwa-release-and-operations) | Laptop/PWA release and operations | not-started | 7–18 | Integrated release, recovery, maintenance and honest acceptance receipt |
@@ -287,8 +287,10 @@ Status: **blocked-external**, 2026-11-01. [Current progress](phase-reports/curre
 conflict evidence and unsent proposals reuse Core CLI; reminders use existing inert proactivity
 draft/activation/lifecycle. No provider account, calendar scope, writes or worker activated.
 Current synthetic Windows read/proposal/reminder lifecycle, working/isolated full release gates
-and installed-wheel checks pass. Selected source/provider and authorized live-read evidence
-remain pending.
+and installed-wheel checks pass for the local foundation. Owner selected Google primary calendar
+on the Phase 15 personal account. Inactive bounded Google read/service adapter and
+[concrete setup review](GOOGLE_CALENDAR_SETUP.md) prepared; new calendar grant, protected auth
+and authorized live-read evidence remain pending. Gmail access grants no calendar authority.
 
 Outcome: inspect events, detect conflicts, prepare changes and manage owner-authored reminders.
 Add a provider-neutral adapter reusing identity/secret/permission boundaries; select provider and
@@ -433,8 +435,9 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 **Next: Continue Phase 16 — Calendar and reminders.** Owner initiated Phase 16 independently of
 Phase 15's external setup blocker. Read [calendar progress](phase-reports/current/PHASE_16_PROGRESS.md),
 [contract](CALENDAR.md), this roadmap, [Phase Execution](PHASE_EXECUTION.md) and current architecture.
-Resolve selected explicit source/provider and applicable live-read authority; repository implementation
-and current automated gates pass. Phase 15 remains blocked on its approved Gmail setup/live proof;
+Review the selected Google primary-calendar [setup decision](GOOGLE_CALENDAR_SETUP.md), then resolve
+new scopes/protected auth and live-read authority. Local foundation gates pass; current adapter
+verification is in the progress report. Phase 15 remains blocked on its approved Gmail setup/live proof;
 no calendar grant is inherited from email. No provider write/send or unattended polling authority
 is inherited.
 Preserve held provider/native changes, prototype-text, current locks, Wikimedia/legacy limits,

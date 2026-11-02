@@ -121,3 +121,31 @@ def reminder(title: str, at: str, timezone: str = typer.Option(...)) -> None:
         )
     except (CalendarError, ValidationError) as exc:
         _error(exc)
+
+
+@app.command("google-plan")
+def google_plan() -> None:
+    """Show selected primary-calendar read plan. No account/credential read, login or activation."""
+    from .google import GOOGLE_CALENDAR_SCOPES
+
+    _print(
+        json.dumps(
+            {
+                "provider": "google",
+                "target": "primary",
+                "account": "same-personal-account-as-phase-15",
+                "enabled": False,
+                "scopes_proposed": sorted(GOOGLE_CALENDAR_SCOPES),
+                "initial_proof_max_days": 7,
+                "initial_proof_max_events": 100,
+                "operation_seconds": 5,
+                "identity_gets": 1,
+                "calendar_gets": 1,
+                "login_implemented": False,
+                "owner_credentials_accessed": False,
+                "approval_granted": False,
+                "provider_writes": 0,
+                "background_worker": False,
+            }
+        )
+    )
