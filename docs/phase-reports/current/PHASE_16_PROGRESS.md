@@ -1,10 +1,10 @@
 # Phase 16 — Calendar and reminders
 
 - Status: `blocked-external`
-- Started / updated: 2026-11-01 / 2026-11-01
+- Started / updated: 2026-11-01 / 2026-11-04
 - Namespace: current numbered roadmap
 - Recommended Codex model / reasoning: gpt-6-astra / ultra (recommendation only)
-- Session start / five-hour stop: first captured clock 2026-11-01 19:33 / 2026-11-02 00:33 America/Toronto
+- Session start / five-hour stop: 2026-11-04 17:47 / 2026-11-04 22:47 America/Toronto
 
 ## Objective and scope
 
@@ -13,13 +13,15 @@ owner-authored foreground reminder policy. Phase 7 dependency is complete. Phase
 is independently blocked; no email access is required. Read historical expansion J,
 security, execution protocol, full roadmap and current architecture before implementation.
 Local foundation used an explicit `.ics` source; owner now selected Google primary calendar.
-No ambient account discovery,
-network, provider mutation, invitations, background worker, client scopes or model tools.
+No ambient account discovery, automatic provider acquisition, provider mutation, invitations,
+background worker, client scopes or model tools. Live acquisition requires applicable approval.
 
 ## Baseline and preservation
 
 Baseline `fc0a54f`, branch `main`. Existing dirty provider/native/documentation changes
 remain held, including shared architecture/security files. Snapshot exact bytes before edits.
+Original initiation clock 2026-11-01 19:33, five-hour stop 2026-11-02 00:33 America/Toronto;
+current resumption is recorded above and in the milestone log.
 Reuse installed Python/ZoneInfo/tzdata, typed Core models, CLI and existing proactivity
 store/preview/activation/disable/delete/foreground runner. No new scheduler or credential store.
 Primary contracts checked: RFC 5545, Python ZoneInfo, Google Calendar event-list/auth docs.
@@ -44,6 +46,76 @@ Provider selection is missing information, not permission for account access.
   required live read evidence.
 
 ## Milestone log
+
+### Protected foreground auth preparation — 2026-11-04
+
+Resume baseline `57b0709`, `main`; all 32 held paths and installed package inventory frozen
+under ignored `runtime/phase16/auth/`. First captured clock 17:47 America/Toronto; five-hour
+stop 22:47. Setup, new grant and private live read remain unapproved. This milestone implements
+inactive local entry points and synthetic verification only; it grants no external authority.
+
+Frozen acceptance before measurement: exact account/client/primary/two-scope protected grant;
+separate Windows Credential Manager namespace; volatile access tokens; create refuses replacement;
+foreground renewal refuses scope expansion/refresh-token rotation; local deletion rechecked before
+cached use and after renewal. Adapt the published reviewed Gmail PKCE/loopback/token transport and
+protected-secret protocol without changing or importing held Gmail credentials. Callback bounded
+to 180 seconds, eight requests/four active handlers, strict state/Host/path/issuer/body validation;
+token and verified-email responses <=16 KiB with five-second deadlines, no redirects/retries/proxies.
+Verify exact account before persistence. No event acquisition during login.
+
+Initial proof validates whole-second <=7-day window before client/store access, configures <=100
+entries, and makes one identity GET plus one event GET within the existing five-second deadline
+including foreground renewal. Prepare one unsent cancellation from the volatile observed snapshot,
+without reacquisition; empty calendar reports preparation unavailable honestly. Only counts/booleans
+leave the command. Synthetic matrix must cover denial/default-off, hostile callbacks, malformed
+client/token/store/identity, scope/account/calendar binding, restart/deletion/rotation/cancellation,
+Windows synthetic-only storage, full auth/read/prepare composition and private-output exclusion.
+Full working/isolated gates and exact publication are recorded below; live acceptance stays pending.
+
+Implemented explicit `google-auth`, `google-disconnect` and `google-proof`; normal runtime and
+service factory stay default-off. Calendar-owned auth adapts published reviewed Gmail protocol
+code so no held Gmail source/store must be changed or imported. Distinct grant namespace and
+primary/two-scope blob binding, bounded login/renewal, no replacement/rotation and pre-access
+CLI confirmations pass the synthetic matrix. Login performs no event read. Proof reuses one
+volatile observed snapshot for conflict counting and unsent preparation; empty inventory reports
+read success with preparation unavailable rather than claiming full acceptance.
+
+Final focused matrix **288 pass**, 20.69 s. Frozen working source **2,263 pass**, three existing
+skips, **86.89%** combined statement/branch coverage, 274.71 s. Initial isolated source based on
+`57b0709` also passes **2,261**, three skips, **86.85%**, 273.56 s, but is superseded for publication
+by a new exact-source run after concurrent Gmail publication `3acf8a4`. That independent commit
+contains four Gmail compatibility/setup/report paths; no Calendar source changed. Original held
+snapshot has 30 byte/deletion-identical paths and two separately edited Gmail docs. All original
+held paths stay outside this Calendar patch; no native/provider/configuration edit is swept in.
+Current root package inventory is restored exactly after locked base sync/audit and optional-extra
+sync/audit. No dependency or lock changes. Final isolated publication source based on `3acf8a4`:
+**2,264 pass**, three existing skips, **86.85%** combined coverage, 237.57 s. Working/isolated
+count difference belongs to preserved held source; no test, assertion or floor waived. Existing
+Starlette TestClient deprecation retained. Final installed-wheel smoke, Ruff/Mypy/audit and
+isolated PWA **175**, desktop **72**, prototype **9** gates pass again. Frozen Calendar code
+unchanged; documentation alone updated after these suites.
+
+Reviewed 14 safe paths, nine frozen code/test hashes, 150 local links/anchors and 618 exact source
+files. Built/installed publication wheel matches frozen Calendar source. Actual Windows synthetic
+auth/storage/renewal/read/prepare/deletion smoke passes: five mocked transport requests, exact
+create refuses replacement, cached acquisition denies deleted grant, synthetic credential removed.
+**Zero real Google requests**, owner credentials, provider mutations, model calls or spend.
+Ruff format/lint/Mypy (187 source files), root optional/base and Garmin locks/sync/audits, PWA
+lifecycle/PCM **175**, desktop **72**, prototype **9**, history/exact-source secret scans pass.
+
+Development receipts: first focused run caught the obsolete `login_implemented=false` plan
+assertion; updated it to implemented-but-inactive. Hash-required wheel dependency install initially
+inherited an unpinned root constraint (`filelock>=4.2.1`); reinstalling the exact hash-pinned exported
+lock with `uv --no-config pip install --require-hashes` succeeds, without modifying locks or package
+versions. Initial prototype wrapper lost a PowerShell environment-variable assignment; file-backed
+explicit environment rerun passes all nine prototype cases. Review intentionally rejected a moved
+HEAD before staging; created a new isolated worktree at `3acf8a4`, preserving the old tested source.
+Dependent missing-directory scan failures receive no pass credit; subsequent nonempty exact-source
+scan passes. Initial isolated prototype helper also used a missing relative evidence-helper path;
+absolute helper-path correction passes nine cases. Existing CRLF/LF checkout differences explain
+raw non-task source byte differences; all 430 non-held source/test/script paths match after newline
+normalization, and all nine task code/test hashes match exactly. No production assertion, coverage
+threshold or security/approval boundary weakened.
 
 ### Google Calendar selection — 2026-11-01
 
@@ -184,9 +256,12 @@ two scopes, exact primary target and one <=7-day/100-entry proof. No external se
 grant persistence/renewal or identity/calendar read is authorized yet. The prepared review explicitly
 includes distinct protected Windows refresh-grant storage and bounded foreground same-account
 renewal; no background use, token replacement or scope expansion.
-No grant, identity/calendar read or protected auth-store creation attempted. Gmail approval persists
-within its existing email scope. Protected calendar login/storage/renewal remains a subsequent
-implementation milestone; current source cannot activate a live calendar by itself.
+No owner grant, identity/calendar read or owner protected auth-store creation attempted. Gmail
+approval persists within its existing email scope. Protected Calendar login/storage/renewal and
+aggregate proof are now implemented for explicit trusted-local use, with synthetic-only testing;
+normal runtime/bootstrap remains inactive. Approval is still required for external setup, new
+consent/protected owner-grant creation and the selected live read. This follows root AGENTS.md's
+consequential-action policy, not a routine repository permission gate. No Phase 17 work started.
 
 ## Verification and measurements
 
@@ -217,8 +292,8 @@ Local export freshness cannot prove current provider state. Unsupported ICS sema
 the whole snapshot; conflict absence never proves availability across missing sources. No remote
 PWA calendar scope, chat integration or notifications. Existing reminder controls remain off.
 Google adapter remains inactive without a trusted approved token source. Protected calendar
-login/store/renewal and live CLI/proof implementation are not yet present; the inert plan
-reports this explicitly. Google primary/account selection is settled; scope/setup authority
+login/store/foreground renewal and live CLI/proof implementation are present; no real invocation
+or production configuration is inferred. Google primary/account selection is settled; scope/setup authority
 and actual authenticated read proof remain external requirements. Do not reuse Gmail auth or
 connected-chat credentials to bridge that boundary. [Prepared setup](../../GOOGLE_CALENDAR_SETUP.md)
 states scope breadth, data minimization and remaining implementation/recovery requirements.
@@ -233,9 +308,11 @@ records placement/lifecycle/recovery. Exact staged/publication agreement, root r
 fresh exact-commit CI are separately checked during publication and retained in ignored receipt
 plus final handoff. No phase completion or live provider acceptance inferred from publication.
 Progress **14/19 primary receipts closed (~74%)**, unweighted management count;
-mobile/physical acceptance remains unestablished. The Google milestone publishes only its ten
-reviewed paths; source hashes, exact tested/publication tree, refs and fresh CI are separately
-retained in the ignored Google publication receipt and final handoff. Next current phase:
+mobile/physical acceptance remains unestablished. Original Google read-adapter milestone published
+ten reviewed paths; the 2026-11-04 protected-auth milestone contains 14 reviewed paths. Source
+hashes, exact tested/publication tree, refs and fresh CI are separately retained in ignored
+`runtime/phase16/auth/` receipts and final handoff. No live/provider/phase completion inferred.
+Next current phase:
 **Continue Phase 16** with selected Google primary/same personal account, prepared setup
-decision, protected-auth implementation and applicable live-read authority. Phase 15 remains
+decision, actual protected auth and applicable live-read authority. Phase 15 remains
 independently blocked; Phase 17 is not started by this report.

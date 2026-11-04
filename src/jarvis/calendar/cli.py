@@ -6,7 +6,7 @@ import asyncio
 import json
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 import typer
 from pydantic import ValidationError
@@ -141,7 +141,7 @@ def google_plan() -> None:
                 "operation_seconds": 5,
                 "identity_gets": 1,
                 "calendar_gets": 1,
-                "login_implemented": False,
+                "login_implemented": True,
                 "owner_credentials_accessed": False,
                 "approval_granted": False,
                 "provider_writes": 0,
@@ -149,3 +149,106 @@ def google_plan() -> None:
             }
         )
     )
+
+
+@app.command("google-auth")
+def google_auth(
+    account: Annotated[str, typer.Option()], client_file: Annotated[Path, typer.Option()]
+) -> None:
+    """Explicit new Calendar consent; requires approved project/client setup first."""
+    from .google import _account
+    from .google_auth import authorize_desktop, load_desktop_client
+    from .google_credentials import WindowsGoogleCalendarCredentials
+
+    try:
+        account = _account(account)
+        typer.echo(
+            "Setup must already be owner-approved. Google consent requests "
+            "calendar.events.owned.readonly and userinfo.email, including offline foreground "
+            "renewal. The scope covers all owned calendars; JARVIS binds only primary. "
+            "Login verifies your exact email, then creates a separate protected Windows grant. "
+            "No event read, write, background worker or Gmail credential access."
+        )
+        if not typer.confirm("Authorize this exact Calendar account/client now?", default=False):
+            raise typer.Exit(0)
+        client = load_desktop_client(client_file)
+        store = WindowsGoogleCalendarCredentials(account, client.client_id)
+        asyncio.run(authorize_desktop(account, client, store))
+    except CalendarError as exc:
+        _error(exc)
+    except typer.Exit:
+        raise
+    except Exception:
+        _error(CalendarError("calendar_auth_unavailable"))
+    typer.echo("Protected Calendar grant created. No events read; acquisition remains explicit.")
+
+
+@app.command("google-disconnect")
+def google_disconnect(
+    account: Annotated[str, typer.Option()], client_file: Annotated[Path, typer.Option()]
+) -> None:
+    """Delete this exact local Calendar grant only. Does not revoke Google consent."""
+    from .google import _account
+    from .google_auth import load_desktop_client
+    from .google_credentials import WindowsGoogleCalendarCredentials
+
+    try:
+        account = _account(account)
+        typer.echo(
+            "Stop Calendar commands/Core processes first. Delete only this exact local "
+            "account/client/primary grant. Google consent remains until separately revoked."
+        )
+        if not typer.confirm("Delete this exact local Calendar refresh grant?", default=False):
+            raise typer.Exit(0)
+        client = load_desktop_client(client_file)
+        WindowsGoogleCalendarCredentials(account, client.client_id).delete()
+    except CalendarError as exc:
+        _error(exc)
+    except typer.Exit:
+        raise
+    except Exception:
+        _error(CalendarError("calendar_store_unavailable"))
+    typer.echo("Local Calendar grant removed. Google consent and Gmail grants unchanged.")
+
+
+@app.command("google-proof")
+def google_proof(
+    start: str,
+    end: str,
+    account: Annotated[str, typer.Option()],
+    client_file: Annotated[Path, typer.Option()],
+) -> None:
+    """Explicit <=7-day/100-entry proof. Aggregate output, no cached events or provider writes."""
+    from .google import GoogleCalendarReadProvider, _account
+    from .google_auth import ProtectedGoogleCalendarTokenSource, load_desktop_client
+    from .google_credentials import WindowsGoogleCalendarCredentials
+    from .google_proof import proof_window, selected_calendar_proof
+
+    try:
+        window = proof_window(CalendarWindow(start=_time(start), end=_time(end)))
+        account = _account(account)
+        typer.echo(
+            "Read this primary-calendar interval (<=7 days, <=100 expanded entries) with one "
+            "verified-email GET and one event GET within five seconds, including foreground "
+            "renewal if needed. Prepare an unsent local proposal if an event exists. "
+            "Output contains counts/booleans only. No write, login, retry or background use."
+        )
+        if not typer.confirm("Perform this bounded private Calendar read now?", default=False):
+            raise typer.Exit(0)
+        client = load_desktop_client(client_file)
+        provider = GoogleCalendarReadProvider(
+            account,
+            ProtectedGoogleCalendarTokenSource(
+                account, client, WindowsGoogleCalendarCredentials(account, client.client_id)
+            ),
+            enabled=True,
+            max_events=100,
+        )
+        result = asyncio.run(selected_calendar_proof(provider, window))
+        _print(json.dumps(result))
+    except (CalendarError, ValidationError) as exc:
+        _error(exc)
+    except typer.Exit:
+        raise
+    except Exception:
+        _error(CalendarError("calendar_provider_unavailable"))

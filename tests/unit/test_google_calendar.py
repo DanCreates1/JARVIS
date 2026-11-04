@@ -507,7 +507,7 @@ def test_google_plan_cli_is_inert_and_explicit() -> None:
     assert result.exit_code == 0, result.output
     plan = json.loads(result.output)
     assert plan["target"] == "primary" and not plan["enabled"] and not plan["approval_granted"]
-    assert not plan["login_implemented"] and not plan["owner_credentials_accessed"]
+    assert plan["login_implemented"] and not plan["owner_credentials_accessed"]
     assert plan["scopes_proposed"] == sorted(GOOGLE_CALENDAR_SCOPES)
 
 
