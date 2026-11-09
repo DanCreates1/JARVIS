@@ -1,6 +1,6 @@
 # Phase 17 — Background scheduling and proactivity
 
-- Status: `implemented-closeout-pending`
+- Status: `complete`
 - Started / updated: 2026-11-08 / 2026-11-08
 - Namespace: current numbered roadmap
 - Recommended Codex model / reasoning: gpt-6-astra / ultra (recommendation only)
@@ -47,7 +47,7 @@ Frozen before implementation or measurement:
 - [x] Full working and exact isolated-publication gates; >=85% combined branch/statement coverage,
   root/base/restored optional/Garmin audits, PWA/prototype checks, installed-wheel smoke,
   secrets/links/whitespace review.
-- [ ] Safe publication and fresh exact-commit CI; development and local acceptance complete.
+- [x] Safe publication and fresh exact-commit CI; development and local acceptance complete.
 - [x] Manual phone checks **skipped by owner; unverified**. No physical/native/MVP acceptance.
 
 ## Milestone log
@@ -116,7 +116,7 @@ No new dependencies, provider scopes, device enrollment or real calendar/email a
 
 ## Verification and measurements
 
-Final V4 automated source gates and real-clock V3 worker soak pass; publication CI pending.
+Final V4 automated source gates, real-clock V3 worker soak and fresh source-publication CI pass.
 Raw evidence stays under ignored `runtime/phase17/`. Worker/runner/store/model/SQL/benchmark
 hashes agree exactly between the V3 soak source and V4 publication; the V4-only change is the
 trusted-local CLI full-digest check plus its regression. Complete V4 suites and installed wheel
@@ -141,6 +141,19 @@ native changes and current architecture document remain unchanged. Original opti
 package inventory is restored exactly. Full working/isolated source gates, installed exact wheel,
 simulation, soak, recovery/removal, audits and source/link/secret/whitespace review pass.
 Repository workflows contain CI only; no deployment or notification step is introduced.
-Task-only commit/push and fresh exact-commit CI remain the closeout gate, recorded separately in
-ignored receipts and final handoff. Progress remains 14/19 primary receipts closed (~74%) until
-that gate closes. No Phase 18 implementation, production activation or external notification.
+Task-only source published as `920f682cf8eba0fa06e363f5dc7800ff95855a81`; HEAD/tracking/live remote
+agreement and all held hashes verified. Fresh exact-source [Windows quality and secret CI](https://github.com/DanCreates1/JARVIS/actions/runs/42547080563)
+passes. This documentation closeout changes no code, test, migration, dependency, profile or
+production control. Its final commit/ref agreement, source/held preservation and independently
+fresh CI are checked again after publication and retained in ignored receipts plus final handoff;
+the earlier run is not substituted for a later commit.
+
+Selected Phase 17 acceptance is complete. Production activation, external notifications, source
+acquisition, autonomous task execution and physical/native/MVP acceptance remain excluded.
+Phone checks remain **skipped by owner; unverified**. Phase 15/16 provider setup/grant/live-proof
+blockers remain independent. No Phase 18 implementation started.
+
+Progress: **15/19 primary receipts closed (~79%)**, an unweighted management count, not code/
+effort or mobile MVP acceptance. Next current phase is **Phase 18 — Daily briefing**, unstarted;
+review actual Phase 15/16 prerequisite contracts and unresolved approved-source/live authority
+before its acceptance. No automatic next-phase work, provider activation or new permission.

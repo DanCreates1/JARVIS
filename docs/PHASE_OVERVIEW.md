@@ -47,7 +47,7 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
 - **Phase 14 complete — Bounded tasks and project workflows.** Trusted-local project reviews,
   durable foreground controls, restart/ownership acceptance and full release gates pass. Remote monitoring remains
   read-only. [Completion evidence](phase-reports/current/PHASE_14_COMPLETION.md).
-- Progress basis: **14/19 primary phase receipts closed (~74%)**; an
+- Progress basis: **15/19 primary phase receipts closed (~79%)**; an
   unweighted management count, not code/effort percentage or full mobile MVP acceptance.
 - **Phase 15 blocked-external — Email.** Personal Gmail / desktop OAuth / `gmail.readonly`
   selected. Bounded read adapter/protected Windows auth/default-off composition implemented.
@@ -66,9 +66,9 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
 
 ## Remaining delivery map
 
-Phase 17 is **implemented-closeout-pending**: development, full source gates and isolated
-1,800-tick Windows soak pass; task-only publication/fresh CI pending.
-[Progress](phase-reports/current/PHASE_17_PROGRESS.md), [bounded controls](BACKGROUND_PROACTIVITY.md).
+Phase 17 is **complete**: exact opt-in worker, full source gates, isolated 1,800-tick Windows
+soak, task-only source publication and fresh exact-source CI pass.
+[Completion](phase-reports/current/PHASE_17_COMPLETION.md), [bounded controls](BACKGROUND_PROACTIVITY.md).
 Production activation/external notifications excluded; Phase 18 remains unstarted.
 
 Definitions, exact prerequisites, current status and gates are in the master:

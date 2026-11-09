@@ -104,5 +104,5 @@ Fresh temporary state stays under ignored `runtime/`. The harness reuses the fix
 tick p95 <=50 ms, CPU <=5% of one logical core, RSS growth <=50 MiB. It checks duplicate/private
 exclusion, removes rule/worker-plan state, proves a synthetic ordinary Core turn still works,
 then removes temporary state. Shortened runs cannot pass `--enforce`. This is a synthetic oracle,
-not a human usefulness study or production acceptance. See [current evidence](phase-reports/current/PHASE_17_PROGRESS.md).
+not a human usefulness study or production acceptance. See [current evidence](phase-reports/current/PHASE_17_COMPLETION.md).
 Phone checks remain **skipped by owner; unverified**.
