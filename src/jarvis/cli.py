@@ -95,6 +95,7 @@ from jarvis.proactivity import (
     TriggerEvent,
     TrustedActivation,
 )
+from jarvis.proactivity.worker_cli import app as background_app
 from jarvis.remote.migration import MigrationError, MigrationErrorCode
 from jarvis.remote.topology import TopologyManifest
 from jarvis.research import (
@@ -162,6 +163,7 @@ proactive_app = typer.Typer(
     no_args_is_help=True,
 )
 app.add_typer(proactive_app, name="proactive")
+proactive_app.add_typer(background_app, name="background")
 remote_app = typer.Typer(
     name="remote",
     help="Trusted-local device enrollment, inventory, revocation, and identity audit.",
@@ -654,8 +656,11 @@ def proactive_status() -> None:
         f"concurrency={settings.proactivity_max_concurrency}\n"
         f"Foreground runner: {'enabled' if settings.proactivity_runner_enabled else 'disabled'}; "
         f"task handoff: {'enabled' if settings.proactivity_task_handoff_enabled else 'disabled'}\n"
-        "No background runner or daemon, automatic task execution, approval creation, external "
-        "sender, or cloud disclosure is installed."
+        "No background runner starts automatically. Background evaluation requires separate "
+        "exact bounded local consent and explicit "
+        "proactive background run; inspect/stop with proactive background status/stop. "
+        "No service, automatic task execution, approval creation, external sender, "
+        "or cloud disclosure."
     )
 
 

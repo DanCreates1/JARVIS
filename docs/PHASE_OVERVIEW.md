@@ -1,6 +1,6 @@
 # JARVIS Phase Overview
 
-Navigation view, **2026-11-04**. [Master Roadmap](JARVIS_MASTER_ROADMAP.md) is the **single status
+Navigation view, **2026-11-08**. [Master Roadmap](JARVIS_MASTER_ROADMAP.md) is the **single status
 ledger** and owns scope/dependencies. [Phase Execution](PHASE_EXECUTION.md) owns commands;
 [current reports](phase-reports/current/) hold acceptance evidence. Old phase numbers are legacy
 aliases; the [crosswalk](JARVIS_MASTER_ROADMAP.md#historical-alias-map) resolves collisions.
@@ -65,6 +65,11 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
   no new scopes or worker activated.
 
 ## Remaining delivery map
+
+Phase 17 is **implemented-closeout-pending**: development, full source gates and isolated
+1,800-tick Windows soak pass; task-only publication/fresh CI pending.
+[Progress](phase-reports/current/PHASE_17_PROGRESS.md), [bounded controls](BACKGROUND_PROACTIVITY.md).
+Production activation/external notifications excluded; Phase 18 remains unstarted.
 
 Definitions, exact prerequisites, current status and gates are in the master:
 

@@ -6,6 +6,7 @@ import asyncio
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Self
 from uuid import uuid4
 
 import aiosqlite
@@ -14,6 +15,7 @@ from pydantic import ValidationError
 from jarvis.memory.sqlite_store import SQLiteConversationStore
 from jarvis.planning import TaskRecord, TaskStatus
 
+from .models import ProactivityRule
 from .runner_models import (
     CandidateDispatch,
     DispatchState,
@@ -22,6 +24,7 @@ from .runner_models import (
     RunnerEvent,
     RunnerEventType,
 )
+from .worker_models import WorkerPermit, check_worker_permit, check_worker_rule
 
 
 class ProactivityRunnerStoreError(RuntimeError):
@@ -81,7 +84,7 @@ class SQLiteProactivityRunnerStore:
             if connection is not None:
                 await connection.close()
 
-    async def __aenter__(self) -> SQLiteProactivityRunnerStore:
+    async def __aenter__(self) -> Self:
         await self.initialize()
         return self
 
@@ -101,6 +104,8 @@ class SQLiteProactivityRunnerStore:
         lease_seconds: int,
         notification_ttl_seconds: int,
         now: datetime | None = None,
+        worker_permit: WorkerPermit | None = None,
+        enabled_features: frozenset[str] | None = None,
     ) -> tuple[CandidateDispatch | None, bool]:
         if not runner_id.strip() or len(runner_id) > 200:
             raise ValueError("runner ID must be nonblank and at most 200 characters")
@@ -110,10 +115,19 @@ class SQLiteProactivityRunnerStore:
             raise ValueError("notification TTL must be 60 through 86400 seconds")
         timestamp = _aware(now or datetime.now(UTC))
         encoded_now = _encode(timestamp)
+        feature_filter = ""
+        feature_params: tuple[str, ...] = ()
+        if enabled_features is not None:
+            feature_params = tuple(sorted(enabled_features))
+            feature_filter = " AND c.feature IN (" + ",".join("?" for _ in feature_params) + ")"
+        if worker_permit is not None:
+            feature_filter += " AND c.scheduled_for <= ?"
+            feature_params += (encoded_now,)
         async with self._operation_lock:
             connection = await self._get_connection()
             try:
                 await connection.execute("BEGIN IMMEDIATE")
+                await check_worker_permit(connection, worker_permit, host_id=host_id)
                 await self._close_stale_locked(connection, host_id=host_id, timestamp=timestamp)
                 row = await _fetchone(
                     connection,
@@ -133,6 +147,9 @@ class SQLiteProactivityRunnerStore:
                         (d.state = 'snoozed' AND d.snoozed_until <= ? AND d.attempts < 10
                          AND d.expires_at > ?)
                     )
+                    """
+                    + feature_filter
+                    + """
                     ORDER BY c.created_at, c.id
                     LIMIT 1
                     """,
@@ -144,9 +161,11 @@ class SQLiteProactivityRunnerStore:
                         encoded_now,
                         encoded_now,
                         encoded_now,
+                        *feature_params,
                     ),
                 )
                 if row is None:
+                    await check_worker_permit(connection, worker_permit, host_id=host_id)
                     await connection.commit()
                     return None, False
                 lease_id = f"proactivity-lease:{uuid4()}"
@@ -217,6 +236,7 @@ class SQLiteProactivityRunnerStore:
                     reason_code=reason,
                     created_at=timestamp,
                 )
+                await check_worker_permit(connection, worker_permit, host_id=host_id)
                 await connection.commit()
                 dispatch = await self._load_dispatch(row["candidate_id"], host_id=host_id)
             except BaseException:
@@ -231,6 +251,7 @@ class SQLiteProactivityRunnerStore:
         candidate_id: str,
         lease_id: str,
         now: datetime | None = None,
+        worker_permit: WorkerPermit | None = None,
     ) -> CandidateDispatch:
         timestamp = _aware(now or datetime.now(UTC))
         encoded_now = _encode(timestamp)
@@ -241,7 +262,7 @@ class SQLiteProactivityRunnerStore:
                 row = await _fetchone(
                     connection,
                     """
-                    SELECT d.*, c.feature
+                    SELECT d.*, c.feature, c.scheduled_for
                     FROM proactivity_dispatches AS d
                     JOIN proactivity_candidates AS c ON c.id = d.candidate_id
                     WHERE d.host_id = ? AND d.candidate_id = ?
@@ -250,6 +271,22 @@ class SQLiteProactivityRunnerStore:
                 )
                 if row is None:
                     raise RunnerNotFoundError("candidate dispatch not found")
+                await check_worker_permit(
+                    connection, worker_permit, host_id=host_id, feature=row["feature"]
+                )
+                rule = await _fetchone(
+                    connection,
+                    """SELECT status, expires_at, record_json FROM proactivity_rules
+                       WHERE host_id = ? AND id = ?""",
+                    (host_id, row["rule_id"]),
+                )
+                if rule is None or rule["status"] != "active" or rule["expires_at"] <= encoded_now:
+                    raise RunnerStateError("proactivity rule is inactive or expired")
+                check_worker_rule(
+                    ProactivityRule.model_validate_json(rule["record_json"]), worker_permit
+                )
+                if worker_permit is not None and row["scheduled_for"] > encoded_now:
+                    raise RunnerStateError("background suggestion is not due")
                 if row["state"] != DispatchState.CLAIMED.value or row["lease_id"] != lease_id:
                     raise RunnerConflictError("candidate lease is not owned")
                 if datetime.fromisoformat(row["lease_expires_at"]) <= timestamp:
@@ -339,6 +376,12 @@ class SQLiteProactivityRunnerStore:
                     reason_code="generic_local_inbox_only",
                     created_at=timestamp,
                 )
+                check_worker_rule(
+                    ProactivityRule.model_validate_json(rule["record_json"]), worker_permit
+                )
+                await check_worker_permit(
+                    connection, worker_permit, host_id=host_id, feature=row["feature"]
+                )
                 await connection.commit()
             except BaseException:
                 await connection.rollback()
@@ -354,6 +397,7 @@ class SQLiteProactivityRunnerStore:
         until: datetime,
         max_snooze_seconds: int,
         now: datetime | None = None,
+        worker_permit: WorkerPermit | None = None,
     ) -> CandidateDispatch:
         timestamp = _aware(now or datetime.now(UTC))
         wake = _aware(until)
@@ -374,6 +418,7 @@ class SQLiteProactivityRunnerStore:
             reason_code="trusted_local_snooze",
             now=timestamp,
             snoozed_until=wake,
+            worker_permit=worker_permit,
         )
 
     async def dismiss(
@@ -392,7 +437,13 @@ class SQLiteProactivityRunnerStore:
         )
 
     async def cancel(
-        self, *, host_id: str, candidate_id: str, expected_version: int, now: datetime | None = None
+        self,
+        *,
+        host_id: str,
+        candidate_id: str,
+        expected_version: int,
+        now: datetime | None = None,
+        worker_permit: WorkerPermit | None = None,
     ) -> CandidateDispatch:
         return await self._transition(
             host_id=host_id,
@@ -404,6 +455,7 @@ class SQLiteProactivityRunnerStore:
             event_type=RunnerEventType.CANCELLED,
             reason_code="trusted_local_cancel",
             now=_aware(now or datetime.now(UTC)),
+            worker_permit=worker_permit,
         )
 
     async def create_handoff(
@@ -560,11 +612,13 @@ class SQLiteProactivityRunnerStore:
         reason_code: str,
         now: datetime,
         snoozed_until: datetime | None = None,
+        worker_permit: WorkerPermit | None = None,
     ) -> CandidateDispatch:
         async with self._operation_lock:
             connection = await self._get_connection()
             try:
                 await connection.execute("BEGIN IMMEDIATE")
+                await check_worker_permit(connection, worker_permit, host_id=host_id)
                 row = await _fetchone(
                     connection,
                     "SELECT * FROM proactivity_dispatches WHERE host_id = ? AND candidate_id = ?",
@@ -615,6 +669,7 @@ class SQLiteProactivityRunnerStore:
                     reason_code=reason_code,
                     created_at=now,
                 )
+                await check_worker_permit(connection, worker_permit, host_id=host_id)
                 await connection.commit()
             except BaseException:
                 await connection.rollback()

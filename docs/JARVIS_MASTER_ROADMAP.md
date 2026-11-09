@@ -63,7 +63,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [14](#phase-14--bounded-tasks-and-project-workflows) | Bounded tasks and project workflows | complete | 7; 13 for action-bearing flows | Bounded project review, durable foreground controls, current recovery/release gates and reviewed publication |
 | [15](#phase-15--email) | Email | blocked-external | 7 | Gmail bounded reads/protected auth/default-off composition implemented; approved project/client setup and actual auth/live acceptance pending |
 | [16](#phase-16--calendar-and-reminders) | Calendar and reminders | blocked-external | 7 | Google primary selected; inactive read/protected auth/proof CLI implemented; setup approval/actual grant/live proof pending |
-| [17](#phase-17--background-scheduling-and-proactivity) | Background scheduling and proactivity | not-started | 14 | Existing inert/foreground policy; explicit bounded worker and opt-in |
+| [17](#phase-17--background-scheduling-and-proactivity) | Background scheduling and proactivity | implemented-closeout-pending | 14 | Exact opt-in worker, isolated 1,800-tick soak and full source gates pass; publication/fresh CI pending, production activation excluded |
 | [18](#phase-18--daily-briefing) | Daily briefing | not-started | 10, 15, 16, 17; 8 only for Garmin content | Compose approved sources with honest freshness/omissions |
 | [19](#phase-19--laptoppwa-release-and-operations) | Laptop/PWA release and operations | not-started | 7–18 | Integrated release, recovery, maintenance and honest acceptance receipt |
 | [20](#phase-20--vision-and-gestures) | Vision and gestures | deferred | 13 + reviewed capture boundary | Existing legacy vision foundation; demonstrated owner need |
@@ -304,6 +304,14 @@ Read [historical expansion J](AGENTIC_ASSISTANT_EXPANSION.md), [security](SECURI
 
 ### Phase 17 — Background scheduling and proactivity
 
+Status: **implemented-closeout-pending**, 2026-11-08. [Current progress](phase-reports/current/PHASE_17_PROGRESS.md),
+[worker contract](BACKGROUND_PROACTIVITY.md). Owner authorized development and isolated
+verification, preserving held work. Production activation and external notifications excluded.
+Phase 14 satisfies the actual dependency; Phase 15/16 external blockers remain independent.
+Current isolated Windows soak: 1,800 ticks / 1,824.97 s, three expected generic inbox items,
+p95 8.36 ms, CPU 0.83% of one core, RSS growth 9.39 MiB. Full working/publication suites pass
+2,313/2,314 tests with >=87% coverage; task-only publication and fresh CI remain pending.
+
 Outcome: explicit opt-in bounded background evaluation and useful, controllable suggestions.
 Reuse foreground trigger/inbox policy, durable task scheduler and one-owner leases. Define process
 lifecycle, per-feature enablement, polling/event budgets, quiet hours, DST, expiry, privacy and stop
@@ -434,15 +442,12 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 
 ## Next action
 
-**Next: Continue Phase 16 — Calendar and reminders.** Owner initiated Phase 16 independently of
-Phase 15's external setup blocker. Read [calendar progress](phase-reports/current/PHASE_16_PROGRESS.md),
-[contract](CALENDAR.md), this roadmap, [Phase Execution](PHASE_EXECUTION.md) and current architecture.
-Review the selected Google primary-calendar [setup decision](GOOGLE_CALENDAR_SETUP.md), then resolve
-new scope/setup and live-read authority. Protected-auth/proof preparation is implemented but inactive.
-Local foundation gates pass; current adapter
-verification is in the progress report. Phase 15 remains blocked on its approved Gmail setup/live proof;
-no calendar grant is inherited from email. No provider write/send or unattended polling authority
-is inherited.
+**Next: Complete Phase 17 — Background scheduling and proactivity.** Owner selected this independent
+work while Phases 15/16 remain externally blocked. Read [current progress](phase-reports/current/PHASE_17_PROGRESS.md)
+and [worker contract](BACKGROUND_PROACTIVITY.md); local acceptance passes, finish publication/fresh CI.
+No production activation, external notifications, provider reads or Phase 18 work authorized here.
+Gmail setup/live proof and Google Calendar setup/grant/live proof remain separate. Provider
+selection and prepared auth implementations grant no private access or worker activation.
 Preserve held provider/native changes, prototype-text, current locks, Wikimedia/legacy limits,
 endpoint-specific volume qualification and skipped/unverified phone status. Phase 16 initiation
 and provider-independent verification grant no deployment or external-message authority.
