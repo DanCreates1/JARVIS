@@ -60,7 +60,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [11](#phase-11--grounded-public-research) | Grounded public research | complete | 7 | Explicit public-source citations, current security/release gates and fresh CI pass; discovery blocker retained |
 | [12](#phase-12--foreground-voice) | Foreground voice | complete | 7 | Explicit local speech/review/Send/text replies; current Windows synthetic/security/release gates and fresh CI pass |
 | [13](#phase-13--controlled-windows-actions) | Controlled Windows actions | complete | 7 | Current app/STOP and bounded volume retry pass; recovery, automated release gates and reviewed publication |
-| [14](#phase-14--bounded-tasks-and-project-workflows) | Bounded tasks and project workflows | not-started | 7; 13 for action-bearing flows | Existing DAG/scheduler/task views; usable safe workflow/control |
+| [14](#phase-14--bounded-tasks-and-project-workflows) | Bounded tasks and project workflows | complete | 7; 13 for action-bearing flows | Bounded project review, durable foreground controls, current recovery/release gates and reviewed publication |
 | [15](#phase-15--email) | Email | not-started | 7 | Local read/prepare exists; live provider/auth gate remains |
 | [16](#phase-16--calendar-and-reminders) | Calendar and reminders | not-started | 7 | Calendar adapter and lifecycle; write authority separate |
 | [17](#phase-17--background-scheduling-and-proactivity) | Background scheduling and proactivity | not-started | 14 | Existing inert/foreground policy; explicit bounded worker and opt-in |
@@ -72,7 +72,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [23](#phase-23--wearables-and-additional-devices) | Wearables and additional devices | deferred | Supported vendor path + device/scopes authority | Generic legacy wearable boundary; adapter/device acceptance absent |
 | [24](#phase-24--restricted-maintenance-assistance) | Restricted maintenance assistance | deferred | 14, 17, 19 + explicit narrow use case | Proposal-only isolated assistance; no self-authorized production changes |
 
-**Progress basis:** **13/19 primary phase receipts closed (~68%)**. This is an unweighted management
+**Progress basis:** **14/19 primary phase receipts closed (~74%)**. This is an unweighted management
 count, not percentage of code written, elapsed effort or mobile MVP acceptance.
 Existing foundations reduce future work but earn no new phase closure without current evidence.
 Prototype acceptance remains **100% = 10/10 groups** under its original scope. Full mobile MVP,
@@ -247,6 +247,11 @@ shutdown and security changes remain consequential boundaries. Read [security](S
 
 ### Phase 14 — Bounded tasks and project workflows
 
+Status: **complete**, 2026-10-31. [Completion evidence](phase-reports/current/PHASE_14_COMPLETION.md).
+Selected scope: trusted-local supplied-checklist project review, explicit foreground execution,
+durable cross-process control/recovery and existing read-only PWA monitoring. Remote control and
+new live OS effects remain excluded; Phase 13 endpoint-specific volume limits remain unchanged.
+
 Outcome: plan, inspect and run bounded useful tasks, monitor status and safely pause/cancel/resume.
 Reuse existing immutable DAG validator, durable scheduler/checkpoints, CLI and F14/F15 task views.
 Read-only workflows can use existing verified broker contracts without waiting for action-product
@@ -409,10 +414,11 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 
 ## Next action
 
-**Next: Initiate Phase 14 — Bounded tasks and project workflows.** Actual prerequisite Phase 7
-and current selected Phase 13 action acceptance are complete. Read this roadmap, [Phase Execution](PHASE_EXECUTION.md),
-current architecture and Phase 14 references before implementation. Reuse the existing bounded
-task/DAG/scheduler/store contracts; no background worker, effect approval or remote-control scope
-is inherited. Preserve held native/provider edits, prototype-text, current locks, Wikimedia and
-legacy failed-gate limits, endpoint-specific volume limits and skipped/unverified phone status.
-Phase 14 has not started; this handoff grants no automatic execution or deployment authority.
+**Next: Initiate Phase 15 — Email.** Current Phase 14 selected bounded project/workflow acceptance
+is complete. Read this roadmap, [Phase Execution](PHASE_EXECUTION.md), current architecture and
+Phase 15 references. Select the provider and review current official auth/API/terms before live
+adapter work; applicable credential/private-read authority remains separate. Reuse local read/
+prepare contracts; no send/write or unattended polling authority is inherited.
+Preserve held provider/native changes, prototype-text, current locks, Wikimedia/legacy limits,
+endpoint-specific volume qualification and skipped/unverified phone status. Phase 15 has not
+started; this handoff grants no automatic implementation, deployment or external-message authority.

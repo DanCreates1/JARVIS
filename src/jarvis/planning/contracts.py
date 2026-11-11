@@ -10,6 +10,7 @@ from jarvis.core.models import CoreModel, Identifier
 
 from .models import (
     HandlerName,
+    TaskCharge,
     TaskFailureClass,
     TaskNode,
     TaskNodeKind,
@@ -26,6 +27,7 @@ class TaskHandlerDefinition(CoreModel):
     max_output_bytes: int = Field(default=100 * 1_024, ge=1, le=100 * 1_024)
     requires_approval: bool = False
     supports_compensation: bool = False
+    minimum_charge: TaskCharge = Field(default_factory=TaskCharge)
 
     @model_validator(mode="after")
     def require_effect_approval(self) -> TaskHandlerDefinition:

@@ -51,6 +51,7 @@ from jarvis.planning import (
     TaskScheduler,
     ValueTaskHandler,
 )
+from jarvis.planning.projects import ProjectHandoffHandler, ProjectReviewHandler
 from jarvis.proactivity import PWAProactivityAdapter, SQLiteProactivityDeviceStore
 from jarvis.remote import (
     DeploymentActivation,
@@ -541,6 +542,8 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
         task_handlers: list[TaskHandler] = [
             ValueTaskHandler(),
             StoredResearchTaskHandler(research_store),
+            ProjectReviewHandler(),
+            ProjectHandoffHandler(),
         ]
         if computer is not None:
             task_handlers.append(ComputerGrantTaskHandler(computer))

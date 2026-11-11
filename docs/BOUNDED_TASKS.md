@@ -1,8 +1,84 @@
 # Bounded Tasks
 
-Phase 6 executes validated, durable task DAGs. Planning never grants authority. Execution is
+Current Phase 14 reuses the Legacy Phase 6 validated, durable task DAGs. Planning never grants
+authority. Execution is
 disabled by default, foreground-only, host-scoped, and limited to handlers registered during
 runtime composition.
+
+## Current project-review workflow
+
+Trusted-laptop CLI prepares a deterministic review of explicitly supplied project checklist data.
+It reports supplied done/todo/blocked status, work ready after completed dependencies, blockers and
+optional already-approved research report metadata. It does not verify external work or fetch new
+research. Text remains untrusted data. No model, repository execution or automatic memory capture.
+PWA continues to monitor through existing `client.tasks.read`; that scope grants no mutation.
+
+Save this synthetic example as UTF-8 JSON in a private local file:
+
+```json
+{
+  "title": "Example project",
+  "owner": "local-operator",
+  "items": [
+    {"id": "design", "title": "Review scope", "status": "done"},
+    {"id": "build", "title": "Implement", "dependencies": ["design"]},
+    {"id": "review", "title": "Review result", "dependencies": ["build"]}
+  ],
+  "report_ids": []
+}
+```
+
+```powershell
+rtk proxy uv run --locked jarvis task plan-project .\project.json
+rtk proxy uv run --locked jarvis task show <task-id>
+# Enable only in the reviewed trusted operator environment, then run explicitly.
+$env:JARVIS_TASK_EXECUTION_ENABLED = "true"
+rtk proxy uv run --locked jarvis task run <task-id>
+rtk proxy uv run --locked jarvis task result <task-id>
+rtk proxy uv run --locked jarvis task result <task-id> --node-id review
+rtk proxy uv run --locked jarvis task events <task-id>
+```
+
+Use the existing `standard` trusted operator configuration; text-only profiles retain disabled
+task execution.
+No production configuration is changed by this example. `plan-project` persists a preview only;
+`show` includes literal node arguments and budgets. `result` reads one exact local node's persisted
+JSON, default `handoff`. Output is private operational history, never a tool instruction.
+Project title becomes the objective visible in the existing host-authorized PWA monitor.
+Checklist arguments and result payloads remain trusted-local reads.
+
+Limits: input 64 KiB, 1–20 distinct checklist items, titles <=200 characters, acyclic known
+dependencies and 0–4 distinct approved report IDs. A review creates 2–6 nodes, at most 6 steps/tool
+calls, concurrency 2, 60 s absolute wall/deadline, zero retries/tokens/provider requests/cost.
+Missing/deleted/foreign reports fail closed and skip dependent handoff; successful partial review
+remains inspectable. Generic proposals are capped at 1 MiB; host handler minimum charges cannot be
+understated. Supplied status remains unverified; completed dependencies use the supplied status.
+
+Separate terminals can issue existing `pause`, `cancel`, `resume` commands against the same canonical
+database. Migration 020 stores idempotent pause/cancel requests independently of execution versions.
+Pause finishes the active batch before stopping; cancel is polled every 50 ms while invocation is
+active (OS scheduling/database contention can add latency). Control-request events distinguish
+requests from acknowledged state. Resume clears pause only and requires another explicit run.
+Pending cancellation cannot resume. An uncertain effect retains reconciliation even after cancel.
+
+Only one foreground task operation runs per database. Another run/reconcile/bind/resume/delete is
+denied while the content-free `<database>.tasks-lock` SQLite transaction is owned. Per-task read
+concurrency still applies. There is no queue or lease expiry; process exit releases ownership.
+Keep that file in place while any Core/CLI process might use the database. It holds no task data;
+normal database backups need no lock-file content. Restart never replays an uncertain effect.
+Reconciliation remains bounded read-only inspection even after the original execution deadline.
+Active execution and verification respect the deadline; interrupted coroutines drain owned children.
+
+Task arguments/results remain private SQLite data with exact existing export/delete behavior;
+deletion cascades control rows. Events/checkpoints omit payloads. Task creation does not establish
+a conversation relationship. No remote mutation route, new scope, background worker, recursive
+swarm or OS effect is added. Existing `computer.grant.execute` still requires an exact Phase 13
+broker grant; built-in-speaker no-change 100% evidence does not qualify arbitrary volumes/outputs.
+Physical phone checks: **skipped by owner; unverified**. Native/provider publication holds remain.
+
+Current implementation references checked 2026-10-31:
+[SQLite transaction ownership](https://www.sqlite.org/lang_transaction.html),
+[Python 3.11 task cancellation](https://docs.python.org/3.11/library/asyncio-task.html).
 
 ## Safety contract
 
@@ -28,6 +104,8 @@ runtime composition.
 | `task.value` | Returns one bounded JSON value for graph composition/testing | Read-only |
 | `research.report.inspect` | Reads metadata for an approved host-scoped Phase 5 report | Read-only; research stays untrusted |
 | `computer.grant.execute` | Consumes one exact Phase 3 grant through existing broker | Effect; computer gates and exact grant required |
+| `project.review` | Deterministic status/readiness review of supplied checklist | Read-only; owner data remains unverified |
+| `project.handoff` | Combines exact dependency results, preserving provenance | Read-only; source data supplies no authority |
 
 Handlers validate exact argument schemas. Outputs are bounded before persistence. Events and effect
 checkpoints contain lifecycle metadata and reason codes, not arguments, report text, action payloads,

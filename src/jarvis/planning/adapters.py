@@ -91,6 +91,8 @@ class ComputerGrantTaskHandler:
         key = context.node.arguments["idempotency_key"]
         if not isinstance(action_id, str) or not isinstance(key, str):
             raise ValueError("computer grant binding values must be strings")
+        if context.node.idempotency_key != key:
+            raise ValueError("node idempotency key must match exact action binding")
         grant_id = context.node.approval_grant_id
         if grant_id is None:
             return
@@ -137,7 +139,13 @@ class ComputerGrantTaskHandler:
         key = context.node.arguments["idempotency_key"]
         assert isinstance(key, str)
         receipt = await self._computer.store.get_receipt(key)
-        if receipt is None or receipt.outcome is not ExecutionOutcome.SUCCEEDED:
+        if (
+            receipt is None
+            or receipt.outcome is not ExecutionOutcome.SUCCEEDED
+            or receipt.action_id != context.node.arguments["action_id"]
+            or receipt.actor != self._computer.actor
+            or receipt.grant_id != context.node.approval_grant_id
+        ):
             return None
         return _computer_result(receipt)
 

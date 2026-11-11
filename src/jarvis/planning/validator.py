@@ -46,6 +46,8 @@ class TaskPlanValidator:
         task_id: str | None = None,
     ) -> TaskGraph:
         proposal = TaskPlanProposal.model_validate(proposal.model_dump())
+        if len(proposal.model_dump_json().encode("utf-8")) > 1024 * 1024:
+            raise TaskPlanValidationError("task proposal exceeds 1 MiB")
         now = _aware(self._clock())
         self._validate_budget(proposal.budget)
         if proposal.deadline_at <= now:
@@ -74,6 +76,11 @@ class TaskPlanValidator:
             except KeyError as exc:
                 raise TaskPlanValidationError(str(exc)) from None
             definition = handler.definition
+            if any(
+                proposed.charge.model_dump()[key] < value
+                for key, value in definition.minimum_charge.model_dump().items()
+            ):
+                raise TaskPlanValidationError("node charge is below host handler minimum")
             if proposed.timeout_seconds > definition.max_timeout_seconds:
                 raise TaskPlanValidationError(
                     f"node {proposed.id!r} exceeds handler timeout ceiling"
@@ -119,6 +126,9 @@ class TaskPlanValidator:
             raise TaskPlanValidationError("declared cost exceeds budget")
         if worst_retries > proposal.budget.max_retries:
             raise TaskPlanValidationError("declared retries exceed budget")
+        keys = [node.idempotency_key for node in nodes if node.idempotency_key is not None]
+        if len(keys) != len(set(keys)):
+            raise TaskPlanValidationError("task idempotency keys must be distinct")
         _reject_cycles(nodes)
 
         digest_payload = proposal.model_dump_json().encode("utf-8")

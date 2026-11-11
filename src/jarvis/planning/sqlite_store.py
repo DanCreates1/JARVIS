@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import json
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Sequence
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final
@@ -155,13 +156,104 @@ class SQLiteTaskStore:
                 (host_id, task_id),
             ) as cursor:
                 row = await cursor.fetchone()
-        return None if row is None else _record(row["record_json"])
+        return None if row is None else await self._with_controls(_record(row["record_json"]))
+
+    async def _with_controls(self, record: TaskRecord) -> TaskRecord:
+        pause, cancel = await self.controls(host_id=record.graph.host_id, task_id=record.graph.id)
+        return record.model_copy(
+            update={
+                "pause_requested": record.pause_requested or pause,
+                "cancel_requested": record.cancel_requested or cancel,
+            }
+        )
 
     async def require_task(self, *, host_id: str, task_id: str) -> TaskRecord:
         record = await self.get_task(host_id=host_id, task_id=task_id)
         if record is None:
             raise TaskNotFoundError("task not found")
         return record
+
+    @asynccontextmanager
+    async def execution_owner(self) -> AsyncIterator[None]:
+        """One foreground runner per canonical database; crash releases SQLite lock.
+
+        The separate, content-free lock file never owns task state and never expires
+        while a live process might still dispatch an effect.
+        """
+        await self.initialize()
+        path = self._database_path.resolve().with_suffix(self._database_path.suffix + ".tasks-lock")
+        connection = await aiosqlite.connect(path, timeout=0)
+        try:
+            try:
+                await connection.execute("BEGIN IMMEDIATE")
+            except aiosqlite.OperationalError as exc:
+                raise TaskStateError("another foreground task operation is active") from exc
+            yield
+        finally:
+            await connection.close()
+
+    async def request_control(self, *, host_id: str, task_id: str, action: str) -> TaskRecord:
+        if action not in {"pause", "cancel", "resume"}:
+            raise ValueError("unknown task control")
+        async with self._operation_lock:
+            connection = await self._get_connection()
+            try:
+                await connection.execute("BEGIN IMMEDIATE")
+                async with connection.execute(
+                    "SELECT record_json FROM planning_tasks WHERE host_id=? AND id=?",
+                    (host_id, task_id),
+                ) as cursor:
+                    row = await cursor.fetchone()
+                if row is None:
+                    raise TaskNotFoundError("task not found")
+                record = _record(row[0])
+                if record.status in {
+                    TaskStatus.COMPLETED,
+                    TaskStatus.PARTIAL,
+                    TaskStatus.FAILED,
+                    TaskStatus.CANCELLED,
+                }:
+                    return record
+                if action == "resume":
+                    await connection.execute(
+                        "UPDATE planning_controls SET pause_requested=0 WHERE task_id=?", (task_id,)
+                    )
+                else:
+                    column = "pause_requested" if action == "pause" else "cancel_requested"
+                    async with connection.execute(
+                        f"SELECT {column} FROM planning_controls WHERE task_id=?", (task_id,)
+                    ) as cursor:
+                        previous = await cursor.fetchone()
+                    await connection.execute(
+                        f"INSERT INTO planning_controls(task_id,{column}) VALUES (?,1) "
+                        f"ON CONFLICT(task_id) DO UPDATE SET {column}=1",
+                        (task_id,),
+                    )
+                    if previous is None or not previous[0]:
+                        await self._append_event(
+                            connection,
+                            record,
+                            TaskEventType.TASK_CANCEL_REQUESTED
+                            if action == "cancel"
+                            else TaskEventType.TASK_PAUSE_REQUESTED,
+                            reason_code="control_requested",
+                            created_at=datetime.now(UTC),
+                        )
+                await connection.commit()
+            finally:
+                await connection.rollback()
+        return await self.require_task(host_id=host_id, task_id=task_id)
+
+    async def controls(self, *, host_id: str, task_id: str) -> tuple[bool, bool]:
+        async with self._operation_lock:
+            connection = await self._get_connection()
+            async with connection.execute(
+                "SELECT c.pause_requested,c.cancel_requested FROM planning_controls c "
+                "JOIN planning_tasks t ON t.id=c.task_id WHERE t.host_id=? AND t.id=?",
+                (host_id, task_id),
+            ) as cursor:
+                row = await cursor.fetchone()
+        return (False, False) if row is None else (bool(row[0]), bool(row[1]))
 
     async def list_tasks(
         self,
@@ -220,7 +312,9 @@ class SQLiteTaskStore:
                     rows = await cursor.fetchall()
             finally:
                 await connection.rollback()
-        return tuple(_record(row["record_json"]) for row in rows), revision
+        return tuple(
+            [await self._with_controls(_record(row["record_json"])) for row in rows]
+        ), revision
 
     async def save(
         self,
@@ -419,7 +513,7 @@ class SQLiteTaskStore:
         self, *, host_id: str, task_id: str, now: datetime | None = None
     ) -> TaskDeletionReceipt:
         timestamp = _aware(now or datetime.now(UTC))
-        async with self._operation_lock:
+        async with self.execution_owner(), self._operation_lock:
             connection = await self._get_connection()
             try:
                 await connection.execute("BEGIN IMMEDIATE")

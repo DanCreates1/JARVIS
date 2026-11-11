@@ -60,6 +60,7 @@ from jarvis.planning import (
     TaskStateError,
     TaskStatus,
 )
+from jarvis.planning.projects import ProjectReview, project_proposal
 from jarvis.proactivity import (
     CandidateDispatch,
     CandidateOwnership,
@@ -1505,13 +1506,64 @@ def task_create(
     """Validate and persist an untrusted plan for human-readable preview; do not execute it."""
     settings = _load_settings()
     try:
-        proposal = TaskPlanProposal.model_validate_json(plan_path.read_text(encoding="utf-8"))
+        with plan_path.open("rb") as source:
+            data = source.read(1024 * 1024 + 1)
+        if len(data) > 1024 * 1024:
+            raise ValueError("task proposal exceeds 1 MiB")
+        proposal = TaskPlanProposal.model_validate_json(data)
     except (OSError, ValidationError, ValueError):
         console.print("[bold red]Task plan is unreadable or invalid.[/]")
         raise typer.Exit(code=2) from None
     exit_code = asyncio.run(_task_create(settings, proposal))
     if exit_code:
         raise typer.Exit(code=exit_code)
+
+
+@task_app.command("plan-project")
+def task_plan_project(
+    path: Annotated[Path, typer.Argument(help="Explicit UTF-8 project checklist JSON, <=64 KiB.")],
+) -> None:
+    """Prepare a bounded project review; inspect before explicit foreground run."""
+    try:
+        with path.open("rb") as source:
+            data = source.read(64 * 1024 + 1)
+        if len(data) > 64 * 1024:
+            raise ValueError("project input exceeds 64 KiB")
+        proposal = project_proposal(ProjectReview.model_validate_json(data))
+    except (OSError, ValueError):
+        console.print("[bold red]Project checklist is unreadable or invalid.[/]")
+        raise typer.Exit(code=2) from None
+    exit_code = asyncio.run(_task_create(_load_settings(), proposal))
+    if exit_code:
+        raise typer.Exit(code=exit_code)
+
+
+@task_app.command("result")
+def task_result(task_id: str, node_id: str = "handoff") -> None:
+    """Read one exact host-owned node result as literal JSON; no execution."""
+
+    async def read() -> None:
+        async with SQLiteTaskStore(_load_settings().database_path) as store:
+            record = await store.require_task(host_id=local_memory_host_id(), task_id=task_id)
+            node = next((node for node in record.nodes if node.node_id == node_id), None)
+            if node is None:
+                raise TaskNotFoundError("task node not found")
+            console.print(
+                Text(
+                    json.dumps(
+                        {"status": node.status.value, "output": node.output},
+                        ensure_ascii=False,
+                        indent=2,
+                    )
+                ),
+                soft_wrap=True,
+            )
+
+    try:
+        asyncio.run(read())
+    except Exception:
+        console.print("[bold red]Task result unavailable.[/]")
+        raise typer.Exit(code=1) from None
 
 
 async def _task_create(settings: Settings, proposal: TaskPlanProposal) -> int:
@@ -1569,7 +1621,7 @@ async def _task_list(settings: Settings, *, status: TaskStatus | None, limit: in
         table.add_row(
             f"{record.graph.id}\nv{record.version}",
             record.status.value,
-            record.graph.objective,
+            Text(record.graph.objective),
             (
                 f"steps={record.usage.steps}/{record.graph.budget.max_steps} "
                 f"tools={record.usage.tool_calls}/{record.graph.budget.max_tool_calls} "
@@ -1871,8 +1923,8 @@ async def _task_delete(settings: Settings, *, task_id: str) -> int:
 def _render_task(record: TaskRecord) -> None:
     graph = record.graph
     runtimes = record.nodes
+    console.print(Text(graph.objective, style="bold cyan"))
     console.print(
-        f"[bold cyan]{graph.objective}[/]\n"
         f"Task: {graph.id} · status={record.status.value} · version={record.version} · "
         f"plan_sha256={graph.plan_sha256}\n"
         f"Budget: steps={graph.budget.max_steps}, wall={graph.budget.max_wall_seconds}s, "
@@ -1896,6 +1948,15 @@ def _render_task(record: TaskRecord) -> None:
             (f"grant={node.approval_grant_id or '-'}\nerror={runtime.error_code or '-'}"),
         )
     console.print(table)
+    for node, runtime in zip(graph.nodes, runtimes, strict=True):
+        console.print(Text(f"{node.id} arguments (untrusted data):"))
+        console.print(
+            Text(json.dumps(node.arguments, ensure_ascii=False, indent=2)), soft_wrap=True
+        )
+        if runtime.output is not None:
+            console.print(
+                Text(f"Result available: jarvis task result {graph.id} --node-id {node.id}")
+            )
 
 
 @research_app.command("run")

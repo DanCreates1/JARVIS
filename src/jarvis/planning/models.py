@@ -83,6 +83,7 @@ class TaskFailureClass(StrEnum):
 class TaskEventType(StrEnum):
     TASK_CREATED = "task_created"
     TASK_STARTED = "task_started"
+    TASK_PAUSE_REQUESTED = "task_pause_requested"
     TASK_PAUSED = "task_paused"
     TASK_RESUMED = "task_resumed"
     TASK_CANCEL_REQUESTED = "task_cancel_requested"

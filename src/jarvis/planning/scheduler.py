@@ -96,7 +96,7 @@ class TaskScheduler:
         if not self._execution_enabled:
             raise TaskExecutionDisabledError("task execution is disabled by host configuration")
         lock = self._locks.setdefault(task_id, asyncio.Lock())
-        async with lock:
+        async with lock, self._store.execution_owner():
             self._running.add(task_id)
             cancel_event = self._cancel_events.setdefault(task_id, asyncio.Event())
             pause_event = self._pause_events.setdefault(task_id, asyncio.Event())
@@ -107,16 +107,21 @@ class TaskScheduler:
                     return record
                 if record.status is TaskStatus.NEEDS_RECONCILIATION:
                     return record
-                if record.pause_requested:
-                    return record
                 if record.cancel_requested:
                     cancel_event.set()
+                elif record.pause_requested:
+                    return await self._pause_record(record)
                 record = await self._set_task_started(record)
                 while record.status not in _TERMINAL_TASKS | {
                     TaskStatus.WAITING_APPROVAL,
                     TaskStatus.PAUSED,
                     TaskStatus.NEEDS_RECONCILIATION,
                 }:
+                    pause, cancel = await self._store.controls(host_id=host_id, task_id=task_id)
+                    if pause:
+                        pause_event.set()
+                    if cancel:
+                        cancel_event.set()
                     if cancel_event.is_set() or record.cancel_requested:
                         record = await self._cancel_remaining(record)
                         break
@@ -169,23 +174,31 @@ class TaskScheduler:
                     self._pause_events.pop(task_id, None)
 
     async def pause(self, *, host_id: str, task_id: str) -> TaskRecord:
+        record = await self._store.request_control(host_id=host_id, task_id=task_id, action="pause")
         self._pause_events.setdefault(task_id, asyncio.Event()).set()
         if task_id in self._running:
             return await self._store.require_task(host_id=host_id, task_id=task_id)
         lock = self._locks.setdefault(task_id, asyncio.Lock())
         async with lock:
-            return await self._pause_record(
-                await self._store.require_task(host_id=host_id, task_id=task_id)
-            )
+            try:
+                async with self._store.execution_owner():
+                    return await self._pause_record(
+                        await self._store.require_task(host_id=host_id, task_id=task_id)
+                    )
+            except TaskStateError:
+                return record
 
     async def resume(self, *, host_id: str, task_id: str) -> TaskRecord:
         lock = self._locks.setdefault(task_id, asyncio.Lock())
-        async with lock:
+        async with lock, self._store.execution_owner():
             record = await self._store.require_task(host_id=host_id, task_id=task_id)
             if record.status is TaskStatus.NEEDS_RECONCILIATION:
                 raise TaskStateError("task requires reconciliation before resume")
             if record.status in _TERMINAL_TASKS:
                 raise TaskStateError("terminal task cannot resume")
+            if record.cancel_requested:
+                raise TaskStateError("cancelled task cannot resume")
+            await self._store.request_control(host_id=host_id, task_id=task_id, action="resume")
             self._pause_events.pop(task_id, None)
             updated = record.model_copy(
                 update={"pause_requested": False, "status": TaskStatus.READY}
@@ -198,22 +211,25 @@ class TaskScheduler:
             )
 
     async def cancel(self, *, host_id: str, task_id: str) -> TaskRecord:
+        record = await self._store.request_control(
+            host_id=host_id, task_id=task_id, action="cancel"
+        )
         self._cancel_events.setdefault(task_id, asyncio.Event()).set()
         if task_id in self._running:
             return await self._store.require_task(host_id=host_id, task_id=task_id)
         lock = self._locks.setdefault(task_id, asyncio.Lock())
         async with lock:
-            record = await self._store.require_task(host_id=host_id, task_id=task_id)
-            if record.status in _TERMINAL_TASKS:
+            try:
+                async with self._store.execution_owner():
+                    record = await self._store.require_task(host_id=host_id, task_id=task_id)
+                    if record.status in _TERMINAL_TASKS | {TaskStatus.NEEDS_RECONCILIATION}:
+                        return record
+                    record = await self._recover_orphans(record)
+                    if record.status is TaskStatus.NEEDS_RECONCILIATION:
+                        return record
+                    return await self._cancel_remaining(record)
+            except TaskStateError:
                 return record
-            requested = record.model_copy(update={"cancel_requested": True})
-            record = await self._store.save(
-                requested,
-                expected_version=record.version,
-                event_type=TaskEventType.TASK_CANCEL_REQUESTED,
-                now=self._now(),
-            )
-            return await self._cancel_remaining(record)
 
     async def bind_approval(
         self,
@@ -225,7 +241,7 @@ class TaskScheduler:
         expected_version: int,
     ) -> TaskRecord:
         lock = self._locks.setdefault(task_id, asyncio.Lock())
-        async with lock:
+        async with lock, self._store.execution_owner():
             record = await self._store.require_task(host_id=host_id, task_id=task_id)
             if record.version != expected_version:
                 raise TaskStateError("task changed before approval binding")
@@ -257,7 +273,7 @@ class TaskScheduler:
         if not self._execution_enabled:
             raise TaskExecutionDisabledError("task execution is disabled by host configuration")
         lock = self._locks.setdefault(task_id, asyncio.Lock())
-        async with lock:
+        async with lock, self._store.execution_owner():
             record = await self._store.require_task(host_id=host_id, task_id=task_id)
             node, runtime = _node_pair(record, node_id)
             if runtime.status is not NodeStatus.NEEDS_RECONCILIATION:
@@ -268,7 +284,15 @@ class TaskScheduler:
                 result = await asyncio.wait_for(
                     handler.reconcile(context), timeout=node.timeout_seconds
                 )
-                verified = result is not None and await handler.verify(context, result)
+                if result is not None:
+                    result = TaskHandlerResult.model_validate(result.model_dump())
+                verified = result is not None and await asyncio.wait_for(
+                    handler.verify(context, result), timeout=node.timeout_seconds
+                )
+                if result is not None and len(result.model_dump_json().encode("utf-8")) > (
+                    handler.definition.max_output_bytes
+                ):
+                    verified = False
             except Exception:
                 result = None
                 verified = False
@@ -418,14 +442,35 @@ class TaskScheduler:
 
         async def invoke() -> TaskHandlerResult:
             await handler.validate(context)
+            cancel = False
+            if node.kind is TaskNodeKind.EFFECT:
+                _, cancel = await self._store.controls(
+                    host_id=record.graph.host_id, task_id=record.graph.id
+                )
+            if cancel or cancel_event.is_set():
+                raise TaskHandlerError("cancelled_before_dispatch", TaskFailureClass.CANCELLED)
+            if self._now() >= record.graph.deadline_at:
+                raise TaskHandlerError("deadline_before_dispatch", TaskFailureClass.TIMEOUT)
             return TaskHandlerResult.model_validate((await handler.execute(context)).model_dump())
 
         task = asyncio.create_task(invoke())
-        cancelled = asyncio.create_task(cancel_event.wait())
+
+        async def wait_for_cancel() -> None:
+            while not cancel_event.is_set():
+                _, cancel = await self._store.controls(
+                    host_id=record.graph.host_id, task_id=record.graph.id
+                )
+                if cancel:
+                    cancel_event.set()
+                    return
+                with suppress(TimeoutError):
+                    await asyncio.wait_for(cancel_event.wait(), timeout=0.05)
+
+        cancelled = asyncio.create_task(wait_for_cancel())
         try:
             done, _ = await asyncio.wait(
                 {task, cancelled},
-                timeout=node.timeout_seconds,
+                timeout=self._remaining_seconds(record, node),
                 return_when=asyncio.FIRST_COMPLETED,
             )
             if task in done:
@@ -437,13 +482,27 @@ class TaskScheduler:
                     return (
                         node,
                         runtime,
-                        TaskHandlerError("invalid_handler_result", TaskFailureClass.INVALID_RESULT),
+                        TaskHandlerError(
+                            "invalid_handler_result",
+                            (
+                                TaskFailureClass.UNCERTAIN
+                                if node.kind is TaskNodeKind.EFFECT
+                                else TaskFailureClass.INVALID_RESULT
+                            ),
+                        ),
                     )
                 except Exception:
                     return (
                         node,
                         runtime,
-                        TaskHandlerError("handler_failed", TaskFailureClass.TERMINAL),
+                        TaskHandlerError(
+                            "handler_failed",
+                            (
+                                TaskFailureClass.UNCERTAIN
+                                if node.kind is TaskNodeKind.EFFECT
+                                else TaskFailureClass.TERMINAL
+                            ),
+                        ),
                     )
             task.cancel()
             with suppress(asyncio.CancelledError, Exception):
@@ -462,7 +521,9 @@ class TaskScheduler:
             )
             return node, runtime, TaskHandlerError("timeout", failure)
         finally:
+            task.cancel()
             cancelled.cancel()
+            await asyncio.gather(task, cancelled, return_exceptions=True)
 
     async def _apply_outcome(
         self,
@@ -480,7 +541,12 @@ class TaskScheduler:
             )
             if len(encoded) > handler.definition.max_output_bytes:
                 outcome = TaskHandlerError(
-                    "handler_result_too_large", TaskFailureClass.INVALID_RESULT
+                    "handler_result_too_large",
+                    (
+                        TaskFailureClass.UNCERTAIN
+                        if node.kind is TaskNodeKind.EFFECT
+                        else TaskFailureClass.INVALID_RESULT
+                    ),
                 )
             else:
                 verifying = current.model_copy(update={"status": NodeStatus.VERIFYING})
@@ -493,7 +559,8 @@ class TaskScheduler:
                 )
                 try:
                     verified = await asyncio.wait_for(
-                        handler.verify(context, outcome), timeout=node.timeout_seconds
+                        handler.verify(context, outcome),
+                        timeout=self._remaining_seconds(record, node),
                     )
                 except Exception:
                     verified = False
@@ -517,7 +584,12 @@ class TaskScheduler:
                     )
                 outcome = TaskHandlerError(
                     "postcondition_mismatch",
-                    TaskFailureClass.INVALID_RESULT,
+                    (
+                        TaskFailureClass.UNCERTAIN
+                        if node.kind is TaskNodeKind.EFFECT
+                        and not handler.definition.supports_compensation
+                        else TaskFailureClass.INVALID_RESULT
+                    ),
                     partial_effect=node.kind is TaskNodeKind.EFFECT,
                 )
         assert isinstance(outcome, TaskHandlerError)
@@ -569,7 +641,9 @@ class TaskScheduler:
                 now=self._now(),
             )
             try:
-                compensated = await handler.compensate(context, None)
+                compensated = await asyncio.wait_for(
+                    handler.compensate(context, None), timeout=self._remaining_seconds(record, node)
+                )
             except Exception:
                 compensated = False
             if compensated:
@@ -590,6 +664,13 @@ class TaskScheduler:
                     checkpoint_phase="after_effect",
                     now=self._now(),
                 )
+        if outcome.partial_effect and node.kind is TaskNodeKind.EFFECT:
+            return await self._apply_outcome(
+                record,
+                node,
+                runtime,
+                TaskHandlerError(outcome.code, TaskFailureClass.UNCERTAIN),
+            )
         retry_allowed = (
             outcome.failure_class is TaskFailureClass.TRANSIENT
             and node.retry_mode is not TaskRetryMode.NEVER
@@ -675,7 +756,9 @@ class TaskScheduler:
         return record
 
     async def _pause_record(self, record: TaskRecord) -> TaskRecord:
-        if record.status in _TERMINAL_TASKS:
+        if record.status in _TERMINAL_TASKS or (
+            record.status is TaskStatus.PAUSED and record.pause_requested
+        ):
             return record
         updated = record.model_copy(update={"pause_requested": True, "status": TaskStatus.PAUSED})
         return await self._store.save(
@@ -802,6 +885,11 @@ class TaskScheduler:
             node=node,
             usage=record.usage,
             dependency_outputs=outputs,
+        )
+
+    def _remaining_seconds(self, record: TaskRecord, node: TaskNode) -> float:
+        return min(
+            node.timeout_seconds, max(0, (record.graph.deadline_at - self._now()).total_seconds())
         )
 
     def _now(self) -> datetime:
