@@ -293,12 +293,20 @@ Natural push-to-talk first, then wake-word conversation with streaming speech an
 - Local clap/event detector for configurable hands-free intents such as double-clap app launch.
 - Duplex session controller: cancel output, echo suppression/AEC strategy, barge-in.
 - Device selection, audio health diagnostics, text fallback, latency harness.
+- Measured per-direction audio backend selection: deduplicate host-API aliases, open the exact
+  shipped stream mode/rate, and reject successful-but-silent output by real-time transport timing.
+- Local neural TTS evaluation with fixed naturalness/latency/cancellation/license gates and SAPI
+  fallback; no assumed actor imitation or unreviewed voice-model license.
 
 **Dependencies**  
 Phase 1 event stream and cancellation semantics.
 
 **Verification**  
-Scripted quiet/noisy audio suite reports WER and latency; interruption stops speech promptly; offline fallback works; selected microphone/speaker survives restart.
+Scripted quiet/noisy audio suite reports WER and latency; interruption stops speech promptly;
+offline fallback works; selected microphone/speaker survives restart. Device tests include index
+churn, duplicate aliases, unsupported rates, default changes, disconnected hardware, and silent
+sink detection. TTS comparison records first-audio p50/p95, real-time factor, interruption latency,
+and blinded host preference.
 
 **Risks**  
 GPU contention, false wakes, echo triggering, noisy-room accuracy, TTS licensing/voice quality.
@@ -324,6 +332,9 @@ Authorized laptop actions through narrow deterministic tools, never unrestricted
 - Read/search files, app launch, media/volume, clipboard, browser, system status.
 - Allowlisted hands-free intent mappings for app groups, volume, media, navigation, and cancel.
 - Bounded write/move/rename tools with preview, allowlisted roots, idempotency, and rollback where feasible.
+- Durable typed `undo last` history for reversible effects, with verified before-state,
+  postconditions, conflict/expiry guards, bounded retained content, restart reconciliation, and the
+  same permission/audit enforcement as forward actions.
 - `PrinterTool` for discovery, status, validated document/page/copy selection.
 - API-first automation; UI automation only through isolated adapters when no stable API exists.
 
@@ -455,6 +466,8 @@ Low-latency perception and configurable gestures, escalating to multimodal model
 - Temporal gesture classifier, confidence/debounce, user calibration, configurable mappings.
 - Finger-roll volume control, palm/fist media and cancel gestures, and optional navigation gestures.
 - OCR/object/scene fast paths and separate expensive vision-model path.
+- Reactive local HUD driven by bounded level/state events for microphone, speech output, camera,
+  screen capture, thinking, errors, and kill-switch state; animation never fabricates sensor state.
 - Mapping store such as `gesture -> intent`, never direct unreviewed privileged action.
 
 **Dependencies**  
@@ -480,6 +493,10 @@ Use JARVIS away from laptop without a public unauthenticated API.
 - Device enrollment with per-device keys, revocation, scoped capabilities, session expiry.
 - Tailscale/private-network default plus application authentication and TLS.
 - WebSocket/SSE reconnect, offline-safe UI, remote kill switch, rate limits.
+- Validated session-resume handles/cursors, desired-subscription replay, one-time rejection of stale
+  handles, exactly-once conversation continuity, and complete logout/revocation clearing.
+- Trusted control panels for tested audio devices, voice/theme, live sensor state, undo history, and
+  inspectable memory search/correct/delete through typed APIs without exposing configuration files.
 
 **Dependencies**  
 Stable versioned API, device registry, host authentication, server-side permission broker.
@@ -555,6 +572,12 @@ Add proactive, scheduled, multi-device, and deeper multimodal help after safety 
 
 - Proactivity policy with quiet hours, relevance threshold, budget, and opt-out.
 - Scheduled agents, multi-device handoff, smart-home adapters, richer multimodal context.
+- Opt-in morning briefing built from fresh typed sources, due reminders, approved monitoring, and a
+  bounded prior-session summary; partial source failure never blocks or fabricates the briefing.
+- Citation-backed topic monitoring that stays silent while unchanged, plus local hardware alerts
+  with hysteresis and no raw process/window disclosure.
+- Reviewed/signed extension packages with immutable manifests, declared schemas/capabilities/
+  domains/budgets, isolation, version checks, and uninstall cleanup. Never arbitrary drop-in Python.
 - Evaluation-gated custom voice or user-specific fine-tuning only if justified.
 
 **Dependencies**  

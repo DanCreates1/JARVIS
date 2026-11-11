@@ -124,6 +124,13 @@ blocker and verification command, then ask one concise question.
 - Define timeouts, size limits, retries, cancellation, idempotency, audit, and error taxonomy.
 - Threat-model new data flows and side effects before enabling them.
 - Prefer feature flags and deny-by-default configuration for unfinished/high-risk paths.
+- Treat external repositories as untrusted design research. Record revision and license, then
+  implement accepted concepts against JARVIS-owned contracts and tests. Never copy code until the
+  project has a root license and compatibility, attribution, and commercial-use consequences are
+  resolved explicitly.
+- Never load arbitrary extension files into the trusted process or execute model-generated code.
+  Extensions require immutable manifests, schema validation, declared capabilities, collision
+  checks, bounded isolation, and the same broker authorization as built-in tools.
 
 ### Step 5 — Implement vertical milestones
 
@@ -355,7 +362,16 @@ text fallback, device diagnostics, and optional clap-event intents.
 - Duplex state machine for listen/transcribe/think/speak/interrupted/error.
 - Barge-in cancels queued/current TTS without corrupting conversation state.
 - Echo/AEC or render-reference suppression prevents self-triggering.
-- Device selection persists; missing/disconnected device degrades to text.
+- Device selection persists by stable identity/name; missing/disconnected device falls back safely
+  or degrades to text without silently selecting unrelated hardware.
+- Device discovery deduplicates host-API aliases and hides pseudo-devices while retaining an
+  explicit system-default choice. Select input and output host APIs independently.
+- Device qualification opens the exact shipped callback/write mode at the shipped sample rate.
+  Output qualification also measures transport duration so a driver that accepts and instantly
+  discards audio is rejected; stream-open success alone is insufficient.
+- Local neural TTS candidates are evaluated for naturalness, first-audio latency, streaming,
+  cancellation, CPU/GPU contention, model provenance, redistribution rights, and license impact.
+  SAPI remains the zero-download fallback; no voice cloning or actor imitation is assumed.
 - Visible listening state, software kill switch, and documented physical mute path.
 
 ### Testing
@@ -364,6 +380,11 @@ text fallback, device diagnostics, and optional clap-event intents.
 - False accept/reject tests for wake word and double clap across music, TV, typing, and normal room
   noise.
 - Interruption, device removal, driver error, timeout, restart, and 30-minute soak tests.
+- Device matrix covers duplicate endpoint names, index churn, unsupported rates, default-device
+  changes, an output stream that returns success without real-time transport, and independent
+  input/output backend selection.
+- TTS evaluation uses a fixed phrase set and records first-audio p50/p95, real-time factor,
+  interruption latency, pronunciation failures, and blinded host preference against SAPI.
 - CPU/GPU/RAM/VRAM measurements while local LLM is loaded.
 - Verify private speech never uses cloud STT/TTS without explicit policy/configuration.
 
@@ -374,6 +395,9 @@ text fallback, device diagnostics, and optional clap-event intents.
 - Selected devices survive restart or fail clearly.
 - WER/latency/false-trigger metrics meet declared thresholds or documented exceptions.
 - Always-listening/wake/clap remains disabled until soak, indicator, and kill-path gates pass.
+- Released always-listening mode requires explicit opt-in, visible persistent state, local-only
+  wake/acoustic detection, bounded post-trigger capture, a false-activations/hour target,
+  restart-safe disable state, and a kill path that stops capture without model cooperation.
 
 ## 9. Phase 3 — Controlled computer access
 
@@ -404,6 +428,11 @@ broker. Never expose unrestricted shell, model-generated command strings, or alw
 - Canonical allowlisted filesystem roots and application identifiers.
 - Initial actions: launch configured app/app group, volume/media, bounded clipboard/browser/status,
   read/search, reversible file operations, then printing.
+- Reversible effects register a durable typed undo record containing normalized target, verified
+  before-state, postcondition, expiry, and conflict guard. Undo never stores unbounded file content,
+  guesses missing state, deletes a changed destination, or bypasses normal broker/audit policy.
+- Expose `undo last` and inspectable undo history through trusted interfaces. Restart reconciliation
+  distinguishes safely reversible records from expired or externally changed state.
 - Hands-free intents map to allowlisted typed actions; gestures never become raw commands.
 - API-first app control; isolated UI automation only when no stable API exists.
 
@@ -414,6 +443,8 @@ broker. Never expose unrestricted shell, model-generated command strings, or alw
 - Stale/replayed/cross-session approval tokens.
 - Cancellation before/during/after partial effects.
 - Idempotency, postcondition mismatch, rollback, application-not-found, printer errors.
+- Undo after restart, external target mutation, missing source/destination, oversized prior content,
+  partial multi-file action, repeated undo, and expired record.
 - Double-clap/gesture false activation cannot trigger sensitive/destructive actions.
 
 ### Exit
@@ -558,6 +589,9 @@ insufficient.
 
 - Camera/screenshot ports with explicit source, region, frame rate, purpose, and retention.
 - Visible camera/screen indicators and technically enforced off state.
+- Local reactive HUD consumes bounded audio/video level events, not retained raw media: microphone
+  level while listening, render level while speaking, capture purpose, active device, and clear
+  idle/listening/thinking/speaking/error states. Cosmetic animation never implies sensor activity.
 - OpenCV preprocessing and MediaPipe Hand Landmarker candidate.
 - Temporal gesture state machine, confidence, debounce, cooldown, calibration, handedness, and
   rate limits.
@@ -599,9 +633,14 @@ internet or weakening local privacy/permission boundaries.
 - Per-device keys/tokens, secure storage, rotation, revocation, expiry, and session management.
 - CSRF/origin checks, strict CORS, CSP, secure cookies/tokens, input/body/rate limits.
 - Conversation/task streaming with reconnect/resume and no cross-session leakage.
+- Reconnect stores and validates server-issued resume handles/cursors, restores only desired
+  authenticated subscriptions, rejects expired handles once, and clears resumable state on logout.
 - Permission prompts bind to trusted device identity and action; sensitive approvals may require
   local confirmation.
 - PWA install/offline shell, clear connectivity state, notification controls, and remote kill.
+- Trusted control panels expose deduplicated tested audio-device selection, assistant voice/theme,
+  current sensor state, undo history, and inspectable memory search/correct/delete controls. UI
+  changes use typed APIs; configuration files and secrets are never exposed to browser code.
 - Audit login, revocation, approval, denial, and suspicious activity without logging secrets.
 
 ### Testing and exit
@@ -611,6 +650,8 @@ internet or weakening local privacy/permission boundaries.
 - No unauthenticated non-loopback access.
 - Enrollment/revocation works on real phone and Windows host.
 - Network loss degrades safely; private/local functions remain available on laptop.
+- Voice/device changes and transient disconnects preserve intended conversation exactly once;
+  logout, revocation, or owner change cannot resume it.
 
 ## 15. Phase 9 — Dedicated server migration
 
@@ -703,6 +744,15 @@ JARVIS is safe, reliable, inspectable, and easy to disable.
 - Per-feature autonomy budgets and default-off controls.
 - Cross-device coordination with single ownership, deduplication, and visible active-task state.
 - Notification relevance controls, snooze, disable, deletion, and feedback.
+- Opt-in morning briefing composes time, weather, due reminders, explicitly approved monitoring
+  results, and a bounded prior-session summary. Each source has freshness, provenance, privacy, and
+  failure isolation; no source silently triggers an effect.
+- Topic monitoring is user-created, frequency/expiry bounded, citation-backed, deduplicated, and
+  quiet while unchanged. Hardware monitoring uses local typed telemetry and threshold hysteresis;
+  it never uploads raw process/window data or turns transient spikes into action authority.
+- Extension system accepts reviewed/signed packages only. Manifests declare tool schemas, data
+  access, network domains, side-effect class, budgets, version compatibility, and uninstall cleanup;
+  unsigned drop-in Python and runtime dependency installation remain prohibited.
 - Cost, privacy, power, and attention budgets enforced outside models.
 - Full provenance explaining why JARVIS acted/suggested and which data/tools were used.
 
@@ -710,6 +760,10 @@ JARVIS is safe, reliable, inspectable, and easy to disable.
 
 - Simulated clock/timezone/DST, duplicate events, restart, offline device, stale memory, and noisy
   trigger tests.
+- Briefing and monitor tests cover unchanged results, stale/weather/news failure, quiet hours,
+  excessive frequency, notification deduplication, private audience, and complete disable/delete.
+- Extension tests cover signature failure, manifest/schema mismatch, name collision, undeclared
+  capability/network access, crash/hang, resource exhaustion, upgrade rollback, and clean removal.
 - Proactive features meet explicit host usefulness/annoyance/privacy thresholds.
 - Disable switch stops new proactive activity and cancellation handles active work.
 - Disabling/removing proactive features does not degrade core on-demand JARVIS.
