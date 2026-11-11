@@ -18,7 +18,6 @@ def client(tmp_path: Path):
         data_dir=tmp_path,
         attachments_enabled=True,
         cloud_policy="local_only",
-        groq_api_key=None,
         gemini_api_key=None,
         nvidia_api_key=None,
         current_context_enabled=False,

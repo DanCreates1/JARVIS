@@ -80,11 +80,8 @@ def test_safe_summary_contains_only_declared_diagnostics(tmp_path: Path) -> None
         "local_model",
         "cloud_policy",
         "max_cloud_cost_usd",
-        "groq_configured",
         "gemini_configured",
         "nvidia_configured",
-        "fast_model",
-        "primary_model",
         "reasoning_model",
         "nvidia_max_output_tokens",
         "nvidia_non_reasoning_max_output_tokens",
@@ -328,8 +325,6 @@ def test_task_execution_defaults_off_with_zero_cost_bounded_parallelism(tmp_path
 
 
 def test_cloud_credentials_require_free_tier_and_data_terms_confirmation(tmp_path: Path) -> None:
-    with pytest.raises(ValidationError, match="GROQ_FREE_TIER_CONFIRMED"):
-        Settings(data_dir=tmp_path, groq_api_key="secret", _env_file=None)
     with pytest.raises(ValidationError, match="data-terms"):
         Settings(
             data_dir=tmp_path,
@@ -339,8 +334,6 @@ def test_cloud_credentials_require_free_tier_and_data_terms_confirmation(tmp_pat
         )
     settings = Settings(
         data_dir=tmp_path,
-        groq_api_key="secret",
-        groq_free_tier_confirmed=True,
         gemini_api_key="secret",
         gemini_free_tier_confirmed=True,
         gemini_unpaid_data_terms_acknowledged=True,
@@ -350,6 +343,17 @@ def test_cloud_credentials_require_free_tier_and_data_terms_confirmation(tmp_pat
     assert settings.cloud_enabled is True
     assert settings.effective_local_model == "custom:latest"
     assert "secret" not in str(settings.safe_summary())
+
+
+def test_removed_provider_environment_cannot_enable_cloud(tmp_path: Path) -> None:
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "JARVIS_GROQ_API_KEY=obsolete-test-key\nJARVIS_GROQ_FREE_TIER_CONFIRMED=true\n",
+        encoding="utf-8",
+    )
+    settings = Settings(data_dir=tmp_path, nvidia_api_key=None, _env_file=env_file)
+    assert settings.cloud_enabled is False
+    assert not hasattr(settings, "groq_api_key")
 
 
 def test_nvidia_key_alias_requires_terms_and_enables_cloud(tmp_path: Path) -> None:
@@ -385,7 +389,7 @@ def test_zero_cost_https_and_loopback_settings_fail_closed(tmp_path: Path) -> No
     with pytest.raises(ValidationError, match="loopback"):
         Settings(data_dir=tmp_path, web_host="0.0.0.0", _env_file=None)
     with pytest.raises(ValidationError, match="HTTPS"):
-        Settings(data_dir=tmp_path, groq_base_url="http://example.test", _env_file=None)
+        Settings(data_dir=tmp_path, gemini_base_url="http://example.test", _env_file=None)
 
 
 def test_local_inference_bounds_and_keep_alive_are_validated(tmp_path: Path) -> None:

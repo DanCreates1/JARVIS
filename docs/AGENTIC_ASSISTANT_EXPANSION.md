@@ -22,7 +22,7 @@ remain authoritative.
 
 | Area | Existing implementation | Gap relevant to expansion |
 | --- | --- | --- |
-| LLM providers/routing | Typed roles, Ollama/Groq/Gemini/NVIDIA adapters, privacy gate, health tracking, zero-cost fallback | No vision model role or attachment-aware capability routing |
+| LLM providers/routing | Typed roles, Ollama/Gemini/NVIDIA adapters, privacy gate, health tracking, zero-cost fallback | No vision model role or attachment-aware capability routing |
 | Memory/context | SQLite/FTS5 working, episodic, profile, semantic, and task memory; bounded recent-turn reduction | No repository map or durable coding-session checkpoint before this plan |
 | Tools/actions | Typed registry, schemas, result caps, policy, approval, one-use grants, broker, audit | Integration registries for communications/calendar do not exist |
 | Web/research | Search/fetch/parse/synthesis ports, safe HTTPS acquisition, citations, PDF parsing, freshness evaluation | Research is explicit, Wikimedia-backed, and not automatically invoked from chat |

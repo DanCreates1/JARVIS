@@ -22,7 +22,7 @@ The secure text foundation currently provides:
 - locked Python 3.11 project and Windows bootstrap;
 - validated settings and private local data directories;
 - `jarvis doctor`, interactive/one-shot terminal chat, and loopback browser chat;
-- configuration-driven NVIDIA/Groq/Gemini/Ollama roles and live catalog diagnostics;
+- configuration-driven NVIDIA/Gemini/Ollama roles and live catalog diagnostics;
 - deterministic local sensitivity gate, direct clock path, and zero-cost fallback;
 - SQLite conversations, explicit basic memories, deletion, audit, and migrations;
 - schema-validated clock, system-status, and allowlisted text-file tools;
@@ -35,7 +35,7 @@ keys are configured. Otherwise runtime remains local and offline-capable.
 ## Phase 1 — privacy-aware text core (implemented; closeout blocked 2026-09-04)
 
 - Added provider-neutral `FAST`, `PRIMARY`, `REASONING`, and `LOCAL` roles.
-- Added NVIDIA, Groq, and Gemini adapters while retaining Ollama for private/offline fallback.
+- Added NVIDIA and Gemini adapters while retaining Ollama for private/offline fallback.
 - Current active defaults map `REASONING` to NVIDIA `nvidia/nemotron-3.5-lightning-30b-a3b` and `LOCAL` to Ollama `qwen3:0.6b`; Nemotron Ultra and Nano remain live-smoke compatibility-tested, and optional `FAST`/`PRIMARY` mappings remain configurable.
 - Runs deterministic local sensitivity and command classification before any cloud request.
 - Send sensitive or uncertain content only to `LOCAL`; never silently weaken privacy during fallback.
@@ -136,4 +136,4 @@ Every phase must retain:
 - no committed secrets, private runtime data, or model weights;
 - Windows validation, recovery steps, and ordinary non-rewritten Git history.
 
-Current provider facts and privacy terms are dated observations. Reverify official NVIDIA, Groq, and Gemini catalogs, free/trial limits, lifecycle status, and data terms before release.
+Current provider facts and privacy terms are dated observations. Reverify official NVIDIA and Gemini catalogs, free/trial limits, lifecycle status, and data terms before release.

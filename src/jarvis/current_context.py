@@ -48,7 +48,7 @@ _DEVICE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 _MODEL_PATTERN = re.compile(
-    r"\b(model|provider|inference|cloud|local model|ollama|groq|gemini|nvidia|"
+    r"\b(model|provider|inference|cloud|local model|ollama|gemini|nvidia|"
     r"rate limit|usage limit|fallback)\b",
     re.IGNORECASE,
 )

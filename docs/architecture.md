@@ -15,7 +15,7 @@
 ## Status
 
 This document describes the implemented modular Python application through completed Phase 11:
-with deterministic local privacy routing, NVIDIA/Groq/Gemini/Ollama adapters, SQLite,
+with deterministic local privacy routing, NVIDIA/Gemini/Ollama adapters, SQLite,
 audited tools, CLI, loopback browser/API interfaces, optional local push-to-talk voice, and an
 opt-in controlled Windows action broker, plus host-isolated candidate/committed memory with FTS5
 retrieval and transitive deletion, bounded cited public research with explicit storage approval,
@@ -49,7 +49,7 @@ Terminal CLI        Browser + local API       Voice / future vision adapters
                         |
        context -> current-context projection -> local privacy gate -> ModelRouter -> tool-call loop
                            |                 |              |
-                NVIDIA/Groq/Gemini/Ollama   |              |
+                NVIDIA/Gemini/Ollama   |              |
                                   ConversationStore      ToolPolicy
                                           |                  |
                                      ToolRegistry      proposal only
@@ -123,11 +123,11 @@ bounded. A provider failure must not corrupt a conversation.
 
 ### Provider boundary
 
-`ModelProvider` normalizes NVIDIA, Groq, Gemini, and Ollama wire formats. Tier 0 handles deterministic
+`ModelProvider` normalizes NVIDIA, Gemini, and Ollama wire formats. Tier 0 handles deterministic
 tools/direct results (and only tool-owned caches with explicit freshness); Tier 1 is local Ollama;
-Tier 2 is responsive Groq `FAST`/`PRIMARY`; Tier 3 is NVIDIA difficult reasoning. Ollama NDJSON and NVIDIA
-SSE emit genuine visible-token deltas plus one terminal normalized response; Groq/Gemini currently
-emit terminal frames. `ModelRouter`
+the optional FAST/PRIMARY tier is unbound and falls back locally; NVIDIA handles difficult reasoning. Ollama NDJSON and NVIDIA
+SSE emit genuine visible-token deltas plus one terminal normalized response; Gemini currently
+emits terminal frames. `ModelRouter`
 owns sensitivity gating, role selection, bounded transient retry, quota/model
 fallback, and zero-cost enforcement. Sensitive or uncertain routes never use a
 cloud provider. Fallback is allowed only before streamed output begins; partial output cannot be

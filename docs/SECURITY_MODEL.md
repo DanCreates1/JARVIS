@@ -68,12 +68,11 @@ Every cloud provider is a separate external disclosure boundary. A deterministic
 
 Initial cloud policy:
 
-- non-sensitive requests may use configured Groq or Gemini free-tier roles;
+- non-sensitive requests may use configured Gemini free-tier roles;
 - sensitive, personal, credential, file, memory, communication, and device context remains local;
 - unavailable local inference causes a private failure, never automatic cloud disclosure;
 - cloud credentials belong to billing-disabled/free-tier projects and maximum cloud cost is exactly `$0`;
 - provider `429`, outage, model removal, or catalog mismatch triggers a bounded free/local fallback or clear capacity error;
-- Groq Zero Data Retention should be enabled, but cloud transport remains disclosure;
 - unpaid Gemini must not receive confidential or personal information because Google may use unpaid-service inputs/outputs for product improvement and human review.
 
 ## 4. Host identity and authentication

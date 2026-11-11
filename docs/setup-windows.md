@@ -205,8 +205,7 @@ until Phase 8D supplies reviewed private-network/TLS deployment configuration an
 
 ### Latency routing and NVIDIA evidence
 
-Current defaults keep simple/normal/voice-sensitive work local, use configured Groq roles for
-responsive public cloud work, and reserve NVIDIA for difficult public reasoning. Tune UX budgets
+Current defaults keep simple/normal/voice-sensitive work local and reserve NVIDIA for difficult public reasoning. Tune UX budgets
 without changing Phase 1 acceptance thresholds:
 
 ```dotenv
@@ -676,13 +675,7 @@ authority boundary are in [Phase 9C Deployment and Recovery](PHASE_9C_DEPLOYMENT
 
 ## Optional free-tier cloud roles
 
-Local Ollama works without cloud credentials. To activate Groq, inject a key from
-a billing-disabled/free-tier project and confirm that constraint:
-
-```powershell
-$env:JARVIS_GROQ_API_KEY = "<secret>"
-$env:JARVIS_GROQ_FREE_TIER_CONFIRMED = "true"
-```
+Local Ollama works without cloud credentials.
 
 To activate unpaid Gemini, also acknowledge its data terms. Never submit
 sensitive, personal, credential, file, memory, communication, or device context:
@@ -694,7 +687,7 @@ $env:JARVIS_GEMINI_UNPAID_DATA_TERMS_ACKNOWLEDGED = "true"
 ```
 
 Run `uv run jarvis doctor` after configuration. It validates live model catalogs.
-Enable Groq Zero Data Retention separately in Groq controls. Confirmation flags
+Confirmation flags
 fail closed but cannot technically inspect provider billing settings.
 
 ## Configuration

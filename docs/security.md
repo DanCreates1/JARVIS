@@ -4,7 +4,7 @@ JARVIS processes private conversations and will eventually control local devices
 Security therefore belongs in the runtime architecture, not only in prompts.
 
 This document describes implemented controls through completed Phase 11, including local sensitivity
-classification, zero-cost NVIDIA/Groq/Gemini/Ollama routing, local push-to-talk speech, and
+classification, zero-cost NVIDIA/Gemini/Ollama routing, local push-to-talk speech, and
 default-off controlled computer access, plus candidate-only host-isolated memory, provenance,
 conflict visibility, transitive deletion, and bounded cited public research. Independent
 clean-Windows bootstrap/repository CI
@@ -260,7 +260,7 @@ it is installed.
 ## Model and network security
 
 Ollama defaults to `http://127.0.0.1:11434`. Remote Ollama requires explicit opt-in and HTTPS.
-Groq/Gemini activate only after mandatory free-tier/data-term confirmations. A local
+Gemini activates only after mandatory free-tier/data-term confirmations. A local
 deterministic gate scans full candidate disclosure context; sensitive or uncertain content
 routes local, and free-tier exhaustion cannot enter paid service.
 HTTP clients use bounded request timeouts and narrowly constructed URLs. An explicit wire-level
@@ -271,7 +271,7 @@ state, and rolling aggregates. It records no prompt, response, credential, or pr
 Cloud congestion gets no immediate retry; failover can occur only before visible output.
 
 Cloud credentials must come from billing-disabled/free-tier projects and secure process
-injection or an OS credential store. Enable Groq Zero Data Retention, while treating every cloud
+injection or an OS credential store. Treat every cloud
 call as external disclosure. Never send sensitive or confidential content through unpaid Gemini.
 
 Model weights are downloaded only through an explicit setup command and are not committed. Phase

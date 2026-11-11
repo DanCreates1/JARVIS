@@ -1,5 +1,7 @@
 # JARVIS Hardware Report
 
+> 2026-10-21 update: Groq integration removed at owner request. Groq selections below are historical, not active configuration. Ollama remains local; NVIDIA/Gemini remain optional reasoning providers. See docs/GROQ_DEFERRED.md.
+
 Audit date: 2026-08-19  
 Hosted-model strategy verified: 2026-08-20
 Method: lightweight Windows CIM/PnP queries, installed-command checks, Phase 1/2 benchmarks, and

@@ -110,6 +110,20 @@ or an obvious equivalent, use the defined current integer ID in the master roadm
   authorize secrets, private runtime data, generated artifacts, destructive Git, history rewrites,
   or force-pushes. Preserve and report any unsafe or ambiguous artifact instead of publishing it.
 
+## Failed gates and continued execution
+
+- Failed gates mean continue fixing, not stop. Diagnose and repair in-scope code, configuration,
+  dependencies and test failures; rerun relevant checks under existing authority.
+- Distinguish acceptance failing (keep working), publication held (keep fixing locally; do not
+  push), and externally blocked (user action actually required). A failed acceptance or publication
+  gate alone is not a permission boundary or reason to end development.
+- Mark work blocked only when progress requires unavailable external access, missing user
+  information, or an unapproved consequential action. Before stopping, record attempted fixes,
+  the exact remaining obstacle, and why existing authority cannot resolve it. Continue independent
+  in-scope work while awaiting required input.
+- Never weaken acceptance criteria, bypass security gates, exceed scope or override explicit
+  owner holds to obtain a pass.
+
 ## Repository quality commands
 
 Use the repository scripts and locked environment. On this workstation, follow the global RTK shell

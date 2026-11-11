@@ -302,7 +302,7 @@ but no completed-with-limitation state. Therefore:
 
 - use `PASS` only when NVIDIA itself meets all fixed 20/20 gates;
 - keep `STILL BLOCKED`/`blocked-external` when it does not;
-- never report routed local/Groq latency as NVIDIA latency; and
+- never report routed local latency as NVIDIA latency; and
 - use `CLOSED WITH EXTERNAL PROVIDER LIMITATION` only after an explicit owner governance revision
   adds that closure state and its evidence requirements. Such a revision is a release-policy
   decision, not benchmark tuning, and must not mark the NVIDIA-specific gate green.
@@ -324,7 +324,7 @@ measurable behavior.
 ### Required capability
 
 - Provider-neutral model/message/tool/routing/usage contracts.
-- Ollama local provider plus configuration-driven NVIDIA/Groq/Gemini adapters.
+- Ollama local provider plus configuration-driven NVIDIA/Gemini adapters.
 - Deterministic sensitivity gate before any cloud disclosure.
 - Hard `$0` cloud budget, catalog diagnostics, bounded retry, quota/outage/model-removal fallback.
 - Bounded conversation/tool loop, structured events/errors, cancellation propagation.

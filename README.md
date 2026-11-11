@@ -60,7 +60,7 @@ selection, private processing and same-conversation reuse. Image understanding r
 installed local vision; otherwise unavailable. No cloud upload or automatic memory promotion.
 
 JARVIS is a privacy-aware hybrid assistant for Windows. Phases 1–8, Phases 9A–9C, and Phase 11 implement a
-local deterministic privacy gate, configurable NVIDIA/Groq/Gemini/Ollama roles,
+local deterministic privacy gate, configurable NVIDIA/Gemini/Ollama roles,
 zero-cost fallback routing, durable SQLite state, audited read-only tools, CLI,
 loopback browser chat, local push-to-talk speech, opt-in controlled Windows actions, bounded cited
 public research, durable budgeted task graphs, default-off trigger policy and foreground runner, and a
@@ -442,7 +442,6 @@ activity. Removing all proactive state left normal on-demand conversation and de
 | --- | --- | --- |
 | `Tier 0` | Deterministic tools/direct results | Commands and direct actions needing no model; cache use only where an owning tool defines safe freshness |
 | `Tier 1 / LOCAL` | Ollama `qwen3:0.6b` | Simple/normal, latency-sensitive, private, uncertain, and offline work |
-| `Tier 2 / FAST, PRIMARY` | Groq `openai/gpt-oss-20b`, `qwen/qwen3.6-27b` | Public work exceeding local capability but needing responsive interaction |
 | `Tier 3 / REASONING` | NVIDIA `nvidia/nemotron-3.5-lightning-30b-a3b` | Difficult public reasoning and long-running work where latency is acceptable |
 
 A deterministic local gate must classify sensitivity before any cloud request.
@@ -599,8 +598,6 @@ The main settings are:
 | `JARVIS_OLLAMA_CONTEXT_TOKENS` | `4096` | Bounded active local context |
 | `JARVIS_OLLAMA_MAX_OUTPUT_TOKENS` | `512` | Local generation ceiling |
 | `JARVIS_OLLAMA_KEEP_ALIVE` | `5m` | Ollama residency policy |
-| `JARVIS_FAST_MODEL` | `openai/gpt-oss-20b` | Groq fast role |
-| `JARVIS_PRIMARY_MODEL` | `qwen/qwen3.6-27b` | Groq primary preview role |
 | `JARVIS_REASONING_MODEL` | `nvidia/nemotron-3.5-lightning-30b-a3b` | NVIDIA hosted reasoning role |
 | `JARVIS_NVIDIA_MAX_OUTPUT_TOKENS` | `1024` | Hosted thinking-request output ceiling |
 | `JARVIS_NVIDIA_NON_REASONING_MAX_OUTPUT_TOKENS` | `256` | Hosted non-thinking output ceiling |
@@ -665,12 +662,11 @@ To enable NVIDIA, set `JARVIS_NVIDIA_API_KEY` (or NVIDIA's sample-code alias
 classified public. NVIDIA does not publish one fixed trial limit: the model/account
 limit appears in the API Catalog account UI, and HTTP 429 automatically falls back local.
 
-To enable Groq, set `JARVIS_GROQ_API_KEY` and
-`JARVIS_GROQ_FREE_TIER_CONFIRMED=true`. To enable Gemini, set
+To enable Gemini, set
 `JARVIS_GEMINI_API_KEY`, `JARVIS_GEMINI_FREE_TIER_CONFIRMED=true`, and
 `JARVIS_GEMINI_UNPAID_DATA_TERMS_ACKNOWLEDGED=true`. These confirmations fail
 closed; they do not technically inspect provider billing settings. Use credentials
-from billing-disabled projects, enable Groq Zero Data Retention, and verify quotas
+from billing-disabled projects and verify quotas
 in provider consoles. Never send sensitive data to unpaid Gemini.
 
 By default, mutable state belongs under current user's local application-data

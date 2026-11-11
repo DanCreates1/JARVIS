@@ -14,7 +14,6 @@ from jarvis.core import (
     ModelProfile,
     ModelRole,
     PermissionLevel,
-    ReasoningLevel,
     SensitivityClass,
     ToolConcurrency,
     ToolDefinition,
@@ -25,11 +24,9 @@ from jarvis.core import (
 )
 from jarvis.llm import (
     GeminiChatProvider,
-    GroqChatProvider,
     NvidiaChatProvider,
     ProviderProtocolError,
     ProviderQuotaError,
-    ProviderUnavailableError,
 )
 
 
@@ -88,119 +85,6 @@ def tools() -> list[ToolDefinition]:
             recovery="No side effect occurs; retry a transient provider failure.",
         )
     ]
-
-
-@pytest.mark.asyncio
-async def test_groq_normalizes_tool_calls_usage_reasoning_and_catalog() -> None:
-    requests: list[httpx.Request] = []
-
-    async def handler(request: httpx.Request) -> httpx.Response:
-        requests.append(request)
-        if request.url.path.endswith("/models"):
-            return httpx.Response(200, json={"data": [{"id": "qwen/test"}]})
-        payload = json.loads(request.content)
-        expected_effort = "default" if payload.get("tools") else "none"
-        assert payload["reasoning_effort"] == expected_effort
-        if payload.get("tools"):
-            assert payload["tools"][0]["function"]["name"] == "weather"
-        return httpx.Response(
-            200,
-            headers={"x-ratelimit-remaining-requests": "29"},
-            json={
-                "choices": [
-                    {
-                        "message": {
-                            "content": None,
-                            "tool_calls": [
-                                {
-                                    "id": "call-1",
-                                    "function": {
-                                        "name": "weather",
-                                        "arguments": '{"city":"Toronto"}',
-                                    },
-                                }
-                            ],
-                        }
-                    }
-                ],
-                "usage": {"prompt_tokens": 10, "completion_tokens": 4},
-            },
-        )
-
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    provider = GroqChatProvider(
-        api_key="test",
-        profile=profile(ModelRole.PRIMARY, "groq", "qwen/test"),
-        client=client,
-    )
-    response = await provider.chat(
-        messages=messages(), tools=tools(), reasoning_level=ReasoningLevel.MODERATE.value
-    )
-    assert response.tool_calls[0].arguments == {"city": "Toronto"}
-    assert response.usage is not None
-    assert response.usage.input_tokens == 10
-    assert response.usage.rate_limit_remaining == 29
-    assert await provider.validate_model() is True
-    streamed = [frame async for frame in provider.stream_chat(messages=messages(), tools=[])]
-    assert streamed[0].response is not None
-    assert streamed[0].response.tool_calls
-    assert all(request.headers["authorization"] == "Bearer test" for request in requests)
-    await provider.close()
-    await provider.close()
-    await client.aclose()
-
-
-@pytest.mark.asyncio
-async def test_groq_maps_quota_bad_json_and_connection_failures() -> None:
-    async def quota(_request: httpx.Request) -> httpx.Response:
-        return httpx.Response(429, text="quota")
-
-    client = httpx.AsyncClient(transport=httpx.MockTransport(quota))
-    provider = GroqChatProvider(
-        api_key="test",
-        profile=profile(ModelRole.FAST, "groq", "openai/test"),
-        client=client,
-    )
-    with pytest.raises(ProviderQuotaError):
-        await provider.chat(messages=messages(), tools=[])
-    await client.aclose()
-
-    async def invalid(_request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, text="not json")
-
-    invalid_client = httpx.AsyncClient(transport=httpx.MockTransport(invalid))
-    invalid_provider = GroqChatProvider(
-        api_key="test",
-        profile=profile(ModelRole.FAST, "groq", "openai/test"),
-        client=invalid_client,
-    )
-    with pytest.raises(ProviderProtocolError, match="invalid JSON"):
-        await invalid_provider.chat(messages=messages(), tools=[])
-    await invalid_client.aclose()
-
-    async def disconnected(request: httpx.Request) -> httpx.Response:
-        raise httpx.ConnectError("offline", request=request)
-
-    down_client = httpx.AsyncClient(transport=httpx.MockTransport(disconnected))
-    down_provider = GroqChatProvider(
-        api_key="test",
-        profile=profile(ModelRole.FAST, "groq", "openai/test"),
-        client=down_client,
-    )
-    with pytest.raises(ProviderUnavailableError, match="ConnectError"):
-        await down_provider.validate_model()
-    await down_client.aclose()
-
-    large_client = httpx.AsyncClient(transport=httpx.MockTransport(invalid))
-    large_provider = GroqChatProvider(
-        api_key="test",
-        profile=profile(ModelRole.FAST, "groq", "openai/test"),
-        client=large_client,
-        max_response_bytes=2,
-    )
-    with pytest.raises(ProviderProtocolError, match="byte limit"):
-        await large_provider.chat(messages=messages(), tools=[])
-    await large_client.aclose()
 
 
 @pytest.mark.asyncio
@@ -466,23 +350,17 @@ async def test_nvidia_rejects_malformed_tool_arguments() -> None:
 
 
 def test_cloud_provider_constructors_reject_wrong_profiles_and_blank_keys() -> None:
-    groq_profile = profile(ModelRole.FAST, "groq", "model")
+    other_profile = profile(ModelRole.FAST, "ollama", "model")
     gemini_profile = profile(ModelRole.REASONING, "gemini", "model")
-    with pytest.raises(ValueError, match="key"):
-        GroqChatProvider(api_key=" ", profile=groq_profile)
-    with pytest.raises(ValueError, match="profile"):
-        GroqChatProvider(api_key="x", profile=gemini_profile)
     with pytest.raises(ValueError, match="key"):
         GeminiChatProvider(api_key=" ", profile=gemini_profile)
     with pytest.raises(ValueError, match="profile"):
-        GeminiChatProvider(api_key="x", profile=groq_profile)
-    with pytest.raises(ValueError, match="max_response_bytes"):
-        GroqChatProvider(api_key="x", profile=groq_profile, max_response_bytes=0)
+        GeminiChatProvider(api_key="x", profile=other_profile)
     nvidia_profile = profile(ModelRole.REASONING, "nvidia", "nvidia/model")
     with pytest.raises(ValueError, match="key"):
         NvidiaChatProvider(api_key=" ", profile=nvidia_profile)
     with pytest.raises(ValueError, match="profile"):
-        NvidiaChatProvider(api_key="x", profile=groq_profile)
+        NvidiaChatProvider(api_key="x", profile=other_profile)
     with pytest.raises(ValueError, match="max_output_tokens"):
         NvidiaChatProvider(api_key="x", profile=nvidia_profile, max_output_tokens=32_769)
     with pytest.raises(ValueError, match="reasoning_budget_tokens"):

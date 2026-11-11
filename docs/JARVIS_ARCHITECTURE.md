@@ -432,16 +432,16 @@ Routing output is a logical role and policy, not just a model name:
 
 ```json
 {
-  "role": "primary",
-  "provider": "groq",
-  "model_id": "qwen/qwen3.6-27b",
+  "role": "local",
+  "provider": "ollama",
+  "model_id": "qwen3:0.6b",
   "sensitivity": "non_sensitive",
   "reasoning_level": "none",
-  "max_context_tokens": 131072,
-  "max_output_tokens": 1024,
+  "max_context_tokens": 4096,
+  "max_output_tokens": 512,
   "deadline_ms": 5000,
-  "fallback_roles": ["fast", "local"],
-  "cloud_allowed": true,
+  "fallback_roles": [],
+  "cloud_allowed": false,
   "max_cloud_cost_usd": 0
 }
 ```
@@ -452,7 +452,6 @@ Implemented latency tiers and role mapping:
 | --- | --- | --- |
 | Tier 0 | Deterministic typed tools/direct results | No model; cached results only when owning tool defines safe freshness |
 | Tier 1 / `LOCAL` | Ollama `qwen3:0.6b` | Simple/normal, latency-sensitive, private/unknown, offline, and fallback work |
-| Tier 2 / `FAST`, `PRIMARY` | Groq `openai/gpt-oss-20b`, `qwen/qwen3.6-27b` | Public work exceeding local capability but needing responsive interaction |
 | Tier 3 / `REASONING` | NVIDIA `nvidia/nemotron-3.5-lightning-30b-a3b` | Difficult public reasoning/long work where latency is acceptable |
 
 Routing order:

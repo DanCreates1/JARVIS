@@ -24,7 +24,6 @@ from jarvis.email import EmailService, build_email_service
 from jarvis.freshness_router import DeterministicFreshnessRouter
 from jarvis.llm import (
     GeminiChatProvider,
-    GroqChatProvider,
     LatencyBudgets,
     ModelProvider,
     ModelRouter,
@@ -306,26 +305,6 @@ async def build_runtime(settings: Settings) -> RuntimeComponents:
         )
         created_providers.append(local)
         providers: dict[ModelRole, ModelProvider] = {ModelRole.LOCAL: local}
-        if settings.cloud_policy == "privacy_aware" and settings.groq_api_key is not None:
-            groq_key = settings.groq_api_key.get_secret_value()
-            fast_provider = GroqChatProvider(
-                api_key=groq_key,
-                profile=_fast_profile(settings),
-                base_url=str(settings.groq_base_url),
-                timeout_seconds=settings.request_timeout_seconds,
-                max_response_bytes=settings.max_provider_response_bytes,
-            )
-            created_providers.append(fast_provider)
-            providers[ModelRole.FAST] = fast_provider
-            primary_provider = GroqChatProvider(
-                api_key=groq_key,
-                profile=_primary_profile(settings),
-                base_url=str(settings.groq_base_url),
-                timeout_seconds=settings.request_timeout_seconds,
-                max_response_bytes=settings.max_provider_response_bytes,
-            )
-            created_providers.append(primary_provider)
-            providers[ModelRole.PRIMARY] = primary_provider
         if (
             settings.cloud_policy == "privacy_aware"
             and settings.reasoning_provider == "gemini"
@@ -731,42 +710,6 @@ def _deployment_context(
     health = DeploymentHealthMonitor(max_events=manifest.telemetry_event_limit)
     health.observe(HealthReason.READY, healthy=True)
     return topology, activation, health
-
-
-def _fast_profile(settings: Settings) -> ModelProfile:
-    return ModelProfile(
-        role=ModelRole.FAST,
-        provider=settings.fast_provider,
-        model_id=settings.fast_model,
-        capabilities=(
-            ModelCapability.TEXT,
-            ModelCapability.TOOLS,
-            ModelCapability.STRUCTURED_OUTPUT,
-            ModelCapability.REASONING,
-        ),
-        lifecycle=ModelLifecycle.PRODUCTION,
-        context_window=131_072,
-        is_cloud=True,
-    )
-
-
-def _primary_profile(settings: Settings) -> ModelProfile:
-    return ModelProfile(
-        role=ModelRole.PRIMARY,
-        provider=settings.primary_provider,
-        model_id=settings.primary_model,
-        capabilities=(
-            ModelCapability.TEXT,
-            ModelCapability.VISION,
-            ModelCapability.TOOLS,
-            ModelCapability.PARALLEL_TOOLS,
-            ModelCapability.STRUCTURED_OUTPUT,
-            ModelCapability.REASONING,
-        ),
-        lifecycle=ModelLifecycle.PREVIEW,
-        context_window=131_072,
-        is_cloud=True,
-    )
 
 
 def _reasoning_profile(settings: Settings) -> ModelProfile:

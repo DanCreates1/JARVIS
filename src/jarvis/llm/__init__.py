@@ -12,7 +12,6 @@ from jarvis.llm.base import (
     ZeroCostPolicyError,
 )
 from jarvis.llm.gemini import GeminiChatProvider
-from jarvis.llm.groq import GroqChatProvider
 from jarvis.llm.health import LatencyBudgets, ProviderHealthSnapshot, ProviderHealthTracker
 from jarvis.llm.nvidia import NvidiaChatProvider
 from jarvis.llm.ollama import (
@@ -28,7 +27,6 @@ from jarvis.llm.routing import ModelRouter, PrivacyGate, RoutingPolicy
 
 __all__ = [
     "GeminiChatProvider",
-    "GroqChatProvider",
     "LatencyBudgets",
     "ModelProvider",
     "ModelRouter",

@@ -12,6 +12,8 @@
 > PROTO-1.1 root/sidecar dependency remediation passed; [evidence](PROTO_1_1_EVIDENCE.md).
 > Held native dependencies remain outside that pass.
 
+> 2026-10-21 update: Groq integration removed at owner request. Groq selections below are historical, not active configuration. Ollama remains local; NVIDIA/Gemini remain optional reasoning providers. See docs/GROQ_DEFERRED.md.
+
 Status: recommended defaults for staged implementation  
 Planning date: 2026-08-20
 Last updated: 2026-09-10

@@ -21,7 +21,7 @@ from jarvis.core.models import (
 )
 
 from .base import ProviderProtocolError, ProviderUnavailableError
-from .groq import _raise_status
+from .http_errors import _raise_status
 
 
 class GeminiChatProvider:
