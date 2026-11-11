@@ -5,9 +5,9 @@ Status, **2026-11-10**: personal Gmail with Desktop delegated OAuth/PKCE and
 approval. Exact-account profile verification and protected Windows grant creation passed.
 The first selected conversation failed the unchanged message-size boundary. A second explicitly
 selected source passed actual bounded read/preparation with one message and verified provenance;
-current release/documentation closeout remains pending. Production configuration stays off.
+current release gates and exact-source CI pass. Production configuration stays off.
 Earlier missing-project/client statements below describe historical preparation, not current setup.
-[Current progress](phase-reports/current/PHASE_15_PROGRESS.md) freezes scope and acceptance.
+[Completion evidence](phase-reports/current/PHASE_15_COMPLETION.md) retains frozen scope and acceptance.
 
 ## Choices reviewed
 

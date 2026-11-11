@@ -5,8 +5,8 @@ authorization succeeded. Client registration remains outside the checkout; refre
 in Windows Credential Manager. Production configuration remains off. Selected-source live
 read/preparation passed with one message, verified provenance and an unsent/unstored synthetic
 draft in 805.831 ms. The earlier oversized conversation remains a documented rejection; limits
-were not changed. Current release/documentation closeout remains pending. See current evidence in
-[Phase 15 progress](phase-reports/current/PHASE_15_PROGRESS.md).
+were not changed. Selected Phase 15 release gates and exact-source CI pass. See
+[Phase 15 completion](phase-reports/current/PHASE_15_COMPLETION.md).
 
 The setup instructions below remain the operator contract. Earlier absence of a project/client
 was confirmed on 2026-11-01 and is superseded by this actual authorization checkpoint.

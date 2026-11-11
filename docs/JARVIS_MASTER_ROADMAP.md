@@ -61,7 +61,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [12](#phase-12--foreground-voice) | Foreground voice | complete | 7 | Explicit local speech/review/Send/text replies; current Windows synthetic/security/release gates and fresh CI pass |
 | [13](#phase-13--controlled-windows-actions) | Controlled Windows actions | complete | 7 | Current app/STOP and bounded volume retry pass; recovery, automated release gates and reviewed publication |
 | [14](#phase-14--bounded-tasks-and-project-workflows) | Bounded tasks and project workflows | complete | 7; 13 for action-bearing flows | Bounded project review, durable foreground controls, current recovery/release gates and reviewed publication |
-| [15](#phase-15--email) | Email | implemented-closeout-pending | 7 | Actual approved protected Gmail auth and one-message live read/preparation passed; current release/documentation closeout pending |
+| [15](#phase-15--email) | Email | complete | 7 | Actual approved protected Gmail auth/read/preparation, current working/publication gates and exact-source CI pass; production acquisition and sends remain off |
 | [16](#phase-16--calendar-and-reminders) | Calendar and reminders | blocked-external | 7 | Google primary selected; inactive read/protected auth/proof CLI implemented; setup approval/actual grant/live proof pending |
 | [17](#phase-17--background-scheduling-and-proactivity) | Background scheduling and proactivity | complete | 14 | Exact opt-in worker, isolated 1,800-tick soak, full source gates and fresh source CI pass; production activation and external notifications excluded |
 | [18](#phase-18--daily-briefing) | Daily briefing | not-started | 10, 15, 16, 17; 8 only for Garmin content | Compose approved sources with honest freshness/omissions |
@@ -72,7 +72,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [23](#phase-23--wearables-and-additional-devices) | Wearables and additional devices | deferred | Supported vendor path + device/scopes authority | Generic legacy wearable boundary; adapter/device acceptance absent |
 | [24](#phase-24--restricted-maintenance-assistance) | Restricted maintenance assistance | deferred | 14, 17, 19 + explicit narrow use case | Proposal-only isolated assistance; no self-authorized production changes |
 
-**Progress basis:** **15/19 primary phase receipts closed (~79%)**. This is an unweighted management
+**Progress basis:** **16/19 primary phase receipts closed (~84%)**. This is an unweighted management
 count, not percentage of code written, elapsed effort or mobile MVP acceptance.
 Existing foundations reduce future work but earn no new phase closure without current evidence.
 Prototype acceptance remains **100% = 10/10 groups** under its original scope. Full mobile MVP,
@@ -263,7 +263,7 @@ Read [task evidence](phase-reports/PHASE_6_COMPLETION.md), [F14](PWA_F14_WORKFLO
 
 ### Phase 15 — Email
 
-Status: **implemented-closeout-pending**, 2026-11-10. [Current progress](phase-reports/current/PHASE_15_PROGRESS.md),
+Status: **complete**, 2026-11-10. [Completion evidence](phase-reports/current/PHASE_15_COMPLETION.md),
 [provider/auth decision](EMAIL_PROVIDER_DECISION.md). Personal Gmail / desktop delegated OAuth /
 `gmail.readonly` selected. Bounded read adapter, protected Windows credentials, explicit PKCE OAuth,
 foreground renewal and default-off composition implemented; synthetic gates recorded in progress.
@@ -271,7 +271,7 @@ Owner completed approved project/client setup and Google consent; actual exact-a
 Windows protected grant creation passed. [Setup and recovery](GMAIL_SETUP.md). The first selected
 conversation contained an oversized message and was rejected without relaxing limits. A second
 selected one-message conversation passed live read/preparation with verified provenance and an
-unsent/unstored draft; current release/documentation closeout remains pending. Production
+unsent/unstored draft. Current working/publication release gates and exact-source CI pass. Production
 configuration stays off; no write/send, background acquisition or calendar scope is granted.
 
 Outcome: approved-provider read/thread summaries and preparation of drafts with provenance.
@@ -422,7 +422,7 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 | Legacy Phase 11 / expansion L | Phase 17 scheduling foundation; Phase 24 narrow maintenance option |
 | Expansion A / D / E / K | Shared context/discovery/routing/approval foundations; Phases 7,11,13,14; no duplicate implementation phase |
 | Expansion F / G | Phases 10 / 9 continuity and attachment foundations |
-| Expansion I, IA, IB | Phase 15 email; IA exists, live IB authority blocker remains |
+| Expansion I, IA, IB | Phase 15 bounded email acceptance complete: historical local exports plus current approved protected Gmail live proof; writes/sends remain separate |
 | Expansion J / M | Phases 16 / 18 calendar and briefing |
 | Mobile M1,M2,M2C / native MVP 1–4 | Phase 21 deferred client; previous build/identity/physical status retained |
 | PWA M3A,M3B,M3C / MVP 3 | Phase 8 health; protected-session proof retained; scopes and phone rows separate |
@@ -438,7 +438,7 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 | Research live endpoint | Wikimedia `authentication_required` remains confirmed 2026-10-31. Phase 11 direct-source acceptance passes; general discovery remains unavailable until directly revalidated working. |
 | Windows effects | Phase 13 current approved app/STOP and bounded volume retry pass; earlier headphone readback failure retained. Original output/scalar/mute restored; no arbitrary-percentage/all-device qualification. Chat/read/task-monitor scope grants no OS/control authority. |
 | Garmin | Existing protected session and normal renewal authority retained. Phase 8 grants no new login, enrollment, health scope, credential replacement or health disclosure. |
-| Email/calendar | Phase 15/16 provider choices/auth/private-read authority remain external inputs when needed. Writes/sends are independently exact-approved. |
+| Email/calendar | Phase 15 selected protected Gmail auth/read/preparation accepted; Phase 16 setup/grant/live proof remains pending. Writes/sends are independently exact-approved. |
 | Native dependencies | Held manifests stay unchanged and unpublished; only selected Phase 21 may revisit a passing reviewed candidate. |
 | Physical phone checks | **Skipped by owner; unverified** everywhere. Do not ask, queue reminders, count passes or block repository development on them. |
 | Server/native/wearable activation | Deferred rows grant no spend, deployment, signing, device enrollment or scope authority. |
@@ -446,13 +446,12 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 
 ## Next action
 
-**Current requested: finish Phase 15 closeout.** Actual protected Gmail authorization and selected
-one-message read/preparation passed; current release/documentation gates and exact-commit CI are
-being completed. Continue [current evidence](phase-reports/current/PHASE_15_PROGRESS.md).
-Phase 17 is complete. Phase 16 still needs its independent Google Calendar setup/grant/live proof;
-Gmail consent grants no calendar or background acquisition authority. Phase 18 — Daily briefing
-remains unstarted and requires the actual approved-source prerequisites. No next phase starts
-automatically.
+**Next: Continue Phase 16 — Calendar and reminders.** Phase 15 bounded protected Gmail acceptance
+and Phase 17 isolated scheduling acceptance are complete. Review [Calendar progress](phase-reports/current/PHASE_16_PROGRESS.md)
+and the [prepared Google primary-calendar setup](GOOGLE_CALENDAR_SETUP.md); independent Calendar
+scope/setup/grant authority and actual bounded live proof remain pending. Gmail consent grants
+no Calendar or background acquisition authority. Phase 18 — Daily briefing remains unstarted
+and depends on the actual approved-source prerequisites. No next phase starts automatically.
 No production activation, external notifications, new scopes or deployment authority follows.
 Preserve held provider/native changes, prototype-text, current locks, Wikimedia/legacy limits,
 endpoint-specific volume qualification and skipped/unverified phone status. Phase 16 initiation

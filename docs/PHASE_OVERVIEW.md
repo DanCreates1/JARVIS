@@ -47,14 +47,14 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
 - **Phase 14 complete — Bounded tasks and project workflows.** Trusted-local project reviews,
   durable foreground controls, restart/ownership acceptance and full release gates pass. Remote monitoring remains
   read-only. [Completion evidence](phase-reports/current/PHASE_14_COMPLETION.md).
-- Progress basis: **15/19 primary phase receipts closed (~79%)**; an
+- Progress basis: **16/19 primary phase receipts closed (~84%)**; an
   unweighted management count, not code/effort percentage or full mobile MVP acceptance.
-- **Phase 15 implemented-closeout-pending — Email.** Personal Gmail / desktop OAuth / `gmail.readonly`
+- **Phase 15 complete — Email.** Personal Gmail / desktop OAuth / `gmail.readonly`
   selected. Bounded read adapter/protected Windows auth/default-off composition implemented.
   Actual approved setup/auth/protected grant passed. First selected thread exceeded the fixed
   size limit; a second one-message source passed live read/preparation with verified provenance
-  and an unsent/unstored draft. Current release/documentation closeout pending. [Setup](GMAIL_SETUP.md),
-  [progress](phase-reports/current/PHASE_15_PROGRESS.md),
+  and an unsent/unstored draft. Current working/publication release gates and exact-source CI pass. [Setup](GMAIL_SETUP.md),
+  [completion](phase-reports/current/PHASE_15_COMPLETION.md),
   [provider/auth decision](EMAIL_PROVIDER_DECISION.md). Local exports remain available; production
   acquisition stays off.
 - Historical prototype acceptance stays **100% = 10/10 groups**, corpus **8/10**. Full mobile MVP,
