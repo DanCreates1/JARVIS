@@ -30,6 +30,7 @@ from .models import (
     TrustedActivation,
 )
 from .policy import HostProactivityPolicy, ProactivityPolicyError, local_day_bounds
+from .worker_models import WorkerPermit, check_worker_permit, check_worker_rule
 
 
 class ProactivityStoreError(RuntimeError):
@@ -401,6 +402,7 @@ class SQLiteProactivityStore:
         policy: HostProactivityPolicy,
         now: datetime | None = None,
         event: TriggerEvent | None = None,
+        worker_permit: WorkerPermit | None = None,
     ) -> tuple[EvaluationDecision, SuggestionCandidate | None]:
         timestamp = _aware(now or datetime.now(UTC))
         async with self._operation_lock:
@@ -410,6 +412,9 @@ class SQLiteProactivityStore:
                 rule = await self._load_rule(connection, host_id=host_id, rule_id=rule_id)
                 if rule is None:
                     raise ProactivityNotFoundError("proactivity rule not found")
+                await check_worker_permit(
+                    connection, worker_permit, host_id=host_id, feature=rule.proposal.feature
+                )
                 if rule.status is RuleStatus.ACTIVE and timestamp >= rule.proposal.expires_at:
                     expired = ProactivityRule.model_validate(
                         rule.model_copy(
@@ -457,6 +462,14 @@ class SQLiteProactivityStore:
                     await connection.rollback()
                     return initial, None
                 assert initial.occurrence_key is not None and initial.scheduled_for is not None
+                if worker_permit is not None and initial.scheduled_for > timestamp:
+                    await connection.rollback()
+                    return (
+                        EvaluationDecision(
+                            rule_id=rule_id, code=EvaluationCode.NOT_DUE, eligible=False
+                        ),
+                        None,
+                    )
                 async with connection.execute(
                     """
                     SELECT 1 FROM proactivity_candidates
@@ -560,6 +573,10 @@ class SQLiteProactivityStore:
                     event_type=ProactivityEventType.CANDIDATE_CREATED,
                     reason_code="inert_suggestion_only",
                     created_at=timestamp,
+                )
+                check_worker_rule(rule, worker_permit)
+                await check_worker_permit(
+                    connection, worker_permit, host_id=host_id, feature=rule.proposal.feature
                 )
                 await connection.commit()
             except aiosqlite.IntegrityError:

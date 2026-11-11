@@ -1,5 +1,9 @@
 # Bounded foreground proactivity
 
+Current Phase 17 adds a separately reviewed, default-off bounded background entry point;
+see [background controls and recovery](BACKGROUND_PROACTIVITY.md). Original Legacy Phase 11
+foreground contracts and evidence remain below. No production worker is activated.
+
 Status: Phase 11 complete
 Last verified: 2026-09-15
 
@@ -15,7 +19,8 @@ metadata but never start a task. No background daemon or external notification s
 - Model, research, API, and event input remains untrusted proposal data.
 - A draft becomes active only through an exact, short-lived trusted-local-terminal activation bound
   to rule ID, version, and SHA-256 proposal digest.
-- Activation starts no runner. `jarvis proactive tick` is the only implemented runner entry point.
+- Rule activation starts no runner. `jarvis proactive tick` is the foreground entry point;
+  current bounded background use additionally requires separate exact local consent.
 - Fixed host ceilings override lower rule budgets: 6 candidates/hour, 24/day, 300 seconds of
   attention/day, 30-day rule lifetime, 300-second clock skew, one candidate at a time, and zero
   cloud cost.

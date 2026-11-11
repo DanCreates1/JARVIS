@@ -11,6 +11,7 @@ from .policy import HostProactivityPolicy
 from .runner_models import CandidateDispatch, DispatchState, RunnerTickResult
 from .runner_store import SQLiteProactivityRunnerStore
 from .sqlite_store import SQLiteProactivityStore
+from .worker_models import WorkerPermit
 
 
 class ProactivityRunnerDisabledError(RuntimeError):
@@ -29,7 +30,7 @@ class ForegroundProactivityRunner:
         *,
         policy_store: SQLiteProactivityStore,
         runner_store: SQLiteProactivityRunnerStore,
-        task_store: SQLiteTaskStore,
+        task_store: SQLiteTaskStore | None,
         policy: HostProactivityPolicy,
         runner_enabled: bool = False,
         task_handoff_enabled: bool = False,
@@ -60,6 +61,7 @@ class ForegroundProactivityRunner:
         runner_id: str,
         now: datetime | None = None,
         event: TriggerEvent | None = None,
+        worker_permit: WorkerPermit | None = None,
     ) -> RunnerTickResult:
         if not self._runner_enabled or not self._policy.enabled:
             raise ProactivityRunnerDisabledError("foreground proactivity runner is disabled")
@@ -70,12 +72,15 @@ class ForegroundProactivityRunner:
         created = 0
         denied = 0
         for rule in rules:
+            if worker_permit is not None and rule.proposal.feature not in worker_permit.features:
+                continue
             decision, candidate = await self._policy_store.evaluate_and_record(
                 host_id=host_id,
                 rule_id=rule.id,
                 policy=self._policy,
                 now=timestamp,
                 event=event,
+                worker_permit=worker_permit,
             )
             if candidate is not None:
                 created += 1
@@ -92,6 +97,12 @@ class ForegroundProactivityRunner:
             lease_seconds=self._lease_seconds,
             notification_ttl_seconds=self._notification_ttl_seconds,
             now=timestamp,
+            worker_permit=worker_permit,
+            enabled_features=(
+                self._policy.enabled_features
+                if worker_permit is None
+                else frozenset(worker_permit.features)
+            ),
         )
         if dispatch is None:
             return RunnerTickResult(
@@ -104,6 +115,7 @@ class ForegroundProactivityRunner:
                 candidate_id=dispatch.candidate_id,
                 expected_version=dispatch.version,
                 now=timestamp,
+                worker_permit=worker_permit,
             )
             return RunnerTickResult(
                 rules_evaluated=len(rules),
@@ -122,6 +134,7 @@ class ForegroundProactivityRunner:
                     candidate_id=dispatch.candidate_id,
                     expected_version=dispatch.version,
                     now=timestamp,
+                    worker_permit=worker_permit,
                 )
             else:
                 await self._runner_store.snooze(
@@ -131,6 +144,7 @@ class ForegroundProactivityRunner:
                     until=until,
                     max_snooze_seconds=self._max_snooze_seconds,
                     now=timestamp,
+                    worker_permit=worker_permit,
                 )
             return RunnerTickResult(
                 rules_evaluated=len(rules),
@@ -144,6 +158,7 @@ class ForegroundProactivityRunner:
             candidate_id=dispatch.candidate_id,
             lease_id=dispatch.lease_id,
             now=timestamp,
+            worker_permit=worker_permit,
         )
         return RunnerTickResult(
             rules_evaluated=len(rules),
@@ -162,7 +177,7 @@ class ForegroundProactivityRunner:
         expected_version: int,
         now: datetime | None = None,
     ) -> CandidateDispatch:
-        if not self._runner_enabled or not self._task_handoff_enabled:
+        if not self._runner_enabled or not self._task_handoff_enabled or self._task_store is None:
             raise ProactivityHandoffDeniedError("proactive task handoff is disabled")
         timestamp = _aware(now or datetime.now(UTC))
         dispatch = await self._runner_store.require_dispatch(

@@ -151,7 +151,8 @@ def _backup_and_restore(tmp_path: Path):  # type: ignore[no-untyped-def]
 def test_database_state_covers_all_packaged_migrations_and_shared_domains(tmp_path: Path) -> None:
     state = analyze_database(_database(tmp_path / "source.db"))
 
-    assert [item.version for item in state.migrations] == list(range(1, 21))
+    assert [item.version for item in state.migrations] == list(range(1, 22))
+    assert "proactivity_worker_controls" in {table.name for table in state.tables}
     assert {"pwa_library_versions", "pwa_attachment_requests", "pwa_task_versions"} <= {
         table.name for table in state.tables
     }
