@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import httpx
 import pytest
 
 from jarvis.core import (
@@ -19,10 +20,25 @@ from tests.unit.test_routing import FakeModelProvider
 
 
 @pytest.mark.parametrize("failure", [False, True])
+@pytest.mark.parametrize("protected_source", [False, True])
 async def test_gmail_runtime_private_projection_sticky_restart_and_no_side_channels(
-    tmp_path, failure
+    tmp_path, failure, protected_source
 ):
     provider, mailbox, _ = adapter()
+    if protected_source:
+        from jarvis.email.gmail_auth import TOKEN_URI, ProtectedGmailTokenSource
+        from tests.unit.test_gmail_auth import ACCOUNT, CLIENT, Store, grant, token
+
+        def endpoint(request):
+            if str(request.url) == TOKEN_URI:
+                return response(token(access_token="synthetic-credential-sentinel"))
+            return mailbox(request)
+
+        transport = httpx.MockTransport(endpoint)
+        provider._tokens = ProtectedGmailTokenSource(
+            ACCOUNT, CLIENT, Store(grant()), transport=transport
+        )
+        provider._transport = transport
     thread_id = provider.canonical_id("aB_1-", kind="t")
     local = FakeModelProvider(
         role=ModelRole.LOCAL,

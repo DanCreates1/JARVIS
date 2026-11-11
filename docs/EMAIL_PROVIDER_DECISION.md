@@ -2,7 +2,8 @@
 
 Status: personal Gmail selected, 2026-11-01. Desktop delegated OAuth with PKCE and
 `https://www.googleapis.com/auth/gmail.readonly` selected. Exact account/client registration and
-consequential setup/read review remain pending. No live access or provider adapter enabled.
+consequential setup/read review remain pending. Owner confirmed no project/client exists.
+Protected auth/configuration are implemented; no live access or production adapter enabled.
 [Current progress](phase-reports/current/PHASE_15_PROGRESS.md) freezes scope and acceptance.
 
 ## Choices reviewed
@@ -49,7 +50,9 @@ scope expansion, token replacement, account switching or fallback to exports.
 First implementation milestone: inactive read adapter behind `EmailReadProvider`, injected
 host-only token source, synthetic transport and lifecycle tests. No production credential loading,
 OAuth flow, startup wiring or network-enabled CLI is added by that milestone. The token source is
-not a model/client port. Production auth/activation remains separate unfinished Phase 15 work.
+not a model/client port. That first milestone is complete. The subsequent protected auth/configuration
+milestone is implemented with synthetic acceptance; [setup and approval proposal](GMAIL_SETUP.md)
+records exact bounds, Windows retention, commands and remaining actual Google/live acceptance.
 
 Frozen request/response limits (all total deadlines include token acquisition and parsing):
 
@@ -57,6 +60,14 @@ Frozen request/response limits (all total deadlines include token acquisition an
 | --- | --- | --- | --- |
 | List | `users/me/profile`, then one `threads.list` page, `maxResults=100`; no pagination | 5 s total | 16 KiB profile; 32 KiB list |
 | Selected thread | Profile; minimal thread inventory; at most 16 `messages.get(format=raw)`; final minimal inventory | 30 s total; 5 s/request | 16 KiB each inventory; 192 KiB each raw envelope; 16 KiB profile; <=3,194,880 bytes total |
+
+The production-auth extension was frozen in the progress report before auth implementation:
+at most one additional token POST (5 s, 16 KiB) when an existing access token needs renewal.
+Original total operation deadlines and Gmail GET bounds above remain unchanged. Including renewal,
+list is <=3 requests/65,536 response bytes and a maximum-sized thread <=20 requests/3,211,264 bytes.
+Initial explicit OAuth is <=180 s with one token POST and one profile GET, no mail body read.
+The prepared first live proof lowers inventory capacity to three messages and acquires no raw
+message from a larger thread. [Exact auth/storage/callback controls](GMAIL_SETUP.md).
 
 Thread inventory must contain 1–16 distinct message IDs, matching thread IDs and history versions.
 All raw responses must match that inventory; final inventory/history must remain identical.
@@ -66,8 +77,8 @@ Every MIME message remains <=128 KiB and passes the existing isolated text-only 
 attachment endpoint, HTML rendering, remote-resource fetching, provider draft, write or send API.
 Raw MIME can contain inert attachment bytes inside the same message bound.
 
-Allowed data origin is exactly `https://gmail.googleapis.com`; token exchange, when implemented,
-will use exactly `https://oauth2.googleapis.com/token`. API transport disables ambient proxies,
+Allowed data origin is exactly `https://gmail.googleapis.com`; implemented token exchange uses
+exactly `https://oauth2.googleapis.com/token`. API transport disables ambient proxies,
 redirects, cookie persistence and automatic retries. Only adapter-built GET paths/queries are used.
 401/403, 429, 5xx, malformed JSON, timeout, unavailable transport and limits yield fixed errors
 without private content. Cancellation closes responses and drains parser work. Disable invalidates
@@ -121,6 +132,7 @@ sticky privacy survives removal/disable/restart. No cloud/research/memory promot
 Disable stops new acquisition and invalidates in-flight results; existing history remains private.
 Expired/revoked credentials fail closed without login, account switching or scope expansion.
 Disconnect, local token erasure, provider grant revocation and conversation deletion are separate
-operations. Final commands depend on selected auth adapter; do not claim unimplemented controls.
+operations. [Current commands](GMAIL_SETUP.md#disable-disconnect-and-recovery) implement explicit
+local disconnect; Google revocation remains a separate owner action.
 Provider-side revocation/token replacement requires applicable consequential authority. No email
 scope authorizes calendar, Windows effects, remote clients or third-party messages.

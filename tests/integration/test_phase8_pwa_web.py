@@ -269,6 +269,7 @@ def test_pwa_proactivity_routes_use_scoped_adapter_and_generic_errors(tmp_path: 
         "private-garmin",
         "private-files",
         "private-memory",
+        "private-email",
     ],
 )
 def test_pwa_garmin_requires_dedicated_scope_and_returns_only_summary(
@@ -305,7 +306,13 @@ def test_pwa_garmin_requires_dedicated_scope_and_returns_only_summary(
             "/api/v1/client/garmin?refresh=true",
             headers={"X-Jarvis-Browser-Origin": ORIGIN},
         )
-        if profile in {"prototype-text", "daily-text", "private-files", "private-memory"}:
+        if profile in {
+            "prototype-text",
+            "daily-text",
+            "private-files",
+            "private-memory",
+            "private-email",
+        }:
             assert allowed.status_code == 503
             assert reader.calls == []
             return
@@ -399,6 +406,7 @@ def _bootstrap(
         "private-garmin",
         "private-files",
         "private-memory",
+        "private-email",
     ],
 )
 def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(
@@ -434,9 +442,9 @@ def test_pwa_shell_transport_resume_idempotency_and_logout_cleanup(
         assert "indexedDB" in script.text and '"JARVIS_LOGOUT"' in script.text
         assert 'headers["X-Jarvis-Browser-Origin"]=window.location.origin' in script.text
         assert "SHELL.includes(shellKey)" in worker.text and "cache.put" in worker.text
-        assert 'const CACHE="jarvis-shell-v20"' in worker.text
+        assert 'const CACHE="jarvis-shell-v21"' in worker.text
         assert "self.skipWaiting()" in worker.text
-        assert "/app/app.js?v=20" in shell.text and "/app/sw.js?v=20" in script.text
+        assert "/app/app.js?v=21" in shell.text and "/app/sw.js?v=21" in script.text
         assert "ui.logout.disabled=!state.hasIdentity" in script.text
         assert manifest.json()["start_url"] == "/app/"
         asset_bytes = sum(

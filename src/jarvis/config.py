@@ -50,6 +50,7 @@ class Settings(BaseSettings):
         "private-memory",
         "public-research",
         "foreground-voice",
+        "private-email",
     ] = "standard"
     ollama_base_url: AnyHttpUrl = AnyHttpUrl("http://127.0.0.1:11434")
     ollama_model: str = "qwen3:0.6b"
@@ -100,6 +101,9 @@ class Settings(BaseSettings):
     attachments_enabled: bool = False
     email_enabled: bool = False
     email_export_root: Path | None = None
+    email_provider: Literal["exports", "gmail"] = "exports"
+    email_gmail_account: SecretStr | None = Field(default=None, exclude=True, repr=False)
+    email_gmail_client_file: Path | None = Field(default=None, exclude=True, repr=False)
     attachment_max_storage_bytes: int = Field(
         default=50 * 1_024 * 1_024, ge=5 * 1_024 * 1_024, le=100 * 1_024 * 1_024
     )
@@ -357,9 +361,11 @@ class Settings(BaseSettings):
             "private-memory",
             "public-research",
             "foreground-voice",
+            "private-email",
         }:
             coding_requested = self.coding_context_enabled
             voice_requested = self.pwa_voice_enabled
+            email_requested = self.email_enabled
             self.ollama_temperature = 0
             self.cloud_policy = "local_only"
             self.local_model = self.ollama_model
@@ -386,6 +392,7 @@ class Settings(BaseSettings):
             self.pwa_voice_enabled = self.runtime_profile == "foreground-voice" and voice_requested
             self.automatic_research_enabled = self.research_enabled
             self.attachments_enabled = self.runtime_profile == "private-files"
+            self.email_enabled = self.runtime_profile == "private-email" and email_requested
             self.coding_context_enabled = (
                 self.runtime_profile == "private-memory" and coding_requested
             )

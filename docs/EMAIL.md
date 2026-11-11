@@ -6,18 +6,19 @@ Owner selected personal Gmail / desktop delegated OAuth / `gmail.readonly` on 20
 [provider/auth decision](EMAIL_PROVIDER_DECISION.md). No live provider is enabled.
 
 Email is default off. IA reads an explicitly configured local folder of owner-exported `.eml`
-messages. It does not log into or discover an account. No credential, OAuth, IMAP, SMTP, provider
-draft API, sender, polling process or remote/mobile email endpoint is installed. An inactive Gmail
-read adapter now exists for synthetic testing; ordinary composition still constructs exports only.
+messages. It does not log into or discover an account. Gmail uses an explicit protected-host OAuth
+command and separately configured foreground reads. No IMAP, SMTP, provider draft API, sender,
+polling process or remote/mobile email endpoint exists. [Setup and recovery](GMAIL_SETUP.md).
 
 ## Selected Gmail adapter milestone
 
 `jarvis.email.gmail.GmailReadProvider` implements the existing read port with default-off,
 account-bound foreground requests. A trusted host token-source port is injected explicitly.
-No production token source/store, OAuth flow, Gmail CLI, startup setting or runtime activation
-exists yet. Existing chat connections do not supply credentials to JARVIS. No live Gmail access
-was performed for this milestone. Exact local account binding and client-registration ownership
-remain required inputs before implementing protected auth/activation and reviewing live authority.
+Protected Windows token storage, bounded PKCE desktop OAuth, foreground renewal and explicit
+default-off settings/CLI are implemented and tested synthetically. Existing chat connections do
+not supply credentials to JARVIS. Owner confirmed no project/client exists; actual project setup,
+terms/consent, exact local account/client inputs and live proof remain pending. No live Gmail access
+was performed. Startup neither opens credentials nor logs in.
 
 The [frozen contract](EMAIL_PROVIDER_DECISION.md#selected-gmail-contract--frozen-2026-11-01-before-implementation)
 records exact request/time/byte limits. Each operation first verifies the configured exact account.
@@ -34,9 +35,9 @@ Existing export ID rules remain unchanged. Provider-backed `EmailService` compos
 senders or establish verified chronology. Disabling the adapter invalidates in-flight generations;
 the preparation service also rejects results started before a disable/re-enable cycle.
 
-Current milestone tests use synthetic tokens/transports and real isolated parsers. A Windows
-protected-token implementation, expiry/authorized renewal lifecycle and actual Google client
-setup still need implementation and acceptance. This adapter does not satisfy live-provider exit.
+Current milestone tests use synthetic tokens/transports, real isolated parsers and a disposable
+synthetic Windows Credential Manager target. Actual Google setup/auth and selected-thread live
+acceptance remain required; synthetic grants do not satisfy the live-provider exit.
 
 ## Configure exports
 
@@ -127,8 +128,8 @@ Use existing conversation deletion for private replies; SQL deletion does not se
 backups, terminal output or underlying storage. Keep migration 016 and the private database when
 rolling source back so sticky privacy remains available.
 
-Current Phase 15 needs exact local account/client setup, protected auth/activation, applicable
-credential/access authority and an authorized bounded private mailbox smoke. Existing explicit
+Current Phase 15 needs approved project/client setup, exact local account/client configuration,
+actual credential/access authority and the prepared bounded private mailbox smoke. Existing explicit
 authority persists within scope; selection alone does not grant login, new scopes or private reads.
 Current official OAuth/API/data-policy sources were reviewed before the inactive read adapter
 milestone. Any provider draft/write/send requires exact existing

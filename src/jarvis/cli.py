@@ -183,7 +183,7 @@ console = Console(highlight=False, legacy_windows=False)
 attachments_app = typer.Typer(help="Upload, inspect and delete private local attachments.")
 app.add_typer(attachments_app, name="attachments")
 
-email_app = typer.Typer(help="Read local private email exports and prepare unsent drafts.")
+email_app = typer.Typer(help="Foreground private email reads, local OAuth, and unsent preparation.")
 app.add_typer(email_app, name="email")
 
 
@@ -199,7 +199,17 @@ def _email_command(
     settings = _load_settings()
 
     async def run() -> str:
-        service = build_email_service(settings.email_export_root, enabled=settings.email_enabled)
+        service = build_email_service(
+            settings.email_export_root,
+            enabled=settings.email_enabled,
+            provider=settings.email_provider,
+            gmail_account=(
+                settings.email_gmail_account.get_secret_value()
+                if settings.email_gmail_account
+                else None
+            ),
+            gmail_client_file=settings.email_gmail_client_file,
+        )
         if service is None:
             raise EmailError("email_disabled")
         if operation == "list":
@@ -234,6 +244,123 @@ def _email_command(
 @email_app.command("list")
 def email_list() -> None:
     _email_command("list")
+
+
+@email_app.command("gmail-auth")
+def gmail_auth(
+    account: Annotated[str, typer.Option(help="Exact lowercase personal @gmail.com mailbox.")],
+    client_file: Annotated[Path, typer.Option(help="Explicit local Desktop OAuth client JSON.")],
+) -> None:
+    """Create a new protected read-only grant after explicit local and Google consent."""
+    from jarvis.email.gmail import _account
+    from jarvis.email.gmail_auth import authorize_desktop, load_desktop_client
+    from jarvis.email.gmail_credentials import WindowsGmailCredentials
+
+    try:
+        account = _account(account)
+        client = load_desktop_client(client_file)
+        store = WindowsGmailCredentials(account, client.client_id)
+        if store.read() is not None:
+            raise EmailError("gmail_credential_exists")
+        typer.echo(
+            "Google consent grants gmail.readonly across this mailbox plus offline renewal. "
+            "JARVIS performs foreground bounded reads only; no write, send, cloud email, "
+            "or polling. "
+            "This command checks the mailbox profile, then stores a refresh grant in this Windows "
+            "user's Credential Manager. Google project/terms setup must already be owner-approved."
+        )
+        if not typer.confirm("Authorize this exact local mailbox/client now?", default=False):
+            raise typer.Exit(0)
+        asyncio.run(authorize_desktop(account, client, store))
+    except EmailError as exc:
+        typer.echo(f"Email unavailable: {exc.code}", err=True)
+        raise typer.Exit(1) from None
+    except typer.Exit:
+        raise
+    except Exception:
+        typer.echo("Email authorization failed closed.", err=True)
+        raise typer.Exit(1) from None
+    typer.echo(
+        "Protected Gmail read grant created. Reads remain separately configured; no mail read."
+    )
+
+
+@email_app.command("gmail-disconnect")
+def gmail_disconnect(
+    account: Annotated[str, typer.Option(help="Exact local mailbox binding.")],
+    client_file: Annotated[Path, typer.Option(help="Matching local Desktop OAuth client JSON.")],
+) -> None:
+    """Delete only this exact local token. Google grant/history deletion are separate."""
+    from jarvis.email.gmail import _account
+    from jarvis.email.gmail_auth import load_desktop_client
+    from jarvis.email.gmail_credentials import WindowsGmailCredentials
+
+    try:
+        account = _account(account)
+        client = load_desktop_client(client_file)
+        typer.echo(
+            "Disable email and stop other Core/CLI processes first. Local token deletion "
+            "does not revoke Google consent or erase private conversation history."
+        )
+        if not typer.confirm(
+            "Delete this exact account/client's local Gmail refresh token?", default=False
+        ):
+            raise typer.Exit(0)
+        WindowsGmailCredentials(account, client.client_id).delete()
+    except EmailError as exc:
+        typer.echo(f"Email unavailable: {exc.code}", err=True)
+        raise typer.Exit(1) from None
+    except typer.Exit:
+        raise
+    except Exception:
+        typer.echo("Email disconnect failed closed.", err=True)
+        raise typer.Exit(1) from None
+    typer.echo(
+        "Local Gmail token removed. Revoke Google access separately in Google Account settings."
+    )
+
+
+@email_app.command("gmail-proof")
+def gmail_proof(
+    account: Annotated[str, typer.Option(help="Exact local personal Gmail account.")],
+    client_file: Annotated[Path, typer.Option(help="Matching local Desktop OAuth client JSON.")],
+    thread_id: Annotated[str, typer.Option(help="One explicitly selected opaque Gmail thread ID.")],
+) -> None:
+    """One thread, <=3 messages, volatile preparation, sanitized evidence; no list/write/send."""
+    from jarvis.email.gmail import GmailReadProvider, _account
+    from jarvis.email.gmail_auth import ProtectedGmailTokenSource, load_desktop_client
+    from jarvis.email.gmail_credentials import WindowsGmailCredentials
+    from jarvis.email.gmail_proof import selected_thread_proof
+
+    try:
+        account = _account(account)
+        client = load_desktop_client(client_file)
+        provider = GmailReadProvider(
+            account,
+            ProtectedGmailTokenSource(
+                account, client, WindowsGmailCredentials(account, client.client_id)
+            ),
+            enabled=True,
+            max_messages=3,
+        )
+        provider.canonical_id(thread_id, kind="t")
+        typer.echo(
+            "Read one selected thread, at most 3 messages of 128 KiB each; prepare an "
+            "unsent synthetic draft locally. Output contains aggregate evidence only. "
+            "This uses the existing grant and normal same-account renewal; no login."
+        )
+        if not typer.confirm("Perform this bounded private read now?", default=False):
+            raise typer.Exit(0)
+        result = asyncio.run(selected_thread_proof(provider, thread_id))
+    except EmailError as exc:
+        typer.echo(f"Email unavailable: {exc.code}", err=True)
+        raise typer.Exit(1) from None
+    except typer.Exit:
+        raise
+    except Exception:
+        typer.echo("Email proof failed closed.", err=True)
+        raise typer.Exit(1) from None
+    typer.echo(json.dumps(result))
 
 
 @email_app.command("thread")

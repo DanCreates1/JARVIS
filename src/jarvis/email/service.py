@@ -156,9 +156,43 @@ class EmailService:
         )
 
 
-def build_email_service(root: Path | None, *, enabled: bool) -> EmailService | None:
+def build_email_service(
+    root: Path | None,
+    *,
+    enabled: bool,
+    provider: Literal["exports", "gmail"] = "exports",
+    gmail_account: str | None = None,
+    gmail_client_file: Path | None = None,
+) -> EmailService | None:
     if not enabled:
         return None
+    if provider == "gmail":
+        from .gmail import GmailAccessToken, GmailReadProvider, _account
+        from .gmail_auth import ProtectedGmailTokenSource, load_desktop_client
+        from .gmail_credentials import WindowsGmailCredentials
+
+        if root is not None or gmail_account is None or gmail_client_file is None:
+            raise EmailError("gmail_configuration")
+        account = _account(gmail_account)
+        client_path = gmail_client_file
+
+        class ConfiguredTokens:
+            def __init__(self) -> None:
+                self.source: ProtectedGmailTokenSource | None = None
+
+            async def acquire(self) -> GmailAccessToken:
+                if self.source is None:
+                    client = load_desktop_client(client_path)
+                    self.source = ProtectedGmailTokenSource(
+                        account, client, WindowsGmailCredentials(account, client.client_id)
+                    )
+                return await self.source.acquire()
+
+        return EmailService(
+            GmailReadProvider(account, ConfiguredTokens(), enabled=True), source_kind="provider"
+        )
+    if provider != "exports":
+        raise EmailError("email_provider_invalid")
     if root is None:
         raise EmailError("email_root_required")
     return EmailService(LocalEmailExports(root))
