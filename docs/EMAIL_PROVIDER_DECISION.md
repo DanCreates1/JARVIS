@@ -1,10 +1,13 @@
 # Phase 15 provider and authentication decision
 
-Status: personal Gmail selected, 2026-11-01. Desktop delegated OAuth with PKCE and
-`https://www.googleapis.com/auth/gmail.readonly` selected. Exact account/client registration and
-consequential setup/read review remain pending. Owner confirmed no project/client exists.
-Protected auth/configuration are implemented; no live access or production adapter enabled.
-[Current progress](phase-reports/current/PHASE_15_PROGRESS.md) freezes scope and acceptance.
+Status, **2026-11-10**: personal Gmail with Desktop delegated OAuth/PKCE and
+`https://www.googleapis.com/auth/gmail.readonly` is actually authorized under the existing
+approval. Exact-account profile verification and protected Windows grant creation passed.
+The first selected conversation failed the unchanged message-size boundary. A second explicitly
+selected source passed actual bounded read/preparation with one message and verified provenance;
+current release gates and exact-source CI pass. Production configuration stays off.
+Earlier missing-project/client statements below describe historical preparation, not current setup.
+[Completion evidence](phase-reports/current/PHASE_15_COMPLETION.md) retains frozen scope and acceptance.
 
 ## Choices reviewed
 

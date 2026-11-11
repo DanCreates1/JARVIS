@@ -1,8 +1,15 @@
 # Phase 15 Gmail setup and activation
 
-Status: repository auth/read implementation; Google setup and live acceptance pending.
-Owner confirmed **no project or Desktop client exists** on 2026-11-01. No project, login,
-grant, production setting or private mailbox has been created/accessed by this work.
+Status, **2026-11-10**: approved Google project/Desktop-client setup and actual protected Gmail
+authorization succeeded. Client registration remains outside the checkout; refresh grant resides
+in Windows Credential Manager. Production configuration remains off. Selected-source live
+read/preparation passed with one message, verified provenance and an unsent/unstored synthetic
+draft in 805.831 ms. The earlier oversized conversation remains a documented rejection; limits
+were not changed. Selected Phase 15 release gates and exact-source CI pass. See
+[Phase 15 completion](phase-reports/current/PHASE_15_COMPLETION.md).
+
+The setup instructions below remain the operator contract. Earlier absence of a project/client
+was confirmed on 2026-11-01 and is superseded by this actual authorization checkpoint.
 
 ## Prepared setup decision
 
