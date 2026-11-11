@@ -1,7 +1,7 @@
 # JARVIS Technology Decisions
 
 Status: recommended defaults for staged implementation  
-Planning date: 2026-08-19
+Planning date: 2026-08-20
 
 These are architectural defaults, not permanent vendor commitments. Revisit a decision when representative benchmarks or security requirements contradict its assumptions.
 
@@ -12,13 +12,15 @@ These are architectural defaults, not permanent vendor commitments. Revisit a de
 | Architecture | Python modular monolith, ports/adapters | Microservices, framework-led agents | Simple deployment with strong replaceable seams |
 | Runtime language | Python 3.11 | 3.12, TypeScript, Rust/C# | Current locked project plus strongest ML/automation ecosystem |
 | Dependency management | `uv` + committed lock | pip/venv, Poetry, Conda | Reproducible and fast; already adopted |
-| Core API | Owned typed contracts; FastAPI adapter later | Flask, Django, gRPC | Async schemas/streaming without putting framework in core |
+| Core API | Owned typed contracts; loopback FastAPI + SSE adapter | Flask, Django, gRPC | Implemented async schemas/streaming without putting framework in core |
 | Streaming | Internal typed event stream; SSE first, WebSocket for duplex | Polling, message broker | Minimal infrastructure; browser friendly |
 | Local LLM runtime | Ollama adapter | llama.cpp direct, vLLM | Best initial Windows operation; replaceable provider port |
-| Model strategy | Hybrid roles: fast/main/heavy | Fully local, cloud-first | Laptop has only 4 GB VRAM |
-| Local fast model candidate | `qwen3:1.7b` Q4 | Qwen3.5 0.8B, Gemma 3 1B | Small footprint with stronger tool/instruction headroom than sub-1B |
-| Local main candidate | `qwen3.5:4b` Q4_K_M | Qwen3 4B, Gemma 3 4B | Fits borderline 4 GB class, tool/vision capable; benchmark required |
-| Heavy reasoning | Cloud provider through `ModelProvider` | CPU-offloaded 8B/14B, future server | Better quality/latency than large local model on current laptop |
+| Model strategy | Privacy-aware hybrid roles: `FAST`, `PRIMARY`, `REASONING`, `LOCAL` | Fully local, unrestricted cloud-first | Hosted speed for non-sensitive work; local privacy/offline fallback |
+| Fast cloud role | Groq `openai/gpt-oss-20b` | Local classifier, other hosted small model | Production model, about 1,000 tokens/s, tools and structured outputs |
+| Primary cloud role | Groq `qwen/qwen3.6-27b` | GPT-OSS 20B, replacement from provider catalog | About 500 tokens/s, vision/tools/parallel calls; preview lifecycle requires fallback |
+| Reasoning role | Google `gemini-3.7-flash` | Qwen thinking mode, Gemini 3.6 Flash | Stable 1M-context multimodal reasoning; unpaid use restricted to non-sensitive data |
+| Local role | Ollama; compatibility default `qwen2.5:3b` | Benchmarked Qwen/Gemma 1B–4B candidates | Implemented private/offline path on current 4 GB GPU |
+| Cloud cost policy | Hard `$0` development budget | Explicit future paid policy decision | Free-tier exhaustion falls back or fails; never enters paid quota |
 | Primary data store | SQLite WAL + migrations | PostgreSQL, document DB | One host/user and simple backups; already adopted |
 | Text retrieval | SQLite FTS5 | Elasticsearch, hosted search | Built in, sufficient for early corpus |
 | Vector retrieval | Defer; small in-process scoring then optional extension | Dedicated vector DB, pgvector | Require measured retrieval benefit first |
@@ -69,7 +71,9 @@ Individual adapters can use another language across a narrow authenticated IPC b
 ## TD-003 — Owned core contracts, FastAPI adapter
 
 **Decision**  
-Keep core independent of HTTP. Add a versioned FastAPI adapter on loopback with SSE for model/task events; use WebSocket where bidirectional realtime audio/control requires it.
+Keep core independent of HTTP. Phase 1 implements a loopback FastAPI adapter with
+typed JSON and SSE runtime events; use WebSocket only when bidirectional realtime
+audio/control requires it.
 
 **Reason**  
 Pydantic integration, async support, generated schemas, and easy browser/PWA consumption.
@@ -87,19 +91,20 @@ Yes; HTTP is an adapter over the application service and internal event models.
 ## TD-004 — Hybrid, role-based model routing
 
 **Decision**  
-Configure logical `fast`, `main`, and `heavy` roles. Use local fast/main by default and explicit cloud heavy escalation when privacy and cost policy permit.
+Configure provider-neutral `FAST`, `PRIMARY`, `REASONING`, and `LOCAL` roles. A deterministic local gate classifies sensitivity and obvious commands before cloud use. Non-sensitive work uses Groq/Gemini roles; sensitive, uncertain, offline, or cloud-failed work uses Ollama. Initial cloud spend is hard-capped at `$0`.
 
 **Reason**  
-RTX 2050 4 GB/16 GB RAM cannot deliver consistently strong large-model reasoning at JARVIS latency.
+RTX 2050 4 GB/16 GB RAM cannot deliver consistently strong large-model reasoning at JARVIS latency. Hosted inference improves responsiveness, but private JARVIS context cannot be disclosed indiscriminately and free capacity is not guaranteed.
 
 **Alternatives considered / why rejected**
 
 - Fully local: best privacy, but difficult reasoning quality/latency is inadequate on this laptop.
-- Cloud-first: strong quality but adds privacy, availability, latency, and recurring-cost dependence.
+- Unrestricted cloud-first: discloses unclassified content before policy can protect it and depends on external availability.
+- Cloud model as first router: privacy classification would occur only after disclosure.
 - One model for all requests: wastes latency and power on deterministic/simple work.
 
 **Replaceable later?**  
-Yes. Roles map to provider/model configuration and benchmark data.
+Yes. Roles map to provider/model configuration, live capability catalogs, and benchmark data. User overrides cannot weaken sensitivity or zero-spend policy.
 
 ## TD-005 — Ollama as first local adapter
 
@@ -118,22 +123,28 @@ Already implemented, operationally simple on Windows, and supports the selected 
 **Replaceable later?**  
 Yes. llama.cpp or vLLM can implement the provider contract on future hardware.
 
-## TD-006 — Preliminary local model candidates
+## TD-006 — Initial provider/model portfolio
 
 **Decision**  
-Benchmark `qwen3:1.7b` Q4 for fast role and `qwen3.5:4b` Q4_K_M for main role. Compare Gemma 3 4B as an independent alternative. Do not change defaults or download during planning.
+Use Groq `openai/gpt-oss-20b` for `FAST`, Groq `qwen/qwen3.6-27b` for `PRIMARY`, Google `gemini-3.7-flash` for `REASONING`, and configured Ollama for `LOCAL`. Retain `qwen2.5:3b` as the implemented compatibility default until local benchmarks justify a migration. Keep Gemini 3.6 Flash configurable as a reasoning fallback.
 
 **Reason**  
-Official Ollama artifacts are about 1.4 GB and 3.4 GB respectively, matching laptop limits better than 8B+ models. Qwen candidates advertise tool/instruction capability useful to JARVIS.
+As verified on 2026-08-20, GPT-OSS 20B is a Groq production model with about 1,000 tokens/s, a 131,072-token context, tools, and structured outputs. Qwen 3.6 27B is a Groq preview model with about 500 tokens/s, a 131,072-token context, text/image input, reasoning modes, tools, vision, and parallel tool calls. Gemini 3.7 Flash is stable with a 1,048,576-token input limit and multimodal/tool/structured-output support. The current Ollama adapter supplies the required private/offline path.
 
 **Alternatives considered / why rejected**
 
-- Sub-1B default: faster, likely too fragile for tool routing beyond classification.
-- 8B/9B: model artifacts exceed VRAM and require slower CPU offload.
-- 14B+: unacceptable RAM/latency pressure.
+- Local models for every role: insufficient interactive quality/latency on current hardware.
+- Gemini 3.6 Flash as default reasoning role: stable but previous-generation; retain only as configured fallback.
+- Hard-coded provider IDs in orchestration: prevents catalog-driven replacement and safe deprecation handling.
+- Qwen preview without fallback: unacceptable lifecycle risk.
 
 **Replaceable later?**  
-Yes. Selection is a benchmark/configuration result. Record model digest and quantization.
+Yes. Selection is entirely configuration- and capability-driven. Startup diagnostics verify live model IDs and lifecycle/capability compatibility. Qwen failure falls back to GPT-OSS then local; Gemini failure falls back to Qwen thinking then local or a capacity error. No fallback may cross a sensitivity boundary or enter paid quota.
+
+**Privacy and cost conditions**
+Use billing-disabled/free-tier projects. Enable Groq Zero Data Retention, while treating every cloud call as external disclosure. Never send sensitive or confidential content through unpaid Gemini because Google may use unpaid-service prompts/responses for product improvement and human review. Free-tier `429` responses trigger bounded fallback, not paid execution.
+
+Verified sources: [Groq models](https://console.groq.com/docs/models), [Groq limits](https://console.groq.com/docs/rate-limits), [Groq data controls](https://console.groq.com/docs/your-data), [Gemini models](https://ai.google.dev/gemini-api/docs/models), [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing), and [Gemini terms](https://ai.google.dev/gemini-api/terms).
 
 ## TD-007 — SQLite, WAL, FTS5; PostgreSQL later
 

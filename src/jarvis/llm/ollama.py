@@ -3,14 +3,24 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import AsyncIterator, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
 
 import httpx
 
-from jarvis.core.models import Message, ProviderResponse, ToolCall, ToolDefinition
+from jarvis.core.models import (
+    Message,
+    ModelCapability,
+    ModelLifecycle,
+    ModelProfile,
+    ModelRole,
+    ProviderResponse,
+    ProviderUsage,
+    ToolCall,
+    ToolDefinition,
+)
 
 
 class OllamaError(RuntimeError):
@@ -64,6 +74,7 @@ class OllamaChatProvider:
         base_url: str = "http://127.0.0.1:11434",
         model: str,
         timeout_seconds: float = 60.0,
+        role: ModelRole = ModelRole.LOCAL,
         client: httpx.AsyncClient | None = None,
     ) -> None:
         normalized_base_url = base_url.rstrip("/")
@@ -76,6 +87,15 @@ class OllamaChatProvider:
 
         self._base_url = normalized_base_url
         self._model = model.strip()
+        self._profile = ModelProfile(
+            role=role,
+            provider="ollama",
+            model_id=self._model,
+            capabilities=(ModelCapability.TEXT, ModelCapability.TOOLS),
+            lifecycle=ModelLifecycle.LOCAL,
+            context_window=32_768,
+            is_cloud=False,
+        )
         self._owns_client = client is None
         self._client = client or httpx.AsyncClient(timeout=timeout_seconds)
         self._closed = False
@@ -84,13 +104,19 @@ class OllamaChatProvider:
     def model(self) -> str:
         return self._model
 
+    @property
+    def profile(self) -> ModelProfile:
+        return self._profile
+
     async def chat(
         self,
         *,
         messages: Sequence[Message],
         tools: Sequence[ToolDefinition],
+        reasoning_level: str = "none",
     ) -> ProviderResponse:
         """Return one complete assistant response from Ollama's ``/api/chat`` endpoint."""
+        del reasoning_level
         payload: dict[str, object] = {
             "model": self._model,
             "stream": False,
@@ -125,7 +151,32 @@ class OllamaChatProvider:
             raise OllamaProtocolError(
                 "Ollama assistant message must contain text or at least one tool call"
             )
-        return ProviderResponse(content=content, tool_calls=tool_calls)
+        usage = ProviderUsage(
+            provider="ollama",
+            model_id=self._model,
+            input_tokens=int(document.get("prompt_eval_count", 0) or 0),
+            output_tokens=int(document.get("eval_count", 0) or 0),
+            latency_ms=float(document.get("total_duration", 0) or 0) / 1_000_000,
+            estimated_cost_usd=0,
+        )
+        return ProviderResponse(content=content, tool_calls=tool_calls, usage=usage)
+
+    async def stream_chat(
+        self,
+        *,
+        messages: Sequence[Message],
+        tools: Sequence[ToolDefinition],
+        reasoning_level: str = "none",
+    ) -> AsyncIterator[ProviderResponse]:
+        """Expose the provider-neutral stream contract; one normalized frame for now."""
+        yield await self.chat(
+            messages=messages,
+            tools=tools,
+            reasoning_level=reasoning_level,
+        )
+
+    async def validate_model(self) -> bool:
+        return (await self.model_diagnostics()).available
 
     async def model_diagnostics(self) -> OllamaModelDiagnostics:
         """List installed models without downloading or changing Ollama state."""

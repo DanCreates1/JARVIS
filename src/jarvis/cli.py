@@ -14,7 +14,7 @@ from rich.text import Text
 from jarvis import __version__
 from jarvis.bootstrap import build_runtime
 from jarvis.config import Settings
-from jarvis.core import RuntimeResult, RuntimeStatus
+from jarvis.core import ModelRole, RuntimeResult, RuntimeStatus
 from jarvis.diagnostics import DiagnosticReport, DiagnosticStatus, run_diagnostics
 from jarvis.logging_config import configure_logging
 
@@ -66,11 +66,22 @@ def chat(
         str | None,
         typer.Option("--conversation-id", "-c", help="Resume a saved conversation."),
     ] = None,
+    model_role: Annotated[
+        ModelRole | None,
+        typer.Option("--model-role", help="Request fast, primary, reasoning, or local routing."),
+    ] = None,
 ) -> None:
     """Chat interactively or send one non-interactive message."""
     settings = _load_settings()
     try:
-        exit_code = asyncio.run(_chat(settings, message=message, conversation_id=conversation_id))
+        exit_code = asyncio.run(
+            _chat(
+                settings,
+                message=message,
+                conversation_id=conversation_id,
+                model_role=model_role,
+            )
+        )
     except KeyboardInterrupt:
         console.print("\n[dim]JARVIS stopped.[/]")
         exit_code = 130
@@ -83,6 +94,7 @@ async def _chat(
     *,
     message: str | None,
     conversation_id: str | None,
+    model_role: ModelRole | None = None,
 ) -> int:
     try:
         components = await build_runtime(settings)
@@ -99,11 +111,19 @@ async def _chat(
             if not normalized:
                 console.print("[bold red]Message cannot be blank.[/]")
                 return 2
-            result = await components.service.respond(
-                normalized,
-                conversation_id=conversation_id,
-                metadata={"interface": "cli"},
-            )
+            if model_role is None:
+                result = await components.service.respond(
+                    normalized,
+                    conversation_id=conversation_id,
+                    metadata={"interface": "cli"},
+                )
+            else:
+                result = await components.service.respond(
+                    normalized,
+                    conversation_id=conversation_id,
+                    metadata={"interface": "cli"},
+                    requested_model_role=model_role,
+                )
             _render_result(result)
             return 0 if result.status is RuntimeStatus.COMPLETED else 1
 
@@ -119,11 +139,19 @@ async def _chat(
                 return 0
             if not user_input:
                 continue
-            result = await components.service.respond(
-                user_input,
-                conversation_id=active_conversation,
-                metadata={"interface": "cli"},
-            )
+            if model_role is None:
+                result = await components.service.respond(
+                    user_input,
+                    conversation_id=active_conversation,
+                    metadata={"interface": "cli"},
+                )
+            else:
+                result = await components.service.respond(
+                    user_input,
+                    conversation_id=active_conversation,
+                    metadata={"interface": "cli"},
+                    requested_model_role=model_role,
+                )
             _render_result(result)
             if result.conversation_id is not None:
                 active_conversation = result.conversation_id
@@ -163,3 +191,22 @@ def _render_diagnostics(report: DiagnosticReport) -> None:
         console.print("[bold green]JARVIS is ready.[/]")
     else:
         console.print("[bold red]JARVIS needs attention before chat can run.[/]")
+
+
+@app.command()
+def serve() -> None:
+    """Start loopback-only browser chat and local API."""
+    import uvicorn
+
+    from jarvis.web import create_app
+
+    settings = _load_settings()
+    console.print(
+        f"[bold cyan]JARVIS browser chat:[/] http://{settings.web_host}:{settings.web_port}"
+    )
+    uvicorn.run(
+        create_app(settings),
+        host=settings.web_host,
+        port=settings.web_port,
+        log_level=settings.log_level.casefold(),
+    )

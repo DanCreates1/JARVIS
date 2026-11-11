@@ -58,6 +58,51 @@ def test_safe_summary_contains_only_declared_diagnostics(tmp_path: Path) -> None
         "ollama_model",
         "allow_remote_ollama",
         "request_timeout_seconds",
+        "max_provider_response_bytes",
         "context_message_limit",
         "max_tool_iterations",
+        "local_model",
+        "cloud_policy",
+        "max_cloud_cost_usd",
+        "groq_configured",
+        "gemini_configured",
+        "fast_model",
+        "primary_model",
+        "reasoning_model",
+        "web_host",
+        "web_port",
     }
+
+
+def test_cloud_credentials_require_free_tier_and_data_terms_confirmation(tmp_path: Path) -> None:
+    with pytest.raises(ValidationError, match="GROQ_FREE_TIER_CONFIRMED"):
+        Settings(data_dir=tmp_path, groq_api_key="secret", _env_file=None)
+    with pytest.raises(ValidationError, match="data-terms"):
+        Settings(
+            data_dir=tmp_path,
+            gemini_api_key="secret",
+            gemini_free_tier_confirmed=True,
+            _env_file=None,
+        )
+    settings = Settings(
+        data_dir=tmp_path,
+        groq_api_key="secret",
+        groq_free_tier_confirmed=True,
+        gemini_api_key="secret",
+        gemini_free_tier_confirmed=True,
+        gemini_unpaid_data_terms_acknowledged=True,
+        local_model="custom:latest",
+        _env_file=None,
+    )
+    assert settings.cloud_enabled is True
+    assert settings.effective_local_model == "custom:latest"
+    assert "secret" not in str(settings.safe_summary())
+
+
+def test_zero_cost_https_and_loopback_settings_fail_closed(tmp_path: Path) -> None:
+    with pytest.raises(ValidationError, match=r"exactly \$0"):
+        Settings(data_dir=tmp_path, max_cloud_cost_usd=0.01, _env_file=None)
+    with pytest.raises(ValidationError, match="loopback"):
+        Settings(data_dir=tmp_path, web_host="0.0.0.0", _env_file=None)
+    with pytest.raises(ValidationError, match="HTTPS"):
+        Settings(data_dir=tmp_path, groq_base_url="http://example.test", _env_file=None)

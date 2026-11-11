@@ -94,6 +94,7 @@ repository.
 ```powershell
 uv run jarvis doctor
 uv run jarvis chat
+uv run jarvis serve
 ```
 
 For automation or a quick smoke test:
@@ -104,6 +105,32 @@ uv run jarvis chat --message "Reply with a short readiness confirmation."
 
 `doctor` should report an actionable error when Ollama is stopped or the model is
 missing. It must not print environment variables or private data.
+
+Browser chat listens at `http://127.0.0.1:8765` by default. Phase 1 rejects a
+non-loopback bind because remote authentication is not implemented.
+
+## Optional free-tier cloud roles
+
+Local Ollama works without cloud credentials. To activate Groq, inject a key from
+a billing-disabled/free-tier project and confirm that constraint:
+
+```powershell
+$env:JARVIS_GROQ_API_KEY = "<secret>"
+$env:JARVIS_GROQ_FREE_TIER_CONFIRMED = "true"
+```
+
+To activate unpaid Gemini, also acknowledge its data terms. Never submit
+sensitive, personal, credential, file, memory, communication, or device context:
+
+```powershell
+$env:JARVIS_GEMINI_API_KEY = "<secret>"
+$env:JARVIS_GEMINI_FREE_TIER_CONFIRMED = "true"
+$env:JARVIS_GEMINI_UNPAID_DATA_TERMS_ACKNOWLEDGED = "true"
+```
+
+Run `uv run jarvis doctor` after configuration. It validates live model catalogs.
+Enable Groq Zero Data Retention separately in Groq controls. Confirmation flags
+fail closed but cannot technically inspect provider billing settings.
 
 ## Configuration
 

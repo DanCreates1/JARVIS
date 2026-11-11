@@ -2,24 +2,37 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+import asyncio
+from collections.abc import AsyncIterator, Iterable, Mapping, Sequence
 
 from pydantic import JsonValue, ValidationError
 
-from .contracts import ChatProvider, ConversationStore, Tool, ToolPolicy
+from .contracts import (
+    AuditStore,
+    ChatProvider,
+    ConversationStore,
+    RoutedChatProvider,
+    Tool,
+    ToolPolicy,
+)
 from .models import (
     AssistantRequest,
     Conversation,
     Message,
     MessageRole,
+    ModelRole,
     PolicyDecision,
     ProviderResponse,
+    ProviderUsage,
+    ReasoningLevel,
+    RoutingDecision,
     RuntimeErrorCode,
     RuntimeErrorDetail,
     RuntimeEvent,
     RuntimeEventType,
     RuntimeResult,
     RuntimeStatus,
+    RuntimeStreamFrame,
     ToolCall,
     ToolDefinition,
     ToolResult,
@@ -27,8 +40,9 @@ from .models import (
 
 
 class _Events:
-    def __init__(self) -> None:
+    def __init__(self, queue: asyncio.Queue[RuntimeEvent | None] | None = None) -> None:
         self.items: list[RuntimeEvent] = []
+        self.queue = queue
 
     def add(
         self,
@@ -38,17 +52,22 @@ class _Events:
         detail: str | None = None,
         message: Message | None = None,
         tool_call: ToolCall | None = None,
+        routing: RoutingDecision | None = None,
+        usage: ProviderUsage | None = None,
     ) -> None:
-        self.items.append(
-            RuntimeEvent(
-                sequence=len(self.items) + 1,
-                type=event_type,
-                conversation_id=conversation_id,
-                detail=detail,
-                message=message,
-                tool_call=tool_call,
-            )
+        event = RuntimeEvent(
+            sequence=len(self.items) + 1,
+            type=event_type,
+            conversation_id=conversation_id,
+            detail=detail,
+            message=message,
+            tool_call=tool_call,
+            routing=routing,
+            usage=usage,
         )
+        self.items.append(event)
+        if self.queue is not None:
+            self.queue.put_nowait(event)
 
 
 class _ConversationMissing(LookupError):
@@ -98,6 +117,8 @@ class AssistantService:
         *,
         conversation_id: str | None = None,
         metadata: Mapping[str, JsonValue] | None = None,
+        requested_model_role: ModelRole | None = None,
+        reasoning_level: ReasoningLevel | None = None,
     ) -> RuntimeResult:
         """Convenience entrypoint for a single user turn."""
         return await self.run(
@@ -105,11 +126,33 @@ class AssistantService:
                 user_input=user_input,
                 conversation_id=conversation_id,
                 metadata=dict(metadata or {}),
+                requested_model_role=requested_model_role,
+                reasoning_level=reasoning_level,
             )
         )
 
     async def run(self, request: AssistantRequest) -> RuntimeResult:
-        events = _Events()
+        return await self._execute(request)
+
+    async def stream(self, request: AssistantRequest) -> AsyncIterator[RuntimeStreamFrame]:
+        """Yield live orchestration events followed by exactly one terminal result."""
+        queue: asyncio.Queue[RuntimeEvent | None] = asyncio.Queue()
+        task = asyncio.create_task(self._execute(request, event_queue=queue))
+        task.add_done_callback(lambda _task: queue.put_nowait(None))
+        while True:
+            event = await queue.get()
+            if event is None:
+                break
+            yield RuntimeStreamFrame(event=event)
+        yield RuntimeStreamFrame(result=await task)
+
+    async def _execute(
+        self,
+        request: AssistantRequest,
+        *,
+        event_queue: asyncio.Queue[RuntimeEvent | None] | None = None,
+    ) -> RuntimeResult:
+        events = _Events(event_queue)
         turn_messages: list[Message] = []
         tool_iterations = 0
 
@@ -184,10 +227,18 @@ class AssistantService:
                 detail=f"Sent {len(context)} messages to the chat provider.",
             )
             try:
-                raw_response = await self.provider.chat(
-                    messages=context,
-                    tools=self.tool_definitions,
-                )
+                if isinstance(self.provider, RoutedChatProvider):
+                    raw_response = await self.provider.chat_routed(
+                        messages=context,
+                        tools=self.tool_definitions,
+                        requested_role=request.requested_model_role,
+                        reasoning_level=request.reasoning_level,
+                    )
+                else:
+                    raw_response = await self.provider.chat(
+                        messages=context,
+                        tools=self.tool_definitions,
+                    )
                 response = ProviderResponse.model_validate(raw_response)
             except ValidationError:
                 error = RuntimeErrorDetail(
@@ -216,10 +267,26 @@ class AssistantService:
                     tool_iterations=tool_iterations,
                 )
 
+            if response.routing is not None:
+                events.add(
+                    RuntimeEventType.ROUTING_DECIDED,
+                    conversation_id=conversation.id,
+                    detail=response.routing.reason,
+                    routing=response.routing,
+                )
+                if response.routing.fallback_used:
+                    events.add(
+                        RuntimeEventType.PROVIDER_FALLBACK,
+                        conversation_id=conversation.id,
+                        detail=response.routing.reason,
+                        routing=response.routing,
+                    )
             events.add(
                 RuntimeEventType.PROVIDER_RESPONDED,
                 conversation_id=conversation.id,
                 detail=f"Received {len(response.tool_calls)} tool call(s).",
+                routing=response.routing,
+                usage=response.usage,
             )
             assistant_message = Message(
                 conversation_id=conversation.id,
@@ -373,6 +440,12 @@ class AssistantService:
                         detail=reason,
                         tool_call=call,
                     )
+                    await self._audit_tool(
+                        conversation.id,
+                        call,
+                        tool.definition,
+                        outcome="denied",
+                    )
                     error = RuntimeErrorDetail(
                         code=RuntimeErrorCode.TOOL_DENIED,
                         message=reason,
@@ -396,6 +469,12 @@ class AssistantService:
                     conversation_id=conversation.id,
                     detail=f"Authorized tool '{call.name}'.",
                     tool_call=call,
+                )
+                await self._audit_tool(
+                    conversation.id,
+                    call,
+                    tool.definition,
+                    outcome="allowed",
                 )
                 events.add(
                     RuntimeEventType.TOOL_STARTED,
@@ -445,6 +524,35 @@ class AssistantService:
                     detail=f"Tool '{call.name}' completed.",
                     tool_call=call,
                 )
+                await self._audit_tool(
+                    conversation.id,
+                    call,
+                    tool.definition,
+                    outcome="completed",
+                )
+
+    async def _audit_tool(
+        self,
+        conversation_id: str,
+        call: ToolCall,
+        definition: ToolDefinition,
+        *,
+        outcome: str,
+    ) -> None:
+        """Write metadata-only audit entries when the store supports them."""
+        if not isinstance(self.store, AuditStore):
+            return
+        try:
+            await self.store.append_audit_record(
+                conversation_id=conversation_id,
+                action=call.name,
+                outcome=outcome,
+                risk=definition.risk.value,
+                detail={"tool_call_id": call.id},
+            )
+        except Exception:
+            # Phase 1 tools are read-only. Future side effects must fail closed on audit failure.
+            return
 
     async def _open_conversation(self, request: AssistantRequest, events: _Events) -> Conversation:
         if request.conversation_id is None:

@@ -6,7 +6,7 @@ from collections.abc import Iterable
 
 from pydantic import BaseModel
 
-from jarvis.core import Conversation, PolicyDecision, ToolCall, ToolDefinition
+from jarvis.core import Conversation, PolicyDecision, ToolCall, ToolDefinition, ToolRisk
 
 
 class DenyByDefaultPolicy:
@@ -43,9 +43,14 @@ class DenyByDefaultPolicy:
                 allowed=False,
                 reason=f"Tool '{tool.name}' is not allowed by the active policy.",
             )
+        if tool.risk is not ToolRisk.READ_ONLY or tool.requires_approval:
+            return PolicyDecision(
+                allowed=False,
+                reason=f"Tool '{tool.name}' requires an approval-capable policy.",
+            )
         return PolicyDecision(allowed=True)
 
 
 def phase_one_policy() -> DenyByDefaultPolicy:
     """Authorize the single audited, read-only Phase 1 tool."""
-    return DenyByDefaultPolicy({"get_current_time"})
+    return DenyByDefaultPolicy({"get_current_time", "get_system_status", "read_text_file"})

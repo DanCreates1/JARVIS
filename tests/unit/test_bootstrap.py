@@ -39,14 +39,25 @@ class FakeService:
         self.kwargs = kwargs
 
 
+class FakeRouter:
+    def __init__(self, providers: dict[object, FakeProvider], **kwargs: Any) -> None:
+        self.providers = providers
+        self.kwargs = kwargs
+
+    async def close(self) -> None:
+        for provider in self.providers.values():
+            await provider.close()
+
+
 @pytest.mark.asyncio
 async def test_build_runtime_composes_and_closes_adapters(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(bootstrap, "SQLiteConversationStore", FakeStore)
     monkeypatch.setattr(bootstrap, "OllamaChatProvider", FakeProvider)
+    monkeypatch.setattr(bootstrap, "ModelRouter", FakeRouter)
     monkeypatch.setattr(bootstrap, "AssistantService", FakeService)
-    monkeypatch.setattr(bootstrap, "phase_one_tools", lambda: ("clock",))
+    monkeypatch.setattr(bootstrap, "phase_one_tools", lambda **_kwargs: ("clock",))
     monkeypatch.setattr(bootstrap, "phase_one_policy", lambda: "policy")
     settings = Settings(data_dir=tmp_path, _env_file=None)
 
@@ -55,7 +66,8 @@ async def test_build_runtime_composes_and_closes_adapters(
     assert components.settings is settings
     assert components.store.path == tmp_path / "jarvis.db"
     assert components.store.initialized is True
-    assert components.provider.kwargs == {
+    local_provider = next(iter(components.provider.providers.values()))
+    assert local_provider.kwargs == {
         "base_url": "http://127.0.0.1:11434/",
         "model": "qwen2.5:3b",
         "timeout_seconds": 60.0,
@@ -67,7 +79,7 @@ async def test_build_runtime_composes_and_closes_adapters(
     async with components as entered:
         assert entered is components
 
-    assert components.provider.closed is True
+    assert local_provider.closed is True
     assert components.store.closed is True
 
 

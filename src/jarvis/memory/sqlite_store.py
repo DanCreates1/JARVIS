@@ -15,7 +15,8 @@ from uuid import uuid4
 import aiosqlite
 from pydantic import JsonValue
 
-from jarvis.core.models import Conversation, Message
+from jarvis.core.models import Conversation, Message, SensitivityClass, ToolRisk
+from jarvis.memory.models import AuditOutcome, AuditRecord, MemoryKind, MemoryRecord
 
 _MIGRATION_PATTERN: Final = re.compile(r"^(?P<version>[0-9]{3})_(?P<name>[a-z0-9_]+)\.sql$")
 _DEFAULT_BUSY_TIMEOUT_MS: Final = 5_000
@@ -223,6 +224,149 @@ class SQLiteConversationStore:
                 rows = await cursor.fetchall()
 
         return [Message.model_validate_json(row["payload_json"]) for row in rows]
+
+    async def delete_conversation(self, conversation_id: str) -> bool:
+        """Delete one conversation and its messages transactionally."""
+        async with self._operation_lock:
+            connection = await self._get_connection()
+            cursor = await connection.execute(
+                "DELETE FROM conversations WHERE id = ?", (conversation_id,)
+            )
+            await connection.commit()
+            return cursor.rowcount > 0
+
+    async def create_memory(
+        self,
+        *,
+        kind: MemoryKind,
+        content: str,
+        provenance: str,
+        sensitivity: SensitivityClass = SensitivityClass.PRIVATE,
+        metadata: Mapping[str, JsonValue] | None = None,
+    ) -> MemoryRecord:
+        """Create an explicit, inspectable memory record. No automatic extraction occurs."""
+        record = MemoryRecord(
+            id=str(uuid4()),
+            kind=kind,
+            content=content,
+            provenance=provenance,
+            sensitivity=sensitivity,
+            metadata=dict(metadata or {}),
+            created_at=datetime.now(UTC),
+        )
+        async with self._operation_lock:
+            connection = await self._get_connection()
+            await connection.execute(
+                """
+                INSERT INTO memory_records
+                    (id, kind, content, provenance, sensitivity, metadata_json, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    record.id,
+                    record.kind.value,
+                    record.content,
+                    record.provenance,
+                    record.sensitivity.value,
+                    _dump_json(record.metadata),
+                    record.created_at.isoformat(timespec="microseconds"),
+                ),
+            )
+            await connection.commit()
+        return record
+
+    async def list_memories(self, *, limit: int = 100) -> Sequence[MemoryRecord]:
+        if not 1 <= limit <= 500:
+            raise ValueError("memory limit must be between 1 and 500")
+        async with self._operation_lock:
+            connection = await self._get_connection()
+            async with connection.execute(
+                "SELECT * FROM memory_records ORDER BY created_at DESC LIMIT ?", (limit,)
+            ) as cursor:
+                rows = await cursor.fetchall()
+        return [
+            MemoryRecord(
+                id=row["id"],
+                kind=row["kind"],
+                content=row["content"],
+                provenance=row["provenance"],
+                sensitivity=row["sensitivity"],
+                metadata=json.loads(row["metadata_json"]),
+                created_at=datetime.fromisoformat(row["created_at"]),
+            )
+            for row in rows
+        ]
+
+    async def delete_memory(self, memory_id: str) -> bool:
+        """Delete one durable memory; returns whether it existed."""
+        async with self._operation_lock:
+            connection = await self._get_connection()
+            cursor = await connection.execute(
+                "DELETE FROM memory_records WHERE id = ?", (memory_id,)
+            )
+            await connection.commit()
+            return cursor.rowcount > 0
+
+    async def append_audit_record(
+        self,
+        *,
+        conversation_id: str | None,
+        action: str,
+        outcome: AuditOutcome | str,
+        risk: ToolRisk | str,
+        detail: Mapping[str, JsonValue] | None = None,
+    ) -> AuditRecord:
+        record = AuditRecord(
+            id=str(uuid4()),
+            conversation_id=conversation_id,
+            action=action,
+            outcome=outcome,
+            risk=risk,
+            detail=dict(detail or {}),
+            created_at=datetime.now(UTC),
+        )
+        async with self._operation_lock:
+            connection = await self._get_connection()
+            await connection.execute(
+                """
+                INSERT INTO audit_records
+                    (id, conversation_id, action, outcome, risk, detail_json, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    record.id,
+                    record.conversation_id,
+                    record.action,
+                    record.outcome.value,
+                    record.risk.value,
+                    _dump_json(record.detail),
+                    record.created_at.isoformat(timespec="microseconds"),
+                ),
+            )
+            await connection.commit()
+        return record
+
+    async def list_audit_records(self, *, limit: int = 100) -> Sequence[AuditRecord]:
+        if not 1 <= limit <= 500:
+            raise ValueError("audit limit must be between 1 and 500")
+        async with self._operation_lock:
+            connection = await self._get_connection()
+            async with connection.execute(
+                "SELECT * FROM audit_records ORDER BY created_at DESC LIMIT ?", (limit,)
+            ) as cursor:
+                rows = await cursor.fetchall()
+        return [
+            AuditRecord(
+                id=row["id"],
+                conversation_id=row["conversation_id"],
+                action=row["action"],
+                outcome=row["outcome"],
+                risk=row["risk"],
+                detail=json.loads(row["detail_json"]),
+                created_at=datetime.fromisoformat(row["created_at"]),
+            )
+            for row in rows
+        ]
 
     async def _get_connection(self) -> aiosqlite.Connection:
         await self.initialize()

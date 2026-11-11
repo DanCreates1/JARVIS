@@ -1,18 +1,20 @@
 # JARVIS Master Roadmap
 
 Status: decision-ready plan  
-Planning date: 2026-08-19  
+Planning date: 2026-08-20
+Model catalog and free-tier facts last verified: 2026-08-20
 Repository: `DanCreates1/JARVIS`, branch `main`
 
 ## 1. Vision and engineering principles
 
-JARVIS is a local-first personal AI operating layer: a composed conversational assistant that can use authorized tools, remember useful context, research with citations, and later work across voice, vision, laptop, phone, server, and wearable clients.
+JARVIS is a privacy-aware hybrid personal AI operating layer: a composed conversational assistant that can use authorized tools, remember useful context, research with citations, and later work across voice, vision, laptop, phone, server, and wearable clients. Fast free-tier cloud inference is the default only for content a local deterministic gate classifies as non-sensitive. Sensitive work and offline fallback remain local.
 
 Success is the product of **intelligence × latency × reliability × privacy × hardware efficiency**. The system will therefore be:
 
 - useful before it is broad;
 - a modular monolith before any service split;
-- local for privacy and routine work, with explicit cloud escalation for hard work;
+- cloud-fast for non-sensitive work, local for sensitive or offline work, with no silent privacy downgrade;
+- hard-capped at zero cloud spend during initial development;
 - deterministic for actions that do not need a model;
 - deny-by-default for tools and privileges;
 - measurable, replaceable, and tested at every boundary.
@@ -24,7 +26,7 @@ Foundation-model training from zero is excluded. It would require a large curate
 The repository no longer matches the legacy state assumed by the original planning request:
 
 - `main` is clean at planning start and tracks `origin/main`.
-- Current HEAD before this document is `2cd67b3` (`feat: create secure JARVIS core runtime`).
+- Current HEAD before this revision is `d08fdce` (`docs: add JARVIS architecture and development roadmap`).
 - The old implementation is preserved at `archive/pre-jarvis-rebuild-2026-08-18`.
 - The new repository already contains a Python 3.11 modular core, Ollama adapter, SQLite transcript store, typed tools, policy boundary, tests, CI, `.gitignore`, and `.env.example`.
 - No tracked model-weight, private-key, certificate, `.env`, or obvious secret file was found. Packed Git objects total about 2.05 MiB.
@@ -63,43 +65,65 @@ Detailed components, flows, network boundaries, and data ownership are defined i
 | P2 — Advanced | Vision, gestures, dedicated server, communications, multi-device coordination, richer agents, proactive assistance |
 | P3 — Experimental | Meta glasses, custom voice, user fine-tuning, advanced smart-home orchestration, continuous multimodal context |
 
-## 5. Preliminary model strategy
+## 5. Privacy-aware, zero-cost model strategy
 
-The laptop has 16 GB RAM and an RTX 2050 with 4 GB VRAM. A 3.4 GB quantized model nearly fills VRAM before context cache and concurrent speech workloads. Default to hybrid routing.
+The laptop has 16 GB RAM and an RTX 2050 with 4 GB VRAM. It can provide private/offline fallback but cannot match current hosted-model intelligence at interactive latency. Use free-tier cloud inference for locally classified non-sensitive work and Ollama for sensitive or offline work. Free tiers are quota-limited development capacity, not an availability guarantee or production SLA.
 
-| Deployment option | Strengths | Weaknesses | Decision |
+### Logical roles and verified defaults
+
+| Role | Configured default | Verified status and capabilities | Intended use |
 | --- | --- | --- | --- |
-| Fully local | Maximum privacy, offline function, predictable marginal cost | Current laptop cannot provide top-tier complex reasoning at low latency; GPU contention with speech/vision | Supported mode for private/routine work, not overall default |
-| Hybrid | Local privacy/latency for routine work plus explicit high-quality escalation | More routing, provider, privacy, and cost policy to test | **Recommended default** |
-| Primarily cloud | Strong models and minimal local inference setup | Network/provider dependence, data exposure, recurring cost, less offline value | Supported configuration, not default |
+| `FAST` | Groq `openai/gpt-oss-20b` | Production; about 1,000 tokens/s; 131,072-token context; tools, reasoning, JSON object/schema modes; no parallel tool calls | Safe simple requests and safe ambiguous intent classification |
+| `PRIMARY` | Groq `qwen/qwen3.6-27b` | Preview; about 500 tokens/s; 131,072-token context; text/image input, tools, parallel tool calls, JSON mode, vision, thinking/non-thinking modes | Safe normal conversation and tool planning; non-thinking by default |
+| `REASONING` | Google `gemini-3.7-flash` | Stable; 1,048,576-token input; text/image/video/audio/PDF input; tools, structured output, multimodal understanding, adjustable reasoning | Safe complex reasoning, coding, research, large documents, and multimodal work |
+| `LOCAL` | Ollama, current compatibility default `qwen2.5:3b` | Implemented baseline; capability depends on configured local model and measured hardware fit | Sensitive/private requests, offline use, and cloud failure fallback |
 
-```text
-Tier 1: fast local classifier / command model
-qwen3:1.7b Q4 through Ollama
-        |
-        | uncertainty, complex tool plan, long context
-        v
-Tier 2: main local JARVIS model
-qwen3.5:4b Q4_K_M through Ollama, modest context budget
-        |
-        | difficult reasoning, high-stakes analysis, quality failure
-        v
-Tier 3: explicit cloud reasoning provider
-balanced default such as GPT-5.6 Terra; flagship such as GPT-5.6 Sol only when justified
+The provider registry owns these roles. Model IDs occur in configuration and provider-catalog metadata, never in orchestration logic. Qwen's preview lifecycle makes startup catalog checks and tested fallback mandatory. Gemini 3.6 Flash remains a configurable fallback, not the default.
+
+At verification, Groq's free plan listed both selected Groq models at 30 requests/minute, 1,000 requests/day, 8,000 tokens/minute, and 200,000 tokens/day, enforced at organization level. Treat this as a dated snapshot and read live limits/headers at runtime. Gemini limits vary by model, project, and account status and must be read from the active AI Studio project.
+
+Target configuration contract:
+
+```dotenv
+JARVIS_FAST_PROVIDER=groq
+JARVIS_FAST_MODEL=openai/gpt-oss-20b
+JARVIS_PRIMARY_PROVIDER=groq
+JARVIS_PRIMARY_MODEL=qwen/qwen3.6-27b
+JARVIS_REASONING_PROVIDER=gemini
+JARVIS_REASONING_MODEL=gemini-3.7-flash
+JARVIS_LOCAL_PROVIDER=ollama
+JARVIS_LOCAL_MODEL=qwen2.5:3b
+JARVIS_CLOUD_POLICY=privacy_aware
+JARVIS_MAX_CLOUD_COST_USD=0
 ```
 
-Model names are initial benchmark candidates, not permanent dependencies. The provider registry owns logical roles (`fast`, `main`, `heavy`) and maps them to configured provider/model IDs.
+These variables are implemented Phase 1 configuration. Cloud roles remain inactive until
+their key and mandatory free-tier/data-term confirmations are configured.
 
-Routing signals:
+### Routing order
 
-- deterministic commands bypass an LLM after validated intent where confidence is sufficient;
-- Tier 1 handles classification, short conversation, routing, and low-risk structured requests;
-- Tier 2 handles normal conversation, tool selection, planning, coding, and analysis;
-- Tier 3 requires user cloud permission and handles hard reasoning, broad research synthesis, or failed local verification;
-- high-risk actions never gain permission because a stronger model was selected;
-- private content marked local-only cannot route to cloud.
+1. A deterministic local gate classifies sensitivity and obvious command intent before any cloud request.
+2. A recognized deterministic command goes directly to its typed tool path; a model is not required merely to authorize or execute it.
+3. Sensitive, personal, credential, file, memory, communication, and device context routes to `LOCAL`.
+4. Safe simple work and safe ambiguous intent classification route to `FAST`.
+5. Safe normal conversation and tool planning route to `PRIMARY` with Qwen reasoning disabled.
+6. Moderate reasoning may reuse `PRIMARY` with thinking enabled.
+7. Safe difficult reasoning, coding, research, huge context, or multimodal work routes to `REASONING`.
 
-Later benchmark each candidate on representative JARVIS tasks for time to first token, tokens/second, RAM, VRAM, tool-call accuracy, reasoning quality, context behavior, power, temperature, and failure rate. Test at realistic 4K, 8K, and only then larger contexts; advertised maximum context is not a practical laptop target.
+The initial privacy gate is never a cloud model. A user may force a stricter local route but cannot force policy to disclose sensitive data. Model selection never authorizes an action: computer control, files, power, applications, and communications still require deterministic policy and any applicable trusted approval.
+
+Fallback is capability- and privacy-aware:
+
+- unavailable, retired, or quota-exhausted Qwen falls back to bounded GPT-OSS work and then local Ollama;
+- unavailable or quota-exhausted Gemini falls back to Qwen thinking mode and then local Ollama or a clear capacity error;
+- sensitive work fails privately when local inference is unavailable and never silently crosses to cloud;
+- HTTP `429`, provider outage, or catalog mismatch triggers fallback, not paid execution.
+
+Use credentials tied to billing-disabled/free-tier projects. The cost budget is a hard zero, not a warning. Groq Zero Data Retention should be enabled, but all cloud transmission remains external disclosure. Google's unpaid Gemini service may use prompts and responses to improve products and may expose them to human review; never send sensitive, confidential, or personal information to it.
+
+Verified sources: [Groq models](https://console.groq.com/docs/models), [Groq free-plan limits](https://console.groq.com/docs/rate-limits), [Groq data controls](https://console.groq.com/docs/your-data), [Gemini models](https://ai.google.dev/gemini-api/docs/models), [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing), and [Gemini API terms](https://ai.google.dev/gemini-api/terms).
+
+Benchmark all roles on representative JARVIS tasks for time to first token, tokens/second, tool-call accuracy, reasoning quality, context behavior, provider failure rate, quota consumption, and privacy-policy accuracy. Local benchmarks additionally record RAM, VRAM, power, and temperature. Published speed and context figures are dated catalog observations, not acceptance results.
 
 ## 6. Performance targets
 
@@ -112,7 +136,8 @@ Targets are measured end-to-end at p50 and p95; they are not promises.
 | Short local transcription after speech ends | p50 ≤ 500 ms, p95 ≤ 1.2 s |
 | Deterministic simple command, text result | p50 ≤ 300 ms, p95 ≤ 800 ms |
 | First spoken response, deterministic command | p50 ≤ 800 ms, p95 ≤ 1.5 s |
-| First spoken response, normal local LLM turn | p50 ≤ 1.5 s, p95 ≤ 3 s |
+| First useful output, normal non-sensitive cloud turn | p50 ≤ 1 s, p95 ≤ 2.5 s |
+| First useful output, private local LLM turn | p50 ≤ 1.5 s, p95 ≤ 3 s |
 | Complex cloud reasoning first useful output | p50 ≤ 3 s, p95 ≤ 7 s |
 | Gesture frame-to-action decision | p50 ≤ 75 ms, p95 ≤ 150 ms |
 | Tool success rate for supported happy paths | ≥ 99% before unattended safe actions |
@@ -180,32 +205,35 @@ Deleting rebuilt code, losing legacy history, committing credentials, rewriting 
 **Exit criteria**  
 The checks in `PHASE_0_REBUILD_PLAN.md` pass. For current repository, existing core remains intact and completed reset steps are recorded as verified/skipped.
 
-### Phase 1 — JARVIS core and first text vertical slice (Medium; foundation exists)
+### Phase 1 — JARVIS core and first text vertical slice (Medium; implemented 2026-08-20)
 
 **Goal**  
-A useful text JARVIS with swappable models, personality, persistence, safe tools, and measurable behavior.
+A useful text JARVIS with swappable providers, deterministic local privacy routing, zero-cost cloud roles, local fallback, personality, persistence, safe tools, and measurable behavior.
 
 **Deliverables**
 
-- `ModelProvider` capabilities and logical-role router with local and optional cloud adapters.
+- Provider-neutral `ModelRole`, `ModelProfile`, `RoutingDecision`, and `ProviderUsage` contracts.
+- Groq, Gemini, and Ollama adapters behind one streaming `ModelProvider` contract.
+- Deterministic local sensitivity/command gate before cloud routing.
+- Configured `FAST`, `PRIMARY`, `REASONING`, and `LOCAL` roles with catalog validation and privacy-safe fallback.
 - Bounded conversation orchestration and streaming event contract.
 - JARVIS system prompt/personality policy with regression examples.
 - SQLite conversations plus first explicit memory records and deletion APIs.
 - Typed tool registry, risk metadata, read-only tools, audit records.
 - CLI and minimal browser chat or local control page.
-- Structured errors, retries, fallback policy, latency metrics, cost budget.
+- Structured errors, retries, fallback policy, latency/quota metrics, and a hard zero-dollar cloud budget.
 
 **Dependencies**  
 Phase 0 and current core contracts.
 
 **Verification**  
-Local offline chat works, restarts preserve authorized state, providers swap under contract tests, unsupported tools are denied, cloud use is visibly opt-in, and quality gate passes without live model access.
+Local offline chat works, restarts preserve authorized state, providers swap under contract tests, unsupported tools are denied, sensitive content never leaves the local route, cloud routing is visible, free-tier exhaustion falls back without paid usage, and the quality gate passes without live model access.
 
 **Risks**  
-4 GB VRAM limits, poor small-model tool use, personality drift, cloud privacy leakage.
+4 GB VRAM limits, privacy misclassification, free-tier quota exhaustion, Qwen preview retirement, provider catalog churn, personality drift, and cloud privacy leakage.
 
 **Exit criteria**  
-Ten representative conversation/tool scenarios pass; p95 latency is recorded; a new machine can reproduce setup; no side-effecting action can bypass policy.
+Representative scenarios cover safe simple, normal, reasoning, sensitive-local, explicit override, preview removal, quota exhaustion, provider outage, and zero-spend enforcement; p95 latency is recorded; a new machine can reproduce setup; no sensitive route crosses to cloud and no side-effecting action bypasses policy.
 
 ### Phase 2 — Voice (Large)
 
@@ -460,14 +488,16 @@ Proactive features meet explicit host acceptance thresholds and can be disabled 
 Qualifies only when all are true:
 
 - text conversation with tested JARVIS personality;
-- fast and main local roles plus optional stronger provider;
+- configured fast, primary, reasoning, and local roles behind provider-neutral contracts;
+- deterministic local privacy routing, hard zero-spend enforcement, and offline/private fallback;
 - persistent transcripts and inspectable basic profile/task memory;
 - several useful read-only laptop tools and at least one approval-gated reversible tool;
 - secure typed execution, audit records, basic cited web research;
 - local CLI or web chat, failure messages, and measured latency;
 - reproducible setup and passing CI/security checks.
 
-The current core is a strong foundation but does not yet meet the full MVP: cloud/provider routing, richer memory, browser research, and useful controlled laptop tools remain.
+Phase 1 core is implemented but full MVP still requires basic cited browser research,
+an approval-gated reversible tool, and richer inspectable task/profile memory behavior.
 
 ### JARVIS V1 — dependable daily assistant (Very Large cumulative)
 
@@ -475,7 +505,7 @@ MVP plus voice with barge-in, controlled computer tools including printing, insp
 
 ### Long-term JARVIS
 
-A server-capable, local-first, multimodal personal operating layer with secure device clients, calibrated memory and research, bounded agents, natural voice, optional vision/gestures/wearables, and proactive help controlled entirely by host policy.
+A server-capable, privacy-aware hybrid multimodal personal operating layer with secure device clients, calibrated memory and research, bounded agents, natural voice, optional vision/gestures/wearables, and proactive help controlled entirely by host policy.
 
 ## 10. What not to overengineer in V1
 
@@ -505,7 +535,10 @@ All tiers need reliable 2.5 GbE or better where useful, UPS-backed power, monito
 
 | Risk | Likelihood | Impact | Mitigation |
 | --- | --- | --- | --- |
-| Local model too slow or weak | High | High | Hybrid routing, small-context budgets, benchmark representative tasks, retain provider swap |
+| Local privacy gate misses sensitive content | Medium | Critical | Conservative deterministic classification, local default on uncertainty, adversarial privacy-routing suite, explicit host override only toward stricter privacy |
+| Free-tier quota or capacity exhausted | High | Medium | Parse rate-limit responses, provider health states, bounded fallback to other free/local roles, clear capacity errors, no paid route |
+| Qwen preview model retires or changes | High | Medium | Startup catalog validation, capability contracts, configuration-only replacement, GPT-OSS/local fallback |
+| Local fallback too slow or weak | High | High | Small-context budgets, benchmark representative tasks, retain provider swap and explicit limitations |
 | 4 GB VRAM contention with STT/vision | High | High | CPU-resident VAD/TTS, benchmark CPU STT/model swapping, explicit residency scheduler |
 | Wake-word false activation | Medium | High | Push-to-talk first, threshold evaluation, cooldown, visible listening state, kill switch |
 | Hallucinated tool action | High | Critical | Deterministic schemas, independent policy, plan preview, approval token, postcondition check |
@@ -515,7 +548,7 @@ All tiers need reliable 2.5 GbE or better where useful, UPS-backed power, monito
 | Memory pollution/stale facts | High | High | Candidate/committed separation, provenance, confidence, conflict, correction, expiry |
 | Research misinformation | High | High | Source quality scoring, claim citations, conflict reporting, freshness checks |
 | Autonomous/runaway loops | Medium | Critical | Bounded steps/time/tokens/cost, persisted state, cancellation, approval gates |
-| Runaway API costs | Medium | High | Per-task/user budgets, cached retrieval, model ladder, usage metrics, hard caps |
+| Unexpected API charges | Low | High | Billing-disabled credentials, `JARVIS_MAX_CLOUD_COST_USD=0`, no paid fallback, quota/cost telemetry, fail closed |
 | Provider/API churn | Medium | Medium | Capability-based ports, contract suite, no provider types in core models |
 | Meta wearable limitations | High | Medium | P3 only, generic interface, phone bridge, feasibility gate |
 | Data loss | Medium | High | Transactional migrations, encrypted backup, restore drills, no secrets in logs |
@@ -524,21 +557,24 @@ All tiers need reliable 2.5 GbE or better where useful, UPS-backed power, monito
 
 ### Recommended initial stack
 
-Python 3.11, `uv`, asyncio, Pydantic, Typer, SQLite/FTS5, `httpx`, Ollama, FastAPI plus SSE when the local API is added, Pytest/Ruff/mypy/pip-audit/Gitleaks, structured JSON events, Windows-native adapters behind ports, Tailscale plus application authentication for remote access.
+Python 3.11, `uv`, asyncio, Pydantic, Typer, SQLite/FTS5, `httpx`, provider-neutral Groq/Gemini/Ollama adapters, FastAPI plus SSE when the local API is added, Pytest/Ruff/mypy/pip-audit/Gitleaks, structured JSON events, Windows-native adapters behind ports, Tailscale plus application authentication for remote access.
 
 ### Recommended initial model strategy
 
-`qwen3:1.7b` fast candidate → `qwen3.5:4b` main candidate → explicit cloud `heavy` provider. Benchmark before changing the repository default. Keep context modest and use retrieval.
+Local sensitivity/command gate → Groq GPT-OSS 20B `FAST` → Groq Qwen 3.6 27B `PRIMARY` → Gemini 3.7 Flash `REASONING`, with Ollama `LOCAL` for sensitive/offline work and all cloud failures. Cloud spend remains hard-capped at zero. Every mapping is configurable and catalog-validated.
 
-### First implementation milestone after planning
+### Next implementation milestone
 
-**M1: close the text MVP gaps.** Add logical model roles/router, optional cloud-provider contract, streaming events, basic source-aware memory, two or three safe system/file tools, approval record structure, and basic cited web research. Preserve current core and tests.
+**M2: voice vertical slice.** Build push-to-talk using Phase 1 streaming and cancellation
+contracts, benchmark STT/TTS/VAD candidates, preserve text fallback, and keep the local privacy
+gate ahead of every optional cloud disclosure. Basic cited research and the first reversible
+approval-gated tool remain separate MVP closure work before V1.
 
 ### Exact build order
 
 1. Verify Phase 0/current baseline; do not repeat destructive reset.
-2. Stabilize model, event, tool-risk, approval, audit, host, and memory contracts.
-3. Complete text MVP and benchmark fast/main/cloud routing.
+2. Stabilize model role/profile/usage, routing, event, tool-risk, approval, audit, host, and memory contracts.
+3. Implement local privacy classification, provider catalog checks, Groq/Gemini adapters, zero-cost fallback, and routing benchmarks.
 4. Add loopback local API and minimal control panel.
 5. Build push-to-talk voice; then wake word and barge-in.
 6. Add permission broker and controlled laptop/printing tools.
@@ -556,7 +592,7 @@ After contracts in step 2: voice harness, control panel, security fixtures, memo
 
 ### Biggest technical risks
 
-Laptop GPU limits, small-model tool reliability, low-latency duplex audio, prompt injection, permission correctness, memory quality, secure remote access, and bounded autonomy.
+Privacy-routing correctness, free-tier availability, preview-model churn, laptop fallback limits, low-latency duplex audio, prompt injection, permission correctness, memory quality, secure remote access, and bounded autonomy.
 
 ### Features intentionally deferred
 
@@ -564,7 +600,7 @@ Native mobile app, Meta glasses, smart home, custom voice, fine-tuning, proactiv
 
 ### JARVIS MVP definition
 
-Text JARVIS with personality, local fast/main roles, optional heavy provider, persistent inspectable memory, useful safe laptop tools, permission/audit controls, cited basic research, reproducible setup, and measured latency.
+Text JARVIS with personality, configurable fast/primary/reasoning/local roles, deterministic privacy routing, hard zero-spend cloud use, local fallback, persistent inspectable memory, useful safe laptop tools, permission/audit controls, cited basic research, reproducible setup, and measured latency.
 
 ### JARVIS V1 definition
 

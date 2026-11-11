@@ -54,6 +54,7 @@ class InMemoryConversationStore:
         self.recent_requests: list[tuple[str, int]] = []
         self._conversation_counter = 0
         self._message_counter = 0
+        self.audit_records: list[dict[str, object]] = []
 
     def add_conversation(
         self,
@@ -109,6 +110,26 @@ class InMemoryConversationStore:
             raise LookupError(conversation_id)
         self.recent_requests.append((conversation_id, limit))
         return tuple(self.messages[conversation_id][-limit:])
+
+    async def append_audit_record(
+        self,
+        *,
+        conversation_id: str | None,
+        action: str,
+        outcome: str,
+        risk: str,
+        detail: Mapping[str, JsonValue] | None = None,
+    ) -> object:
+        self._fail_if_requested("append_audit_record")
+        record = {
+            "conversation_id": conversation_id,
+            "action": action,
+            "outcome": outcome,
+            "risk": risk,
+            "detail": dict(detail or {}),
+        }
+        self.audit_records.append(record)
+        return record
 
     def _fail_if_requested(self, operation: str) -> None:
         if operation in self.fail_operations:

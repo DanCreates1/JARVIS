@@ -1,11 +1,26 @@
 # JARVIS Hardware Report
 
 Audit date: 2026-08-19  
-Method: lightweight Windows CIM/PnP queries and installed-command checks; no stress test, model download, or benchmark
+Hosted-model strategy verified: 2026-08-20
+Method: lightweight Windows CIM/PnP queries, installed-command checks, and Phase 1 local smoke benchmark
+
+## Phase 1 local acceptance update — 2026-08-20
+
+- Installed and SHA-256-verified Ollama `qwen2.5:3b` artifact: about 1.9 GB.
+- `jarvis doctor`: configuration, data directory, SQLite migrations, Ollama service,
+  and configured local model all passed.
+- Deterministic clock turn: about 1.1 seconds wall time, including CLI startup.
+- First private local-model turn after load/install: about 50 seconds wall time; cold-load
+  exception exceeds target and must remain visible.
+- Five immediately warm private local turns, including CLI startup: 1.455, 1.181, 0.885,
+  0.878, and 0.936 seconds. Observed p50 was 0.936 seconds and nearest-rank p95 was
+  1.455 seconds.
+- These five warm samples validate basic interactivity, not production statistical confidence.
+  Re-run longer benchmarks after model, prompt, driver, or hardware changes.
 
 ## Summary
 
-This laptop is suitable for JARVIS development, small local models, local speech, and light vision. It is not suitable for a high-quality large local reasoning model. The recommended production strategy on this machine is hybrid: deterministic tools and small models locally, with an optional cloud provider for difficult reasoning.
+This laptop is suitable for JARVIS development, private/offline small-model fallback, local speech, and light vision. It is not suitable for a high-quality large local reasoning model. The target strategy is privacy-aware hybrid: deterministic privacy/command handling locally, free-tier hosted inference for non-sensitive work, and Ollama for sensitive content or cloud failure. Initial cloud spend is hard-capped at `$0`.
 
 ## Hardware discovered
 
@@ -70,15 +85,31 @@ VRAM is the primary constraint. Model file size is not total runtime memory: con
 | 14B, 4-bit | RAM pressure and poor laptop latency | Not recommended for daily local use |
 | 30B+ | Impractical on this laptop | Dedicated server or cloud only |
 
-Initial candidates, without downloading during planning:
+Local fallback candidates, without downloading during planning:
 
-- Fast: `qwen3:1.7b` Q4 through Ollama; official Ollama artifact is about 1.4 GB.
-- Main: `qwen3.5:4b` Q4_K_M; official Ollama artifact is about 3.4 GB. Limit context initially and measure VRAM headroom.
+- Compatibility default: retain the implemented `qwen2.5:3b` until benchmarks justify migration.
+- Fast local candidate: `qwen3:1.7b` Q4 through Ollama; official Ollama artifact is about 1.4 GB.
+- Main local candidate: `qwen3.5:4b` Q4_K_M; official Ollama artifact is about 3.4 GB. Limit context initially and measure VRAM headroom.
 - Alternative main: `gemma3:4b`, about 3.3 GB, for an independent quality/license/tool-use comparison.
 - Embeddings later: a sub-1B embedding model such as `qwen3-embedding:0.6b`, loaded on demand or CPU-resident.
-- Heavy reasoning: explicit remote provider now; later server-hosted 14B–32B class.
+- Heavy local reasoning: defer to a future server-hosted 14B–32B class.
 
 Do not run advertised 128K/256K context merely because a model supports it. On this hardware, start at 4K and 8K; retrieval and summarization are cheaper and more predictable.
+
+## Hosted model roles
+
+Hosted catalog facts were verified from official provider documentation on 2026-08-20. They are dated observations, not local benchmark results or availability guarantees.
+
+| Role | Provider/model | Verified catalog capability | Lifecycle risk |
+| --- | --- | --- | --- |
+| `FAST` | Groq `openai/gpt-oss-20b` | About 1,000 tokens/s; 131,072-token context; tools, reasoning, JSON object/schema modes | Production model; free tier remains quota-limited |
+| `PRIMARY` | Groq `qwen/qwen3.6-27b` | About 500 tokens/s; 131,072-token context; text/images, tools, parallel calls, vision, thinking/non-thinking | Preview; startup catalog checks and fallback required |
+| `REASONING` | Google `gemini-3.7-flash` | 1,048,576-token input; text/image/video/audio/PDF, tools, structured output, adjustable reasoning | Stable; free quota varies by project |
+| `LOCAL` | Ollama configured model | Depends on local artifact/runtime; currently `qwen2.5:3b` | Hardware-limited but private/offline |
+
+Groq currently lists both selected models on its free plan, but rate limits and capacity can change. Gemini free limits must be read from the active AI Studio project. Free service is not an SLA. Use billing-disabled credentials; quota exhaustion falls back locally or returns a capacity error. Enable Groq Zero Data Retention. Never send sensitive or confidential content through unpaid Gemini because its terms permit product-improvement use and human review.
+
+Sources: [Groq models](https://console.groq.com/docs/models), [Groq limits](https://console.groq.com/docs/rate-limits), [Groq data controls](https://console.groq.com/docs/your-data), [Gemini models](https://ai.google.dev/gemini-api/docs/models), [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing), and [Gemini terms](https://ai.google.dev/gemini-api/terms).
 
 ## Voice and multimodal implications
 
@@ -121,11 +152,13 @@ Record p50/p95, model digest, quantization, runtime version, context/output sett
 Recommended laptop profile:
 
 ```text
-local deterministic tools
-  + qwen3:1.7b fast role
-  + qwen3.5:4b main candidate at modest context
+local deterministic sensitivity and command gate
+  + Groq GPT-OSS 20B FAST for safe simple work
+  + Groq Qwen 3.6 27B PRIMARY for safe normal work
+  + Gemini 3.7 Flash REASONING for safe difficult work
+  + Ollama LOCAL for private/offline/fallback work
+  + hard zero-dollar cloud budget
   + CPU-first speech components
-  + explicit cloud heavy role
 ```
 
 This profile should produce a responsive MVP while preserving a clean migration path to a 16–24+ GB VRAM server.
