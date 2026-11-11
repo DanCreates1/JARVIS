@@ -3,9 +3,9 @@
 Owner selected **Google Calendar**, **primary calendar**, **same personal Google account as
 Phase 15**, on 2026-11-01. Selection is not consent to a new OAuth scope, account read or setup
 commitment. No calendar, Google profile, credential, console project or client has been accessed.
-Current implementation is an inactive read adapter with a trusted-host token port, explicit
-default-off service factory and an inert `jarvis calendar google-plan` CLI. Protected calendar
-login/storage/renewal and live proof remain pending. Connected-chat Calendar credentials are
+Current implementation includes an inactive read adapter, explicit default-off service factory,
+protected foreground auth/renewal and an aggregate-only proof CLI. Setup approval, actual login
+and live proof remain pending. Connected-chat Calendar credentials are
 not Windows Core credentials. No Gmail grant is reused or expanded.
 
 ## Concrete proposed decision
@@ -59,9 +59,43 @@ rtk proxy uv run --locked jarvis calendar google-plan
 ```
 
 This prints the selected target, proposed scopes, limits and explicit disabled/unapproved state.
-It reads no account, client file, token or calendar and opens no browser. There is currently no
-calendar login/disconnect/read CLI with credentials. Do not substitute Gmail auth, paste tokens
-into chat/command arguments or use an ambient token file to bypass this boundary.
+It reads no account, client file, token or calendar and opens no browser. Following commands
+are prepared for use **only after the concrete decision above is approved**. No real invocation
+has occurred. Do not substitute Gmail auth or paste tokens into chat/command arguments.
+
+```powershell
+rtk proxy uv run --locked jarvis calendar google-auth `
+  --account <exact-lowercase-account> --client-file C:\private\calendar-desktop.json
+
+rtk proxy uv run --locked jarvis calendar google-proof `
+  <owner-selected-whole-second-start-with-offset> <owner-selected-whole-second-end-with-offset> `
+  --account <exact-lowercase-account> --client-file C:\private\calendar-desktop.json
+```
+
+Keep actual account/client paths in the private local terminal, outside Git/chat evidence.
+Each consequential CLI prompt defaults to No and precedes client-file/protected-store access.
+This application confirmation enforces a local invocation boundary; it does not supply missing
+owner setup, scope or private-read authorization. After owner approval covering an exact
+invocation, automation may answer its matching prompt without requesting the same approval again.
+Wrong/expired/missing grants fail closed; commands never silently start a new login or replace one.
+
+`google-auth` requests only the two listed scopes with PKCE S256, random state and ephemeral
+127.0.0.1 callback. Total login timeout is 180 seconds; callback requests are bounded to eight,
+four active handlers, 8 KiB/request and two seconds/handler. Host/path/state/issuer/header/body
+checks reject hostile callbacks. One bounded token POST and verified-email GET precede exact
+create in Windows Credential Manager. Login never reads calendar events. Client JSON must be an
+explicit absolute local regular single-link file <=16 KiB, without reparse/network/alternate-stream
+paths. Known Google client-metadata endpoint spellings are accepted; live endpoints stay fixed.
+See [Google client-file format](https://developers.google.com/api-client-library/dotnet/guide/aaa_client_secrets).
+
+`google-proof` validates the <=7-day whole-second window before client or store access. One
+foreground operation acquires/renews the exact protected grant, verifies email and reads one
+<=100-entry primary-calendar page within five seconds. No login, retry or pagination.
+An unsent cancellation proposal binds the exact volatile observed event without another network
+read. No event cancellation is performed or approved. Empty calendars honestly return
+`read_pass=true`, `proposal_prepared=false`, `preparation_pass=false`; they cannot satisfy the
+read/prepare live gate alone. Output contains counts/booleans only, never timestamps, titles,
+account/client/event IDs, revision digests, private file content or tokens.
 
 `build_google_calendar_service(account, tokens, enabled=False, calendar_id="primary")` consumes
 the existing provider-neutral service. Only trusted host composition may supply already-authorized
@@ -100,17 +134,37 @@ Disable/re-enable cannot revive old results or proceed to event acquisition afte
 response. Cancellation closes the response/client; there is no automatic retry/login/account swap.
 Provider bodies, exceptions and credentials remain outside logs, models, client storage and Git.
 
-## Later protected-auth implementation and recovery boundary
+## Protected-auth storage and recovery
 
-Reuse existing Google desktop client-validation/PKCE/loopback and Windows protected-secret
-boundaries through reviewed shared primitives. Do not silently widen or replace Gmail credentials.
-Calendar refresh grants require a distinct namespace and exact account/client/primary/scope binding;
-access tokens must stay volatile. Exact create refuses replacement; same-account renewal remains
-foreground, bounded, no scope expansion or token rotation. Implement and verify these contracts
-before any authorized live invocation; the current read adapter is not production auth acceptance.
+Calendar auth adapts the published reviewed Gmail client-validation/PKCE/loopback/token-transport
+and Windows protected-secret protocol into Calendar-owned modules. Held Gmail edits stay preserved;
+no Gmail token source/store is imported, read or expanded. No new dependency or credential backend.
+Namespace: `JARVIS/Calendar/Google/v1/<sha256-binding>`; binding includes exact account,
+client, `primary` and sorted scopes. Entry contains only version/binding and refresh grant, <=2,560
+bytes, current Windows user/host persistence, no enumeration/roaming/plaintext fallback.
+Access tokens remain volatile. Exact create refuses replacement under a cooperative per-target
+mutex. Renewal has a five-second deadline including lock wait and refuses changed scopes,
+missing/invalid expiry and refresh-token rotation. Local deletion is rechecked even before cached
+use and after network renewal; cancellation discards pending results.
 
-Until then, no activation steps are executable. Stopping the explicit caller or disabling its
-service/provider ends acquisition. There is no calendar cache, database migration or provider
-mutation to roll back. Existing `.ics` and reminder controls remain as [documented](CALENDAR.md).
-No Google grant exists from this work; any future local deletion/provider revocation needs its
-exact reviewed recovery path. Physical phone checks: **skipped by owner; unverified**.
+Stop explicit callers or disable the service/provider to end acquisition. Stop other Calendar/Core
+processes before the separately confirmed exact local deletion command:
+
+```powershell
+rtk proxy uv run --locked jarvis calendar google-disconnect `
+  --account <exact-lowercase-account> --client-file C:\private\calendar-desktop.json
+```
+
+Deletion affects only this local Calendar grant; it does not revoke Google consent or delete events,
+Gmail grants or history. Provider revocation stays an explicit owner operation in Google Account
+settings. No automatic remote revocation/token replacement. New consent after expiration or
+revocation requires applicable approval. Google's External/Testing refresh grants can expire after
+seven days for these scopes; expiry is unavailable evidence, not authority to log in again. See
+[Google token expiration](https://developers.google.com/identity/protocols/oauth2#expiration).
+Current official desktop/scopes/expiration/Windows CredWrite contracts rechecked 2026-11-04;
+[Windows storage contract](https://learn.microsoft.com/en-us/windows/win32/api/wincred/nf-wincred-credwritew).
+
+No calendar cache, database migration or provider mutation to roll back. Existing `.ics` and
+reminder controls remain as [documented](CALENDAR.md). No real Google grant or private source
+access exists from this work. Synthetic protocol/Windows-storage verification is distinct from
+pending real protected-auth and live acceptance. Physical phone checks: **skipped by owner; unverified**.

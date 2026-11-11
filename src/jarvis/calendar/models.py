@@ -71,6 +71,21 @@ _ERROR_CODES = frozenset(
         "calendar_owner_required",
         "calendar_configuration",
         "calendar_unsupported_event",
+        "calendar_auth_invalid",
+        "calendar_client_invalid",
+        "calendar_client_path",
+        "calendar_login_required",
+        "calendar_store_invalid",
+        "calendar_store_unavailable",
+        "calendar_store_busy",
+        "calendar_credential_exists",
+        "calendar_token_replacement_required",
+        "calendar_windows_required",
+        "calendar_auth_unavailable",
+        "calendar_auth_timeout",
+        "calendar_consent_denied",
+        "calendar_proof_configuration",
+        "calendar_proof_failed",
     ]
 )
 

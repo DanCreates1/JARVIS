@@ -62,7 +62,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [13](#phase-13--controlled-windows-actions) | Controlled Windows actions | complete | 7 | Current app/STOP and bounded volume retry pass; recovery, automated release gates and reviewed publication |
 | [14](#phase-14--bounded-tasks-and-project-workflows) | Bounded tasks and project workflows | complete | 7; 13 for action-bearing flows | Bounded project review, durable foreground controls, current recovery/release gates and reviewed publication |
 | [15](#phase-15--email) | Email | blocked-external | 7 | Gmail bounded reads/protected auth/default-off composition implemented; approved project/client setup and actual auth/live acceptance pending |
-| [16](#phase-16--calendar-and-reminders) | Calendar and reminders | blocked-external | 7 | Google primary selected; bounded inactive read adapter and local foundation; protected auth/new grant/live proof pending |
+| [16](#phase-16--calendar-and-reminders) | Calendar and reminders | blocked-external | 7 | Google primary selected; inactive read/protected auth/proof CLI implemented; setup approval/actual grant/live proof pending |
 | [17](#phase-17--background-scheduling-and-proactivity) | Background scheduling and proactivity | not-started | 14 | Existing inert/foreground policy; explicit bounded worker and opt-in |
 | [18](#phase-18--daily-briefing) | Daily briefing | not-started | 10, 15, 16, 17; 8 only for Garmin content | Compose approved sources with honest freshness/omissions |
 | [19](#phase-19--laptoppwa-release-and-operations) | Laptop/PWA release and operations | not-started | 7–18 | Integrated release, recovery, maintenance and honest acceptance receipt |
@@ -282,15 +282,17 @@ Read [email](EMAIL.md), [legacy I progress](phase-reports/PHASE_I_PROGRESS.md).
 
 ### Phase 16 — Calendar and reminders
 
-Status: **blocked-external**, 2026-11-01. [Current progress](phase-reports/current/PHASE_16_PROGRESS.md),
+Status: **blocked-external**, 2026-11-04. [Current progress](phase-reports/current/PHASE_16_PROGRESS.md),
 [read/prepare and reminder contract](CALENDAR.md). Provider-neutral bounded local ICS inspection,
 conflict evidence and unsent proposals reuse Core CLI; reminders use existing inert proactivity
 draft/activation/lifecycle. No provider account, calendar scope, writes or worker activated.
 Current synthetic Windows read/proposal/reminder lifecycle, working/isolated full release gates
 and installed-wheel checks pass for the local foundation. Owner selected Google primary calendar
 on the Phase 15 personal account. Inactive bounded Google read/service adapter and
-[concrete setup review](GOOGLE_CALENDAR_SETUP.md) prepared; new calendar grant, protected auth
-and authorized live-read evidence remain pending. Gmail access grants no calendar authority.
+[concrete setup review](GOOGLE_CALENDAR_SETUP.md) prepared. Protected foreground auth/renewal,
+exact local disconnect and <=7-day/100-entry aggregate proof commands implemented; setup approval,
+actual new calendar grant and authorized live-read evidence remain pending. Gmail access grants no
+calendar authority. No real auth or calendar acquisition follows from implementation.
 
 Outcome: inspect events, detect conflicts, prepare changes and manage owner-authored reminders.
 Add a provider-neutral adapter reusing identity/secret/permission boundaries; select provider and
@@ -436,7 +438,8 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 Phase 15's external setup blocker. Read [calendar progress](phase-reports/current/PHASE_16_PROGRESS.md),
 [contract](CALENDAR.md), this roadmap, [Phase Execution](PHASE_EXECUTION.md) and current architecture.
 Review the selected Google primary-calendar [setup decision](GOOGLE_CALENDAR_SETUP.md), then resolve
-new scopes/protected auth and live-read authority. Local foundation gates pass; current adapter
+new scope/setup and live-read authority. Protected-auth/proof preparation is implemented but inactive.
+Local foundation gates pass; current adapter
 verification is in the progress report. Phase 15 remains blocked on its approved Gmail setup/live proof;
 no calendar grant is inherited from email. No provider write/send or unattended polling authority
 is inherited.
