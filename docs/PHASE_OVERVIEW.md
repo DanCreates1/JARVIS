@@ -49,10 +49,10 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
   read-only. [Completion evidence](phase-reports/current/PHASE_14_COMPLETION.md).
 - Progress basis: **14/19 primary phase receipts closed (~74%)**; an
   unweighted management count, not code/effort percentage or full mobile MVP acceptance.
-- **Phase 15 blocked-external — Email.** Local baseline passes; read/retention/revocation bounds
-  frozen; provider/account
-  selection pending before live adapter/access. [Progress](phase-reports/current/PHASE_15_PROGRESS.md),
-  [provider/auth choices](EMAIL_PROVIDER_DECISION.md). Local exports remain available; no live acceptance.
+- **Phase 15 blocked-external — Email.** Personal Gmail / desktop OAuth / `gmail.readonly`
+  selected. Inactive bounded read adapter added; exact account/client setup, protected auth/activation
+  and live acceptance remain pending. [Progress](phase-reports/current/PHASE_15_PROGRESS.md),
+  [provider/auth decision](EMAIL_PROVIDER_DECISION.md). Local exports remain available; no live access.
 - Historical prototype acceptance stays **100% = 10/10 groups**, corpus **8/10**. Full mobile MVP,
   physical acceptance and production readiness remain unestablished.
 

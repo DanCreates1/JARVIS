@@ -1,13 +1,42 @@
 # Private email read and preparation
 
 Status: current Phase 15 `blocked-external`; local read/prepare foundation retained from Legacy IA.
-Provider/account selection precedes live-adapter implementation or access. See
+Owner selected personal Gmail / desktop delegated OAuth / `gmail.readonly` on 2026-11-01. See
 [current acceptance](phase-reports/current/PHASE_15_PROGRESS.md) and
-[provider/auth decision](EMAIL_PROVIDER_DECISION.md). No live provider is selected or enabled.
+[provider/auth decision](EMAIL_PROVIDER_DECISION.md). No live provider is enabled.
 
 Email is default off. IA reads an explicitly configured local folder of owner-exported `.eml`
 messages. It does not log into or discover an account. No credential, OAuth, IMAP, SMTP, provider
-draft API, sender, polling process or remote/mobile email endpoint is installed.
+draft API, sender, polling process or remote/mobile email endpoint is installed. An inactive Gmail
+read adapter now exists for synthetic testing; ordinary composition still constructs exports only.
+
+## Selected Gmail adapter milestone
+
+`jarvis.email.gmail.GmailReadProvider` implements the existing read port with default-off,
+account-bound foreground requests. A trusted host token-source port is injected explicitly.
+No production token source/store, OAuth flow, Gmail CLI, startup setting or runtime activation
+exists yet. Existing chat connections do not supply credentials to JARVIS. No live Gmail access
+was performed for this milestone. Exact local account binding and client-registration ownership
+remain required inputs before implementing protected auth/activation and reviewing live authority.
+
+The [frozen contract](EMAIL_PROVIDER_DECISION.md#selected-gmail-contract--frozen-2026-11-01-before-implementation)
+records exact request/time/byte limits. Each operation first verifies the configured exact account.
+List returns at most one page of 100 references, not a complete mailbox inventory. Reading one
+thread acquires all 1–16 messages and compares inventories/history before returning any result;
+changed, incomplete or over-limit threads fail closed. Raw MIME remains <=128 KiB/message in the
+existing isolated parser. Inert attachment bytes can be present in MIME; no attachment endpoint or
+remote resource is fetched. No provider writes, drafts, sending, cache, retries or polling.
+
+Canonical Gmail IDs contain an account fingerprint, thread/message kind and reversible opaque ID.
+Existing export ID rules remain unchanged. Provider-backed `EmailService` composition selects
+`source_kind="provider"`; projection labels stay provider-neutral and private, with existing
+`email:THREAD/MESSAGE` citations and source-byte digests. Neither source IDs nor metadata authenticate
+senders or establish verified chronology. Disabling the adapter invalidates in-flight generations;
+the preparation service also rejects results started before a disable/re-enable cycle.
+
+Current milestone tests use synthetic tokens/transports and real isolated parsers. A Windows
+protected-token implementation, expiry/authorized renewal lifecycle and actual Google client
+setup still need implementation and acceptance. This adapter does not satisfy live-provider exit.
 
 ## Configure exports
 
@@ -98,11 +127,11 @@ Use existing conversation deletion for private replies; SQL deletion does not se
 backups, terminal output or underlying storage. Keep migration 016 and the private database when
 rolling source back so sticky privacy remains available.
 
-Current Phase 15 needs owner-selected provider/account type, applicable credential/access scopes
-and an authorized bounded private mailbox smoke. Existing explicit authority persists within scope;
-selection alone does not grant login, new scopes or private reads. Review current official
-OAuth/API documentation then implement
-the adapter behind `EmailReadProvider`. Any provider draft/write/send requires exact existing
+Current Phase 15 needs exact local account/client setup, protected auth/activation, applicable
+credential/access authority and an authorized bounded private mailbox smoke. Existing explicit
+authority persists within scope; selection alone does not grant login, new scopes or private reads.
+Current official OAuth/API/data-policy sources were reviewed before the inactive read adapter
+milestone. Any provider draft/write/send requires exact existing
 Phase 3 approval plus provider authorization and fresh external-effect authority. No blanket
 send permission transfers from reading email, preparing a draft or Git publication. Stop before
 J — Calendar.
