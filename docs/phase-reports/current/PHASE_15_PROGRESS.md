@@ -1,10 +1,10 @@
 # Phase 15 — Email
 
 - Status: `blocked-external`
-- Started / updated: 2026-10-31 / 2026-11-01
+- Started / updated: 2026-10-31 / 2026-11-04
 - Namespace: current numbered roadmap
 - Recommended Codex model / reasoning: gpt-6-astra / ultra (recommendation only)
-- Current verification checkpoint / conservative stop: 2026-11-01 17:42:57 UTC / 2026-11-01 20:30 UTC
+- Resume checkpoint / conservative stop: 2026-11-04 22:49:01 UTC / 2026-11-05 03:30 UTC
 
 ## Objective and scope
 
@@ -199,8 +199,34 @@ Frozen before new provider implementation or live measurement:
     characters; no cache, credentials, cloud/research calls, effects or spend. Runs followed full
     tests and model smokes without another benchmark/model workload. These are local-export
     performance proofs, not Google auth or Gmail live-read latency evidence.
+23. Resumed 2026-11-04 at `57b0709c108e40d39a1b750485317ae9e198f7db` after independent
+    Phase 16 commits. Existing bounded setup/consent/live-read approval persists. Owner is ready
+    for Google console setup; requested exact account and selected Desktop client file path as
+    information, not new authorization. No private account/file contents or credentials inferred.
+    Finished review of the pending metadata compatibility correction: accept Google's documented
+    legacy client-file OAuth URLs as metadata while keeping actual browser/token destinations
+    pinned to current constants. Four metadata combinations retain hostile URL/schema denial;
+    focused working auth/credential/provider/Core tests pass **215 tests in 15.71 s**.
+    Root whole-repository checks also observed concurrent uncommitted Calendar auth work with
+    format/type failures. Those files are outside this task and remain untouched. Isolated
+    publication starts from committed `57b0709` and copies only four Phase 15 paths, preserving
+    held provider/native and concurrent Calendar changes. Current complete-source gates follow.
+24. Current isolated publication source passes **2,147 tests**, three existing skips,
+    **86.81% coverage**, 242.64 s. Format/lint and Mypy pass (184 source files); locked root/base
+    and Garmin sync/audits pass. Root installed optional-package audit also passes. PWA lifecycle/
+    PCM **175 tests**, standard desktop **72 cases**, prototype-text and private-email **9 cases
+    each** pass. Fresh installed wheel accepts all four allowlisted client metadata combinations,
+    matches the tested auth module and runs the real isolated MIME parser; no owner credentials
+    used. Published baseline `57b0709` has successful exact-commit CI. Source, local links, staged
+    secret scan and final publication/CI receipts are checked separately for the compatibility patch.
 
 ## Decisions, authority and blockers
+
+Owner approved the prepared project/client setup, `gmail.readonly` with offline renewal,
+exact-account profile check and one owner-selected <=3-message/128-KiB-each live read/prepare.
+Approval persists within that scope. Owner handles Google login/consent and reviews applicable
+terms. No billing, public publishing, provider mutation/send or cloud email is authorized.
+Actual account/client setup and live acceptance still need evidence; do not repeat this approval.
 
 Owner clarified on resume: no Google project or Desktop OAuth client exists. Independent next
 milestone is protected host credentials, explicit local OAuth command and default-off composition,
@@ -304,4 +330,5 @@ are checked separately and recorded in the final handoff/ignored receipt. Reposi
 and a passing synthetic proof do not close Phase 15 or enable an actual Google grant.
 Progress remains **14/19 primary receipts closed (~74%)**, unweighted management count, not
 code/effort or mobile MVP acceptance. Next current work: **Continue Phase 15 — Email** with exact
-approved project/client setup, exact local inputs and actual auth/live proof; Phase 16 has not started.
+approved project/client setup, exact local inputs and actual auth/live proof. Phase 16 has independent
+commits and remains governed by its own current report; this resumption does not change that scope.

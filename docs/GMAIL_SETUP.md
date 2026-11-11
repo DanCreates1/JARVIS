@@ -25,13 +25,22 @@ requirements and token lifetime must be checked against the actual project befor
 this personal testing plan is not public verification. Never bypass a Google denial or warning
 without reviewing its actual cause. [Scope classification](https://developers.google.com/workspace/gmail/api/auth/scopes).
 
+Google's External/Testing refresh grants for Gmail expire after **7 days**. Expiration stops
+reads; JARVIS does not silently obtain a new grant. A successful bounded proof therefore does
+not establish indefinite unattended access. Any later change to the project's publishing or
+access-duration configuration requires review of that actual change and its applicable authority.
+[Google refresh-token lifetime](https://developers.google.com/identity/protocols/oauth2#expiration).
+
 ## Local client and consent
 
 After approved project/client setup, save the downloaded Desktop JSON **outside this checkout**,
 for example under the Windows user's private application-data directory. Do not paste its contents,
 tokens, passwords or browser callback URLs into chat. The explicit local file is bounded to 16 KiB;
 network paths, symlinks, reparse points and hardlinked files are denied. Only the installed-app
-schema and fixed Google authorization/token origins are accepted. The downloaded registration
+schema and allowlisted Google OAuth metadata are accepted. Google's documented legacy metadata
+URLs are recognized; runtime authorization/token requests still use the fixed current URLs,
+never URLs selected by the file. [Client-file format](https://developers.google.com/api-client-library/dotnet/guide/aaa_client_secrets).
+The downloaded registration
 file remains owner-managed; it contains the Desktop client secret and must remain private.
 
 Commands below are templates, not evidence that setup or consent happened. Replace placeholders

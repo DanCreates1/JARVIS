@@ -102,7 +102,13 @@ def load_desktop_client(path: Path) -> DesktopClient:
         if set(data) != {"installed"} or not isinstance(data["installed"], dict):
             raise EmailError("gmail_client_invalid")
         client = data["installed"]
-        if client.get("auth_uri") != AUTH_URI or client.get("token_uri") != TOKEN_URI:
+        if client.get("auth_uri") not in {
+            AUTH_URI,
+            "https://accounts.google.com/o/oauth2/auth",
+        } or client.get("token_uri") not in {
+            TOKEN_URI,
+            "https://accounts.google.com/o/oauth2/token",
+        }:
             raise EmailError("gmail_client_invalid")
         uris = client.get("redirect_uris")
         if (

@@ -432,8 +432,10 @@ async def test_cancel_renewal_drains_response_and_no_store_write():
     assert stream.closed and source._cached is None
 
 
-def test_desktop_file_is_explicit_and_bound(tmp_path):
-    path = client_file(tmp_path)
+@pytest.mark.parametrize("auth_uri", [AUTH_URI, "https://accounts.google.com/o/oauth2/auth"])
+@pytest.mark.parametrize("token_uri", [TOKEN_URI, "https://accounts.google.com/o/oauth2/token"])
+def test_desktop_file_is_explicit_and_bound(tmp_path, auth_uri, token_uri):
+    path = client_file(tmp_path, auth_uri=auth_uri, token_uri=token_uri)
     assert load_desktop_client(path) == CLIENT
     with pytest.raises(EmailError):
         load_desktop_client(path.relative_to(tmp_path))
