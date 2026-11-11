@@ -1,6 +1,6 @@
 # JARVIS Phase Overview
 
-Navigation view, **2026-11-01**. [Master Roadmap](JARVIS_MASTER_ROADMAP.md) is the **single status
+Navigation view, **2026-11-04**. [Master Roadmap](JARVIS_MASTER_ROADMAP.md) is the **single status
 ledger** and owns scope/dependencies. [Phase Execution](PHASE_EXECUTION.md) owns commands;
 [current reports](phase-reports/current/) hold acceptance evidence. Old phase numbers are legacy
 aliases; the [crosswalk](JARVIS_MASTER_ROADMAP.md#historical-alias-map) resolves collisions.
@@ -60,8 +60,9 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
   conflict/change proposals and owner-authored drafts reuse existing Core/foreground reminder
   controls. [Contract](CALENDAR.md), [progress](phase-reports/current/PHASE_16_PROGRESS.md).
   Local foundation gates pass. Google primary on Phase 15's personal account selected;
-  inactive read adapter and [setup review](GOOGLE_CALENDAR_SETUP.md) prepared. Protected auth,
-  new grant and authorized live-read evidence pending; no new scopes or worker activated.
+  inactive read/protected foreground auth/proof commands and [setup review](GOOGLE_CALENDAR_SETUP.md)
+  prepared. Setup approval, actual new grant and authorized live-read evidence pending;
+  no new scopes or worker activated.
 
 ## Remaining delivery map
 

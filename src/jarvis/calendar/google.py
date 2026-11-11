@@ -361,6 +361,69 @@ class GoogleCalendarReadProvider:
             source_kind="provider",
         )
 
+    async def _token(self, generation: int) -> GoogleCalendarAccessToken:
+        self._check(generation)
+        try:
+            token = await self._tokens.acquire()
+        except Exception:
+            raise CalendarError("calendar_credentials_denied") from None
+        self._check(generation)
+        if (
+            not isinstance(token, GoogleCalendarAccessToken)
+            or token.account != self._account
+            or token.calendar_id != self._calendar
+            or token.scopes != GOOGLE_CALENDAR_SCOPES
+            or not isinstance(token.access_token, str)
+            or len(token.access_token) > 8192
+            or not re.fullmatch(r"[A-Za-z0-9._~+/-]{1,8192}={0,2}", token.access_token)
+            or not isinstance(token.expires_at, datetime)
+            or token.expires_at.tzinfo is None
+            or aware(token.expires_at) <= datetime.now(UTC)
+        ):
+            raise CalendarError("calendar_credentials_denied")
+        return token
+
+    async def _identity(self, client: httpx.AsyncClient, generation: int) -> None:
+        identity = await self._get(
+            client, generation, "/oauth2/v2/userinfo", {"fields": "email,verified_email"}, 16_384
+        )
+        if (
+            set(identity) != {"email", "verified_email"}
+            or identity["email"] != self._account
+            or identity["verified_email"] is not True
+        ):
+            raise CalendarError("calendar_account_mismatch")
+
+    def _client(self, token: GoogleCalendarAccessToken) -> httpx.AsyncClient:
+        return httpx.AsyncClient(
+            transport=self._transport,
+            timeout=5,
+            trust_env=False,
+            follow_redirects=False,
+            headers={
+                "Authorization": f"Bearer {token.access_token}",
+                "Accept": "application/json",
+                "Accept-Encoding": "identity",
+            },
+        )
+
+    async def verify_account(self) -> None:
+        """Login verification only: one bounded identity GET, never calendar acquisition."""
+        generation = self._generation
+        self._check(generation)
+        try:
+            async with asyncio.timeout(5):
+                token = await self._token(generation)
+                async with self._client(token) as client:
+                    await self._identity(client, generation)
+                    self._check(generation)
+        except CalendarError as exc:
+            raise CalendarError(exc.code) from None
+        except (TimeoutError, httpx.TimeoutException):
+            raise CalendarError("calendar_timeout") from None
+        except Exception:
+            raise CalendarError("calendar_provider_unavailable") from None
+
     async def read(self, window: CalendarWindow) -> CalendarSnapshot:
         generation = self._generation
         self._check(generation)
@@ -368,48 +431,9 @@ class GoogleCalendarReadProvider:
             window = CalendarWindow.model_validate(window.model_dump(warnings=False))
             query = _query_window(window)
             async with asyncio.timeout(5):
-                try:
-                    token = await self._tokens.acquire()
-                except Exception:
-                    raise CalendarError("calendar_credentials_denied") from None
-                self._check(generation)
-                if (
-                    not isinstance(token, GoogleCalendarAccessToken)
-                    or token.account != self._account
-                    or token.calendar_id != self._calendar
-                    or token.scopes != GOOGLE_CALENDAR_SCOPES
-                    or not isinstance(token.access_token, str)
-                    or len(token.access_token) > 8192
-                    or not re.fullmatch(r"[A-Za-z0-9._~+/-]{1,8192}={0,2}", token.access_token)
-                    or not isinstance(token.expires_at, datetime)
-                    or token.expires_at.tzinfo is None
-                    or aware(token.expires_at) <= datetime.now(UTC)
-                ):
-                    raise CalendarError("calendar_credentials_denied")
-                async with httpx.AsyncClient(
-                    transport=self._transport,
-                    timeout=5,
-                    trust_env=False,
-                    follow_redirects=False,
-                    headers={
-                        "Authorization": f"Bearer {token.access_token}",
-                        "Accept": "application/json",
-                        "Accept-Encoding": "identity",
-                    },
-                ) as client:
-                    identity = await self._get(
-                        client,
-                        generation,
-                        "/oauth2/v2/userinfo",
-                        {"fields": "email,verified_email"},
-                        16_384,
-                    )
-                    if (
-                        set(identity) != {"email", "verified_email"}
-                        or identity["email"] != self._account
-                        or identity["verified_email"] is not True
-                    ):
-                        raise CalendarError("calendar_account_mismatch")
+                token = await self._token(generation)
+                async with self._client(token) as client:
+                    await self._identity(client, generation)
                     data = await self._get(
                         client,
                         generation,

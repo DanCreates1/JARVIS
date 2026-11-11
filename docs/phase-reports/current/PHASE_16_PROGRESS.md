@@ -1,7 +1,7 @@
 # Phase 16 — Calendar and reminders
 
 - Status: `blocked-external`
-- Started / updated: 2026-11-01 / 2026-11-01
+- Started / updated: 2026-11-01 / 2026-11-04
 - Namespace: current numbered roadmap
 - Recommended Codex model / reasoning: gpt-6-astra / ultra (recommendation only)
 - Session start / five-hour stop: first captured clock 2026-11-01 19:33 / 2026-11-02 00:33 America/Toronto
@@ -44,6 +44,31 @@ Provider selection is missing information, not permission for account access.
   required live read evidence.
 
 ## Milestone log
+
+### Protected foreground auth preparation — 2026-11-04
+
+Resume baseline `57b0709`, `main`; all 32 held paths and installed package inventory frozen
+under ignored `runtime/phase16/auth/`. First captured clock 17:47 America/Toronto; five-hour
+stop 22:47. Setup, new grant and private live read remain unapproved. This milestone implements
+inactive local entry points and synthetic verification only; it grants no external authority.
+
+Frozen acceptance before measurement: exact account/client/primary/two-scope protected grant;
+separate Windows Credential Manager namespace; volatile access tokens; create refuses replacement;
+foreground renewal refuses scope expansion/refresh-token rotation; local deletion rechecked before
+cached use and after renewal. Adapt the published reviewed Gmail PKCE/loopback/token transport and
+protected-secret protocol without changing or importing held Gmail credentials. Callback bounded
+to 180 seconds, eight requests/four active handlers, strict state/Host/path/issuer/body validation;
+token and verified-email responses <=16 KiB with five-second deadlines, no redirects/retries/proxies.
+Verify exact account before persistence. No event acquisition during login.
+
+Initial proof validates whole-second <=7-day window before client/store access, configures <=100
+entries, and makes one identity GET plus one event GET within the existing five-second deadline
+including foreground renewal. Prepare one unsent cancellation from the volatile observed snapshot,
+without reacquisition; empty calendar reports preparation unavailable honestly. Only counts/booleans
+leave the command. Synthetic matrix must cover denial/default-off, hostile callbacks, malformed
+client/token/store/identity, scope/account/calendar binding, restart/deletion/rotation/cancellation,
+Windows synthetic-only storage, full auth/read/prepare composition and private-output exclusion.
+Full working/isolated gates and exact publication remain required before this milestone closes.
 
 ### Google Calendar selection — 2026-11-01
 
