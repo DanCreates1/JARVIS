@@ -1,6 +1,6 @@
 # JARVIS Phase Overview
 
-Navigation view, **2026-11-08**. [Master Roadmap](JARVIS_MASTER_ROADMAP.md) is the **single status
+Navigation view, **2026-11-10**. [Master Roadmap](JARVIS_MASTER_ROADMAP.md) is the **single status
 ledger** and owns scope/dependencies. [Phase Execution](PHASE_EXECUTION.md) owns commands;
 [current reports](phase-reports/current/) hold acceptance evidence. Old phase numbers are legacy
 aliases; the [crosswalk](JARVIS_MASTER_ROADMAP.md#historical-alias-map) resolves collisions.
@@ -49,11 +49,14 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
   read-only. [Completion evidence](phase-reports/current/PHASE_14_COMPLETION.md).
 - Progress basis: **15/19 primary phase receipts closed (~79%)**; an
   unweighted management count, not code/effort percentage or full mobile MVP acceptance.
-- **Phase 15 blocked-external — Email.** Personal Gmail / desktop OAuth / `gmail.readonly`
+- **Phase 15 implemented-closeout-pending — Email.** Personal Gmail / desktop OAuth / `gmail.readonly`
   selected. Bounded read adapter/protected Windows auth/default-off composition implemented.
-  Approved project/client setup and actual auth/live acceptance remain pending. [Setup](GMAIL_SETUP.md),
+  Actual approved setup/auth/protected grant passed. First selected thread exceeded the fixed
+  size limit; a second one-message source passed live read/preparation with verified provenance
+  and an unsent/unstored draft. Current release/documentation closeout pending. [Setup](GMAIL_SETUP.md),
   [progress](phase-reports/current/PHASE_15_PROGRESS.md),
-  [provider/auth decision](EMAIL_PROVIDER_DECISION.md). Local exports remain available; no live access.
+  [provider/auth decision](EMAIL_PROVIDER_DECISION.md). Local exports remain available; production
+  acquisition stays off.
 - Historical prototype acceptance stays **100% = 10/10 groups**, corpus **8/10**. Full mobile MVP,
   physical acceptance and production readiness remain unestablished.
 - **Phase 16 blocked-external — Calendar and reminders.** Explicit bounded local ICS inspection,

@@ -61,7 +61,7 @@ Rows 1–19 form the primary laptop/PWA delivery plan. Rows 20–24 retain the w
 | [12](#phase-12--foreground-voice) | Foreground voice | complete | 7 | Explicit local speech/review/Send/text replies; current Windows synthetic/security/release gates and fresh CI pass |
 | [13](#phase-13--controlled-windows-actions) | Controlled Windows actions | complete | 7 | Current app/STOP and bounded volume retry pass; recovery, automated release gates and reviewed publication |
 | [14](#phase-14--bounded-tasks-and-project-workflows) | Bounded tasks and project workflows | complete | 7; 13 for action-bearing flows | Bounded project review, durable foreground controls, current recovery/release gates and reviewed publication |
-| [15](#phase-15--email) | Email | blocked-external | 7 | Gmail bounded reads/protected auth/default-off composition implemented; approved project/client setup and actual auth/live acceptance pending |
+| [15](#phase-15--email) | Email | implemented-closeout-pending | 7 | Actual approved protected Gmail auth and one-message live read/preparation passed; current release/documentation closeout pending |
 | [16](#phase-16--calendar-and-reminders) | Calendar and reminders | blocked-external | 7 | Google primary selected; inactive read/protected auth/proof CLI implemented; setup approval/actual grant/live proof pending |
 | [17](#phase-17--background-scheduling-and-proactivity) | Background scheduling and proactivity | complete | 14 | Exact opt-in worker, isolated 1,800-tick soak, full source gates and fresh source CI pass; production activation and external notifications excluded |
 | [18](#phase-18--daily-briefing) | Daily briefing | not-started | 10, 15, 16, 17; 8 only for Garmin content | Compose approved sources with honest freshness/omissions |
@@ -263,13 +263,16 @@ Read [task evidence](phase-reports/PHASE_6_COMPLETION.md), [F14](PWA_F14_WORKFLO
 
 ### Phase 15 — Email
 
-Status: **blocked-external**, 2026-11-01. [Current progress](phase-reports/current/PHASE_15_PROGRESS.md),
+Status: **implemented-closeout-pending**, 2026-11-10. [Current progress](phase-reports/current/PHASE_15_PROGRESS.md),
 [provider/auth decision](EMAIL_PROVIDER_DECISION.md). Personal Gmail / desktop delegated OAuth /
 `gmail.readonly` selected. Bounded read adapter, protected Windows credentials, explicit PKCE OAuth,
 foreground renewal and default-off composition implemented; synthetic gates recorded in progress.
-Owner confirmed no project/client exists. [Prepared setup](GMAIL_SETUP.md), applicable terms/consent,
-exact local account/client inputs and actual auth/live acceptance remain pending.
-No credential, new scope, live mailbox access or write authority inferred.
+Owner completed approved project/client setup and Google consent; actual exact-account auth and
+Windows protected grant creation passed. [Setup and recovery](GMAIL_SETUP.md). The first selected
+conversation contained an oversized message and was rejected without relaxing limits. A second
+selected one-message conversation passed live read/preparation with verified provenance and an
+unsent/unstored draft; current release/documentation closeout remains pending. Production
+configuration stays off; no write/send, background acquisition or calendar scope is granted.
 
 Outcome: approved-provider read/thread summaries and preparation of drafts with provenance.
 Reuse local IA export/read/prepare and provider-neutral contracts; select provider and review current
@@ -443,12 +446,13 @@ as legacy when a number collides. Old PROTO names remain searchable aliases only
 
 ## Next action
 
-**Next planned: Phase 18 — Daily briefing**, not started. Phase 17 development, isolated acceptance,
-task-only source publication and fresh CI pass. Read [completion](phase-reports/current/PHASE_17_COMPLETION.md)
-and [worker contract](BACKGROUND_PROACTIVITY.md). No Phase 18 work starts automatically.
-Review actual Phase 15/16 prerequisite contracts and unresolved approved-source/live inputs before
-briefing acceptance. Gmail setup/live proof and Google Calendar setup/grant/live proof remain
-separate; provider selection and prepared auth grant no private access or background activation.
+**Current requested: finish Phase 15 closeout.** Actual protected Gmail authorization and selected
+one-message read/preparation passed; current release/documentation gates and exact-commit CI are
+being completed. Continue [current evidence](phase-reports/current/PHASE_15_PROGRESS.md).
+Phase 17 is complete. Phase 16 still needs its independent Google Calendar setup/grant/live proof;
+Gmail consent grants no calendar or background acquisition authority. Phase 18 — Daily briefing
+remains unstarted and requires the actual approved-source prerequisites. No next phase starts
+automatically.
 No production activation, external notifications, new scopes or deployment authority follows.
 Preserve held provider/native changes, prototype-text, current locks, Wikimedia/legacy limits,
 endpoint-specific volume qualification and skipped/unverified phone status. Phase 16 initiation

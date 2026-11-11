@@ -1,7 +1,6 @@
 import asyncio
 import hashlib
 import json
-import platform
 import shutil
 import sqlite3
 from datetime import UTC, datetime, timedelta
@@ -44,6 +43,16 @@ from jarvis.remote.resilience import (
     write_deployment_manifest,
 )
 from jarvis.remote.topology import build_local_only_manifest, build_remote_manifest
+
+DEPLOYMENT_PYTHON = "3.11.16"
+
+
+@pytest.fixture(autouse=True)
+def deployment_target_runtime(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Simulate the pinned deployment target independently of the test interpreter.
+    monkeypatch.setattr(
+        resilience_module, "platform", SimpleNamespace(python_version=lambda: DEPLOYMENT_PYTHON)
+    )
 
 
 def _database(path: Path) -> Path:
@@ -91,7 +100,7 @@ def _remote_fixture(tmp_path: Path):  # type: ignore[no-untyped-def]
         role=DeploymentRole.SERVER_CORE,
         node_id="node:server",
         release_artifact=artifact,
-        python_version=platform.python_version(),
+        python_version=DEPLOYMENT_PYTHON,
         database_path=target,
         ownership_receipt=receipt,
     )
@@ -118,6 +127,7 @@ def test_deployment_document_role_and_chain_shapes_fail_closed(tmp_path: Path) -
     topology, _, target, receipt, artifact, deployment = _remote_fixture(tmp_path)
     manifest = deployment.model_dump(mode="python")
     manifest_cases = (
+        {"python_version": "3.12.14"},
         {"created_at": datetime.now(UTC).replace(tzinfo=None)},
         {"database_path": "relative.db"},
         {"offline_capabilities": ("node.voice", "node.voice")},
@@ -341,8 +351,12 @@ def test_runtime_restart_rejects_schema_drift_after_activation(tmp_path: Path) -
     assert caught.value.code is DeploymentErrorCode.DATABASE_MISMATCH
 
 
-@pytest.mark.parametrize("failure", ["release", "manifest", "state", "database", "receipt"])
-def test_activation_rejects_tamper_and_mismatch(tmp_path: Path, failure: str) -> None:
+@pytest.mark.parametrize(
+    "failure", ["release", "manifest", "state", "database", "receipt", "python"]
+)
+def test_activation_rejects_tamper_and_mismatch(
+    tmp_path: Path, failure: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
     topology, _, target, receipt, artifact, deployment = _remote_fixture(tmp_path)
     state = create_deployment_state(
         tmp_path / "state.json",
@@ -367,6 +381,11 @@ def test_activation_rejects_tamper_and_mismatch(tmp_path: Path, failure: str) ->
     elif failure == "database":
         target.write_bytes(b"not sqlite")
         expected_code = DeploymentErrorCode.DATABASE_MISMATCH
+    elif failure == "python":
+        monkeypatch.setattr(
+            resilience_module, "platform", SimpleNamespace(python_version=lambda: "3.11.17")
+        )
+        expected_code = DeploymentErrorCode.RELEASE_MISMATCH
     else:
         supplied_receipt = receipt.model_copy(update={"active_owner_node_id": "node:laptop"})
         expected_code = DeploymentErrorCode.RECEIPT_MISMATCH
@@ -431,7 +450,7 @@ def test_release_update_chains_state_without_requiring_old_snapshot(tmp_path: Pa
         role=DeploymentRole.SERVER_CORE,
         node_id="node:server",
         release_artifact=replacement,
-        python_version=platform.python_version(),
+        python_version=DEPLOYMENT_PYTHON,
         database_path=target,
         ownership_receipt=receipt,
     )
@@ -482,7 +501,7 @@ def test_deployment_state_chains_remote_to_local_rollback(tmp_path: Path) -> Non
         role=DeploymentRole.LOCAL_CORE,
         node_id="node:laptop",
         release_artifact=artifact,
-        python_version=platform.python_version(),
+        python_version=DEPLOYMENT_PYTHON,
         database_path=restored_local,
         ownership_receipt=rollback,
     )
@@ -508,7 +527,7 @@ def test_laptop_device_offline_policy_never_changes_owner_or_effects(tmp_path: P
         role=DeploymentRole.LAPTOP_DEVICE,
         node_id="node:laptop",
         release_artifact=artifact,
-        python_version=platform.python_version(),
+        python_version=DEPLOYMENT_PYTHON,
     )
     activation = verify_runtime_deployment(
         deployment=deployment,
@@ -559,7 +578,7 @@ def test_local_owner_remains_available_without_network(tmp_path: Path) -> None:
         role=DeploymentRole.LOCAL_CORE,
         node_id="node:laptop",
         release_artifact=artifact,
-        python_version=platform.python_version(),
+        python_version=DEPLOYMENT_PYTHON,
         database_path=database,
     )
     state = create_deployment_state(

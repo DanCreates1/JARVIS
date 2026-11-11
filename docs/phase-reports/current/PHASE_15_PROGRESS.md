@@ -1,10 +1,82 @@
 # Phase 15 — Email
 
-- Status: `blocked-external`
-- Started / updated: 2026-10-31 / 2026-11-04
+- Status: `implemented-closeout-pending`
+- Started / updated: 2026-10-31 / 2026-11-10
 - Namespace: current numbered roadmap
 - Recommended Codex model / reasoning: gpt-6-astra / ultra (recommendation only)
 - Resume checkpoint / conservative stop: 2026-11-04 22:49:01 UTC / 2026-11-05 03:30 UTC
+
+## Current live acceptance — 2026-11-10
+
+Owner supplied a different exact RFC Message-ID after the prior oversized-thread rejection.
+The same explicit, exact-match ID-only lookup resolved one message without pagination or broad
+listing. Existing protected same-account foreground acquisition/renewal succeeded without new
+login, replacement or scope expansion. The unchanged selected-thread proof **passed** against
+one actual thread containing **one message**, in **805.831 ms**. Provenance verified; summary,
+extraction, bounded private projection and the fixed synthetic draft reused the volatile observed
+thread. Draft remained **unsent and unstored**. Mailbox cache, cloud calls, research calls,
+provider writes and cost were **zero**. No private source text or identifiers enter this report.
+
+This closes the external source/live-proof blocker. Full current working/publication release
+gates and reviewed documentation publication remain in progress; no phase completion is claimed
+before they pass. Production configuration remains off; no send, worker, new remote email scope
+or calendar access is enabled. Sanitized evidence is retained under ignored
+`runtime/phase15/closeout-20261110/`. The 2026-11-08 failure below remains historical evidence.
+
+Closeout environment repair: Windows Application Control denied coverage's native tracer.
+The fallback on Python 3.11 produced synthetic request-body/cancellation failures; those runs
+earn no acceptance credit. Verification uses the project's supported Python 3.12.14 and the
+documented `COVERAGE_CORE=pytrace` implementation, retaining branch measurement and the 85%
+floor. No OS/security control or blocked native module was bypassed. The original Python 3.11
+environment and all 97 installed package versions remain unchanged; separate ignored environments
+hold the locked Python 3.12 base/optional dependencies. Mypy still checks the configured Python
+3.11 target using its compatible locked environment.
+
+That run exposed two legacy deployment test modules deriving a synthetic pinned Python 3.11
+deployment target from the test runner's version. Fixtures now explicitly simulate the reviewed
+3.11.16 deployment target within the resilience module only, independent of the test interpreter.
+Production deployment schema/runtime checks are unchanged. Added denial coverage for a 3.12
+manifest and a mismatched runtime patch version. All 28 affected tests pass under both Python
+3.11 and Python 3.12; final complete-source suites rerun after this test-only correction.
+Application code, dependency locks, native manifests and existing held provider edits stay unchanged.
+
+Final executable publication-source gates pass: **2,315 tests**, three existing skips,
+**87.11% combined statement/branch coverage**, 350.68 s on Python 3.12.14 with pure-Python
+coverage. Mypy passes all 191 source files against the configured Python 3.11 target; Ruff
+format/lint, locked base sync/audit, PWA lifecycle/PCM 175 tests, desktop accessibility 72 cases,
+prototype-text/private-email nine cases each and synthetic local-model privacy/recovery smoke pass.
+The unchanged frozen local-export benchmark passes **100/100 cases**, 400 real parsers,
+zero oracle/provenance failures, p50 **476.791 ms**, p95 **516.977 ms** <=1,000 ms, maximum
+projection 490 characters, zero credentials/cloud/research/effects/cost. These synthetic benchmark
+numbers are separate from actual Gmail read timing. A fresh installed wheel matches all 221
+packaged source files and passes real isolated parsing/summary/extraction/projection/unsent-draft
+checks without owner credentials. Current working-tree full checks and exact-commit CI remain
+pending before phase closure. No executable source changes after this publication-source freeze.
+
+## Earlier live checkpoint — 2026-11-08
+
+Owner completed the approved Google project/Desktop-client setup and Google login/consent.
+The selected registration passed the existing loader and was moved outside the checkout to
+private local storage. Actual PKCE authorization and exact-account profile verification passed;
+the CLI confirmed creation of the account/client-bound Windows Credential Manager refresh grant.
+No credential, account, client identifier, callback, message identifier or private source text is
+included in this report. No production environment file or background acquisition was enabled.
+
+Initial Google consent was denied because tester access was unavailable. Owner corrected the
+test-user configuration; a fresh explicit login succeeded. No Google denial was bypassed.
+Owner then supplied one conversation and its exact RFC Message-ID for a narrowly scoped
+identifier lookup. One exact `rfc822msgid` query, maximum two ID-only results, no pagination,
+resolved one message. This explicit source-resolution step is separate from the unchanged
+selected-thread proof, which performs no discovery. No generic mailbox listing was performed.
+
+The selected-thread proof failed closed with `gmail_response_limit`. Subsequent bounded,
+metadata-only diagnosis found three messages with size estimates 3,285 / 689,501 / 6,648 bytes;
+the middle message exceeds the unchanged **131,072-byte/message** limit. No successful
+read/prepare acceptance is claimed; messages were not silently omitted and no limit increased.
+Requested another owner-selected, short single-message conversation without attachments.
+Existing consent and same-account foreground renewal authority persist; no new login is needed
+merely to select another source. Phase remains `blocked-external` on that source input and
+subsequent live proof/closeout gates. Earlier milestones below remain historical evidence.
 
 ## Objective and scope
 
@@ -36,8 +108,8 @@ Frozen before new provider implementation or live measurement:
 
 - [x] Owner-selected personal Gmail / desktop delegated OAuth / exact `gmail.readonly` design;
   current official API/OAuth/data-policy sources and provider budgets reviewed/frozen before code.
-- [ ] Exact account/client ownership, applicable project terms/setup and private-read authority;
-  protected host token storage/auth/configuration are implemented; actual setup/auth remain unaccepted.
+- [x] Exact account/client ownership, applicable project terms/setup and private-read authority;
+  actual owner-approved Google setup, consent, account verification and protected grant passed.
 - [x] Inactive Gmail read-adapter milestone: synthetic account/scope/provenance/transport/lifecycle
   matrix and real parser/Core privacy checks; no runtime activation or production token source.
 - [x] Explicit default-off configuration and exact account binding, verified synthetically. No startup login, mailbox
@@ -52,7 +124,7 @@ Frozen before new provider implementation or live measurement:
   Summary excerpts <=512 characters; <=64 extraction candidates; projection <=8,000
   characters. Draft <=10 explicit bare recipients, subject <=512 and body <=8,000 characters;
   `sent=false`, `stored=false`; no provider draft API.
-- [ ] Credentials remain in protected Windows host storage, never browser/model/Git/diagnostics.
+- [x] Credentials remain in protected Windows host storage, never browser/model/Git/diagnostics.
   Raw provider responses and email projections remain volatile; no mailbox cache/index/database.
   Existing private reply history retains normal conversation deletion/backup semantics. Sticky
   email privacy survives disable, restart, failed acquisition and selection removal; no automatic
@@ -71,7 +143,7 @@ Frozen before new provider implementation or live measurement:
 - [x] Existing frozen local benchmark: 100 single-message cases, four operations/case, 400 isolated
   parsers, 100% oracle/provenance correctness, p95 <=1,000 ms, no cache, exactly $0 and zero
   credentials/cloud/research/effects. Current synthetic Windows Core/CLI/model/restart proof.
-- [ ] Separate bounded live read/prepare proof after concrete authority: proposed one selected
+- [x] Separate bounded live read/prepare proof after concrete authority: proposed one selected
   thread, <=3 messages, <=128 KiB/message, no attachment/write/send; sanitized evidence only.
   Live response time is reported, not substituted for synthetic benchmark performance.
 - [ ] Full applicable working/publication quality, >=85% branch coverage, audits, privacy/security,

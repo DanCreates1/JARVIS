@@ -1,9 +1,17 @@
 # Private email read and preparation
 
-Status: current Phase 15 `blocked-external`; local read/prepare foundation retained from Legacy IA.
+Status: current Phase 15 `implemented-closeout-pending`; local read/prepare foundation retained from Legacy IA.
 Owner selected personal Gmail / desktop delegated OAuth / `gmail.readonly` on 2026-11-01. See
 [current acceptance](phase-reports/current/PHASE_15_PROGRESS.md) and
-[provider/auth decision](EMAIL_PROVIDER_DECISION.md). No live provider is enabled.
+[provider/auth decision](EMAIL_PROVIDER_DECISION.md). Production acquisition remains off.
+
+Current live checkpoint, **2026-11-10**: owner completed approved Google setup/consent; actual
+PKCE authorization, exact-account verification and protected Windows grant creation passed.
+A narrowly selected live-thread attempt failed closed because one of its three messages exceeded
+131,072 bytes. A second owner-selected, one-message conversation passed read/preparation in
+805.831 ms with verified provenance and an unsent/unstored draft; release closeout remains pending.
+Earlier synthetic-only/setup-pending descriptions below remain historical context;
+no production configuration, cloud email, polling or send is enabled.
 
 Email is default off. IA reads an explicitly configured local folder of owner-exported `.eml`
 messages. It does not log into or discover an account. Gmail uses an explicit protected-host OAuth

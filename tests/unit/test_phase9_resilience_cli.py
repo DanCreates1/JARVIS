@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import platform
 import shutil
 from pathlib import Path
+from types import SimpleNamespace
 
+import pytest
 from typer.testing import CliRunner
 
+import jarvis.remote.resilience as resilience_module
 from jarvis.cli import app
 from jarvis.memory import SQLiteConversationStore, local_memory_host_id
 from jarvis.remote import (
@@ -136,7 +138,13 @@ def test_release_cli_refuses_duplicate_stage(tmp_path: Path) -> None:
     assert "destination_exists" in duplicate.stdout
 
 
-def test_deployment_cli_manifest_activate_verify_round_trip(tmp_path: Path) -> None:
+def test_deployment_cli_manifest_activate_verify_round_trip(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    deployment_python = "3.11.16"
+    monkeypatch.setattr(
+        resilience_module, "platform", SimpleNamespace(python_version=lambda: deployment_python)
+    )
     topology = build_remote_manifest(
         profile=TopologyProfile.SPLIT,
         host_id=local_memory_host_id(),
@@ -183,7 +191,7 @@ def test_deployment_cli_manifest_activate_verify_round_trip(tmp_path: Path) -> N
             "--ownership-receipt",
             str(receipt_path),
             "--python-version",
-            platform.python_version(),
+            deployment_python,
         ],
     )
     assert manifest_result.exit_code == 0
