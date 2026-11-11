@@ -12,7 +12,8 @@ Inspect bounded events, detect conflicts, prepare unsent changes and reuse exist
 owner-authored foreground reminder policy. Phase 7 dependency is complete. Phase 15
 is independently blocked; no email access is required. Read historical expansion J,
 security, execution protocol, full roadmap and current architecture before implementation.
-Use a local explicit `.ics` source pending provider selection; no ambient account discovery,
+Local foundation used an explicit `.ics` source; owner now selected Google primary calendar.
+No ambient account discovery,
 network, provider mutation, invitations, background worker, client scopes or model tools.
 
 ## Baseline and preservation
@@ -43,6 +44,89 @@ Provider selection is missing information, not permission for account access.
   required live read evidence.
 
 ## Milestone log
+
+### Google Calendar selection — 2026-11-01
+
+Owner answered the pending source question: **Google Calendar**. This supersedes the missing
+provider choice below; exact account/calendar target, new calendar OAuth grant and authorized
+live read remain pending. No connected calendar or credential is inferred. Resume baseline
+`1a1f7b6`; prior exact-commit CI passed. All 32 held paths and installed package inventory
+snapshotted under ignored `runtime/phase16/google/`. First captured resume clock 20:18
+America/Toronto; five-hour stop 01:18 on 2026-11-02.
+
+Frozen independent milestone: inactive, default-off Google Calendar read adapter using a
+trusted-host access-token port, consumed through existing CalendarService. Exact verified
+account and explicit `primary`/owned-calendar selector; no calendar/account discovery, ambient
+Gmail tokens, protected store/login creation or automatic auth fallback. Proposed narrow scopes
+are `calendar.events.owned.readonly` plus `userinfo.email` for exact verified-account binding.
+Shared/non-owned calendars remain unavailable under this contract. Target choice requested as
+information; selecting Google does not approve a grant or private read. Owner subsequently
+selected **primary calendar, same personal Google account as Phase 15**. Exact mailbox/client
+file remain private local inputs; no account profile or credential discovery is needed to guess them.
+
+Pre-measurement limits: one foreground five-second operation including token acquisition and
+two GETs (verified-email identity <=16 KiB, one expanded event page <=1 MiB/512 entries), at most
+31 days, zero retries/redirects/pagination/watch/sync/poll/write/model/cloud/cost. Return no partial
+snapshot. Explicit unknown upstream freshness; stable exact-source revisions for prepare/re-read.
+Test HTTP error/size/deadline/cancel/re-enable, malformed/duplicate JSON, account/scope mismatch,
+ownership, recurrence instance/exception/cancellation, timezone/DST/all-day dates, overlap,
+restart, stale proposal and absence of private diagnostic output before any live acceptance.
+Prepare current scope/setup/retention/rollback review for later exact owner decision.
+
+Implemented Google read port/service factory with default-off token acquisition and no production
+auth source, client settings or startup activation. Account/calendar/scopes/expiry checked before
+network; verified-email GET precedes event page. No arbitrary endpoint selection, proxies,
+redirects, pagination, cookie reuse, compressed data or raw errors. Bounded factory can enforce
+the proposed initial 100-entry proof ceiling. Service disable propagates to adapter generation,
+preventing event GET after an obsolete identity response. `calendar google-plan` exposes the
+concrete inert proposal; [setup review](../../GOOGLE_CALENDAR_SETUP.md) records authority/data limits.
+Frozen Google/local/reminder focused matrix passes **171 tests**, 11.81 s before final formatting;
+new Google subset contains 83 tests. Exact complete-source verification follows below.
+
+Initial frozen Google milestone source passes **2,145 tests**, three existing skips,
+**86.86%** combined statement/branch coverage, 264.13 s in working checkout. Isolated
+publication source passes **2,143 tests**, three existing skips, **86.81%**, 258.56 s.
+Existing Starlette TestClient deprecation retained; two-test difference belongs to held
+working source. Ruff format/lint and Mypy pass (184 source files). Root optional/base and
+Garmin locks/sync/audits pass, with no dependency/lock change; frozen root installed package
+inventory unchanged. PWA lifecycle/PCM **175**, desktop **72**, prototype **9** pass.
+
+Fresh exact publication wheel installed into the separate hash-locked environment passes
+synthetic read/prepare/disable, 25-hour all-day DST interval and inactive plan CLI. Four
+synthetic HTTP requests, **zero real Google requests**, owner credentials, provider writes,
+model calls or cost. Five source hashes frozen before complete suites; documentation alone
+updated afterward. Reviewed **10 safe paths**, all **32 held paths** preserved, **613** source
+files and current local links/anchors; history/staged/exact-source secret scans and whitespace
+checks pass. Current evidence is under ignored `runtime/phase16/google/` plus prefixed
+`google-working`/`google-isolated`/PWA gate receipts in `runtime/phase16/`.
+
+Development corrections: synthetic HTTP responses initially used an already-consumed mock
+body; corrected to actual asynchronous byte streams without weakening production parsing.
+Oversize fixture IDs were shortened to avoid Windows temp-path limits. An initial helper-copy
+shell quoting error was corrected using a file-backed script; only the subsequent nonempty
+staged/exact-source scans count. No production source changed after the final freeze.
+
+Post-review bound correction supersedes the initial Google source receipt: conservative
+whole-second rounding could otherwise widen a fractional 31-day query by one second. A shared
+query-window validator now enforces the original 31-day ceiling **before token acquisition**;
+invalid rounded windows make zero credential/provider calls. Initial live proof will require
+whole-second endpoints and <=7 days. Frozen final v2 focused matrix: **172 pass**, 11.98 s.
+Final exact isolated source: **2,144 pass**, three existing skips, **86.81%**, 257.13 s.
+Final working source: **2,146 pass**, three existing skips, **86.86%**, 225.93 s.
+Ruff format/lint/Mypy and rebuilt/installed exact-wheel synthetic smoke pass again; PWA,
+dependency and lock source remain identical to their passing receipts above.
+
+The first v2 working run had 2,145 passes plus one unrelated `WinError 5` during atomic replace
+of a synthetic voice-settings fixture. No Calendar assertion failed. A fresh ignored absolute
+basetemp passes all 18 voice diagnostics, then the complete working gate passes in a separate
+new ignored directory. No voice source, assertion, permission policy, coverage floor or gate
+was changed or skipped. Failed-run evidence remains retained and is not a full pass.
+Final source hashes use `tested-source.json`; `tested-source-v1.json` preserves earlier hashes.
+Final coverage logs are `google-working-v2-fresh` / `google-isolated-v2` and corresponding
+`working-coverage-v2-fresh.json` / `isolated-coverage-v2.json`. Documentation updated only after
+final tests. Prepared read/renewal approval remains pending; no auth or live activity occurred.
+
+### Local foundation — prior verified work
 
 1. Initiation: architecture/security/legacy references and current code/tools inspected.
    Calendar source selection requested; independent local adapter work continues.
@@ -87,12 +171,22 @@ selection does not grant external calendar scopes or writes. Any provider-specif
 needs the selected exact provider/account/calendar and applicable authority. New grants and
 external writes remain consequential boundaries. Existing email approval covers email only.
 
-External blocker after independent work: source/provider question has no answer; no selected
+Historical local-foundation blocker: source/provider question had no answer; no selected
 owner `.ics` path or calendar provider/account/calendar/auth/read decision is available. No owner
 source can be read or required live proof recorded without that input. Completed synthetic
 implementation, recovery, release checks and prepared operator contract instead. Do not infer
 Google selection from personal Gmail or inspect a connected calendar to guess. No Phase 17 work
 started. Provider writes/invitations remain separately exact-approved future operations.
+Current Google/primary selection supersedes that missing-choice blocker. Required new calendar
+OAuth setup/grant and actual authorized read remain unavailable; provider selection does not
+approve them. [Prepared review](../../GOOGLE_CALENDAR_SETUP.md) groups Calendar API/client,
+two scopes, exact primary target and one <=7-day/100-entry proof. No external setup, new login,
+grant persistence/renewal or identity/calendar read is authorized yet. The prepared review explicitly
+includes distinct protected Windows refresh-grant storage and bounded foreground same-account
+renewal; no background use, token replacement or scope expansion.
+No grant, identity/calendar read or protected auth-store creation attempted. Gmail approval persists
+within its existing email scope. Protected calendar login/storage/renewal remains a subsequent
+implementation milestone; current source cannot activate a live calendar by itself.
 
 ## Verification and measurements
 
@@ -122,16 +216,26 @@ not the earlier working-source wheel. No source/gate/threshold weakened to pass.
 Local export freshness cannot prove current provider state. Unsupported ICS semantics reject
 the whole snapshot; conflict absence never proves availability across missing sources. No remote
 PWA calendar scope, chat integration or notifications. Existing reminder controls remain off.
+Google adapter remains inactive without a trusted approved token source. Protected calendar
+login/store/renewal and live CLI/proof implementation are not yet present; the inert plan
+reports this explicitly. Google primary/account selection is settled; scope/setup authority
+and actual authenticated read proof remain external requirements. Do not reuse Gmail auth or
+connected-chat credentials to bridge that boundary. [Prepared setup](../../GOOGLE_CALENDAR_SETUP.md)
+states scope breadth, data minimization and remaining implementation/recovery requirements.
 
 ## Publication and handoff
 
-Task paths only; all 32 held paths preserved, including shared architecture/security and
+Local-foundation publication `1a1f7b6` passed exact-commit CI. Its task paths preserved all
+32 held paths, including shared architecture/security and
 email-resume changes. Ten application/test/ignore source hashes frozen before final full gates;
 documentation alone updated afterward. Current architecture is unchanged; [calendar contract](../../CALENDAR.md)
 records placement/lifecycle/recovery. Exact staged/publication agreement, root refs/push and
 fresh exact-commit CI are separately checked during publication and retained in ignored receipt
 plus final handoff. No phase completion or live provider acceptance inferred from publication.
 Progress **14/19 primary receipts closed (~74%)**, unweighted management count;
-mobile/physical acceptance remains unestablished. Next current phase: **Continue Phase 16**
-with selected explicit source/provider and applicable live-read authority. Phase 15 remains
+mobile/physical acceptance remains unestablished. The Google milestone publishes only its ten
+reviewed paths; source hashes, exact tested/publication tree, refs and fresh CI are separately
+retained in the ignored Google publication receipt and final handoff. Next current phase:
+**Continue Phase 16** with selected Google primary/same personal account, prepared setup
+decision, protected-auth implementation and applicable live-read authority. Phase 15 remains
 independently blocked; Phase 17 is not started by this report.

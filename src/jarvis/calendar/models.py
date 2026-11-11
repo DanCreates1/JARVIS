@@ -63,6 +63,14 @@ _ERROR_CODES = frozenset(
         "calendar_unsupported_recurrence",
         "calendar_date_overflow",
         "calendar_occurrence_limit",
+        "calendar_credentials_denied",
+        "calendar_account_mismatch",
+        "calendar_rate_limited",
+        "calendar_response_limit",
+        "calendar_provider_incomplete",
+        "calendar_owner_required",
+        "calendar_configuration",
+        "calendar_unsupported_event",
     ]
 )
 

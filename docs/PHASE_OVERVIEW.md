@@ -59,8 +59,9 @@ and application identity stay intact. [Architecture decision](JARVIS_ARCHITECTUR
 - **Phase 16 blocked-external — Calendar and reminders.** Explicit bounded local ICS inspection,
   conflict/change proposals and owner-authored drafts reuse existing Core/foreground reminder
   controls. [Contract](CALENDAR.md), [progress](phase-reports/current/PHASE_16_PROGRESS.md).
-  Working/isolated full gates and Windows synthetic/installed-wheel proof pass. Selected
-  source/provider and authorized live-read evidence pending; no new scopes or worker.
+  Local foundation gates pass. Google primary on Phase 15's personal account selected;
+  inactive read adapter and [setup review](GOOGLE_CALENDAR_SETUP.md) prepared. Protected auth,
+  new grant and authorized live-read evidence pending; no new scopes or worker activated.
 
 ## Remaining delivery map
 

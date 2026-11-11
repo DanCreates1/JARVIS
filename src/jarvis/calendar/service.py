@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Literal, Protocol
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -56,9 +57,11 @@ class CalendarService:
         source_id: str,
         enabled: bool = False,
         source_kind: Literal["local-export", "provider"] = "local-export",
+        control_enabled: Callable[[bool], None] | None = None,
     ) -> None:
         self.provider, self.source_id = provider, source_id
         self.source_kind = source_kind
+        self._control_enabled = control_enabled
         self._generation = 0
         self.enabled = enabled
 
@@ -68,6 +71,8 @@ class CalendarService:
 
     @enabled.setter
     def enabled(self, value: bool) -> None:
+        if self._control_enabled is not None:
+            self._control_enabled(value)
         self._generation += 1
         self._enabled = value
 

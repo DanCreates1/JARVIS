@@ -1,8 +1,10 @@
 # Private calendar and owner-authored reminders
 
 Current Phase 16: trusted-local CLI read/prepare foundation. One Core, no calendar cache,
-new scheduler, model tool, PWA scope or automatic feature activation. Live provider selection
-and authorized owner-source acceptance remain pending; see [progress](phase-reports/current/PHASE_16_PROGRESS.md).
+new scheduler, model tool, PWA scope or automatic feature activation. Google primary calendar
+on the Phase 15 personal account is selected; inactive read adapter implemented, protected auth
+and authorized live acceptance pending. [Google setup review](GOOGLE_CALENDAR_SETUP.md),
+[progress](phase-reports/current/PHASE_16_PROGRESS.md).
 
 ## Explicit source and inspection
 
@@ -94,11 +96,13 @@ disable, cancellation, export, delete, replay prevention and restart recovery. N
 
 ## Provider choice and recovery
 
-Live calendar provider/account/calendar selection remains missing information. Gmail credentials
+Google Calendar primary on the same personal account as Phase 15 is selected. Exact local account/
+client inputs, new grant and authorized live proof remain pending. Gmail credentials
 and `gmail.readonly` confer no calendar access. Connected chat integrations are not desktop Core
 credentials. For Google, review [events list](https://developers.google.com/workspace/calendar/api/v3/reference/events/list)
-and [narrow scopes](https://developers.google.com/workspace/calendar/api/auth) before a separate
-exact account/calendar auth/read decision. No connected calendar/profile was read in this phase.
+and [narrow scopes](https://developers.google.com/workspace/calendar/api/auth) before the separate
+[prepared auth/read decision](GOOGLE_CALENDAR_SETUP.md#concrete-proposed-decision).
+No connected calendar/profile was read in this phase.
 
 Stop invoking calendar commands to stop acquisition. There is no calendar state migration or
 cache to restore/delete. Original export remains unchanged; private command output follows owner
